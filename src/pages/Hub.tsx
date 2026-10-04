@@ -9,9 +9,20 @@ export default function Hub() {
   return (
     <div className="min-h-screen">
       <main className="mx-auto max-w-4xl px-4 py-12 sm:py-20">
-        <p className="text-sm font-semibold tracking-widest text-accent">PENEDU</p>
-        <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">{HUB_NAME}</h1>
-        <p className="mt-4 max-w-2xl text-lg text-muted">수업에 바로 쓰는 교육자료를 한곳에 모았어요.</p>
+        <div className="flex items-center gap-4 sm:gap-6">
+          <img
+            src="/icon-512.png"
+            alt="살빠진 임선생"
+            width={512}
+            height={512}
+            className="h-20 w-20 shrink-0 drop-shadow-md sm:h-32 sm:w-32"
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold tracking-widest text-accent">PENEDU</p>
+            <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">{HUB_NAME}</h1>
+            <p className="mt-3 max-w-2xl text-lg text-muted">수업에 바로 쓰는 교육자료를 한곳에 모았어요.</p>
+          </div>
+        </div>
 
         <ul className="mt-10 grid gap-4 sm:grid-cols-2">
           {SECTIONS.map((s) => (

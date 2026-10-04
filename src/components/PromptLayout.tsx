@@ -85,7 +85,11 @@ export default function PromptLayout() {
       </main>
 
       <footer className="no-print border-t border-line bg-surface">
-        <div className="mx-auto max-w-5xl px-4 py-6 text-sm text-muted">
+        <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-6 text-sm text-muted">
+          <Link to="/" className="shrink-0" aria-label="살빠진 임선생과 함께하는 교육자료">
+            <img src="/icon-192.png" alt="" width={56} height={56} className="h-14 w-14 drop-shadow-sm" />
+          </Link>
+          <div className="min-w-0">
           <p>
             원저작 『첫 결과물이 곧 완성은 아니다』 · 교재 부산 AI&amp;창의 교사 연구회
           </p>
@@ -96,6 +100,7 @@ export default function PromptLayout() {
             </Link>{" "}
             · <Link to="/" className="underline underline-offset-2">{HUB_NAME}</Link>
           </p>
+          </div>
         </div>
       </footer>
     </div>
