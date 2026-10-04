@@ -53,7 +53,7 @@ export default function PromptLayout() {
           <div className="border-t border-line">
             <nav aria-label="메뉴" className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4">
               {[
-                { to: `/prompt/${level}`, label: "13차시", end: true, show: true },
+                { to: `/prompt/${level}`, label: "전체보기", end: true, show: true },
                 { to: `/prompt/${level}/lab`, label: "프롬프트 실험실", end: false, show: true },
                 { to: `/prompt/${level}/cards`, label: "말 카드", end: false, show: !!getCards(level) },
                 { to: `/prompt/${level}/glossary`, label: "사전", end: false, show: !!getGlossary(level) },
