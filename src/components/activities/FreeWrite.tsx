@@ -27,7 +27,7 @@ export default function FreeWrite({ storeKey, fields = [], rows = 2, example, ex
         </div>
       )}
 
-      {table ? (
+      {table && (
         <div className="space-y-4">
           {table.rows.map((r) => (
             <fieldset key={r} className="rounded-card border border-line p-3">
@@ -42,8 +42,9 @@ export default function FreeWrite({ storeKey, fields = [], rows = 2, example, ex
             </fieldset>
           ))}
         </div>
-      ) : (
-        <div className="space-y-3">
+      )}
+      {fields.length > 0 && (
+        <div className={`space-y-3 ${table ? "mt-4" : ""}`}>
           {fields.map((f, i) => (
             <div key={f}>
               <TextArea label={f} value={values[f] ?? ""} onChange={(v) => set(f, v)} rows={rows} />

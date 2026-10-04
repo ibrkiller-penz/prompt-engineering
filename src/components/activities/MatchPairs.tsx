@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
 import { useStored } from "../../lib/storage";
-import { Button } from "../ui";
+import { Button, Reveal } from "../ui";
 
 interface Props {
   storeKey: string;
   pairs: { term: string; def: string }[];
+  example?: string;
 }
 
 /** 낱말 ↔ 뜻 잇기. 낱말을 누르고 뜻을 누르면 연결되고, 바로 맞음/다시 생각을 알려 준다. 끌어다 놓기 없이 버튼만 쓴다. */
-export default function MatchPairs({ storeKey, pairs }: Props) {
+export default function MatchPairs({ storeKey, pairs, example }: Props) {
   // 뜻 순서는 섞되 매번 바뀌지 않게 고정한다
   const defs = useMemo(() => {
     const out = pairs.map((p) => p.def);
@@ -97,6 +98,7 @@ export default function MatchPairs({ storeKey, pairs }: Props) {
           처음부터 다시
         </Button>
       )}
+      {example && <Reveal>{example}</Reveal>}
     </div>
   );
 }

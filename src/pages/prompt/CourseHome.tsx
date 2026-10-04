@@ -1,12 +1,19 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import PdfDialog from "../../print/PdfDialog";
+import Opening from "./Opening";
 import { LEVELS, availableLessons } from "../../content/load";
 import { COURSE_NAME } from "../../site";
 
 const FLOW = ["부탁하기", "되말하기 확인", "점검·검증", "선택 기록", "마무리"];
 
 export default function CourseHome() {
+  const [pdf, setPdf] = useState(false);
   return (
     <div>
+      <div className="mb-10">
+        <Opening />
+      </div>
       <section className="py-4 sm:py-8">
         <p className="font-semibold text-accent">프롬프트 엔지니어링 · 초·중·고 13차시</p>
         <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">{COURSE_NAME}</h1>
@@ -27,7 +34,15 @@ export default function CourseHome() {
             </li>
           ))}
         </ol>
+        <button
+          type="button"
+          onClick={() => setPdf(true)}
+          className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-card border-2 border-accent bg-surface px-4 font-semibold text-accent hover:bg-accent-soft"
+        >
+          📄 활동지 PDF 받기
+        </button>
       </section>
+      {pdf && <PdfDialog onClose={() => setPdf(false)} />}
 
       <h2 className="mt-6 text-xl font-bold">학교급을 골라요</h2>
       <ul className="mt-3 grid gap-4 sm:grid-cols-3">

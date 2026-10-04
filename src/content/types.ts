@@ -50,9 +50,34 @@ export type Block =
       component: string;
       props?: Record<string, unknown>;
     }
+  | { type: "roleplay"; title: string; body?: string[]; steps?: string[]; minutes?: number }
   | { type: "selfcheck"; items: string[] }
   | { type: "todaySentence"; text: string }
   | { type: "note"; prompt: string };
+
+/** 부록: 바로 쓰는 말/문장/요청문 카드 */
+export interface CardsFile {
+  level: Level;
+  title: string;
+  intro?: string;
+  groups: { title: string; cards: { text: string; lesson?: number; when?: string }[] }[];
+}
+
+/** 부록: 낱말/개념 사전 */
+export interface GlossaryFile {
+  level: Level;
+  title: string;
+  words: { term: string; def: string; example?: string; lessons?: number[] }[];
+}
+
+/** 나의 AI 약속 / AI 사용 약속 / 나의 AI 협업 원칙 */
+export interface PledgeFile {
+  level: Level;
+  title: string;
+  intro?: string;
+  items: { title: string; body?: string }[];
+  source: string;
+}
 
 export interface Lesson {
   level: Level;
@@ -65,6 +90,21 @@ export interface Lesson {
   blocks: Block[];
   /** 원문 대조 상태. "완료"가 아니면 화면에 검토 표시 */
   review?: string;
+  /** 교사용 지도서 내용 (3단계 /teacher 화면, 예시 답 인쇄에 씀) */
+  teacher?: TeacherNotes;
+}
+
+export interface TeacherNotes {
+  goal?: string;
+  prep?: string;
+  flow?: { step: string; min: number; activity: string; note?: string }[];
+  questions?: string[];
+  /** 활동별 예시 답 — 교재 표기 그대로 ("활동 1: …") */
+  answers?: string[];
+  tip?: string;
+  background?: string;
+  extension?: string[];
+  faq?: { q: string; a: string }[];
 }
 
 export interface LevelMeta {
@@ -112,5 +152,15 @@ export interface LabScenario {
   >;
   corrected: string;
   correctionChecks: { label: string; patterns: string[] }[];
+  /** "서윤이처럼 한 줄로 시작하기" 버튼 글자 */
+  starterLabel?: string;
+  /** 6. 검증 — 바로잡은 결과물에서 직접 확인할 사실 */
+  verify?: { intro?: string; facts: { text: string; where: string }[] };
+  /** 7. 판단권 — 추가 제안을 받을지 */
+  extras?: { proposal: string; options: { id: string; label: string; effect: string }[] };
+  /** 8. 선택 기록 다섯 줄 예시 */
+  choiceExample?: Record<"chosen" | "why" | "dropped" | "unsure" | "revisit", string>;
+  /** 9. 마무리 다섯 질문 예시 */
+  closeExample?: Record<"problem" | "done" | "enough" | "gap" | "reopen", string>;
   review?: string;
 }

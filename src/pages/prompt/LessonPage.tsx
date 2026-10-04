@@ -1,13 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { availableLessons, getLesson, isLevel, levelMeta } from "../../content/load";
 import { load, save } from "../../lib/storage";
 import { BlockView } from "../../components/blocks/Blocks";
+import PdfDialog, { hasPdf, lessonPdf, pdfUrl } from "../../print/PdfDialog";
 
 export default function LessonPage() {
   const { level, n } = useParams();
   const num = Number(n);
   const lesson = isLevel(level) ? getLesson(level, num) : undefined;
+  const [pdf, setPdf] = useState(false);
 
   useEffect(() => {
     if (!lesson || !isLevel(level)) return;
@@ -62,6 +64,25 @@ export default function LessonPage() {
         <p className="mt-1 text-xs text-muted">
           13차시 중 {num}차시 · {lesson.minutes}분 · {lesson.source}
         </p>
+        <div className="no-print mt-3 flex flex-wrap gap-2">
+          {hasPdf(lessonPdf(level, num)) && (
+            <a
+              href={pdfUrl(lessonPdf(level, num))}
+              download={`다시묻는AI교실_${meta.short}_${num}차시_활동지.pdf`}
+              className="btn inline-flex items-center gap-1 rounded-card bg-accent px-4 text-sm font-semibold text-accent-ink"
+            >
+              📄 {num}차시 활동지 PDF
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => setPdf(true)}
+            className="inline-flex min-h-[44px] items-center gap-1 rounded-card border border-line bg-surface px-4 text-sm font-semibold"
+          >
+            🖨 골라서 인쇄 · PDF로 저장
+          </button>
+        </div>
+        {pdf && <PdfDialog level={level} lesson={num} onClose={() => setPdf(false)} />}
       </header>
 
       <section className="mb-5 rounded-card border border-line bg-surface p-5">

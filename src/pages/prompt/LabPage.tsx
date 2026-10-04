@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { isLevel, labScenarios, levelMeta } from "../../content/load";
-import type { LabScenario, SentenceTag } from "../../content/types";
+import type { LabScenario, Level, SentenceTag } from "../../content/types";
 import { checkPrompt, findPrivacy } from "../../lib/check";
-import { useStored } from "../../lib/storage";
+import { save, useStored } from "../../lib/storage";
+import LabFinish from "./LabFinish";
 import { Bubble, Button, Card, Label, TextArea } from "../../components/ui";
 import { FeedbackBox, HelperNote, PrivacyWarning } from "../../components/activities/Feedback";
 
@@ -82,7 +83,18 @@ export default function LabPage() {
           ))}
         </ul>
       ) : (
-        <Lab key={scenario.id} scenario={scenario} level={level} tryText={tryText} />
+        <>
+          {scenarios.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setChosen(null)}
+              className="mt-4 text-sm font-semibold text-accent underline underline-offset-4"
+            >
+              ← 다른 상황 고르기
+            </button>
+          )}
+          <Lab key={scenario.id} scenario={scenario} level={level} tryText={tryText} />
+        </>
       )}
     </div>
   );
@@ -111,6 +123,10 @@ function Lab({ scenario, level, tryText }: { scenario: LabScenario; level: strin
   const up = (patch: Partial<LabState> | ((prev: LabState) => Partial<LabState>)) =>
     setS((prev) => ({ ...prev, ...(typeof patch === "function" ? patch(prev) : patch) }));
   const fb = useMemo(() => checkPrompt(s.prompt), [s.prompt]);
+  const reset = () => {
+    setS(EMPTY);
+    save(`lab:${level}:${scenario.id}:finish`, undefined);
+  };
   const livePrivacy = findPrivacy(s.prompt);
 
   const responseId =
@@ -150,7 +166,7 @@ function Lab({ scenario, level, tryText }: { scenario: LabScenario; level: strin
             <div className="mt-3 flex flex-wrap gap-2">
               {!s.prompt && (
                 <Button variant="ghost" onClick={() => up({ prompt: scenario.starter })}>
-                  서윤이처럼 한 줄로 시작하기
+                  {scenario.starterLabel ?? "한 줄로 시작하기"}
                 </Button>
               )}
               {tryText && !s.prompt.includes(tryText) && (
@@ -407,25 +423,30 @@ function Lab({ scenario, level, tryText }: { scenario: LabScenario; level: strin
                   );
                 })}
               </ul>
-              <div className="mt-4 rounded-card bg-accent-soft p-4">
-                <p className="font-bold text-accent">한 바퀴 돌았어요!</p>
-                <p className="mt-1">
-                  부탁 → 첫 결과물 점검 → 되말하기 → 바로잡기까지 해 봤어요. ‘확인 필요’ 표시가 남아 있죠? 숫자와 출처는
-                  AI에게 맡기지 않고 내가 믿을 만한 자료로 직접 확인해요(7차시).
-                </p>
-                <p className="mt-2 text-sm text-muted">
-                  다음 단계 — 검증 표 → 추가 제안 받을지 결정 → 선택 기록 → 마무리 — 는 곧 열려요.
-                </p>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="ghost" onClick={() => setS(EMPTY)}>
-                  처음부터 다시 해 보기
-                </Button>
-                <Link to={`/prompt/${level}`} className="btn inline-flex items-center rounded-card border border-line px-4 font-semibold">
-                  13차시로 돌아가기
-                </Link>
-              </div>
+              {!scenario.verify && (
+                <div className="mt-4 rounded-card bg-accent-soft p-4">
+                  <p className="font-bold text-accent">한 바퀴 돌았어요!</p>
+                  <p className="mt-1">
+                    부탁 → 첫 결과물 점검 → 되말하기 → 바로잡기까지 해 봤어요. ‘확인 필요’ 표시가 남아 있죠? 숫자와 출처는
+                    AI에게 맡기지 않고 내가 믿을 만한 자료로 직접 확인해요.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button variant="ghost" onClick={reset}>
+                      처음부터 다시 해 보기
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
+          )}
+          {s.step >= 4 && corrected && scenario.verify && (
+            <LabFinish
+              scenario={scenario}
+              level={level as Level}
+              prompt={s.prompt}
+              correction={s.correction}
+              onReset={reset}
+            />
           )}
         </div>
 
@@ -441,7 +462,7 @@ function Lab({ scenario, level, tryText }: { scenario: LabScenario; level: strin
             </ul>
           </div>
           {s.step > 0 && (
-            <Button variant="ghost" className="mt-3 w-full" onClick={() => setS(EMPTY)}>
+            <Button variant="ghost" className="mt-3 w-full" onClick={reset}>
               처음부터 다시
             </Button>
           )}

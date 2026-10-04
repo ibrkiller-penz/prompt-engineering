@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Block, StoryScene, Table, Word } from "../../content/types";
 import { useStored } from "../../lib/storage";
@@ -10,7 +10,52 @@ const ICONS: Record<string, string> = {
   map: "🗺️",
   scissors: "✂️",
   cake: "🎂",
+  game: "🎮",
+  baton: "🏃",
+  house: "🏠",
+  camera: "📷",
+  book: "📖",
+  chef: "🍳",
+  puzzle: "🧩",
+  compass: "🧭",
+  bridge: "🌉",
+  sprout: "🌱",
+  flag: "🏁",
+  clock: "⏰",
+  scale: "⚖️",
+  note: "📝",
 };
+
+function Timer({ minutes }: { minutes: number }) {
+  const [left, setLeft] = useState(minutes * 60);
+  const [running, setRunning] = useState(false);
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => setLeft((l) => (l <= 1 ? (setRunning(false), 0) : l - 1)), 1000);
+    return () => clearInterval(t);
+  }, [running]);
+  const mm = String(Math.floor(left / 60)).padStart(2, "0");
+  const ss = String(left % 60).padStart(2, "0");
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`font-mono text-3xl font-bold tabular-nums ${left === 0 ? "text-bad" : ""}`} aria-live="polite">
+        {mm}:{ss}
+      </span>
+      <Button variant="soft" onClick={() => setRunning((r) => !r)} disabled={left === 0}>
+        {running ? "멈춤" : "시작"}
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setRunning(false);
+          setLeft(minutes * 60);
+        }}
+      >
+        처음으로
+      </Button>
+    </div>
+  );
+}
 
 function BlockTitle({ tag, title }: { tag: string; title?: string }) {
   return (
@@ -283,6 +328,32 @@ export function BlockView({ block, storeKey, level }: { block: Block; storeKey: 
             ))}
           </ol>
           {block.note && <p className="mt-4 text-sm text-muted">{block.note}</p>}
+        </Card>
+      );
+    case "roleplay":
+      return (
+        <Card className="border-2 border-dashed border-accent">
+          <BlockTitle tag="AI 역할 놀이" title={block.title} />
+          <div className="space-y-2">
+            {block.body?.map((p, i) => (
+              <p key={i}>
+                <Rich text={p} />
+              </p>
+            ))}
+          </div>
+          {block.steps && (
+            <ol className="mt-3 list-decimal space-y-1 pl-5">
+              {block.steps.map((st, i) => (
+                <li key={i}>
+                  <Rich text={st} />
+                </li>
+              ))}
+            </ol>
+          )}
+          <div className="no-print mt-4 rounded-card bg-bg p-3">
+            <p className="mb-2 text-sm font-semibold text-muted">짝 활동 타이머</p>
+            <Timer minutes={block.minutes ?? 3} />
+          </div>
         </Card>
       );
     case "activity":

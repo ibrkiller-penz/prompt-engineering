@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { COURSE_NAME, HUB_NAME } from "../site";
-import { LEVELS, isLevel } from "../content/load";
+import { LEVELS, getCards, getGlossary, getPledge, isLevel } from "../content/load";
 
 export default function PromptLayout() {
   const { pathname } = useLocation();
@@ -53,9 +53,14 @@ export default function PromptLayout() {
           <div className="border-t border-line">
             <nav aria-label="메뉴" className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4">
               {[
-                { to: `/prompt/${level}`, label: "13차시", end: true },
-                { to: `/prompt/${level}/lab`, label: "프롬프트 실험실", end: false },
-              ].map((m) => (
+                { to: `/prompt/${level}`, label: "13차시", end: true, show: true },
+                { to: `/prompt/${level}/lab`, label: "프롬프트 실험실", end: false, show: true },
+                { to: `/prompt/${level}/cards`, label: "말 카드", end: false, show: !!getCards(level) },
+                { to: `/prompt/${level}/glossary`, label: "사전", end: false, show: !!getGlossary(level) },
+                { to: `/prompt/${level}/pledge`, label: "약속", end: false, show: !!getPledge(level) },
+              ]
+                .filter((m) => m.show)
+                .map((m) => (
                 <NavLink
                   key={m.to}
                   to={m.to}

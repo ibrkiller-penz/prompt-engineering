@@ -10,8 +10,11 @@ interface Props {
   storeKey: string;
   example?: Record<FourKey, string>;
   boundaryLabel?: string;
+  /** 학교급별 칸 이름 (예: 초등 '네 칸') */
+  labels?: Partial<Record<FourKey, string>>;
   /** "고른 일" 칸을 보여 줄지 */
   topic?: boolean;
+  topicLabel?: string;
   /** 네 줄로 부탁 문장을 조립해 보여 줄지 */
   assemble?: boolean;
   closing?: string;
@@ -35,7 +38,7 @@ export function assembleFour(v: FourValues, closing?: string) {
 }
 
 /** 작업 전 네 줄(네 칸) 쓰기 → 요청 문장 자동 조립 */
-export default function FourLines({ storeKey, example, boundaryLabel, topic, assemble, closing }: Props) {
+export default function FourLines({ storeKey, example, boundaryLabel, labels, topic, topicLabel, assemble, closing }: Props) {
   const [v, setV] = useStored<FourValues>(storeKey, { problem: "", criteria: "", boundary: "", done: "", topic: "" });
   const sentence = assemble ? assembleFour(v, closing) : "";
   const [draft, setDraft] = useStored<string>(storeKey + ":draft", "");
@@ -45,14 +48,14 @@ export default function FourLines({ storeKey, example, boundaryLabel, topic, ass
     <div>
       {topic && (
         <div className="mb-3">
-          <TextArea label="고른 일" value={v.topic ?? ""} onChange={(t) => setV({ ...v, topic: t })} rows={1} />
+          <TextArea label={topicLabel ?? "고른 일"} value={v.topic ?? ""} onChange={(t) => setV({ ...v, topic: t })} rows={1} />
         </div>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         {FOUR.map((f) => (
           <div key={f.key} className="rounded-card border border-line p-3">
             <TextArea
-              label={`${f.key === "boundary" && boundaryLabel ? `③ ${boundaryLabel}` : f.label}`}
+              label={labels?.[f.key] ?? (f.key === "boundary" && boundaryLabel ? `③ ${boundaryLabel}` : f.label)}
               placeholder={f.q}
               value={v[f.key]}
               onChange={(t) => setV({ ...v, [f.key]: t })}
@@ -84,8 +87,13 @@ export default function FourLines({ storeKey, example, boundaryLabel, topic, ass
                   rows={4}
                 />
               </div>
-              <div className="mt-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <CopyButton text={draft || sentence} label="부탁 문장 복사" />
+                {draft && draft !== sentence && (
+                  <button type="button" onClick={() => setDraft("")} className="text-sm font-semibold text-accent underline">
+                    네 줄로 다시 만들기
+                  </button>
+                )}
               </div>
             </>
           )}
