@@ -119,3 +119,12 @@ body.print-mode {
   .pr .doc-title .meta { text-align: left; }
   .pr .match { grid-template-columns: 1fr; }
 }
+
+/* 차시를 여는 이야기 — A4 첫 쪽 */
+.pr .story { break-after: page; padding: 2pt 4pt; }
+.pr .story .kick { font-size: 8.5pt; font-weight: 800; color: var(--acc); }
+.pr .story .st-title { all: unset; display: block; font-size: 15pt; font-weight: 800; margin: 1pt 0 6pt; }
+.pr .story img { display: block; width: 100%; max-height: 82mm; object-fit: cover; border-radius: 4pt; margin: 4pt 0 8pt; }
+.pr .story p { margin: 0 0 5pt; line-height: 1.75; text-align: justify; }
+.pr .story .st-close { font-weight: 800; border-left: 3pt solid var(--acc); padding-left: 7pt; margin-top: 8pt; }
+.pr .story .st-src { font-size: 8pt; color: var(--sub); }

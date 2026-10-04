@@ -58,6 +58,7 @@ export default function PromptLayout() {
                 { to: `/prompt/${level}/cards`, label: "말 카드", end: false, show: !!getCards(level) },
                 { to: `/prompt/${level}/glossary`, label: "사전", end: false, show: !!getGlossary(level) },
                 { to: `/prompt/${level}/pledge`, label: "약속", end: false, show: !!getPledge(level) },
+                { to: `/prompt/${level}/teacher`, label: "👩‍🏫 교사용", end: false, show: true },
               ]
                 .filter((m) => m.show)
                 .map((m) => (

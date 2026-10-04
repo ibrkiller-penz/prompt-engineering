@@ -152,6 +152,8 @@ export interface LabScenario {
   >;
   corrected: string;
   correctionChecks: { label: string; patterns: string[] }[];
+  /** 이 시나리오에서만 네 줄 요소로 볼 낱말 (예: 기준 ← "부산") */
+  extraPatterns?: Partial<Record<"problem" | "criteria" | "boundary" | "done", string[]>>;
   /** "서윤이처럼 한 줄로 시작하기" 버튼 글자 */
   starterLabel?: string;
   /** 6. 검증 — 바로잡은 결과물에서 직접 확인할 사실 */
@@ -163,4 +165,32 @@ export interface LabScenario {
   /** 9. 마무리 다섯 질문 예시 */
   closeExample?: Record<"problem" | "done" | "enough" | "gap" | "reopen", string>;
   review?: string;
+}
+
+/** 차시를 여는 이야기 — 수필 『다 된 줄 알았다』에서, 학교급별 문체 */
+export interface StoryVersion {
+  kicker: string;
+  title: string;
+  paragraphs: string[];
+  closing: string;
+}
+export interface StoryFile {
+  lesson: number;
+  source: string;
+  image: string;
+  imageAlt: string;
+  image2?: string;
+  image2Alt?: string;
+  /** 두 번째 그림을 몇 번째 문단 뒤에 둘지 (0부터) */
+  image2After?: number;
+  imagePrompt?: string;
+  levels: Record<Level, StoryVersion>;
+}
+
+/** 교사용 지도서 앞부분 (지도 원칙·평가 계획 등) */
+export interface TeacherGuideFile {
+  level: Level;
+  title: string;
+  sections: { title: string; body?: string[]; list?: string[]; table?: Table }[];
+  source: string;
 }

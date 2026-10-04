@@ -18,8 +18,8 @@ export function findVague(text: string) {
   });
 }
 
-export function findElements(text: string) {
-  return rules.elements.elements.map((e) => ({ ...e, found: any(text, e.patterns) }));
+export function findElements(text: string, extra?: Partial<Record<string, string[]>>) {
+  return rules.elements.elements.map((e) => ({ ...e, found: any(text, [...e.patterns, ...(extra?.[e.id] ?? [])]) }));
 }
 
 export function findBonus(text: string) {
@@ -36,9 +36,9 @@ export interface Feedback {
   count: number;
 }
 
-export function checkPrompt(text: string): Feedback {
+export function checkPrompt(text: string, extra?: Partial<Record<string, string[]>>): Feedback {
   const privacy = findPrivacy(text);
-  const elements = findElements(text);
+  const elements = findElements(text, extra);
   const vague = findVague(text);
   const bonus = findBonus(text);
   const count = elements.filter((e) => e.found).length;

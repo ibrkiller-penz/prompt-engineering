@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
-import { availableLessons, getLesson, isLevel, levelMeta } from "../../content/load";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import ClassMode from "../../components/ClassMode";
+import { availableLessons, getLesson, getStory, isLevel, levelMeta } from "../../content/load";
+import StoryOpening from "../../components/blocks/StoryOpening";
 import { load, save } from "../../lib/storage";
 import { BlockView } from "../../components/blocks/Blocks";
 import PdfDialog, { hasPdf, lessonPdf, pdfUrl } from "../../print/PdfDialog";
@@ -10,6 +12,9 @@ export default function LessonPage() {
   const num = Number(n);
   const lesson = isLevel(level) ? getLesson(level, num) : undefined;
   const [pdf, setPdf] = useState(false);
+  const [sp, setSp] = useSearchParams();
+  const classMode = sp.get("class") === "1";
+  const setClassMode = (on: boolean) => setSp(on ? { class: "1" } : {}, { replace: true });
 
   useEffect(() => {
     if (!lesson || !isLevel(level)) return;
@@ -37,6 +42,7 @@ export default function LessonPage() {
     );
   }
 
+  const story = getStory(num);
   const ready = availableLessons(level);
   const idx = ready.indexOf(num);
   const prev = ready[idx - 1];
@@ -76,6 +82,19 @@ export default function LessonPage() {
           )}
           <button
             type="button"
+            onClick={() => setClassMode(true)}
+            className="inline-flex min-h-[44px] items-center gap-1 rounded-card border border-line bg-surface px-4 text-sm font-semibold"
+          >
+            📺 수업 모드
+          </button>
+          <Link
+            to={`/prompt/${level}/teacher/${num}`}
+            className="btn inline-flex items-center gap-1 rounded-card border border-line bg-surface px-4 text-sm font-semibold"
+          >
+            👩‍🏫 지도안
+          </Link>
+          <button
+            type="button"
             onClick={() => setPdf(true)}
             className="inline-flex min-h-[44px] items-center gap-1 rounded-card border border-line bg-surface px-4 text-sm font-semibold"
           >
@@ -83,7 +102,29 @@ export default function LessonPage() {
           </button>
         </div>
         {pdf && <PdfDialog level={level} lesson={num} onClose={() => setPdf(false)} />}
+        {classMode && (
+          <ClassMode
+            title={`${meta.name} ${num}차시 · ${lesson.title}`}
+            onClose={() => setClassMode(false)}
+            slides={[
+              <div key="t" className="py-8 text-center">
+                <p className="text-6xl font-black text-accent">{String(num).padStart(2, "0")}</p>
+                <h1 className="mt-3 text-4xl font-extrabold">{lesson.title}</h1>
+                {lesson.subtitle && <p className="mt-2 text-muted">{lesson.subtitle}</p>}
+                <ol className="mx-auto mt-8 max-w-2xl list-decimal space-y-2 pl-6 text-left">
+                  {lesson.goals.map((g) => (
+                    <li key={g}>{g}</li>
+                  ))}
+                </ol>
+              </div>,
+              ...(story ? [<StoryOpening key="s" story={story} level={level} />] : []),
+              ...lesson.blocks.map((b, i) => <BlockView key={i} block={b} storeKey={`${level}:${num}:${i}`} level={level} />),
+            ]}
+          />
+        )}
       </header>
+
+      {story && <StoryOpening story={story} level={level} />}
 
       <section className="mb-5 rounded-card border border-line bg-surface p-5">
         <p className="font-bold">이번 시간에 배울 것</p>

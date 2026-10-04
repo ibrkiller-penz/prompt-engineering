@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import PdfDialog from "../../print/PdfDialog";
-import Opening from "./Opening";
 import { LEVELS, availableLessons } from "../../content/load";
 import { COURSE_NAME } from "../../site";
 
@@ -11,9 +10,6 @@ export default function CourseHome() {
   const [pdf, setPdf] = useState(false);
   return (
     <div>
-      <div className="mb-10">
-        <Opening />
-      </div>
       <section className="py-4 sm:py-8">
         <p className="font-semibold text-accent">프롬프트 엔지니어링 · 초·중·고 13차시</p>
         <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">{COURSE_NAME}</h1>

@@ -5,6 +5,7 @@ import type { LabScenario, Level, SentenceTag } from "../../content/types";
 import { checkPrompt, findPrivacy } from "../../lib/check";
 import { save, useStored } from "../../lib/storage";
 import LabFinish from "./LabFinish";
+import { aiUrl, useSettings } from "../../lib/settings";
 import { Bubble, Button, Card, Label, TextArea } from "../../components/ui";
 import { FeedbackBox, HelperNote, PrivacyWarning } from "../../components/activities/Feedback";
 
@@ -122,7 +123,17 @@ function Lab({ scenario, level, tryText }: { scenario: LabScenario; level: strin
   const [s, setS] = useStored<LabState>(`lab:${level}:${scenario.id}`, EMPTY);
   const up = (patch: Partial<LabState> | ((prev: LabState) => Partial<LabState>)) =>
     setS((prev) => ({ ...prev, ...(typeof patch === "function" ? patch(prev) : patch) }));
-  const fb = useMemo(() => checkPrompt(s.prompt), [s.prompt]);
+  const [settings] = useSettings();
+  const realAi = settings.realAi && level !== "elementary" ? aiUrl(settings) : "";
+  const openRealAi = async () => {
+    try {
+      await navigator.clipboard.writeText(s.prompt);
+    } catch {
+      /* 복사 실패해도 열기는 한다 */
+    }
+    window.open(realAi, "_blank", "noopener");
+  };
+  const fb = useMemo(() => checkPrompt(s.prompt, scenario.extraPatterns), [s.prompt, scenario.extraPatterns]);
   const reset = () => {
     setS(EMPTY);
     save(`lab:${level}:${scenario.id}:finish`, undefined);
@@ -178,6 +189,17 @@ function Lab({ scenario, level, tryText }: { scenario: LabScenario; level: strin
                 점검하기
               </Button>
             </div>
+            {realAi && (
+              <div className="mt-4 rounded-card border-2 border-dashed border-line p-3">
+                <Button variant="ghost" onClick={openRealAi} disabled={!s.prompt.trim() || livePrivacy.length > 0}>
+                  ↗ 내 부탁 복사하고 실제 AI 열기
+                </Button>
+                <p className="mt-2 text-sm text-muted">
+                  선생님이 켠 기능이에요. 새 탭에서 붙여 넣어(Ctrl+V) 보세요. 쓰기 전에 꼭 확인해요: 서비스 이용 연령·보호자 동의, 학교 지침,
+                  이름·학교·연락처 같은 개인정보는 입력하지 않기.
+                </p>
+              </div>
+            )}
           </Card>
 
           {/* 2. 즉시 점검 */}

@@ -1,4 +1,4 @@
-import type { CardsFile, GlossaryFile, LabScenario, Lesson, Level, LevelMeta, PledgeFile, Rules } from "./types";
+import type { TeacherGuideFile, StoryFile, CardsFile, GlossaryFile, LabScenario, Lesson, Level, LevelMeta, PledgeFile, Rules } from "./types";
 import levelsJson from "../../content/prompt/levels.json";
 import vague from "../../content/prompt/rules/vague.json";
 import elements from "../../content/prompt/rules/elements.json";
@@ -19,6 +19,18 @@ const glossaryFiles = import.meta.glob<GlossaryFile>("../../content/prompt/*/glo
   import: "default",
 });
 const pledgeFiles = import.meta.glob<PledgeFile>("../../content/prompt/*/pledge.json", { eager: true, import: "default" });
+
+const storyFiles = import.meta.glob<StoryFile>("../../content/prompt/stories/lesson-*.json", {
+  eager: true,
+  import: "default",
+});
+export const getStory = (n: number) => Object.values(storyFiles).find((s) => s.lesson === n);
+
+const guideFiles = import.meta.glob<TeacherGuideFile>("../../content/prompt/*/teacher-guide.json", {
+  eager: true,
+  import: "default",
+});
+export const getTeacherGuide = (level: Level) => Object.values(guideFiles).find((g) => g.level === level);
 
 export const getCards = (level: Level) => Object.values(cardFiles).find((c) => c.level === level);
 export const getGlossary = (level: Level) => Object.values(glossaryFiles).find((c) => c.level === level);

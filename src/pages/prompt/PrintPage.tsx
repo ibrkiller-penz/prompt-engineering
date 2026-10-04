@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import "../../print/print.css";
-import { availableLessons, getLesson, isLevel, levelMeta } from "../../content/load";
+import { availableLessons, getLesson, getStory, isLevel, levelMeta } from "../../content/load";
+import { storyImg } from "../../components/blocks/StoryOpening";
 import type { Lesson } from "../../content/types";
 import { COURSE_NAME } from "../../site";
 import { PrintBlock, collectAnswers } from "../../print/PrintBlocks";
@@ -88,6 +89,7 @@ export default function PrintPage() {
                   이름 ______________
                 </div>
               </div>
+              {main === "lesson" && <PrintStory n={ls.lesson} level={level} />}
               <div className="goals">
                 <b>이번 시간에 배울 것</b>
                 <ol>
@@ -135,6 +137,26 @@ export default function PrintPage() {
           </section>
         )}
       </div>
+    </div>
+  );
+}
+
+function PrintStory({ n, level }: { n: number; level: string }) {
+  const s = getStory(n);
+  const v = s && isLevel(level) ? s.levels[level] : undefined;
+  if (!s || !v) return null;
+  return (
+    <div className="story">
+      <div className="kick">{v.kicker}</div>
+      <h2 className="st-title">{v.title}</h2>
+      <img src={storyImg(s.image)} alt={s.imageAlt} />
+      {v.paragraphs.map((t, i) => (
+        <p key={i}>
+          {t.split(/(\*\*[^*]+\*\*)/g).map((part, j) => (part.startsWith("**") ? <b key={j}>{part.slice(2, -2)}</b> : part))}
+        </p>
+      ))}
+      <p className="st-close">{v.closing}</p>
+      <p className="st-src">— {s.source}</p>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import LabPage from "./pages/prompt/LabPage";
 import About from "./pages/prompt/About";
 import { CardsPage, GlossaryPage, PledgePage } from "./pages/prompt/Appendix";
 import PrintPage from "./pages/prompt/PrintPage";
+import { TeacherHome, TeacherLesson } from "./pages/prompt/Teacher";
 import NotFound from "./pages/NotFound";
 import PromptLayout from "./components/PromptLayout";
 
@@ -31,6 +32,9 @@ export default function App() {
         <Route path=":level/glossary" element={<GlossaryPage />} />
         <Route path=":level/pledge" element={<PledgePage />} />
         <Route path=":level/project" element={<ProjectRedirect />} />
+        <Route path=":level/teacher" element={<TeacherHome />} />
+        <Route path=":level/teacher/:n" element={<TeacherLesson />} />
+        <Route path="teacher" element={<Navigate to="/prompt/middle/teacher" replace />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
