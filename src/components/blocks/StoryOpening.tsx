@@ -24,8 +24,8 @@ export default function StoryOpening({ story, level }: { story: StoryFile; level
     <article className="mb-6 rounded-card border border-line bg-surface px-5 py-7 shadow-sm sm:px-10 sm:py-9">
       <p className="text-sm font-semibold tracking-wide text-accent">{v.kicker}</p>
       <h2 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">{v.title}</h2>
-      <Figure name={story.image} alt={story.imageAlt} />
       <div className="mx-auto max-w-[680px] space-y-4 text-[1.05rem] leading-[1.9]">
+        <Figure name={story.image} alt={story.imageAlt} />
         {v.paragraphs.map((p, i) => (
           <div key={i}>
             <p>
