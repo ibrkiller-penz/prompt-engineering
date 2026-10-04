@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: #15803d;
+  --color-ok-soft: #dcfce7;
+  --color-bad: #b91c1c;
+  --color-bad-soft: #fee2e2;
+  --color-warn: #a16207;
+  --color-warn-soft: #fef3c7;
+  --radius-card: var(--radius);
+}
+
+/* 기본(허브) 테마 */
+:root {
+  --bg: #f7f6f2;
+  --surface: #ffffff;
+  --ink: #1f2328;
+  --muted: #5b6168;
+  --line: #e3e1da;
+  --accent: #3b5bdb;
+  --accent-ink: #ffffff;
+  --accent-soft: #e8edff;
+  --radius: 14px;
+  font-size: 16px;
+}
+
+/* 학교급 테마: 초 — 밝고 둥글게 / 중 — 산뜻하게 / 고 — 차분하게 */
+html[data-level="elementary"] {
+  --bg: #fffaf0;
+  --line: #f1e3c6;
+  --accent: #c2410c;
+  --accent-soft: #ffedd5;
+  --radius: 22px;
+  font-size: 18px;
+}
+html[data-level="middle"] {
+  --bg: #f3faf8;
+  --line: #d5ebe5;
+  --accent: #0f766e;
+  --accent-soft: #d7f2ec;
+  --radius: 16px;
+  font-size: 17px;
+}
+html[data-level="high"] {
+  --bg: #f5f6f9;
+  --line: #dde1ea;
+  --accent: #1e3a8a;
+  --accent-soft: #e2e8f6;
+  --radius: 10px;
+  font-size: 16px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.7;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 터치 영역 44px 이상 */
+button,
+[role="button"],
+a.btn {
+  min-height: 44px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}
