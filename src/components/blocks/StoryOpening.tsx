@@ -10,7 +10,7 @@ function Figure({ name, alt }: { name: string; alt: string }) {
   const [ok, setOk] = useState(true);
   if (!ok) return null;
   return (
-    <figure className="my-5 overflow-hidden rounded-card border border-line bg-bg">
+    <figure className="mx-auto my-5 w-full overflow-hidden rounded-card border border-line bg-bg sm:w-3/5">
       <img src={storyImg(name)} alt={alt} loading="lazy" onError={() => setOk(false)} className="aspect-[3/2] w-full object-cover" />
     </figure>
   );
