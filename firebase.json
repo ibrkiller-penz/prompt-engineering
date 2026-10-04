@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "site": "prompt-engineering-guide",
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  }
+}
