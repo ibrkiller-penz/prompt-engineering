@@ -93,7 +93,7 @@ body.print-mode {
 .pr td.c { text-align: center; white-space: nowrap; }
 
 /* 활동 */
-.pr .act { break-inside: avoid-page; margin: 10pt 0 6pt; }
+.pr .act { margin: 10pt 0 6pt; }
 .pr .act .ah { break-after: avoid; font-weight: 800; font-size: 10.8pt; margin-bottom: 2pt; }
 .pr .act .ah .tag { background: #222; }
 .pr .ins { color: var(--sub); }
@@ -106,7 +106,7 @@ body.print-mode {
 .pr .passage { border: 0.8pt solid var(--line); padding: 6pt 9pt; line-height: 2; margin: 4pt 0; }
 .pr .match { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14pt; }
 .pr .match div { padding: 2pt 0; border-bottom: 0.4pt dotted #ccc; }
-.pr .step { break-inside: avoid-page; border-left: 2.4pt solid var(--acc); padding-left: 8pt; margin: 8pt 0; }
+.pr .step { border-left: 2.4pt solid var(--acc); padding-left: 8pt; margin: 8pt 0; }
 
 /* 예시 답 */
 .pr .ans { break-inside: avoid; margin: 4pt 0 8pt; }
@@ -128,3 +128,67 @@ body.print-mode {
 .pr .story p { margin: 0 0 5pt; line-height: 1.75; text-align: justify; }
 .pr .story .st-close { font-weight: 800; border-left: 3pt solid var(--acc); padding-left: 7pt; margin-top: 8pt; }
 .pr .story .st-src { font-size: 8pt; color: var(--sub); }
+
+/* 쪽 나눔: 어떤 상자·표 줄·칸·문단도 두 쪽에 걸치지 않게 */
+.pr .goals,
+.pr .box,
+.pr .scene,
+.pr .word,
+.pr .field,
+.pr .today,
+.pr .sit,
+.pr .passage,
+.pr .match,
+.pr .ans,
+.pr table,
+.pr tr,
+.pr li,
+.pr p,
+.pr img {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+/* 제목·머리는 다음 내용과 같은 쪽에 */
+.pr h2,
+.pr h3,
+.pr .act .ah,
+.pr .box .cap,
+.pr .field .fl,
+.pr .doc-title {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+.pr p {
+  orphans: 3;
+  widows: 3;
+}
+/* 이야기는 첫 쪽 한 장에, 수업 내용은 새 쪽에서 */
+.pr .story {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* 쪽 맞추기 */
+.pr .pbreak { break-before: page; page-break-before: always; height: 0; }
+@media screen {
+  .pr .pbreak { height: 0; margin: 10mm -13mm; border-top: 2px dashed #b9b4aa; position: relative; }
+  .pr .pbreak::after { content: "쪽 나눔"; position: absolute; right: 13mm; top: -9px; background: #fff; padding: 0 6px; font-size: 10px; color: #8a857c; }
+}
+.pr .lines { break-inside: avoid; }
+
+/* 학년·반·번·이름 칸 */
+.pr .namebox-t { width: auto; margin: 0; font-size: 10pt; border-collapse: collapse; flex: none; }
+.pr .namebox-t th { background: #f1f0ec; font-weight: 700; padding: 2pt 5pt; white-space: nowrap; height: 9.5mm; text-align: center; }
+.pr .namebox-t td { width: 13mm; height: 9.5mm; }
+.pr .namebox-t tr:last-child td { width: auto; }
+
+/* 초등: 더 큰 글씨, 넓은 쓰기 줄 */
+.pr[data-level="elementary"] { font-size: 13pt; line-height: 1.7; }
+.pr[data-level="elementary"] .ln { height: 26pt; }
+.pr[data-level="elementary"] h2 { font-size: 13.5pt; }
+.pr[data-level="elementary"] .act .ah { font-size: 13.5pt; }
+.pr[data-level="elementary"] table { font-size: 12pt; }
+.pr[data-level="elementary"] .today p { font-size: 15pt; }
+.pr[data-level="elementary"] .doc-title h1 { font-size: 19pt; }
+.pr[data-level="elementary"] .namebox-t { font-size: 12pt; }
+.pr[data-level="elementary"] .namebox-t td { width: 15mm; height: 11mm; }

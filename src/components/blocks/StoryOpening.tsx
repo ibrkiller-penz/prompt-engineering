@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import essay from "../../../content/prompt/essay.json";
 import type { Level, StoryFile } from "../../content/types";
 import { Rich } from "../ui";
 
@@ -33,7 +35,17 @@ export default function StoryOpening({ story, level }: { story: StoryFile; level
           </div>
         ))}
         <blockquote className="mt-6 border-l-4 border-accent pl-4 text-lg font-extrabold leading-snug">{v.closing}</blockquote>
-        <p className="pt-2 text-xs text-muted">— {story.source}</p>
+        <p className="pt-2 text-xs text-muted">
+          — {story.source}
+          {(() => {
+            const t = essay.toc.find((x) => x.lessons?.includes(story.lesson));
+            return t ? (
+              <Link to={`/prompt/essay?p=${t.page}`} className="no-print ml-2 font-semibold text-accent underline underline-offset-2">
+                📖 수필에서 이어 읽기
+              </Link>
+            ) : null;
+          })()}
+        </p>
       </div>
     </article>
   );

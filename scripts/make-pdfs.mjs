@@ -44,9 +44,7 @@ const browser = await chromium.launch({ executablePath: exe });
 const page = await browser.newPage();
 const make = async (query, file) => {
   await page.goto(`${BASE}/prompt/print?${query}`, { waitUntil: "networkidle" });
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-  });
+  await page.waitForSelector("body[data-paged='1']", { timeout: 30000 });
   await page.pdf({ path: join(OUT, file), preferCSSPageSize: true, printBackground: true });
   console.log("made", file);
 };

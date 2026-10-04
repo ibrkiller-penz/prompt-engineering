@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { paginate } from "../../print/paginate";
 import { Link, useSearchParams } from "react-router-dom";
 import "../../print/print.css";
 import { availableLessons, getLesson, getStory, isLevel, levelMeta } from "../../content/load";
@@ -31,6 +32,25 @@ export default function PrintPage() {
   const scope = nums.length === all.length && nums.length > 1 ? "전체" : nums.map((n) => `${n}차시`).join("_");
   const kind = [main === "lesson" ? "활동지" : main === "sheet" ? "활동만" : "", withAns ? "예시답" : ""].filter(Boolean).join("+");
 
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // 글꼴·그림이 다 그려진 뒤 A4 쪽에 맞춰 배치한다
+    let alive = true;
+    const run = async () => {
+      await document.fonts.ready;
+      const imgs = Array.from(sheetRef.current?.querySelectorAll("img") ?? []);
+      await Promise.all(imgs.map((im) => (im.complete ? 0 : new Promise((r) => (im.onload = im.onerror = r)))));
+      if (!alive || !sheetRef.current) return;
+      paginate(sheetRef.current);
+      document.body.dataset.paged = "1";
+    };
+    run();
+    return () => {
+      alive = false;
+      delete document.body.dataset.paged;
+    };
+  }, [sp]);
+
   useEffect(() => {
     document.body.classList.add("print-mode");
     return () => document.body.classList.remove("print-mode");
@@ -39,7 +59,7 @@ export default function PrintPage() {
   useEffect(() => {
     if (!meta) return;
     document.title = `다시묻는AI교실_${meta.short}_${scope}_${kind}`;
-    if (sp.get("auto") === "1") document.fonts.ready.then(() => setTimeout(() => window.print(), 600));
+    if (sp.get("auto") === "1") setTimeout(() => window.print(), 1500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -67,7 +87,7 @@ export default function PrintPage() {
           인쇄 창에서 대상(프린터)을 <b>「PDF로 저장」</b>으로 고르세요. 용지 A4 · 배경 그래픽 켜기
         </span>
       </div>
-      <div className="sheet">
+      <div className="sheet" ref={sheetRef}>
         {lessons.length === 0 && <p>고른 차시가 아직 준비되지 않았어요.</p>}
 
         {main &&
@@ -83,11 +103,22 @@ export default function PrintPage() {
                   </h1>
                   {ls.subtitle && <div className="sub">{ls.subtitle}</div>}
                 </div>
-                <div className="meta">
-                  ___학년 ___반 ___번
-                  <br />
-                  이름 ______________
-                </div>
+                <table className="namebox-t">
+                  <tbody>
+                    <tr>
+                      <th>학년</th>
+                      <td />
+                      <th>반</th>
+                      <td />
+                      <th>번</th>
+                      <td />
+                    </tr>
+                    <tr>
+                      <th>이름</th>
+                      <td colSpan={5} />
+                    </tr>
+                  </tbody>
+                </table>
               </div>
               {main === "lesson" && <PrintStory n={ls.lesson} level={level} />}
               <div className="goals">

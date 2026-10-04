@@ -22,11 +22,11 @@ function Rich({ text }: { text: string }) {
 }
 
 const Lines = ({ n = 2 }: { n?: number }) => (
-  <>
+  <div className="lines">
     {Array.from({ length: Math.max(1, n) }, (_, i) => (
       <div key={i} className="ln" />
     ))}
-  </>
+  </div>
 );
 
 const Say = ({ l }: { l: Line }) =>

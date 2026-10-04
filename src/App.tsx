@@ -9,6 +9,7 @@ import About from "./pages/prompt/About";
 import { CardsPage, GlossaryPage, PledgePage } from "./pages/prompt/Appendix";
 import PrintPage from "./pages/prompt/PrintPage";
 import { TeacherHome, TeacherLesson } from "./pages/prompt/Teacher";
+import EssayPage from "./pages/prompt/EssayPage";
 import NotFound from "./pages/NotFound";
 import PromptLayout from "./components/PromptLayout";
 
@@ -25,6 +26,7 @@ export default function App() {
       <Route path="/prompt" element={<PromptLayout />}>
         <Route index element={<CourseHome />} />
         <Route path="about" element={<About />} />
+        <Route path="essay" element={<EssayPage />} />
         <Route path=":level" element={<LevelHome />} />
         <Route path=":level/lesson/:n" element={<LessonPage />} />
         <Route path=":level/lab" element={<LabPage />} />

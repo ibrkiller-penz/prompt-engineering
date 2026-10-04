@@ -37,6 +37,12 @@ export default function CourseHome() {
         >
           📄 활동지 PDF 받기
         </button>
+        <Link
+          to="/prompt/essay"
+          className="ml-2 mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-card border-2 border-accent bg-surface px-4 font-semibold text-accent hover:bg-accent-soft"
+        >
+          📖 수필 보기
+        </Link>
       </section>
       {pdf && <PdfDialog onClose={() => setPdf(false)} />}
 

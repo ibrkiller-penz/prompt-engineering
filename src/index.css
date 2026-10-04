@@ -40,7 +40,7 @@ html[data-level="elementary"] {
   --accent: #c2410c;
   --accent-soft: #ffedd5;
   --radius: 22px;
-  font-size: 18px;
+  font-size: 19px;
 }
 html[data-level="middle"] {
   --bg: #f3faf8;
@@ -88,4 +88,23 @@ a.btn {
   body {
     background: #fff;
   }
+}
+
+/* 수필 플립북 */
+.essay-book {
+  /* 펼친 두 쪽이 화면 높이 안에 들어오게 (쪽 비율 900:1278) */
+  max-width: min(1240px, calc((100vh - 230px) * 1.41));
+  margin-left: auto;
+  margin-right: auto;
+}
+.essay-page {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+.essay-page img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
 }
