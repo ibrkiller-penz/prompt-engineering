@@ -618,7 +618,14 @@ export default function SlidesPage() {
             </div>
           )}
 
-          <pre className="mt-4 max-h-[460px] overflow-auto whitespace-pre-wrap break-words rounded-card bg-bg p-4 font-mono text-[0.85rem] leading-relaxed">
+          {/* 설명 상자가 길어져도 복사 버튼이 글 바로 위에 보이게 한다 */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+            <span className="font-bold">
+              프롬프트 글 <span className="text-sm font-normal text-muted">{text.length.toLocaleString()}자</span>
+            </span>
+            <CopyButton text={text} label="📋 전체 복사" />
+          </div>
+          <pre className="mt-2 max-h-[460px] overflow-auto whitespace-pre-wrap break-words rounded-card bg-bg p-4 font-mono text-[0.85rem] leading-relaxed">
             {applied.start >= 0 ? (
               <>
                 {text.slice(0, applied.start)}
@@ -630,7 +637,7 @@ export default function SlidesPage() {
             )}
           </pre>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm text-muted">{text.length.toLocaleString()}자</span>
+            <CopyButton text={text} label="📋 전체 복사" />
             <div className="flex gap-2">
               {idx > 0 && (
                 <button type="button" onClick={() => pickStep(TABS[idx - 1].id)} className="min-h-[44px] rounded-card border border-line bg-surface px-4 font-semibold">
