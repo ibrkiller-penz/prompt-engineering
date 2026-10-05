@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import data from "../../content/slides/slides.json";
 import { HUB_NAME } from "../site";
 import { CopyButton } from "../components/ui";
+import { VARIANTS, applyVariant, type Applied } from "./slideStyles";
 
 type Design = (typeof data.designs)[number];
 type Col = Design["colors"][number];
@@ -272,7 +273,7 @@ const GUIDE_STEPS: { t: string; d: string }[] = [
   { t: "이 페이지에서 디자인을 골라요", d: "아래 ① 디자인 고르기에서 마음에 드는 디자인을 눌러요. 디자인 지침은 노트북LM에 따로 넣지 않아요. 슬라이드 프롬프트(단계 3·4) 안에 이미 들어 있어요." },
   { t: "2번 채팅창에 '대본' 프롬프트를 붙여 넣어요", d: "② 단계의 '슬라이드 대본' 탭에서 대상·목적을 고르고 [📋 전체 복사] → 노트북LM 가운데 채팅창에 붙여 넣고 보내요." },
   { t: "대본을 '소스'로 바꿔요", d: "대본 답변 아래의 [메모에 저장]을 누르고, 메모를 열어 [소스로 변환]을 눌러요. 그다음 소스 칸에서 대본만 체크하고 나머지는 체크를 풀어요." },
-  { t: "3번 스튜디오에 '슬라이드 프롬프트'를 붙여 넣어요", d: "스튜디오의 '슬라이드 자료' 연필 아이콘 → 형식·언어(한국어)·길이(기본값)를 고르고 → '만들려는 슬라이드 자료에 대한 설명' 칸에 '슬라이드 프롬프트' 탭의 글을 붙여 넣은 뒤 [지금 생성]." },
+  { t: "3번 스튜디오에 '슬라이드 프롬프트'를 붙여 넣어요", d: "스튜디오의 '슬라이드 자료' 연필 아이콘 → 형식·언어(한국어)·길이(기본값)를 고르고 → '만들려는 슬라이드 자료에 대한 설명' 칸에 '슬라이드 프롬프트' 탭의 글을 붙여 넣은 뒤 [지금 생성]. (그 탭 위쪽 '구성 방식' 메뉴에서 그래픽·도형·주요 내용·설명 위주 중 골라 복사할 수 있어요.)" },
   { t: "기다렸다가 고쳐요", d: "몇 분 걸려요. 완성되면 위쪽 수정 아이콘으로 슬라이드마다 고치고 [수정된 자료 생성]을 눌러요." },
   { t: "내려받아요", d: "점 세 개(⋮) 메뉴에서 PDF 또는 PowerPoint(.pptx)로 받아요. 인포그래픽도 같은 방법이고, 대본과 프롬프트만 '인포그래픽' 탭 것을 써요." },
 ];
@@ -338,6 +339,7 @@ export default function SlidesPage() {
   const design = data.designs.find((x) => x.id === designId) ?? data.designs[0];
   const [more, setMore] = useState(false);
   const [openDesign, setOpenDesign] = useState(true); // 선택한 디자인 카드: 처음엔 펼침, 접기 버튼으로 접는다
+  const [variantId, setVariantId] = useState(VARIANTS.some((x) => x.id === sp.get("v")) ? (sp.get("v") as string) : VARIANTS[0].id);
   // 대표만 보이되, 선택한 디자인이 대표가 아니면 함께 보여 준다
   const shown = more ? data.designs : data.designs.filter((d) => FEATURED.includes(d.id) || d.id === design.id);
   const [audience, setAudience] = useState(design.audience);
@@ -350,13 +352,23 @@ export default function SlidesPage() {
     document.title = `노트북LM 슬라이드 프롬프트 · ${HUB_NAME}`;
   }, []);
 
+  const urlOf = (o: { d?: string; s?: string; v?: string }) => {
+    const r: Record<string, string> = { d: o.d ?? designId, s: o.s ?? step };
+    const v = o.v ?? variantId;
+    if (v !== VARIANTS[0].id) r.v = v;
+    return r;
+  };
   const pickDesign = (d: Design) => {
     setDesignId(d.id);
-    setSp({ d: d.id, s: step }, { replace: true });
+    setSp(urlOf({ d: d.id }), { replace: true });
   };
   const pickStep = (id: string) => {
     setStep(id);
-    setSp({ d: designId, s: id }, { replace: true });
+    setSp(urlOf({ s: id }), { replace: true });
+  };
+  const pickVariant = (id: string) => {
+    setVariantId(id);
+    setSp(urlOf({ v: id }), { replace: true });
   };
 
   const body =
@@ -369,7 +381,12 @@ export default function SlidesPage() {
         : step === "slides"
           ? design.slides
           : design.infographic;
-  const text = fill(body, audience, objective, infoObjective, step);
+  const isFinal = step === "slides" || step === "infographic";
+  const variant = VARIANTS.find((x) => x.id === variantId) ?? VARIANTS[0];
+  const applied: Applied = isFinal
+    ? applyVariant(fill(body, audience, objective, infoObjective, step), variant, step as "slides" | "infographic")
+    : { text: fill(body, audience, objective, infoObjective, step), start: -1, end: -1 };
+  const text = applied.text;
   const isScript = step === "script" || step === "infoScript";
   const idx = TABS.findIndex((x) => x.id === step);
 
@@ -497,6 +514,44 @@ export default function SlidesPage() {
             <CopyButton text={text} label="📋 전체 복사" />
           </div>
 
+          {isFinal && (
+            <div className="mt-4 rounded-card border-2 border-accent bg-bg p-4">
+              <label htmlFor="variant" className="block font-bold">
+                ✨ 구성 방식 고르기
+              </label>
+              <p className="text-sm text-muted">고르면 아래 프롬프트가 바뀌고, 위의 [📋 전체 복사]를 누르면 고른 방식으로 복사돼요.</p>
+              <select
+                id="variant"
+                value={variant.id}
+                onChange={(e) => pickVariant(e.target.value)}
+                className="mt-2 min-h-[48px] w-full rounded-card border border-line bg-surface px-3 text-base font-semibold outline-none focus:border-accent sm:max-w-md"
+              >
+                {VARIANTS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.icon} {o.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-3 font-semibold">{variant.hint}</p>
+              <p className="mt-1 text-sm text-muted">
+                이럴 때 좋아요: {variant.when}
+                <br />
+                노트북LM 맞춤설정의 형식은 <b className="text-ink">'{variant.format}'</b>을(를) 고르면 잘 어울려요.
+              </p>
+              {variant.ko.length > 0 && (
+                <div className="mt-3 rounded-lg bg-yellow-100/70 p-3 text-sm text-black dark:bg-yellow-200/20 dark:text-ink">
+                  <b>이 방식에서 프롬프트 끝에 더해지는 지침</b>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                    {variant.ko.map((k) => (
+                      <li key={k}>{k}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-xs">아래 글에서 노란 줄로 표시된 부분이에요.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {PLACE[step] && (
             <div className="mt-4 rounded-card border border-accent bg-accent-soft/40 p-4">
               <p className="font-bold">📍 {PLACE[step].where}</p>
@@ -555,7 +610,15 @@ export default function SlidesPage() {
           )}
 
           <pre className="mt-4 max-h-[460px] overflow-auto whitespace-pre-wrap break-words rounded-card bg-bg p-4 font-mono text-[0.85rem] leading-relaxed">
-            {text}
+            {applied.start >= 0 ? (
+              <>
+                {text.slice(0, applied.start)}
+                <mark className="block rounded bg-yellow-200 px-1 text-black">{text.slice(applied.start + 1, applied.end)}</mark>
+                {text.slice(applied.end)}
+              </>
+            ) : (
+              text
+            )}
           </pre>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm text-muted">{text.length.toLocaleString()}자</span>
