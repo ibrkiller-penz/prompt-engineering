@@ -620,9 +620,14 @@ export default function SlidesPage() {
                     ))}
                   </div>
                   {count === "60" && (
-                    <p className="mt-2 text-sm text-muted">
-                      60장 대본은 파트별 답변을 각각 [메모에 저장] → [소스로 변환]해서 소스를 나눠 두세요. 슬라이드를 만들 때는 <b className="text-ink">노트북LM 소스 칸에서 만들 파트의 소스만 직접 체크</b>하면 돼요.
-                    </p>
+                    <div className="mt-2 text-sm text-muted">
+                      <p>60장 대본은 파트별로 소스를 나눠 두세요. 답변이 나오는 방식이 그때그때 달라서 두 가지 방법이 있어요.</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5">
+                        <li>답변이 파트별로 나뉘어 나오면: 각각 [메모에 저장] → [소스로 변환]</li>
+                        <li>한 번에 다 나오면: 파트마다 복사해서 소스 칸 [+ 추가] → 복사한 텍스트로 붙여 넣기 (파트 수만큼 소스를 따로 만들어요)</li>
+                      </ul>
+                      <p className="mt-1">슬라이드를 만들 때는 <b className="text-ink">노트북LM 소스 칸에서 만들 파트의 소스만 직접 체크</b>하면 돼요.</p>
+                    </div>
                   )}
                 </fieldset>
               </div>
