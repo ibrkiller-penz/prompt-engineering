@@ -273,7 +273,7 @@ export default function SlidesPage() {
           </div>
           <p className="mt-1 text-xs text-muted">디자인 프롬프트의 색과 Type A~D 규칙을 적용한 모습의 예시예요. 실제 결과는 노트북LM이 만들어요.</p>
 
-          <details className="mt-5" open>
+          <details className="mt-5">
             <summary className="min-h-[44px] cursor-pointer font-bold">{designStep.title} — 프롬프트 글</summary>
             <p className="mt-1 text-sm text-muted">{designStep.help}</p>
             <pre className="mt-2 max-h-[360px] overflow-auto whitespace-pre-wrap break-words rounded-card bg-bg p-4 font-mono text-[0.85rem] leading-relaxed">
