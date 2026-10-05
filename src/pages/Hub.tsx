@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { HUB_NAME, SECTIONS } from "../site";
+import SectionIcon from "../components/SectionIcon";
 
 export default function Hub() {
   useEffect(() => {
@@ -31,7 +32,10 @@ export default function Hub() {
             const inner = (
               <>
                 <span className="inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">{s.tag}</span>
-                <h2 className="mt-3 text-2xl font-extrabold">{s.title}</h2>
+                <div className="mt-3 flex items-center gap-3">
+                  <SectionIcon path={s.path} size={44} />
+                  <h2 className="text-2xl font-extrabold leading-tight">{s.title}</h2>
+                </div>
                 <p className="mt-2 text-muted">{s.desc}</p>
                 <span className="mt-4 inline-block font-semibold text-accent group-hover:underline">{s.cta ?? "들어가기 →"}</span>
               </>
