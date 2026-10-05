@@ -431,17 +431,6 @@ export const BOOST_SLIDES: Block = {
   ],
 };
 
-/** 대본을 60장(3파트)으로 만들었을 때, 이번에 만들 파트를 지정한다 */
-export function partScope(part: number): Block {
-  return {
-    head: `Source Scope = PART ${part} of 3:`,
-    bullets: [
-      `The source script has 3 parts of 20 slides each (labeled Part 1, Part 2, Part 3). Use ONLY Part ${part} for this deck and ignore the other two parts.`,
-      `Number the slides 1 to 20 inside this deck.`,
-    ],
-  };
-}
-
 /** 구성 방식에서 덧붙일 덩어리 (없으면 null) */
 export function variantBlock(v: Variant, kind: "slides" | "infographic"): Block | null {
   const rule = kind === "slides" ? v.slide : v.info;

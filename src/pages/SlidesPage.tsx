@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import data from "../../content/slides/slides.json";
 import { HUB_NAME } from "../site";
 import { CopyButton } from "../components/ui";
-import { VARIANTS, BOOST_SLIDES, appendBlocks, partScope, variantBlock, viewOf, type Block } from "./slideStyles";
+import { VARIANTS, BOOST_SLIDES, appendBlocks, variantBlock, viewOf, type Block } from "./slideStyles";
 
 type Design = (typeof data.designs)[number];
 type Col = Design["colors"][number];
@@ -351,7 +351,6 @@ export default function SlidesPage() {
   const [more, setMore] = useState(false);
   const [openDesign, setOpenDesign] = useState(true); // 선택한 디자인 카드: 처음엔 펼침, 접기 버튼으로 접는다
   const [boost, setBoost] = useState(true); // 슬라이드 프롬프트 보강 지침: 처음엔 켬(추천)
-  const [part, setPart] = useState(1); // 대본이 60장일 때 이번에 만들 파트
   const [variantId, setVariantId] = useState(VARIANTS.some((x) => x.id === sp.get("v")) ? (sp.get("v") as string) : VARIANTS[0].id);
   // 대표만 보이되, 선택한 디자인이 대표가 아니면 함께 보여 준다
   const shown = more ? data.designs : data.designs.filter((d) => FEATURED.includes(d.id) || d.id === design.id);
@@ -400,7 +399,6 @@ export default function SlidesPage() {
   const blocks: Block[] = [];
   if (step === "slides") {
     if (boost) blocks.push(BOOST_SLIDES);
-    if (count === "60") blocks.push(partScope(part));
   }
   if (isFinal) {
     const vb = variantBlock(variant, step as "slides" | "infographic");
@@ -622,25 +620,9 @@ export default function SlidesPage() {
                     ))}
                   </div>
                   {count === "60" && (
-                    <div className="mt-2">
-                      <p className="text-sm text-muted">60장 대본은 한 번에 20장씩, 파트마다 따로 만들어요. 이번에 만들 파트를 고르세요.</p>
-                      <div className="mt-1 flex gap-1.5" role="radiogroup" aria-label="파트">
-                        {[1, 2, 3].map((n) => (
-                          <button
-                            key={n}
-                            type="button"
-                            role="radio"
-                            aria-checked={part === n}
-                            onClick={() => setPart(n)}
-                            className={`min-h-[40px] rounded-full border px-4 text-sm ${
-                              part === n ? "border-accent bg-accent font-bold text-accent-ink" : "border-line bg-surface hover:border-accent"
-                            }`}
-                          >
-                            파트 {n}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <p className="mt-2 text-sm text-muted">
+                      60장 대본은 파트별 답변을 각각 [메모에 저장] → [소스로 변환]해서 소스를 나눠 두세요. 슬라이드를 만들 때는 <b className="text-ink">노트북LM 소스 칸에서 만들 파트의 소스만 직접 체크</b>하면 돼요.
+                    </p>
                   )}
                 </fieldset>
               </div>
