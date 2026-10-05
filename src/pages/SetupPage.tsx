@@ -82,6 +82,17 @@ export default function SetupPage() {
             ))}
           </ol>
 
+          {tool.verified && (
+            <p className="mt-4 text-sm text-muted">
+              ✓ {tool.verified}{" "}
+              {tool.sources?.map((s) => (
+                <a key={s.url} href={s.url} target="_blank" rel="noopener" className="font-semibold text-accent underline underline-offset-2">
+                  {s.label} ↗
+                </a>
+              ))}
+            </p>
+          )}
+
           {tool.note && (
             <p className="mt-5 rounded-card bg-warn-soft p-3 text-sm text-warn">
               <b>알아 둘 점</b> · {tool.note}
