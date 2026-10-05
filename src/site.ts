@@ -2,9 +2,10 @@
 export const HUB_NAME = "살빠진 임선생과 함께하는 교육자료";
 export const COURSE_NAME = "다시 묻는 AI 교실";
 
-export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string }[] = [
+export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean }[] = [
   {
     path: "/setup",
+    featured: true,
     title: "AI 맞춤 설정",
     tag: "먼저 해 두면 좋아요",
     desc: "ChatGPT와 Claude에 한 번 넣어 두는 설정 글이에요. 일의 난이도에 맞는 모델을 고르게 하고 답을 짧게 받아서, 토큰과 기다리는 시간을 아껴요. 복사해서 붙여 넣기만 하면 돼요.",

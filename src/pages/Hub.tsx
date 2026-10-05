@@ -25,8 +25,32 @@ export default function Hub() {
           </div>
         </div>
 
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2">
-          {SECTIONS.map((s) => {
+        {SECTIONS.filter((s) => s.featured).map((s) => (
+          <Link
+            key={s.path}
+            to={s.path}
+            className="group mt-10 flex flex-col gap-4 rounded-card border-2 border-accent bg-surface p-5 shadow-sm transition hover:shadow-lg sm:flex-row sm:items-center sm:gap-6 sm:p-6"
+          >
+            <SectionIcon path={s.path} size={64} />
+            <div className="min-w-0 flex-1">
+              <span className="inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">{s.tag}</span>
+              <h2 className="mt-1 text-2xl font-extrabold leading-tight sm:text-3xl">{s.title}</h2>
+              <p className="mt-1 text-muted">{s.desc}</p>
+            </div>
+            <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+              <span className="flex gap-1.5 text-sm font-bold" aria-label="ChatGPT와 Claude용">
+                <span className="rounded-full bg-ink px-3 py-1 text-white">ChatGPT</span>
+                <span className="rounded-full bg-ink px-3 py-1 text-white">Claude</span>
+              </span>
+              <span className="inline-flex min-h-[44px] items-center rounded-card bg-accent px-4 font-semibold text-accent-ink group-hover:brightness-110">
+                {s.cta ?? "들어가기 →"}
+              </span>
+            </div>
+          </Link>
+        ))}
+
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+          {SECTIONS.filter((s) => !s.featured).map((s) => {
             const cls =
               "group block h-full rounded-card border border-line bg-surface p-6 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg";
             const inner = (
