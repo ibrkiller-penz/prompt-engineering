@@ -62,7 +62,7 @@ export const VARIANTS: Variant[] = [
       bullets: [
         "Build the canvas around one dominant central illustration or visual metaphor, with icons placed around it.",
         "Each section gets at most one short label (max 8 words); keep text minimal.",
-        "Keep one consistent illustration style and the palette from [Global Design System].",
+        "Keep one consistent illustration style and the palette above.",
       ],
     },
   },
@@ -92,7 +92,7 @@ export const VARIANTS: Variant[] = [
       bullets: [
         "Organize every section as connected shapes: flow, cycle, timeline, matrix, or comparison blocks.",
         "Put text only inside shapes as short labels (1-4 words each); no paragraphs.",
-        "Use consistent shape styling from [Global Design System] on a clean modular grid.",
+        "Use consistent shape styling (rounded containers and connectors) on a clean modular grid, in the palette above.",
       ],
     },
   },
@@ -308,7 +308,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
     hint: "지금까지 쓰던 그대로예요. 구역마다 글과 그림이 균형 있게 들어가요.",
     when: "처음이거나 어떤 걸 고를지 모르겠을 때",
     ko: [],
-    settings: "방향은 '세로'(폰·인쇄에 편해요), 세부 정보 수준은 기본으로 두면 무난해요.",
+    settings: "방향은 '세로', 세부 정보 수준은 '간결'을 추천해요. '상세'는 글자 오류가 늘 수 있어요.",
   },
   graphic: {
     hint: "한가운데 큰 그림 하나를 중심으로 아이콘이 둘러싸요. 글은 아주 적어요.",
@@ -318,7 +318,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "구역마다 글은 짧은 이름표 하나(8단어 이내)",
       "그림 스타일과 색은 디자인 지침대로 통일",
     ],
-    settings: "방향은 '정사각형'이나 '세로', 세부 정보 수준은 적은 쪽이 잘 어울려요.",
+    settings: "방향은 '정사각형'이나 '세로', 세부 정보 수준은 '간결'이 잘 어울려요.",
   },
   shapes: {
     hint: "구역들이 도형으로 이어져요: 흐름도·순환도·타임라인·비교 블록.",
@@ -328,7 +328,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "글은 도형 안의 짧은 이름표(1~4단어)만, 문단은 쓰지 않기",
       "도형 모양과 연결선을 디자인 지침대로 통일, 격자에 맞춰 정렬",
     ],
-    settings: "방향은 '가로'가 도형을 펼치기 좋아요. 세부 정보 수준은 기본이면 돼요.",
+    settings: "방향은 '가로'가 도형을 펼치기 좋아요. 세부 정보 수준은 '간결'이나 '표준'이면 돼요.",
   },
   keypoints: {
     hint: "가장 중요한 3~5가지만 큰 숫자나 키워드로 크게 보여 줘요.",
@@ -338,7 +338,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "각각 큰 숫자나 키워드 하나와 받쳐 주는 한 줄",
       "배경 설명과 부수 정보는 빼고 여백을 넉넉히",
     ],
-    settings: "방향은 '세로', 세부 정보 수준은 적은 쪽이 잘 어울려요.",
+    settings: "방향은 '세로', 세부 정보 수준은 '간결'이 잘 어울려요.",
   },
   explain: {
     hint: "구역마다 제목과 짧은 설명 문장이 있는, 읽는 포스터예요.",
@@ -347,7 +347,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "구역마다 제목과 2~3문장의 쉬운 설명, 작은 아이콘 곁들이기",
       "읽는 순서를 분명하게, 글자는 읽기 편한 크기 이하로 줄이지 않기",
     ],
-    settings: "방향은 '세로', 세부 정보 수준은 많은 쪽이 잘 어울려요.",
+    settings: "방향은 '세로', 세부 정보 수준은 '표준'이 잘 어울려요. 글이 길수록 글자가 깨질 수 있어 '상세'는 피하세요.",
   },
   steps: {
     hint: "위에서 아래로(또는 왼쪽에서 오른쪽으로) 번호 순서대로 따라 하게 만들어요.",
@@ -357,7 +357,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "각 단계는 동사로 끝나는 짧은 제목과 작은 그림 하나",
       "필요한 단계에는 '팁' 또는 '조심' 한 줄",
     ],
-    settings: "방향은 '세로'(위에서 아래로 순서대로 읽기 좋아요).",
+    settings: "방향은 '세로'(위에서 아래로 순서대로 읽기 좋아요), 세부 정보 수준은 '간결'이나 '표준'이면 돼요.",
   },
   quiz: {
     hint: "구역 옆에 '퀴즈', '생각해 보기', '해 보기' 말풍선이 붙어요.",
@@ -366,7 +366,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "핵심 구역 옆에 '퀴즈'·'생각해 보기'·'해 보기' 이름의 작은 상자 붙이기",
       "각 상자에는 짧은 질문 하나, 학생이 읽기 쉬운 말로",
     ],
-    settings: "방향은 '세로', 세부 정보 수준은 기본이면 돼요.",
+    settings: "방향은 '세로', 세부 정보 수준은 '표준'이면 돼요.",
   },
   story: {
     hint: "이야기 길처럼 흘러가요: 궁금증 → 문제 → 발견 → 정리.",
@@ -376,7 +376,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "친근한 인물이나 일상 장면을 길 따라 반복해서 등장시키기",
       "말풍선이나 짧은 설명 글, 쉬운 입말로",
     ],
-    settings: "방향은 '가로'가 이야기 길을 펼치기 좋아요.",
+    settings: "방향은 '가로'가 이야기 길을 펼치기 좋아요. 세부 정보 수준은 '간결'이나 '표준'이면 돼요.",
   },
   data: {
     hint: "구역마다 큰 숫자·그래프·비교를 먼저 보여 주고 한 줄로 뜻을 풀어 줘요.",
@@ -386,7 +386,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "그 아래에 '그래서 무슨 뜻?' 한 줄 풀이",
       "소스에 없는 숫자는 만들어 내지 않기, 가장 중요한 수치만 강조색으로",
     ],
-    settings: "방향은 '가로' 또는 '세로', 세부 정보 수준은 보통 이상이 잘 어울려요.",
+    settings: "방향은 '가로' 또는 '세로', 세부 정보 수준은 '표준'이 잘 어울려요.",
   },
   easy: {
     hint: "아주 쉬운 낱말, 큰 글씨, 귀여운 그림으로 만들어요.",
@@ -395,7 +395,7 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "짧은 문장과 일상에서 쓰는 쉬운 낱말만, 어려운 말은 괄호로 쉽게 풀기",
       "아주 큰 글씨와 둥글고 친근한 아이콘이나 만화풍 그림",
     ],
-    settings: "방향은 '세로', 세부 정보 수준은 적은 쪽이 잘 어울려요.",
+    settings: "방향은 '세로', 세부 정보 수준은 '간결'이 잘 어울려요.",
   },
 };
 
@@ -425,14 +425,24 @@ export type Applied = { text: string; start: number; end: number };
 export function applyVariant(text: string, v: Variant, kind: "slides" | "infographic"): Applied {
   const rule = kind === "slides" ? v.slide : v.info;
   if (!rule) return { text, start: -1, end: -1 };
+
+  if (kind === "infographic") {
+    // 인포그래픽 프롬프트는 자연어 설명서라서, 끝에 '## Content Style' 구역을 덧붙인다
+    const head = rule.head.replace(/:$/, "");
+    const body = [...rule.bullets, "Keep it a single page and keep the palette above."].map((b) => `- ${b}`).join("\n");
+    const block = `\n## ${head}\n${body}`;
+    const base = text.replace(/\s+$/, "");
+    const start = base.length + 1; // 덧붙인 구역 앞 줄바꿈의 위치 (화면에서 강조할 때 +1부터 보여 준다)
+    return { text: `${base}\n${block}\n`, start, end: start + block.length };
+  }
+
+  // 슬라이드 프롬프트: 실행 지침(user_steering_prompt) 끝에 번호 하나를 덧붙인다
   const close = text.lastIndexOf('\n  "\n}');
   const from = text.indexOf("user_steering_prompt");
   if (close < 0 || from < 0) return { text, start: -1, end: -1 };
   const nums = [...text.slice(from, close).matchAll(/\n {4}(\d+)\. /g)].map((m) => Number(m[1]));
   const n = (nums.length ? Math.max(...nums) : 0) + 1;
-  const guard = kind === "slides"
-    ? "Do not change the slide count or the mandatory cover and ending slides."
-    : "Keep it a single page and keep the Global Design System colors.";
+  const guard = "Do not change the slide count or the mandatory cover and ending slides.";
   const block = `\n    ${n}. ${rule.head}` + [...rule.bullets, guard].map((b) => `\n       - ${b}`).join("");
   return { text: text.slice(0, close) + block + text.slice(close), start: close, end: close + block.length };
 }
