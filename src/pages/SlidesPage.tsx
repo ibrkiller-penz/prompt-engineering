@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import data from "../../content/slides/slides.json";
 import { HUB_NAME } from "../site";
 import { CopyButton } from "../components/ui";
-import { VARIANTS, applyVariant, type Applied } from "./slideStyles";
+import { VARIANTS, applyVariant, viewOf, type Applied } from "./slideStyles";
 
 type Design = (typeof data.designs)[number];
 type Col = Design["colors"][number];
@@ -391,6 +391,7 @@ export default function SlidesPage() {
     ? applyVariant(fill(body, audience, objective, infoObjective, step), variant, step as "slides" | "infographic")
     : { text: fill(body, audience, objective, infoObjective, step), start: -1, end: -1 };
   const text = applied.text;
+  const vt = viewOf(variant, step === "infographic" ? "infographic" : "slides");
   const isScript = step === "script" || step === "infoScript";
   const idx = TABS.findIndex((x) => x.id === step);
 
@@ -540,17 +541,17 @@ export default function SlidesPage() {
                   </optgroup>
                 ))}
               </select>
-              <p className="mt-3 font-semibold">{variant.hint}</p>
+              <p className="mt-3 font-semibold">{vt.hint}</p>
               <p className="mt-1 text-sm text-muted">
-                이럴 때 좋아요: {variant.when}
+                이럴 때 좋아요: {vt.when}
                 <br />
-                노트북LM 맞춤설정의 형식은 <b className="text-ink">'{variant.format}'</b>을(를) 고르면 잘 어울려요.
+                {vt.settingsLabel}: <b className="text-ink">{vt.settings}</b>
               </p>
-              {variant.ko.length > 0 && (
+              {vt.ko.length > 0 && (
                 <div className="mt-3 rounded-lg bg-yellow-100/70 p-3 text-sm text-black dark:bg-yellow-200/20 dark:text-ink">
                   <b>이 방식에서 프롬프트 끝에 더해지는 지침</b>
                   <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                    {variant.ko.map((k) => (
+                    {vt.ko.map((k) => (
                       <li key={k}>{k}</li>
                     ))}
                   </ul>
