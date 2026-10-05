@@ -38,9 +38,10 @@ export default function Hub() {
               <p className="mt-1 text-muted">{s.desc}</p>
             </div>
             <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-              <span className="flex gap-1.5 text-sm font-bold" aria-label="ChatGPT와 Claude용">
+              <span className="flex gap-1.5 text-sm font-bold" aria-label="ChatGPT, Claude, Gemini용">
                 <span className="rounded-full bg-ink px-3 py-1 text-white">ChatGPT</span>
                 <span className="rounded-full bg-ink px-3 py-1 text-white">Claude</span>
+                <span className="rounded-full bg-ink px-3 py-1 text-white">Gemini</span>
               </span>
               <span className="inline-flex min-h-[44px] items-center rounded-card bg-accent px-4 font-semibold text-accent-ink group-hover:brightness-110">
                 {s.cta ?? "들어가기 →"}

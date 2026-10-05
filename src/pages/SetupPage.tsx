@@ -7,7 +7,8 @@ import { CopyButton } from "../components/ui";
 /** AI 맞춤 설정 — ChatGPT·Claude에 넣어 두는 지침 (복사해서 붙여 넣기) */
 export default function SetupPage() {
   const [sp, setSp] = useSearchParams();
-  const [tab, setTab] = useState(sp.get("tool") === "claude" ? "claude" : "chatgpt");
+  const first = sp.get("tool");
+  const [tab, setTab] = useState(setup.tools.some((t) => t.id === first) ? (first as string) : "chatgpt");
   const tool = setup.tools.find((t) => t.id === tab) ?? setup.tools[0];
 
   useEffect(() => {
@@ -81,6 +82,12 @@ export default function SetupPage() {
               </li>
             ))}
           </ol>
+
+          {"warn" in tool && tool.warn && (
+            <p className="mt-6 rounded-card border-2 border-bad bg-bad-soft p-3 font-semibold text-bad" role="note">
+              ⚠ {tool.warn}
+            </p>
+          )}
 
           {tool.verified && (
             <p className="mt-4 text-sm text-muted">
