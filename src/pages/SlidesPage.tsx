@@ -526,10 +526,14 @@ export default function SlidesPage() {
                 onChange={(e) => pickVariant(e.target.value)}
                 className="mt-2 min-h-[48px] w-full rounded-card border border-line bg-surface px-3 text-base font-semibold outline-none focus:border-accent sm:max-w-md"
               >
-                {VARIANTS.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.icon} {o.label}
-                  </option>
+                {[...new Set(VARIANTS.map((o) => o.group))].map((g) => (
+                  <optgroup key={g} label={g}>
+                    {VARIANTS.filter((o) => o.group === g).map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.icon} {o.label}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               <p className="mt-3 font-semibold">{variant.hint}</p>

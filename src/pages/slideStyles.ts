@@ -4,6 +4,8 @@
 
 export type Variant = {
   id: string;
+  /** 메뉴에서 묶는 이름 */
+  group: string;
   icon: string;
   label: string;
   /** 사람이 읽는 한 줄 설명 */
@@ -23,6 +25,7 @@ export type Variant = {
 export const VARIANTS: Variant[] = [
   {
     id: "basic",
+    group: "기본",
     icon: "📄",
     label: "기본",
     hint: "지금까지 쓰던 그대로예요. 글과 그림이 균형 있게 들어가요.",
@@ -34,6 +37,7 @@ export const VARIANTS: Variant[] = [
   },
   {
     id: "graphic",
+    group: "내용을 보여 주는 방식",
     icon: "🖼️",
     label: "그래픽 위주",
     hint: "큰 그림·일러스트·아이콘이 중심이고 글은 아주 적어요.",
@@ -64,6 +68,7 @@ export const VARIANTS: Variant[] = [
   },
   {
     id: "shapes",
+    group: "내용을 보여 주는 방식",
     icon: "🔷",
     label: "도형·도식 위주",
     hint: "흐름도·순환도·표·타임라인 같은 도형으로 내용을 정리해요.",
@@ -93,6 +98,7 @@ export const VARIANTS: Variant[] = [
   },
   {
     id: "keypoints",
+    group: "내용을 보여 주는 방식",
     icon: "🎯",
     label: "주요 내용 위주",
     hint: "한 장에 핵심 한 줄과 키워드 몇 개만. 요점만 빠르게 전달해요.",
@@ -122,6 +128,7 @@ export const VARIANTS: Variant[] = [
   },
   {
     id: "explain",
+    group: "내용을 보여 주는 방식",
     icon: "📖",
     label: "설명 위주",
     hint: "문장으로 풀어 쓴 자세한 설명이 중심이에요. 혼자 읽는 자료에 좋아요.",
@@ -148,6 +155,151 @@ export const VARIANTS: Variant[] = [
       ],
     },
   },
+  {
+    id: "steps",
+    group: "수업에 쓰기 좋은 방식 ⭐",
+    icon: "🪜",
+    label: "단계·순서 위주",
+    hint: "'1단계, 2단계…' 순서대로 따라 하게 만들어요.",
+    format: "발표자 슬라이드",
+    when: "만들기·실험·사용법·절차를 알려 줄 때",
+    ko: [
+      "한 장(한 칸)에 동작 하나, 번호 배지와 동사로 끝나는 짧은 제목",
+      "동작을 보여 주는 그림 하나와 '팁' 또는 '조심' 한 줄",
+      "문장은 12단어 이내로 짧게",
+    ],
+    slide: {
+      head: "Content Style = STEP-BY-STEP (how-to):",
+      bullets: [
+        "Present the content as a numbered sequence; each slide covers one clear action with a number badge and a short verb-first title.",
+        "Show one visual of the action, plus one short 'Tip' or 'Watch out' line; keep sentences under 12 words.",
+        "Keep the order exactly as in the source.",
+      ],
+    },
+    info: {
+      head: "Content Style = STEP-BY-STEP (how-to):",
+      bullets: [
+        "Lay the sections out as a numbered path from start to finish, with a number badge, a verb-first title, and one small visual per step.",
+        "Add a short 'Tip' or 'Watch out' note to the steps that need it.",
+      ],
+    },
+  },
+  {
+    id: "quiz",
+    group: "수업에 쓰기 좋은 방식 ⭐",
+    icon: "❓",
+    label: "퀴즈·활동 위주",
+    hint: "설명 뒤에 생각해 볼 질문이나 짧은 활동이 붙어요.",
+    format: "발표자 슬라이드",
+    when: "학생이 직접 생각하고 말하게 하는 수업",
+    ko: [
+      "핵심 내용을 설명한 뒤 확인 질문·짝과 이야기하기·짧은 활동 칸을 넣기",
+      "정답이나 토론 힌트는 따로 작은 칸에 두어 발표자가 나중에 보여 주기",
+      "질문은 학생이 읽기 쉬운 짧은 말로",
+    ],
+    slide: {
+      head: "Content Style = QUIZ & ACTIVITY-FIRST:",
+      bullets: [
+        "After presenting each key idea, add a short check-for-understanding question, a think-pair-share prompt, or a mini activity box labeled 'Quiz', 'Think', or 'Try it'.",
+        "Place the answer or a discussion hint in a clearly separated small area so the presenter can reveal it later.",
+        "Keep question wording short and student-friendly.",
+      ],
+    },
+    info: {
+      head: "Content Style = QUIZ & ACTIVITY-FIRST:",
+      bullets: [
+        "Add small callout boxes labeled 'Quiz', 'Think', or 'Try it' next to the key sections, each with one short question.",
+        "Keep question wording short and student-friendly.",
+      ],
+    },
+  },
+  {
+    id: "story",
+    group: "수업에 쓰기 좋은 방식 ⭐",
+    icon: "📚",
+    label: "이야기 위주",
+    hint: "이야기처럼 흘러가요: 궁금증 → 문제 → 발견 → 정리.",
+    format: "발표자 슬라이드",
+    when: "흥미를 끌며 시작하는 수업, 저학년, 개념 도입",
+    ko: [
+      "처음에 궁금증이나 장면으로 시작하고 문제 → 발견 → 해결 → 한 줄 정리 순서로 이어가기",
+      "친근한 인물이나 일상 장면을 처음부터 끝까지 반복해서 등장시키기",
+      "말풍선이나 짧은 설명 글, 쉬운 입말로",
+    ],
+    slide: {
+      head: "Content Style = STORY-FIRST:",
+      bullets: [
+        "Frame the content as a narrative arc: a hook (question or scene), a problem, a discovery, a resolution, and a one-line takeaway, while keeping every fact from the source.",
+        "Use a relatable character or everyday scene as a recurring visual thread, with short caption-style text or speech bubbles.",
+        "Write in plain, conversational language.",
+      ],
+    },
+    info: {
+      head: "Content Style = STORY-FIRST:",
+      bullets: [
+        "Arrange the sections as a story path: hook, problem, discovery, resolution, takeaway, with one recurring character or scene.",
+        "Use short caption-style text or speech bubbles in plain, conversational language.",
+      ],
+    },
+  },
+  {
+    id: "data",
+    group: "수업에 쓰기 좋은 방식 ⭐",
+    icon: "📊",
+    label: "데이터·숫자 위주",
+    hint: "큰 숫자와 그래프를 먼저 보여 주고 한 줄로 뜻을 풀어 줘요.",
+    format: "발표자 슬라이드",
+    when: "통계·조사·실험 결과·비교 자료를 다룰 때",
+    ko: [
+      "슬라이드마다 큰 숫자, 그래프(막대·선·원·아이콘 배열), 비교 중 하나를 맨 앞에",
+      "그래프 아래에 '그래서 무슨 뜻?' 한 줄 풀이",
+      "소스에 없는 숫자는 절대 만들어 내지 않기, 가장 중요한 수치만 강조색으로",
+    ],
+    slide: {
+      head: "Content Style = DATA-FIRST:",
+      bullets: [
+        "Lead each slide with one big number, chart (bar, line, pie, or icon array), or side-by-side comparison drawn from the source.",
+        "Add a one-line 'So what?' interpretation under each chart or number.",
+        "Use ONLY numbers that appear in the source; never invent data. Highlight the key data point with the accent color.",
+      ],
+    },
+    info: {
+      head: "Content Style = DATA-FIRST:",
+      bullets: [
+        "Lead each section with one big number, chart, or comparison drawn from the source, plus a one-line 'So what?' note.",
+        "Use ONLY numbers that appear in the source; never invent data. Highlight the key data point with the accent color.",
+      ],
+    },
+  },
+  {
+    id: "easy",
+    group: "수업에 쓰기 좋은 방식 ⭐",
+    icon: "🧒",
+    label: "쉬운 말 · 저학년용",
+    hint: "아주 쉬운 낱말, 큰 글씨, 귀여운 그림으로 만들어요.",
+    format: "발표자 슬라이드",
+    when: "초등 저학년, 특수교육 대상, 낯선 개념을 처음 소개할 때",
+    ko: [
+      "짧은 문장과 일상에서 쓰는 쉬운 낱말만, 어려운 말은 괄호로 쉽게 풀기",
+      "제목도 본문도 아주 큰 글씨, 둥글고 친근한 아이콘이나 만화풍 그림",
+      "슬라이드마다 글은 짧은 두 줄 이내",
+    ],
+    slide: {
+      head: "Content Style = SIMPLE & FRIENDLY (young learners):",
+      bullets: [
+        "Use very short sentences and common everyday words; avoid jargon, and explain any necessary term simply in parentheses.",
+        "Use extra-large headline and body text with friendly rounded icons or cartoon-style illustrations.",
+        "Allow at most 2 short lines of text per slide.",
+      ],
+    },
+    info: {
+      head: "Content Style = SIMPLE & FRIENDLY (young learners):",
+      bullets: [
+        "Use very short sentences and everyday words; explain any necessary term simply in parentheses.",
+        "Use extra-large text with friendly rounded icons or cartoon-style illustrations.",
+      ],
+    },
+  },
 ];
 
 export type Applied = { text: string; start: number; end: number };
@@ -164,6 +316,9 @@ export function applyVariant(text: string, v: Variant, kind: "slides" | "infogra
   if (close < 0 || from < 0) return { text, start: -1, end: -1 };
   const nums = [...text.slice(from, close).matchAll(/\n {4}(\d+)\. /g)].map((m) => Number(m[1]));
   const n = (nums.length ? Math.max(...nums) : 0) + 1;
-  const block = `\n    ${n}. ${rule.head}` + rule.bullets.map((b) => `\n       - ${b}`).join("");
+  const guard = kind === "slides"
+    ? "Do not change the slide count or the mandatory cover and ending slides."
+    : "Keep it a single page and keep the Global Design System colors.";
+  const block = `\n    ${n}. ${rule.head}` + [...rule.bullets, guard].map((b) => `\n       - ${b}`).join("");
   return { text: text.slice(0, close) + block + text.slice(close), start: close, end: close + block.length };
 }
