@@ -187,6 +187,8 @@ function Choice({
 }
 
 const TABS = data.steps.filter((s) => s.id !== "design");
+/** 처음에 보이는 대표 디자인 (밝은 것·어두운 것·기관용이 섞이게) */
+const FEATURED = ["busan-office", "classroom-bright", "paper-notes", "night-navy", "chalkboard-v2", "terracotta"];
 
 /** 노트북LM 슬라이드 프롬프트 — 디자인을 고르면 단계별 프롬프트가 채워진다 */
 export default function SlidesPage() {
@@ -196,6 +198,9 @@ export default function SlidesPage() {
   const [step, setStep] = useState(TABS.some((x) => x.id === sp.get("s")) ? (sp.get("s") as string) : TABS[0].id);
   const [count, setCount] = useState<"20" | "60">("20");
   const design = data.designs.find((x) => x.id === designId) ?? data.designs[0];
+  const [more, setMore] = useState(false);
+  // 대표만 보이되, 선택한 디자인이 대표가 아니면 함께 보여 준다
+  const shown = more ? data.designs : data.designs.filter((d) => FEATURED.includes(d.id) || d.id === design.id);
   const [audience, setAudience] = useState(design.audience);
   const [objective, setObjective] = useState(data.objectives[0].label);
   const [infoObjective, setInfoObjective] = useState(data.infoObjectives[0].label);
@@ -241,9 +246,12 @@ export default function SlidesPage() {
           디자인을 고르면 아래 프롬프트가 그 디자인으로 채워져요. 단계 순서대로 복사해서 노트북LM에 붙여 넣으세요.
         </p>
 
-        <h2 className="mt-8 text-xl font-bold">① 디자인 고르기</h2>
-        <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" role="radiogroup" aria-label="디자인">
-          {data.designs.map((d) => {
+        <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xl font-bold">① 디자인 고르기</h2>
+          <span className="text-sm text-muted">{data.designs.length}가지 중에서 골라요</span>
+        </div>
+        <ul className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6" role="radiogroup" aria-label="디자인">
+          {shown.map((d) => {
             const on = d.id === design.id;
             return (
               <li key={d.id}>
@@ -252,18 +260,27 @@ export default function SlidesPage() {
                   role="radio"
                   aria-checked={on}
                   onClick={() => pickDesign(d)}
-                  className={`block h-full w-full rounded-card border-2 bg-surface p-2.5 text-left transition ${
+                  className={`block h-full w-full rounded-card border-2 bg-surface p-2 text-left transition ${
                     on ? "border-accent shadow-md" : "border-line hover:border-accent/60"
                   }`}
                 >
                   <Swatch d={d} />
-                  <span className="mt-2 block font-bold leading-tight">{d.name}</span>
-                  <span className="block text-xs text-muted">{d.mood}</span>
+                  <span className="mt-1.5 block text-sm font-bold leading-tight">{d.name}</span>
                 </button>
               </li>
             );
           })}
         </ul>
+        {data.designs.length > FEATURED.length && (
+          <button
+            type="button"
+            onClick={() => setMore((m) => !m)}
+            aria-expanded={more}
+            className="mt-2 inline-flex min-h-[44px] items-center gap-1 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-accent hover:bg-accent-soft"
+          >
+            {more ? "▲ 접기" : `▼ 더보기 (+${data.designs.length - FEATURED.length}개)`}
+          </button>
+        )}
 
         {/* 선택한 디자인: 색 목록 + 슬라이드 미리보기 + 단계 1 프롬프트 */}
         <section className="mt-5 rounded-card border-2 border-accent bg-surface p-5 sm:p-6" aria-label={`${design.name} 디자인`}>

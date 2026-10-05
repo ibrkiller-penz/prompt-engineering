@@ -1,7 +1,31 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { HUB_NAME, SECTIONS } from "../site";
 import SectionIcon from "../components/SectionIcon";
+
+/** 설명은 두 줄까지만 보이고, 더 긴 설명(more)이 있으면 '더보기'로 펼친다 (카드 전체가 링크라서 클릭이 이동하지 않게 막는다) */
+function Desc({ text, more }: { text: string; more?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2">
+      <p className={`text-muted ${open ? "" : "line-clamp-2"}`}>{open && more ? more : text}</p>
+      {more && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen((o) => !o);
+          }}
+          aria-expanded={open}
+          className="mt-1 min-h-[32px] text-sm font-semibold text-muted underline underline-offset-4 hover:text-ink"
+        >
+          {open ? "접기" : "더보기"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function Hub() {
   useEffect(() => {
@@ -61,8 +85,8 @@ export default function Hub() {
                   <SectionIcon path={s.path} size={44} />
                   <h2 className="text-2xl font-extrabold leading-tight">{s.title}</h2>
                 </div>
-                <p className="mt-2 text-muted">{s.desc}</p>
-                <span className="mt-4 inline-block font-semibold text-accent group-hover:underline">{s.cta ?? "들어가기 →"}</span>
+                <Desc text={s.desc} more={s.more} />
+                <span className="mt-3 inline-block font-semibold text-accent group-hover:underline">{s.cta ?? "들어가기 →"}</span>
               </>
             );
             return (
