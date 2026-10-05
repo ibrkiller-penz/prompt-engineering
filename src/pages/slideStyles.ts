@@ -6,6 +6,8 @@ export type Variant = {
   id: string;
   /** 메뉴에서 묶는 이름 */
   group: string;
+  /** 값이 있으면 그 탭(슬라이드/인포그래픽)에서만 메뉴에 보인다 */
+  only?: "slides" | "infographic";
   icon: string;
   label: string;
   /** 사람이 읽는 한 줄 설명 */
@@ -300,6 +302,65 @@ export const VARIANTS: Variant[] = [
       ],
     },
   },
+  {
+    id: "timeline",
+    group: "인포그래픽 형태",
+    only: "infographic",
+    icon: "⏳",
+    label: "타임라인·연표형",
+    hint: "시간 순서대로 사건이나 단계가 한 줄로 쭉 이어지는 연표예요.",
+    format: "",
+    when: "역사·발전 과정, 실험·만들기 순서, 학년 계획",
+    ko: [],
+    slide: null,
+    info: {
+      head: "Content Style = TIMELINE:",
+      bullets: [
+        "Lay the sections out along one continuous timeline (a horizontal or vertical axis) in the order given by the source, with numbered or dated milestones.",
+        "Give each milestone a short label and one small icon; make the single most important milestone visually larger.",
+      ],
+    },
+  },
+  {
+    id: "compare",
+    group: "인포그래픽 형태",
+    only: "infographic",
+    icon: "⚖️",
+    label: "비교형 (A와 B)",
+    hint: "두 가지(또는 세 가지)를 나란히 놓고 같은 기준으로 견주어 보여 줘요.",
+    format: "",
+    when: "개념 비교, 장단점, 전과 후",
+    ko: [],
+    slide: null,
+    info: {
+      head: "Content Style = SIDE-BY-SIDE COMPARISON:",
+      bullets: [
+        "Show the subjects in two or three clearly labeled columns side by side, each with a contrasting color from the palette.",
+        "Compare the same criteria in the same row order for every column, using short labels.",
+        "Add one short conclusion line at the bottom only if the source states one.",
+      ],
+    },
+  },
+  {
+    id: "conceptmap",
+    group: "인포그래픽 형태",
+    only: "infographic",
+    icon: "🌐",
+    label: "개념 지도형",
+    hint: "가운데(또는 위쪽)의 중심 주제에서 가지가 뻗어 나가는 개념 지도예요.",
+    format: "",
+    when: "단원 전체 구조, 개념 사이의 관계 정리",
+    ko: [],
+    slide: null,
+    info: {
+      head: "Content Style = CONCEPT MAP:",
+      bullets: [
+        "Place the central topic in the middle (or at the top) and branch out 4 to 6 main ideas around it with connecting lines.",
+        "Attach 2 to 3 short key terms to each branch; use no full sentences.",
+        "Use one color per branch, taken from the palette.",
+      ],
+    },
+  },
 ];
 
 /** 인포그래픽(한 장짜리 그림) 탭에서 보여 줄 설명. 슬라이드 설명과 따로 쓴다. */
@@ -396,6 +457,36 @@ const INFO_VIEW: Record<string, { hint: string; when: string; ko: string[]; sett
       "아주 큰 글씨와 둥글고 친근한 아이콘이나 만화풍 그림",
     ],
     settings: "방향은 '세로', 세부 정보 수준은 '간결'이 잘 어울려요.",
+  },
+  timeline: {
+    hint: "시간 순서대로 사건이나 단계가 한 줄로 쭉 이어지는 연표예요.",
+    when: "역사·발전 과정, 실험·만들기 순서, 학년 계획",
+    ko: [
+      "구역을 하나의 시간 축(가로 또는 세로) 위에 순서대로 배치",
+      "각 마디에 짧은 이름표와 작은 아이콘 하나",
+      "가장 중요한 마디 하나만 크게 강조",
+    ],
+    settings: "방향은 '가로'(세로 연표도 좋아요), 세부 정보 수준은 '간결'이나 '표준'이면 돼요.",
+  },
+  compare: {
+    hint: "두 가지(또는 세 가지)를 나란히 놓고 같은 기준으로 견주어 보여 줘요.",
+    when: "개념 비교, 장단점, 전과 후",
+    ko: [
+      "제목이 붙은 2~3개의 칸을 나란히 놓고, 칸마다 팔레트의 대비되는 색 사용",
+      "칸마다 같은 기준(줄 순서)으로 짧게 비교",
+      "맨 아래에 한 줄 정리 (소스에 있을 때만)",
+    ],
+    settings: "방향은 '가로'가 나란히 놓기 좋아요. 세부 정보 수준은 '표준'이 잘 어울려요.",
+  },
+  conceptmap: {
+    hint: "가운데(또는 위쪽)의 중심 주제에서 가지가 뻗어 나가는 개념 지도예요.",
+    when: "단원 전체 구조, 개념 사이의 관계 정리",
+    ko: [
+      "중심 주제 하나와 4~6개의 가지를 연결선으로 이어 배치",
+      "가지마다 짧은 낱말 2~3개 (문장은 쓰지 않기)",
+      "가지마다 팔레트의 색 하나씩",
+    ],
+    settings: "방향은 '정사각형'이나 '가로', 세부 정보 수준은 '간결'이 잘 어울려요.",
   },
 };
 

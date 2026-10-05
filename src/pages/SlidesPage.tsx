@@ -394,7 +394,10 @@ export default function SlidesPage() {
           ? design.slides
           : design.infographic;
   const isFinal = step === "slides" || step === "infographic";
-  const variant = VARIANTS.find((x) => x.id === variantId) ?? VARIANTS[0];
+  // 탭에 맞는 방식만 메뉴에 보인다 (인포그래픽 전용 방식은 슬라이드 탭에서 숨김). 고른 방식이 이 탭에 없으면 기본으로 돌아간다.
+  const kindNow = step === "infographic" ? "infographic" : "slides";
+  const menu = VARIANTS.filter((o) => !o.only || o.only === kindNow);
+  const variant = menu.find((x) => x.id === variantId) ?? VARIANTS[0];
   // 슬라이드 프롬프트에는 보강 지침(선택)과 60장일 때 파트 지정, 그리고 구성 방식을 끝에 덧붙인다
   const blocks: Block[] = [];
   if (step === "slides") {
@@ -548,13 +551,22 @@ export default function SlidesPage() {
                     onChange={(e) => pickVariant(e.target.value)}
                     className="mt-2 min-h-[48px] w-full rounded-card border border-line bg-surface px-3 text-base font-semibold outline-none focus:border-accent"
                   >
-                    {[...new Set(VARIANTS.map((o) => o.group))].map((g) => (
+                    {menu
+                      .filter((o) => o.group === "기본")
+                      .map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.icon} {o.label}
+                        </option>
+                      ))}
+                    {[...new Set(menu.filter((o) => o.group !== "기본").map((o) => o.group))].map((g) => (
                       <optgroup key={g} label={g}>
-                        {VARIANTS.filter((o) => o.group === g).map((o) => (
-                          <option key={o.id} value={o.id}>
-                            {o.icon} {o.label}
-                          </option>
-                        ))}
+                        {menu
+                          .filter((o) => o.group === g)
+                          .map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {o.icon} {o.label}
+                            </option>
+                          ))}
                       </optgroup>
                     ))}
                   </select>
