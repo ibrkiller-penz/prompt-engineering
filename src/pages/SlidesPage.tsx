@@ -269,7 +269,7 @@ const PLACE: Record<string, { panel: 1 | 2 | 3; where: string; steps: string[] }
 };
 
 const GUIDE_STEPS: { t: string; d: string }[] = [
-  { t: "노트북을 만들고 자료를 올려요", d: "노트북LM에서 새 노트북을 만들고, 왼쪽 1번 소스 칸의 [+ 추가]로 수업 자료(파일·링크)를 올려요." },
+  { t: "노트북을 만들고 자료를 올려요", d: "노트북LM에서 새 노트북을 만들고, 왼쪽 1번 소스 칸의 [+ 추가]로 자료를 넣어요. 방법은 여러 가지예요: 파일(PDF·Word·PowerPoint·이미지·오디오), 웹 주소, YouTube 링크, 구글 드라이브 문서·슬라이드, 복사한 글 붙여넣기, 웹에서 소스 찾기." },
   { t: "이 페이지에서 디자인을 골라요", d: "아래 ① 디자인 고르기에서 마음에 드는 디자인을 눌러요. 디자인 지침은 노트북LM에 따로 넣지 않아요. 슬라이드 프롬프트(단계 3·4) 안에 이미 들어 있어요." },
   { t: "2번 채팅창에 '대본' 프롬프트를 붙여 넣어요", d: "② 단계의 '슬라이드 대본' 탭에서 대상·목적을 고르고 [📋 전체 복사] → 노트북LM 가운데 채팅창에 붙여 넣고 보내요." },
   { t: "대본을 '소스'로 바꿔요", d: "대본 답변 아래의 [메모에 저장]을 누르고, 메모를 열어 [소스로 변환]을 눌러요. 그다음 소스 칸에서 대본만 체크하고 나머지는 체크를 풀어요." },
@@ -318,6 +318,10 @@ function Guide() {
         ,{" "}
         <a className="underline" href="https://support.google.com/notebooklm/answer/16262519?hl=ko" target="_blank" rel="noopener">
           메모를 소스로 변환
+        </a>
+        ,{" "}
+        <a className="underline" href="https://support.google.com/notebooklm/answer/16215270?hl=ko" target="_blank" rel="noopener">
+          소스 추가·검색
         </a>
         ,{" "}
         <a className="underline" href="https://support.google.com/notebooklm/answer/16206563?hl=ko" target="_blank" rel="noopener">
