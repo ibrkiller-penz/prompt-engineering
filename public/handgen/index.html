@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>학습 사이트 만들기 레퍼런스</title>
+<meta name="description" content="손발전기 학습 사이트를 본보기로, 나만의 학습 사이트 작업지시서를 복사해 AI와 함께 만드는 안내">
+<style>
+:root{--bg:#f6f8fc;--card:#fff;--ink:#14213d;--muted:#4a5775;--line:#d5dcea;--navy:#1b2a5c;--navy2:#2c428f;--yellow:#ffc933;--yellow-ink:#3a2c00;--ok:#0f7b45;--okbg:#e3f6ec}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1426;--card:#172040;--ink:#eef2ff;--muted:#b4bfdc;--line:#2c3a66;--navy:#0b1230;--navy2:#8fa8ff;--yellow:#ffd34d;--yellow-ink:#2b2100;--ok:#6fe0a4;--okbg:#10321f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.7 "Pretendard","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;word-break:keep-all}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+a{color:var(--navy2)}
+h1,h2,h3{line-height:1.3;margin:0 0 .5em}
+header{background:linear-gradient(160deg,var(--navy),#27408f);color:#fff;padding:32px 0 36px}
+header h1{font-size:2rem}header p{color:#dbe4ff;margin:.3em 0}
+.crumb{font-size:.9rem;color:#dbe4ff}.crumb a{color:#fff}
+button,.btn{font:inherit;min-height:48px;padding:0 20px;border-radius:12px;border:2px solid var(--navy2);background:var(--card);color:var(--ink);cursor:pointer;font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.primary{background:var(--yellow);border-color:var(--yellow);color:var(--yellow-ink)}
+button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+section{padding:28px 0;border-top:1px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));padding:0;list-style:none;margin:0}
+.num{display:inline-flex;width:34px;height:34px;border-radius:50%;background:var(--navy2);color:#fff;align-items:center;justify-content:center;font-weight:800;margin-right:8px}
+@media (prefers-color-scheme:dark){.num{color:#0b1230}}
+.bar{position:sticky;top:0;z-index:10;background:var(--bg);padding:10px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)}
+.bar .msg{font-weight:700;color:var(--ok)}
+textarea{width:100%;min-height:60vh;font:15px/1.6 ui-monospace,"D2Coding",Consolas,monospace;padding:14px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);resize:vertical}
+.cta{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}
+
+/* 여백 넉넉하게 */
+body{line-height:1.85}
+.wrap{padding:0 22px}
+header{padding:52px 0 56px}
+section{padding:56px 0}
+h2{margin-bottom:.9em;font-size:1.6rem}
+p{margin:.6em 0 1.2em}
+.card{padding:24px 26px;margin:20px 0}
+.grid{gap:20px}
+.cta{gap:14px;margin:28px 0}
+.tip{padding:16px 20px;margin:24px 0}
+.checks label{padding:10px 0}
+.bar{padding:14px 0;gap:12px}
+textarea{padding:20px;min-height:65vh;line-height:1.75}
+.out{padding:18px 20px;line-height:1.75;margin-top:18px}
+label{margin-top:18px}
+li{margin:.5em 0}
+footer{padding:44px 0 56px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="crumb"><a href="/">← 교육자료 목록</a></div>
+  <h1>학습 사이트 만들기 레퍼런스</h1>
+  <p>손발전기 학습 사이트를 본보기로, 나만의 학습 사이트를 AI와 함께 만들어 봅시다.</p>
+  <p><span class="crumb">안내 → 같이 해보기 → 완성 사이트 보기</span></p>
+</div></header>
+
+<main class="wrap">
+<section style="border-top:0">
+  <h2>이 페이지는 무엇인가요?</h2>
+  <p>「흔들면 빛난다」 손발전기 사이트는 <b>다른 학습 사이트를 만들 때 따라 하는 본보기</b>입니다. 사이트를 먼저 구경하기 전에, 이것이 어떻게 만들어졌는지 알아봅시다.</p>
+  <ul class="grid">
+    <li class="card"><span class="num">1</span><b>작업지시서</b><br>사이트를 만들 때 AI에게 주는 설명서입니다. 아래에서 복사해 쓰세요.</li>
+    <li class="card"><span class="num">2</span><b>같이 해보기</b><br>내 주제를 정하고, AI와 함께 한 단계씩 만들어 봅니다.</li>
+    <li class="card"><span class="num">3</span><b>완성 사이트</b><br>작업지시서로 만든 손발전기 사이트를 직접 써 봅니다.</li>
+  </ul>
+  <div class="cta">
+    <a class="btn primary" href="together/">같이 해보기 시작 →</a>
+    <a class="btn" href="site/">완성된 사이트 먼저 보기</a>
+  </div>
+</section>
+
+<section id="doc">
+  <h2>작업지시서 (편집해서 복사하세요)</h2>
+  <p>아래 글은 <b>직접 고칠 수 있습니다.</b> [대괄호] 부분을 내 주제로 바꾸고, 위의 <b>복사하기</b>를 누르세요. 고친 내용은 이 창을 닫으면 사라집니다. 보관하려면 <b>md 파일 받기</b>를 쓰세요.</p>
+  <div class="bar" role="toolbar" aria-label="작업지시서 도구">
+    <button type="button" class="primary" id="copy">📋 복사하기</button>
+    <button type="button" id="dl">⬇ md 파일 받기</button>
+    <button type="button" id="reset">원래대로</button>
+    <span class="msg" id="msg" role="status" aria-live="polite"></span>
+  </div>
+  <p style="margin:12px 0 6px"><label for="ta"><b>작업지시서.md</b> (글자 모양 그대로, 편집 가능)</label></p>
+  <textarea id="ta" spellcheck="false" aria-label="작업지시서 편집"></textarea>
+  <p class="cta"><button type="button" class="primary" id="copy2">📋 복사하기</button><a class="btn" href="together/">다음: 같이 해보기 →</a></p>
+</section>
+</main>
+<footer><div class="wrap">키트 설명서를 참고해 교사가 재구성한 학습 자료의 제작 안내입니다. 개인정보를 수집하지 않습니다.</div></footer>
+
+<script>
+const ta=document.getElementById('ta'),msg=document.getElementById('msg');
+let original='';
+const FALLBACK='# 작업지시서\n\n(guide.md를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침하세요.)\n';
+fetch('guide.md').then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>{original=t;ta.value=t}).catch(()=>{original=FALLBACK;ta.value=FALLBACK});
+function say(t){msg.textContent=t;setTimeout(()=>{if(msg.textContent===t)msg.textContent=''},2500)}
+async function copy(){
+  const text=ta.value;
+  try{await navigator.clipboard.writeText(text);say('복사했어요! AI 대화창에 붙여넣으세요.')}
+  catch(e){ta.focus();ta.select();try{document.execCommand('copy');say('복사했어요!')}catch(_){say('복사 실패: 글을 선택해 Ctrl+C를 누르세요.')}}
+}
+document.getElementById('copy').onclick=copy;
+document.getElementById('copy2').onclick=copy;
+document.getElementById('reset').onclick=()=>{ta.value=original;say('원래대로 돌렸어요.')};
+document.getElementById('dl').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([ta.value],{type:'text/markdown;charset=utf-8'}));
+  a.download='작업지시서.md';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);say('받았어요.');
+};
+</script>
+</body>
+</html>

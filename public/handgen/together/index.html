@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>같이 해보기</title>
+<meta name="description" content="내 주제를 정하고 AI와 함께 학습 사이트를 한 단계씩 만들어 보는 안내">
+<style>
+:root{--bg:#f6f8fc;--card:#fff;--ink:#14213d;--muted:#4a5775;--line:#d5dcea;--navy:#1b2a5c;--navy2:#2c428f;--yellow:#ffc933;--yellow-ink:#3a2c00;--ok:#0f7b45;--okbg:#e3f6ec;--warnbg:#fff1d6;--warn:#8a4b00}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1426;--card:#172040;--ink:#eef2ff;--muted:#b4bfdc;--line:#2c3a66;--navy:#0b1230;--navy2:#8fa8ff;--yellow:#ffd34d;--yellow-ink:#2b2100;--ok:#6fe0a4;--okbg:#10321f;--warnbg:#3a2a0c;--warn:#ffcf85}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.7 "Pretendard","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;word-break:keep-all}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+a{color:var(--navy2)}
+h1,h2,h3{line-height:1.3;margin:0 0 .5em}
+header{background:linear-gradient(160deg,var(--navy),#27408f);color:#fff;padding:32px 0 36px}
+header h1{font-size:2rem}header p{color:#dbe4ff;margin:.3em 0}
+.crumb{font-size:.9rem;color:#dbe4ff}.crumb a{color:#fff}
+button,.btn{font:inherit;min-height:48px;padding:0 20px;border-radius:12px;border:2px solid var(--navy2);background:var(--card);color:var(--ink);cursor:pointer;font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.primary{background:var(--yellow);border-color:var(--yellow);color:var(--yellow-ink)}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+section{padding:26px 0;border-top:1px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:12px 0}
+.num{display:inline-flex;width:36px;height:36px;border-radius:50%;background:var(--navy2);color:#fff;align-items:center;justify-content:center;font-weight:800;margin-right:8px}
+@media (prefers-color-scheme:dark){.num{color:#0b1230}}
+label{display:block;font-weight:700;margin-top:10px}
+input[type=text],textarea{width:100%;font:inherit;min-height:48px;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.out{white-space:pre-wrap;font:15px/1.6 ui-monospace,"D2Coding",Consolas,monospace;background:var(--bg);border:1px dashed var(--navy2);border-radius:10px;padding:12px}
+.tip{background:var(--warnbg);color:var(--warn);border-left:6px solid var(--yellow);border-radius:10px;padding:10px 14px;margin:12px 0}
+.checks{list-style:none;padding:0;margin:0}
+.checks label{display:flex;gap:12px;align-items:flex-start;min-height:48px;padding:6px 0;margin:0;font-weight:500;cursor:pointer}
+.checks input{width:28px;height:28px;flex:0 0 auto;accent-color:var(--ok);margin-top:2px}
+.cta{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.msg{font-weight:700;color:var(--ok)}
+footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}
+
+/* 여백 넉넉하게 */
+body{line-height:1.85}
+.wrap{padding:0 22px}
+header{padding:52px 0 56px}
+section{padding:56px 0}
+h2{margin-bottom:.9em;font-size:1.6rem}
+p{margin:.6em 0 1.2em}
+.card{padding:24px 26px;margin:20px 0}
+.grid{gap:20px}
+.cta{gap:14px;margin:28px 0}
+.tip{padding:16px 20px;margin:24px 0}
+.checks label{padding:10px 0}
+.bar{padding:14px 0;gap:12px}
+textarea{padding:20px;min-height:65vh;line-height:1.75}
+.out{padding:18px 20px;line-height:1.75;margin-top:18px}
+label{margin-top:18px}
+li{margin:.5em 0}
+footer{padding:44px 0 56px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="crumb"><a href="../">← 안내</a> · <a href="/">교육자료 목록</a></div>
+  <h1>같이 해보기</h1>
+  <p>AI와 함께 학습 사이트를 만드는 6단계입니다. 천천히 한 칸씩 체크하며 따라 오세요.</p>
+</div></header>
+
+<main class="wrap">
+<section style="border-top:0">
+  <h2><span class="num">1</span>내 주제 정하기</h2>
+  <p>아래 칸을 채우면, AI에게 건넬 <b>첫 부탁 글</b>이 만들어집니다.</p>
+  <div class="card">
+    <label for="topic">주제 (무엇을 만들거나 배우나요?)</label>
+    <input id="topic" type="text" placeholder="예: 종이로 만드는 간이 전동기">
+    <label for="who">대상</label>
+    <input id="who" type="text" placeholder="예: 중학교 3학년">
+    <label for="parts">준비물이나 재료 (쉼표로 구분)</label>
+    <input id="parts" type="text" placeholder="예: 에나멜선, 건전지, 자석, 클립">
+    <label for="goal">교육과정 성취기준을 찾을 과목</label>
+    <input id="goal" type="text" placeholder="예: 중학교 과학">
+  </div>
+  <div class="out" id="prompt" aria-live="polite"></div>
+  <div class="cta"><button type="button" class="primary" id="copyP">📋 첫 부탁 글 복사하기</button><span class="msg" id="msg" role="status" aria-live="polite"></span></div>
+</section>
+
+<section>
+  <h2><span class="num">2</span>작업지시서 준비</h2>
+  <p>안내 페이지의 작업지시서에서 <b>복사하기</b>를 누르고 [대괄호] 부분을 내 주제로 고칩니다.</p>
+  <p><a class="btn" href="../#doc">작업지시서 열기 →</a></p>
+</section>
+
+<section>
+  <h2><span class="num">3</span>AI와 대화 시작</h2>
+  <div class="card">
+    <ol>
+      <li>AI(Claude Code 등)를 엽니다.</li>
+      <li>새 폴더를 만들고, 작업지시서를 <code>작업지시서.md</code>로 저장해 둡니다.</li>
+      <li>1단계의 <b>첫 부탁 글</b>을 붙여넣고 보냅니다.</li>
+      <li>마지막에 이 말을 덧붙입니다: <b>"단계마다 끝나면 멈추고 보고해."</b></li>
+    </ol>
+  </div>
+  <div class="tip">⚠️ 한꺼번에 시키면 틀린 내용도 한꺼번에 생겨요. "멈추고 보고"가 안전장치입니다.</div>
+</section>
+
+<section>
+  <h2><span class="num">4</span>단계마다 확인하기</h2>
+  <p>AI가 멈추고 보고할 때마다 아래를 확인하고 "다음 단계 진행해"라고 말해 주세요.</p>
+  <div class="card"><ul class="checks" id="checks"></ul></div>
+</section>
+
+<section>
+  <h2><span class="num">5</span>휴대폰으로 직접 써 보기</h2>
+  <p>학생처럼 스마트폰으로 열어, 만들기 단계를 <b>끝까지 따라 해 봅니다.</b> 막히는 곳이 고칠 곳입니다.</p>
+  <div class="card">
+    <ul class="checks" id="checks2"></ul>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">6</span>본보기를 보며 비교하기</h2>
+  <p>이제 완성된 손발전기 사이트를 열어, 내가 만든 것과 무엇이 다른지 비교해 보세요.</p>
+  <ul>
+    <li>만들기 단계의 <b>⚠️주의</b>와 <b>✅확인</b>은 어떻게 쓰여 있나요?</li>
+    <li>그림은 모두 같은 모양과 색으로 그려져 있나요?</li>
+    <li>교육과정 기초자료는 어디에 있나요?</li>
+  </ul>
+  <div class="cta">
+    <a class="btn primary" href="../site/">손발전기 사이트로 가기 →</a>
+    <a class="btn" href="../">← 안내로 돌아가기</a>
+  </div>
+</section>
+</main>
+<footer><div class="wrap">키트 설명서를 참고해 교사가 재구성한 학습 자료의 제작 안내입니다. 체크 표시는 이 기기에만 저장됩니다.</div></footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+/* 첫 부탁 글 */
+function build(){
+  const t=$('topic').value.trim()||'[주제]',w=$('who').value.trim()||'[대상]',p=$('parts').value.trim()||'[준비물]',g=$('goal').value.trim()||'[과목]';
+  $('prompt').textContent=
+`첨부한 작업지시서.md대로 「${t}」 학습 사이트를 만들어 줘.
+- 대상: ${w}
+- 준비물: ${p}
+- 먼저 2022 개정 교육과정에서 ${g} 성취기준을 검색해서 기초자료로 넣고, 학습지도 추가해 줘.
+- 참고 본보기: https://penedu.web.app/handgen/site/
+- 단계마다 끝나면 멈추고 보고해.`;
+}
+['topic','who','parts','goal'].forEach(i=>$(i).addEventListener('input',build));build();
+$('copyP').onclick=async()=>{
+  const m=$('msg');
+  try{await navigator.clipboard.writeText($('prompt').textContent);m.textContent='복사했어요!'}
+  catch(e){const r=document.createRange();r.selectNodeContents($('prompt'));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent='글이 선택됐어요. Ctrl+C로 복사하세요.'}
+  setTimeout(()=>m.textContent='',2500);
+};
+/* 체크리스트 */
+const L1=["교육과정 성취기준과 해설이 정리되었다 (교사 확인 표시 포함)","원본 문장·그림을 베끼지 않고 새로 썼다","부품 그림이 모두 같은 모양과 색이다","만들기 단계마다 그림 · 문장 2~3줄 · 주의 · 확인이 있다","퀴즈 정답과 해설이 맞다"];
+const L2=["폰에서 글씨가 읽기 편하다 (본문 18px 이상)","버튼을 엄지로 누르기 쉽다","옆으로 밀리지 않는다","혼자 4단계를 끝까지 따라 했다","막힌 곳을 AI에게 알려 고쳤다"];
+function list(id,items,key){
+  const saved=store.get(key,{});
+  $(id).innerHTML=items.map((t,i)=>`<li><label><input type="checkbox" data-i="${i}" ${saved[i]?'checked':''}> ${t}</label></li>`).join('');
+  $(id).querySelectorAll('input').forEach(cb=>cb.onchange=()=>{saved[cb.dataset.i]=cb.checked;store.set(key,saved)});
+}
+list('checks',L1,'tg1');list('checks2',L2,'tg2');
+</script>
+</body>
+</html>
