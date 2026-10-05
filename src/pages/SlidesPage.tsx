@@ -36,19 +36,21 @@ function SlidePreview({ d }: { d: Design }) {
   const a1 = acc[0] ?? text;
   const a2 = acc[1] ?? a1;
   const pt = acc[acc.length - 1] ?? a1;
-  const frame = "relative aspect-video overflow-hidden rounded-lg border border-black/10 p-3 text-left";
-  const lab = "absolute left-2 top-1.5 rounded bg-black/55 px-1.5 text-[0.6rem] font-bold text-white";
+  // 칸 너비(cqw)에 비례해서 글자·여백이 줄어들게 해서, 작은 화면에서도 넘치지 않게 한다
+  const frame = "relative aspect-video overflow-hidden rounded-lg border border-black/10 [container-type:inline-size]";
+  const inner = "absolute inset-0 flex flex-col justify-center px-[7cqw] py-[6cqw]";
+  const lab = "absolute left-[3cqw] top-[2.5cqw] z-10 rounded bg-black/55 px-[1.8cqw] py-[0.4cqw] text-[3.2cqw] font-bold leading-snug text-white";
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="슬라이드 미리보기">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label="슬라이드 미리보기">
       {/* A 제목 */}
       <div className={frame} style={{ background: bg }}>
         <span className={lab}>A 제목</span>
-        <div className="flex h-full flex-col items-center justify-center text-center">
-          <b className="text-sm leading-tight" style={{ color: text }}>
+        <div className={`${inner} items-center text-center`}>
+          <b className="text-[7.5cqw] leading-tight" style={{ color: text }}>
             오늘의 수업 제목
           </b>
-          <span className="mt-1 h-0.5 w-12 rounded-full" style={{ background: `linear-gradient(90deg,${a1},${a2})` }} />
-          <span className="mt-2 text-[0.6rem]" style={{ color: sub }}>
+          <span className="mt-[3cqw] h-[0.9cqw] w-[26cqw] rounded-full" style={{ background: `linear-gradient(90deg,${a1},${a2})` }} />
+          <span className="mt-[4cqw] text-[3.6cqw]" style={{ color: sub }}>
             부제목 · 발표자
           </span>
         </div>
@@ -56,46 +58,56 @@ function SlidePreview({ d }: { d: Design }) {
       {/* B 본문 */}
       <div className={frame} style={{ background: bg }}>
         <span className={lab}>B 본문</span>
-        <div className="pt-4">
-          <b className="text-xs" style={{ color: text }}>
+        <div className={`${inner} items-start pt-[10cqw]`}>
+          <b className="text-[5.2cqw] leading-tight" style={{ color: text }}>
             핵심 내용
           </b>
-          {["첫째 포인트", "둘째 포인트", "셋째 포인트"].map((t) => (
-            <p key={t} className="mt-1 flex items-center gap-1.5 text-[0.65rem]" style={{ color: text }}>
-              <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: a1 }} />
-              {t}
-            </p>
-          ))}
+          <div className="mt-[3cqw] space-y-[2.2cqw]">
+            {["첫째 포인트", "둘째 포인트", "셋째 포인트"].map((t) => (
+              <p key={t} className="flex items-center gap-[2.4cqw] text-[3.8cqw] leading-none" style={{ color: text }}>
+                <span className="h-[2.6cqw] w-[2.6cqw] shrink-0 rounded-sm" style={{ background: a1 }} />
+                {t}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
       {/* C 데이터 */}
       <div className={frame} style={{ background: bg }}>
         <span className={lab}>C 데이터</span>
-        <div className="flex h-full items-end justify-center gap-3 pb-1 pt-4">
-          {[["87%", pt], ["3.5배", a1]].map(([n, c]) => (
-            <div key={n} className="rounded-md border px-2 py-1 text-center" style={{ borderColor: sub + "55" }}>
-              <b className="block text-base leading-none" style={{ color: c }}>
-                {n}
-              </b>
-              <span className="text-[0.55rem]" style={{ color: sub }}>
-                지표
-              </span>
-            </div>
-          ))}
+        <div className={`${inner} items-center pt-[10cqw]`}>
+          <div className="flex gap-[5cqw]">
+            {[["87%", pt], ["3.5배", a1]].map(([n, c]) => (
+              <div key={n} className="rounded-md border px-[5cqw] py-[3cqw] text-center" style={{ borderColor: sub + "66" }}>
+                <b className="block text-[9cqw] leading-none" style={{ color: c }}>
+                  {n}
+                </b>
+                <span className="mt-[1.5cqw] block text-[3cqw]" style={{ color: sub }}>
+                  지표
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       {/* D 구조 */}
       <div className={frame} style={{ background: bg }}>
         <span className={lab}>D 구조</span>
-        <div className="flex h-full items-center justify-center gap-1 pt-3">
-          {["입력", "처리", "결과"].map((t, i) => (
-            <div key={t} className="flex items-center gap-1">
-              <span className="rounded-md border px-1.5 py-1 text-[0.6rem] font-bold" style={{ color: text, borderColor: a1 }}>
-                {t}
-              </span>
-              {i < 2 && <span style={{ color: a2 }}>→</span>}
-            </div>
-          ))}
+        <div className={`${inner} items-center pt-[8cqw]`}>
+          <div className="flex items-center gap-[2.5cqw]">
+            {["입력", "처리", "결과"].map((t, i) => (
+              <div key={t} className="flex items-center gap-[2.5cqw]">
+                <span className="rounded-md border px-[3.6cqw] py-[2.4cqw] text-[3.8cqw] font-bold leading-none" style={{ color: text, borderColor: a1 }}>
+                  {t}
+                </span>
+                {i < 2 && (
+                  <span className="text-[4.4cqw] leading-none" style={{ color: a2 }}>
+                    →
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -121,10 +133,11 @@ function ColorTable({ d }: { d: Design }) {
 }
 
 /** 대본 프롬프트의 변수 칸(대상·목적)을 채운다 */
-function fill(t: string, audience: string, objective: string, step: string) {
+function fill(t: string, audience: string, objective: string, infoObjective: string, step: string) {
   let r = t;
   if (audience.trim()) r = r.replace(/(Target Audience:\s*)[^\n]+/g, `$1${audience.trim()}`);
   if (step === "script" && objective.trim()) r = r.replace(/(Presentation Objective:\s*)[^\n]+/g, `$1${objective.trim()}`);
+  if (step === "infoScript" && infoObjective.trim()) r = r.replace(/(Infographic Objective:\s*)[^\n]+/g, `$1${infoObjective.trim()}`);
   return r;
 }
 
@@ -185,6 +198,7 @@ export default function SlidesPage() {
   const design = data.designs.find((x) => x.id === designId) ?? data.designs[0];
   const [audience, setAudience] = useState(design.audience);
   const [objective, setObjective] = useState(data.objectives[0].label);
+  const [infoObjective, setInfoObjective] = useState(data.infoObjectives[0].label);
   const stepInfo = TABS.find((x) => x.id === step) ?? TABS[0];
   const designStep = data.steps.find((x) => x.id === "design")!;
 
@@ -211,7 +225,7 @@ export default function SlidesPage() {
         : step === "slides"
           ? design.slides
           : design.infographic;
-  const text = fill(body, audience, objective, step);
+  const text = fill(body, audience, objective, infoObjective, step);
   const isScript = step === "script" || step === "infoScript";
   const idx = TABS.findIndex((x) => x.id === step);
 
@@ -283,7 +297,7 @@ export default function SlidesPage() {
         </section>
 
         <h2 className="mt-8 text-xl font-bold">② 단계별 프롬프트 복사</h2>
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="단계">
+        <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 py-1.5" role="tablist" aria-label="단계">
           {TABS.map((s, i) => (
             <button
               key={s.id}
@@ -341,7 +355,13 @@ export default function SlidesPage() {
                 />
               )}
               {step === "infoScript" && (
-                <p className="text-xs text-muted">인포그래픽 대본의 목적은 원문 그대로 “복잡한 정보의 시각적 요약 및 핵심 정보 전달”이에요.</p>
+                <Choice
+                  label="목적 (Infographic Objective)"
+                  options={data.infoObjectives}
+                  value={infoObjective}
+                  onChange={setInfoObjective}
+                  placeholder="직접 입력 — 예) 우리 학교 급식 안전 수칙 알리기"
+                />
               )}
               <p className="text-xs text-muted">고르면 아래 프롬프트의 해당 칸이 바로 바뀌어요.</p>
             </div>
