@@ -362,7 +362,7 @@ export default function SlidesPage() {
   const designStep = data.steps.find((x) => x.id === "design")!;
 
   useEffect(() => {
-    document.title = `노트북LM 슬라이드 프롬프트 · ${HUB_NAME}`;
+    document.title = `슬라이드·인포그래픽 프롬프트 · 제미나이 노트북 · ${HUB_NAME}`;
   }, []);
 
   const urlOf = (o: { d?: string; s?: string; v?: string }) => {
@@ -415,11 +415,10 @@ export default function SlidesPage() {
   return (
     <div className="min-h-screen">
       <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
-        <Link to="/" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
-          <img src="/icon-192.png" alt="" width={32} height={32} className="h-8 w-8" />
-          {HUB_NAME}
+        <Link to="/notebook" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
+          ← 제미나이 노트북
         </Link>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">노트북LM 슬라이드 프롬프트</h1>
+        <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">슬라이드·인포그래픽 프롬프트</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted">
           디자인을 고르면 아래 프롬프트가 그 디자인으로 채워져요. 단계 순서대로 복사해서 노트북LM에 붙여 넣으세요.
         </p>

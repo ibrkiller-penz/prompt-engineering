@@ -54,8 +54,20 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
-  // 노트북LM 슬라이드 — 슬라이드 화면 + 팔레트 점
-  "/slides": {
+  // 제미나이 노트북 — 공책 + 반짝임
+  "/notebook": {
+    from: "#0284c7",
+    to: "#38bdf8",
+    glyph: (
+      <g>
+        <rect x="12" y="9" width="24" height="30" rx="3.5" fill="none" stroke="#fff" strokeWidth="3" />
+        <path d="M18 17h12M18 23h12M18 29h7" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+        <path d="M38 8.5l1.3 3.2 3.2 1.3-3.2 1.3L38 17.5l-1.3-3.2-3.2-1.3 3.2-1.3z" fill="#fff" />
+      </g>
+    ),
+  },
+  // 슬라이드·인포그래픽 프롬프트 — 슬라이드 화면 + 팔레트 점
+  "/notebook/slides": {
     from: "#ec4899",
     to: "#f9a8d4",
     glyph: (
@@ -65,6 +77,19 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
         <circle cx="17" cy="21" r="2.6" fill="#fff" />
         <circle cx="24" cy="21" r="2.6" fill="#fff" opacity=".85" />
         <circle cx="31" cy="21" r="2.6" fill="#fff" opacity=".7" />
+      </g>
+    ),
+  },
+  // 활용 사례 — 헤드폰 + 반짝임
+  "/notebook/cases": {
+    from: "#7c3aed",
+    to: "#a78bfa",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 28v-4a13 13 0 0 1 26 0v4" />
+        <rect x="9" y="27" width="7" height="11" rx="3" fill="#fff" stroke="none" />
+        <rect x="32" y="27" width="7" height="11" rx="3" fill="#fff" stroke="none" />
+        <path d="M24 19.5l1.3 3 3 1.3-3 1.3-1.3 3-1.3-3-3-1.3 3-1.3z" fill="#fff" stroke="none" />
       </g>
     ),
   },

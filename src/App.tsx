@@ -3,6 +3,8 @@ import { Navigate, Route, Routes, useLocation, useParams } from "react-router-do
 import Hub from "./pages/Hub";
 import SetupPage from "./pages/SetupPage";
 import SlidesPage from "./pages/SlidesPage";
+import NotebookHome from "./pages/NotebookHome";
+import NotebookCases from "./pages/NotebookCases";
 import CourseHome from "./pages/prompt/CourseHome";
 import LevelHome from "./pages/prompt/LevelHome";
 import LessonPage from "./pages/prompt/LessonPage";
@@ -25,7 +27,11 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Hub />} />
       <Route path="/setup" element={<SetupPage />} />
-      <Route path="/slides" element={<SlidesPage />} />
+      <Route path="/notebook" element={<NotebookHome />} />
+      <Route path="/notebook/slides" element={<SlidesPage />} />
+      <Route path="/notebook/cases" element={<NotebookCases />} />
+      {/* 예전 주소(/slides)로 공유한 링크도 그대로 열리게 새 주소로 보낸다 */}
+      <Route path="/slides" element={<SlidesRedirect />} />
       <Route path="/prompt/print" element={<PrintPage />} />
       <Route path="/prompt" element={<PromptLayout />}>
         <Route index element={<CourseHome />} />
@@ -45,6 +51,11 @@ export default function App() {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
+}
+
+function SlidesRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/notebook/slides${search}`} replace />;
 }
 
 function ProjectRedirect() {
