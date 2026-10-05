@@ -34,6 +34,13 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     cta: "프로그램 받으러 가기 ↗",
   },
   {
+    path: "/slides",
+    title: "노트북LM 슬라이드 프롬프트",
+    tag: "슬라이드·인포그래픽 만들기",
+    desc: "노트북LM으로 슬라이드와 인포그래픽을 만드는 프롬프트 모음이에요. 디자인을 고르면 디자인 지침, 슬라이드 대본, 인포그래픽 대본, 완성 프롬프트가 그 디자인으로 채워져요. 단계마다 복사 버튼이 있어서 붙여 넣기만 하면 돼요.",
+    cta: "디자인 고르러 가기 →",
+  },
+  {
     path: "/handgen/",
     external: true,
     title: "학습 사이트 만들기 레퍼런스 — 손발전기",

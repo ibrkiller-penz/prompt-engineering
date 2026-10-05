@@ -54,6 +54,20 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 노트북LM 슬라이드 — 슬라이드 화면 + 팔레트 점
+  "/slides": {
+    from: "#ec4899",
+    to: "#f9a8d4",
+    glyph: (
+      <g>
+        <rect x="9" y="10" width="30" height="21" rx="3.5" fill="none" stroke="#fff" strokeWidth="3" />
+        <path d="M16 36h16M24 31v5" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="17" cy="21" r="2.6" fill="#fff" />
+        <circle cx="24" cy="21" r="2.6" fill="#fff" opacity=".85" />
+        <circle cx="31" cy="21" r="2.6" fill="#fff" opacity=".7" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",
