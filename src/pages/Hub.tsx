@@ -3,23 +3,12 @@ import { Link } from "react-router-dom";
 import { HUB_NAME, SECTIONS } from "../site";
 import SectionIcon from "../components/SectionIcon";
 
-/**
- * 설명은 두 줄까지만 보인다. 더 긴 설명(more)이 있으면
- * - 마우스를 카드에 올리거나 키보드로 포커스하면 끝까지 펼쳐지고 (카드에 group 클래스 필요)
- * - 터치 화면에서는 '더보기'를 눌러 펼친다 (카드 전체가 링크라서 클릭이 이동하지 않게 막는다)
- */
+/** 설명은 두 줄까지만 보이고, 더 긴 설명(more)이 있으면 '더보기'를 눌러야 펼친다 (카드 전체가 링크라서 클릭이 이동하지 않게 막는다. 마우스를 올려도 펼치지 않는다) */
 function Desc({ text, more }: { text: string; more?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2">
-      {open && more ? (
-        <p className="text-muted">{more}</p>
-      ) : (
-        <>
-          <p className={`text-muted line-clamp-2 ${more ? "group-hover:hidden group-focus-visible:hidden" : ""}`}>{text}</p>
-          {more && <p className="hidden text-muted group-hover:block group-focus-visible:block">{more}</p>}
-        </>
-      )}
+      <p className={`text-muted ${open ? "" : "line-clamp-2"}`}>{open && more ? more : text}</p>
       {more && (
         <button
           type="button"
