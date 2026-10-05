@@ -36,12 +36,16 @@ def color_name(hexv: str) -> str:
     r, g, b = (int(h[i : i + 2], 16) / 255 for i in (0, 2, 4))
     hh, ll, ss = colorsys.rgb_to_hls(r, g, b)
     deg = hh * 360
-    if ss < 0.12:
+    if max(r, g, b) - min(r, g, b) < 0.06:  # 거의 무채색(회색·흰색·검정 계열)
         if ll < 0.15: return "charcoal"
         if ll < 0.35: return "dark gray"
         if ll < 0.65: return "medium gray"
         if ll < 0.9: return "light gray"
         return "clean light"
+    chroma = max(r, g, b) - min(r, g, b)
+    if chroma < 0.14 and ll < 0.88:  # 채도가 낮은 어두운~중간 색은 회색 계열로 부른다 (글자색이 파랑·주황으로 오해되지 않게)
+        shade = "dark" if ll < 0.35 else "medium" if ll < 0.65 else "light"
+        return f"{'warm' if (deg < 70 or deg >= 330) else 'cool'} {shade} gray"
     if deg < 15 or deg >= 345: base = "red"
     elif deg < 40: base = "orange"
     elif deg < 55: base = "golden yellow"

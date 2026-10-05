@@ -4,6 +4,18 @@ import data from "../../content/slides/slides.json";
 import { HUB_NAME } from "../site";
 import { CopyButton } from "../components/ui";
 import { VARIANTS, BOOST_SLIDES, appendBlocks, variantBlock, viewOf, type Block } from "./slideStyles";
+import {
+  HEX,
+  PALETTE_FIELDS,
+  TAGS,
+  contrast,
+  makeCustomDesign,
+  paletteFromParam,
+  paletteToParam,
+  tagsOf,
+  type DesignLike,
+  type Palette,
+} from "./designTools";
 
 type Design = (typeof data.designs)[number];
 type Col = Design["colors"][number];
@@ -191,6 +203,16 @@ const TABS = data.steps.filter((s) => s.id !== "design");
 /** 처음에 보이는 대표 디자인 (밝은 것·어두운 것·기관용이 섞이게) */
 const FEATURED = ["busan-office", "classroom-bright", "paper-notes", "night-navy", "chalkboard-v2", "terracotta"];
 
+/** 색을 고를 때 쓰기 좋은 사이트 */
+const PALETTE_SITES = [
+  { name: "Coolors", url: "https://coolors.co", desc: "스페이스바를 누를 때마다 5색 팔레트가 새로 나와요. 마음에 드는 색은 고정해 두면 돼요. 가장 무난해요." },
+  { name: "Adobe Color", url: "https://color.adobe.com", desc: "보색·유사색 같은 색상 규칙으로 만들거나 사진에서 색을 뽑아요. 명도 대비도 확인할 수 있어요." },
+  { name: "Color Hunt", url: "https://colorhunt.co", desc: "사람들이 고른 4색 팔레트를 둘러보고 골라요. 빨리 고를 때 좋아요." },
+  { name: "Realtime Colors", url: "https://realtimecolors.com", desc: "배경·글자·강조색을 실제 화면에 적용한 모습으로 미리 봐요. 슬라이드와 가장 비슷하게 확인할 수 있어요." },
+  { name: "Khroma", url: "https://khroma.co", desc: "좋아하는 색을 몇 개 고르면 AI가 취향에 맞는 조합을 추천해 줘요." },
+];
+
+
 /** 노트북LM 화면의 세 칸. active를 주면 붙여 넣을 칸을 강조한다 */
 function PanelMap({ active, stack }: { active?: 1 | 2 | 3; stack?: boolean }) {
   const items = [
@@ -344,16 +366,36 @@ function Guide() {
 export default function SlidesPage() {
   const [sp, setSp] = useSearchParams();
   const first = sp.get("d");
-  const [designId, setDesignId] = useState(data.designs.some((x) => x.id === first) ? (first as string) : data.designs[0].id);
+  // 내 색: 주소의 p(6색)로 공유할 수 있다. 밝은/어두운 틀을 복제해 만든다.
+  const [customPal, setCustomPal] = useState<Palette | null>(paletteFromParam(sp.get("p")));
+  const lightBase = data.designs.find((x) => x.id === "classroom-bright")!;
+  const darkBase = data.designs.find((x) => x.id === "night-navy")!;
+  const customDesign = customPal ? (makeCustomDesign(lightBase as unknown as DesignLike, darkBase as unknown as DesignLike, customPal) as unknown as (typeof data.designs)[number]) : null;
+  const allDesigns = customDesign ? [...data.designs, customDesign] : data.designs;
+  const [designId, setDesignId] = useState(
+    first === "custom" && customPal ? "custom" : data.designs.some((x) => x.id === first) ? (first as string) : data.designs[0].id,
+  );
+  const [tag, setTag] = useState<string>("전체");
+  const [edit, setEdit] = useState<Record<keyof Palette, string>>(() => {
+    const c = Object.fromEntries(lightBase.colors.map((x) => [x.name, x.hex]));
+    const p = customPal ?? { bg: c.BG, text: c.TEXT_MAIN, sub: c.TEXT_SUB, a1: c.ACCENT_1, a2: c.ACCENT_2, point: c.POINT };
+    return { ...p };
+  });
   const [step, setStep] = useState(TABS.some((x) => x.id === sp.get("s")) ? (sp.get("s") as string) : TABS[0].id);
   const [count, setCount] = useState<"20" | "60">("20");
-  const design = data.designs.find((x) => x.id === designId) ?? data.designs[0];
+  const design = allDesigns.find((x) => x.id === designId) ?? data.designs[0];
   const [more, setMore] = useState(false);
   const [openDesign, setOpenDesign] = useState(true); // 선택한 디자인 카드: 처음엔 펼침, 접기 버튼으로 접는다
   const [boost, setBoost] = useState(true); // 슬라이드 프롬프트 보강 지침: 처음엔 켬(추천)
   const [variantId, setVariantId] = useState(VARIANTS.some((x) => x.id === sp.get("v")) ? (sp.get("v") as string) : VARIANTS[0].id);
   // 대표만 보이되, 선택한 디자인이 대표가 아니면 함께 보여 준다
-  const shown = more ? data.designs : data.designs.filter((d) => FEATURED.includes(d.id) || d.id === design.id);
+  // 분위기를 고르면 그에 맞는 디자인을 모두 보여 준다. 고르지 않으면 대표만 보이고 더보기로 펼친다.
+  const shown =
+    tag !== "전체"
+      ? allDesigns.filter((d) => tagsOf(d).includes(tag) || d.id === "custom")
+      : more
+        ? allDesigns
+        : allDesigns.filter((d) => FEATURED.includes(d.id) || d.id === design.id || d.id === "custom");
   const [audience, setAudience] = useState(design.audience);
   const [objective, setObjective] = useState(data.objectives[0].label);
   const [infoObjective, setInfoObjective] = useState(data.infoObjectives[0].label);
@@ -364,10 +406,12 @@ export default function SlidesPage() {
     document.title = `슬라이드·인포그래픽 프롬프트 · 제미나이 노트북 · ${HUB_NAME}`;
   }, []);
 
-  const urlOf = (o: { d?: string; s?: string; v?: string }) => {
+  const urlOf = (o: { d?: string; s?: string; v?: string; p?: Palette | null }) => {
     const r: Record<string, string> = { d: o.d ?? designId, s: o.s ?? step };
     const v = o.v ?? variantId;
     if (v !== VARIANTS[0].id) r.v = v;
+    const pal = o.p === undefined ? customPal : o.p;
+    if (pal) r.p = paletteToParam(pal);
     return r;
   };
   const pickDesign = (d: Design) => {
@@ -377,6 +421,14 @@ export default function SlidesPage() {
   const pickStep = (id: string) => {
     setStep(id);
     setSp(urlOf({ s: id }), { replace: true });
+  };
+  const editOk = (Object.keys(edit) as (keyof Palette)[]).every((k) => HEX.test(edit[k]));
+  const applyCustom = () => {
+    if (!editOk) return;
+    const pal = { ...edit } as Palette;
+    setCustomPal(pal);
+    setDesignId("custom");
+    setSp(urlOf({ d: "custom", p: pal }), { replace: true });
   };
   const pickVariant = (id: string) => {
     setVariantId(id);
@@ -427,7 +479,25 @@ export default function SlidesPage() {
 
         <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-xl font-bold">① 디자인 고르기</h2>
-          <span className="text-sm text-muted">{data.designs.length}가지 중에서 골라요</span>
+          <span className="text-sm text-muted">{allDesigns.length}가지 중에서 골라요</span>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="분위기로 찾기">
+          {["전체", ...TAGS].map((g) => {
+            const n = g === "전체" ? allDesigns.length : allDesigns.filter((d) => tagsOf(d).includes(g)).length;
+            return (
+              <button
+                key={g}
+                type="button"
+                aria-pressed={tag === g}
+                onClick={() => setTag(g)}
+                className={`min-h-[40px] rounded-full border px-3 text-sm ${
+                  tag === g ? "border-accent bg-accent font-bold text-accent-ink" : "border-line bg-surface hover:border-accent"
+                }`}
+              >
+                {g} <span className="opacity-70">{n}</span>
+              </button>
+            );
+          })}
         </div>
         <ul className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6" role="radiogroup" aria-label="디자인">
           {shown.map((d) => {
@@ -450,16 +520,89 @@ export default function SlidesPage() {
             );
           })}
         </ul>
-        {data.designs.length > FEATURED.length && (
+        {tag === "전체" && allDesigns.length > FEATURED.length && (
           <button
             type="button"
             onClick={() => setMore((m) => !m)}
             aria-expanded={more}
             className="mt-2 inline-flex min-h-[44px] items-center gap-1 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-accent hover:bg-accent-soft"
           >
-            {more ? "▲ 접기" : `▼ 더보기 (+${data.designs.length - FEATURED.length}개)`}
+            {more ? "▲ 접기" : `▼ 더보기 (+${allDesigns.length - FEATURED.length}개)`}
           </button>
         )}
+
+        {/* 내 색으로 만들기: 색 사이트에서 고른 6색을 넣으면 같은 틀로 디자인을 만든다 */}
+        <details className="mt-4 rounded-card border border-line bg-surface p-4 sm:p-5">
+          <summary className="min-h-[44px] cursor-pointer font-bold">🎨 내 색으로 만들기 — 색 사이트에서 고른 색을 넣어요</summary>
+          <p className="mt-2 text-sm text-muted">
+            색 사이트에서 마음에 드는 색 코드(#RRGGBB)를 복사해 아래 칸에 넣고 [이 색으로 디자인 만들기]를 누르세요. 글자색은 배경과 대비가 충분해야 읽기 편해요. 대비가 낮으면 경고가 떠요.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {PALETTE_FIELDS.map((f) => {
+              const v = edit[f.key];
+              const ok = HEX.test(v);
+              const ratio = ok && f.need > 0 && HEX.test(edit.bg) ? contrast(v, edit.bg) : null;
+              const pass = ratio === null ? null : ratio >= f.need;
+              return (
+                <div key={f.key} className="rounded-lg border border-line bg-bg p-3">
+                  <label htmlFor={`pal-${f.key}`} className="block text-sm font-bold">
+                    {f.label} <span className="font-normal text-muted">· {f.hint}</span>
+                  </label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      type="color"
+                      aria-label={`${f.label} 색 고르기`}
+                      value={ok ? v : "#000000"}
+                      onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value.toUpperCase() })}
+                      className="h-11 w-12 shrink-0 cursor-pointer rounded border border-line bg-surface p-0.5"
+                    />
+                    <input
+                      id={`pal-${f.key}`}
+                      value={v}
+                      onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}` })}
+                      spellCheck={false}
+                      maxLength={7}
+                      aria-invalid={!ok}
+                      className={`min-h-[44px] w-full min-w-0 rounded-card border bg-surface px-3 font-mono uppercase outline-none focus:border-accent ${ok ? "border-line" : "border-red-500"}`}
+                    />
+                  </div>
+                  {!ok ? (
+                    <p className="mt-1 text-xs text-red-600">#과 숫자·영문 6자리로 써 주세요 (예: #2563EB)</p>
+                  ) : ratio !== null ? (
+                    <p className={`mt-1 text-xs font-semibold ${pass ? "text-green-700" : "text-red-600"}`}>
+                      {pass ? "✓" : "⚠"} 배경과 대비 {ratio.toFixed(1)}:1 (기준 {f.need}:1 {pass ? "통과" : "미달"})
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted">다른 색들의 기준이 되는 색이에요</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={applyCustom}
+              disabled={!editOk}
+              className="min-h-[48px] rounded-card bg-accent px-5 font-semibold text-accent-ink disabled:opacity-50"
+            >
+              이 색으로 디자인 만들기
+            </button>
+            {customPal && <span className="text-sm text-muted">만든 디자인은 위 목록의 '내 색' 카드로 들어가고, 주소를 복사하면 같은 색으로 공유돼요.</span>}
+          </div>
+
+          <h4 className="mt-5 font-bold">색을 고르기 좋은 사이트</h4>
+          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+            {PALETTE_SITES.map((s) => (
+              <li key={s.url} className="rounded-lg border border-line bg-bg p-3 text-sm">
+                <a href={s.url} target="_blank" rel="noopener" className="font-bold text-accent underline underline-offset-2">
+                  {s.name} ↗
+                </a>
+                <p className="mt-0.5 text-muted">{s.desc}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
 
         {/* 선택한 디자인: 색 목록 + 슬라이드 미리보기 + 단계 1 프롬프트 */}
         <section className="mt-5 rounded-card border-2 border-accent bg-surface p-5 sm:p-6" aria-label={`${design.name} 디자인`}>
