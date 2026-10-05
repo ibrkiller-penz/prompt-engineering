@@ -418,31 +418,69 @@ export function viewOf(v: Variant, kind: "slides" | "infographic"): ViewText {
 
 export type Applied = { text: string; start: number; end: number };
 
-/**
- * 완성 프롬프트(user_steering_prompt 끝)에 구성 방식 지침을 번호 하나로 덧붙인다.
- * start/end는 덧붙인 부분의 위치라서 화면에서 강조 표시할 때 쓴다.
- */
-export function applyVariant(text: string, v: Variant, kind: "slides" | "infographic"): Applied {
+/** 프롬프트 끝에 덧붙이는 지침 한 덩어리 (제목 + 세부) */
+export type Block = { head: string; bullets: string[] };
+
+/** 모든 슬라이드 프롬프트에 덧붙이는 보강 지침. 원문은 그대로 두고 끝에만 더한다. */
+export const BOOST_SLIDES: Block = {
+  head: "Text & Source Rules:",
+  bullets: [
+    "Write all slide text in Korean.",
+    "Show only the script's 제목 and 화면 텍스트 on the slides (short lines, about 3 to 4 per slide, one idea per slide). Do NOT put the 상세 대본 on the slides.",
+    "Use only information from the source. Do not invent facts, numbers, or examples.",
+  ],
+};
+
+/** 대본을 60장(3파트)으로 만들었을 때, 이번에 만들 파트를 지정한다 */
+export function partScope(part: number): Block {
+  return {
+    head: `Source Scope = PART ${part} of 3:`,
+    bullets: [
+      `The source script has 3 parts of 20 slides each (labeled Part 1, Part 2, Part 3). Use ONLY Part ${part} for this deck and ignore the other two parts.`,
+      `Number the slides 1 to 20 inside this deck.`,
+    ],
+  };
+}
+
+/** 구성 방식에서 덧붙일 덩어리 (없으면 null) */
+export function variantBlock(v: Variant, kind: "slides" | "infographic"): Block | null {
   const rule = kind === "slides" ? v.slide : v.info;
-  if (!rule) return { text, start: -1, end: -1 };
+  if (!rule) return null;
+  const guard =
+    kind === "slides"
+      ? "Do not change the slide count or the mandatory cover and ending slides."
+      : "Keep it a single page and keep the palette above.";
+  return { head: rule.head, bullets: [...rule.bullets, guard] };
+}
+
+/**
+ * 프롬프트 끝에 덩어리들을 이어서 덧붙인다. start/end는 덧붙인 부분의 위치라서 화면에서 노란 줄로 강조할 때 쓴다.
+ * - 슬라이드: 실행 지침(user_steering_prompt) 끝에 번호를 이어서 (예: 5. 6.)
+ * - 인포그래픽: 자연어 프롬프트 끝에 '## 제목' 구역으로
+ */
+export function appendBlocks(text: string, kind: "slides" | "infographic", blocks: Block[]): Applied {
+  if (!blocks.length) return { text, start: -1, end: -1 };
 
   if (kind === "infographic") {
-    // 인포그래픽 프롬프트는 자연어 설명서라서, 끝에 '## Content Style' 구역을 덧붙인다
-    const head = rule.head.replace(/:$/, "");
-    const body = [...rule.bullets, "Keep it a single page and keep the palette above."].map((b) => `- ${b}`).join("\n");
-    const block = `\n## ${head}\n${body}`;
+    const body = blocks
+      .map((b) => `\n## ${b.head.replace(/:$/, "")}\n${b.bullets.map((x) => `- ${x}`).join("\n")}`)
+      .join("");
     const base = text.replace(/\s+$/, "");
     const start = base.length + 1; // 덧붙인 구역 앞 줄바꿈의 위치 (화면에서 강조할 때 +1부터 보여 준다)
-    return { text: `${base}\n${block}\n`, start, end: start + block.length };
+    return { text: `${base}\n${body}\n`, start, end: start + body.length };
   }
 
-  // 슬라이드 프롬프트: 실행 지침(user_steering_prompt) 끝에 번호 하나를 덧붙인다
   const close = text.lastIndexOf('\n  "\n}');
   const from = text.indexOf("user_steering_prompt");
   if (close < 0 || from < 0) return { text, start: -1, end: -1 };
   const nums = [...text.slice(from, close).matchAll(/\n {4}(\d+)\. /g)].map((m) => Number(m[1]));
-  const n = (nums.length ? Math.max(...nums) : 0) + 1;
-  const guard = "Do not change the slide count or the mandatory cover and ending slides.";
-  const block = `\n    ${n}. ${rule.head}` + [...rule.bullets, guard].map((b) => `\n       - ${b}`).join("");
-  return { text: text.slice(0, close) + block + text.slice(close), start: close, end: close + block.length };
+  let n = (nums.length ? Math.max(...nums) : 0) + 1;
+  const add = blocks
+    .map((b) => {
+      const one = `\n    ${n}. ${b.head}` + b.bullets.map((x) => `\n       - ${x}`).join("");
+      n += 1;
+      return one;
+    })
+    .join("");
+  return { text: text.slice(0, close) + add + text.slice(close), start: close, end: close + add.length };
 }

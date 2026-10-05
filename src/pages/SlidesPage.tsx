@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import data from "../../content/slides/slides.json";
 import { HUB_NAME } from "../site";
 import { CopyButton } from "../components/ui";
-import { VARIANTS, applyVariant, viewOf, type Applied } from "./slideStyles";
+import { VARIANTS, BOOST_SLIDES, appendBlocks, partScope, variantBlock, viewOf, type Block } from "./slideStyles";
 
 type Design = (typeof data.designs)[number];
 type Col = Design["colors"][number];
@@ -350,6 +350,8 @@ export default function SlidesPage() {
   const design = data.designs.find((x) => x.id === designId) ?? data.designs[0];
   const [more, setMore] = useState(false);
   const [openDesign, setOpenDesign] = useState(true); // 선택한 디자인 카드: 처음엔 펼침, 접기 버튼으로 접는다
+  const [boost, setBoost] = useState(true); // 슬라이드 프롬프트 보강 지침: 처음엔 켬(추천)
+  const [part, setPart] = useState(1); // 대본이 60장일 때 이번에 만들 파트
   const [variantId, setVariantId] = useState(VARIANTS.some((x) => x.id === sp.get("v")) ? (sp.get("v") as string) : VARIANTS[0].id);
   // 대표만 보이되, 선택한 디자인이 대표가 아니면 함께 보여 준다
   const shown = more ? data.designs : data.designs.filter((d) => FEATURED.includes(d.id) || d.id === design.id);
@@ -394,9 +396,17 @@ export default function SlidesPage() {
           : design.infographic;
   const isFinal = step === "slides" || step === "infographic";
   const variant = VARIANTS.find((x) => x.id === variantId) ?? VARIANTS[0];
-  const applied: Applied = isFinal
-    ? applyVariant(fill(body, audience, objective, infoObjective, step), variant, step as "slides" | "infographic")
-    : { text: fill(body, audience, objective, infoObjective, step), start: -1, end: -1 };
+  // 슬라이드 프롬프트에는 보강 지침(선택)과 60장일 때 파트 지정, 그리고 구성 방식을 끝에 덧붙인다
+  const blocks: Block[] = [];
+  if (step === "slides") {
+    if (boost) blocks.push(BOOST_SLIDES);
+    if (count === "60") blocks.push(partScope(part));
+  }
+  if (isFinal) {
+    const vb = variantBlock(variant, step as "slides" | "infographic");
+    if (vb) blocks.push(vb);
+  }
+  const applied = appendBlocks(fill(body, audience, objective, infoObjective, step), isFinal ? (step as "slides" | "infographic") : "slides", isFinal ? blocks : []);
   const text = applied.text;
   const vt = viewOf(variant, step === "infographic" ? "infographic" : "slides");
   const isScript = step === "script" || step === "infoScript";
@@ -576,6 +586,64 @@ export default function SlidesPage() {
                     </>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {step === "slides" && (
+            <div className="mt-4 rounded-card border border-line bg-bg p-4">
+              <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={boost}
+                    onChange={(e) => setBoost(e.target.checked)}
+                    className="mt-1 h-5 w-5 shrink-0 accent-[var(--accent)]"
+                  />
+                  <span className="min-w-0">
+                    <b>보강 지침 넣기 (추천)</b>
+                    <span className="block text-sm text-muted">
+                      슬라이드 글은 한국어로, 대본의 '화면 텍스트'만 넣고 '상세 대본'은 슬라이드에 넣지 않게, 소스에 없는 내용은 지어내지 않게 해요. 끄면 원문 그대로예요.
+                    </span>
+                  </span>
+                </label>
+                <fieldset className="min-w-0">
+                  <legend className="mb-1 text-sm font-bold">대본 길이</legend>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(["20", "60"] as const).map((c) => (
+                      <label
+                        key={c}
+                        className={`inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm ${
+                          count === c ? "border-accent bg-accent-soft font-bold text-accent" : "border-line bg-surface"
+                        }`}
+                      >
+                        <input type="radio" checked={count === c} onChange={() => setCount(c)} className="accent-[var(--accent)]" />
+                        {c}장{c === "60" ? " (3파트)" : ""}
+                      </label>
+                    ))}
+                  </div>
+                  {count === "60" && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted">60장 대본은 한 번에 20장씩, 파트마다 따로 만들어요. 이번에 만들 파트를 고르세요.</p>
+                      <div className="mt-1 flex gap-1.5" role="radiogroup" aria-label="파트">
+                        {[1, 2, 3].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            role="radio"
+                            aria-checked={part === n}
+                            onClick={() => setPart(n)}
+                            className={`min-h-[40px] rounded-full border px-4 text-sm ${
+                              part === n ? "border-accent bg-accent font-bold text-accent-ink" : "border-line bg-surface hover:border-accent"
+                            }`}
+                          >
+                            파트 {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </fieldset>
               </div>
             </div>
           )}
