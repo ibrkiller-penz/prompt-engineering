@@ -4,6 +4,13 @@ export const COURSE_NAME = "다시 묻는 AI 교실";
 
 export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string }[] = [
   {
+    path: "/setup",
+    title: "AI 맞춤 설정",
+    tag: "먼저 해 두면 좋아요",
+    desc: "ChatGPT와 Claude에 한 번 넣어 두는 설정 글이에요. 일의 난이도에 맞는 모델을 고르게 하고 답을 짧게 받아서, 토큰과 기다리는 시간을 아껴요. 복사해서 붙여 넣기만 하면 돼요.",
+    cta: "설정 복사하러 가기 →",
+  },
+  {
     path: "/prompt",
     title: COURSE_NAME,
     tag: "프롬프트 엔지니어링",

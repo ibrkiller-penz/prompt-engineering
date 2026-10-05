@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import Hub from "./pages/Hub";
+import SetupPage from "./pages/SetupPage";
 import CourseHome from "./pages/prompt/CourseHome";
 import LevelHome from "./pages/prompt/LevelHome";
 import LessonPage from "./pages/prompt/LessonPage";
@@ -22,6 +23,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Hub />} />
+      <Route path="/setup" element={<SetupPage />} />
       <Route path="/prompt/print" element={<PrintPage />} />
       <Route path="/prompt" element={<PromptLayout />}>
         <Route index element={<CourseHome />} />
