@@ -16,6 +16,8 @@ import {
   type DesignLike,
   type Palette,
 } from "./designTools";
+import { STYLES, applyStyle, canStyle } from "./styleTemplates";
+import StyleMock from "./StyleMock";
 
 type Design = (typeof data.designs)[number];
 type Col = Design["colors"][number];
@@ -299,8 +301,8 @@ const PLACE: Record<string, { panel: 1 | 2 | 3; where: string; steps: string[]; 
 
 const GUIDE_STEPS: { t: string; d: string }[] = [
   { t: "노트북을 만들고 자료를 올려요", d: "노트북LM에서 새 노트북을 만들고, 왼쪽 1번 소스 칸의 [+ 추가]로 자료를 넣어요. 방법은 여러 가지예요: 파일(PDF·Word·PowerPoint·이미지·오디오), 웹 주소, YouTube 링크, 구글 드라이브 문서·슬라이드, 복사한 글 붙여넣기, 웹에서 소스 찾기." },
-  { t: "이 페이지에서 디자인을 골라요", d: "아래 ① 디자인 고르기에서 마음에 드는 디자인을 눌러요. 디자인 지침은 노트북LM에 따로 넣지 않아요. 슬라이드 프롬프트(단계 3·4) 안에 이미 들어 있어요." },
-  { t: "2번 채팅창에 '대본' 프롬프트를 붙여 넣어요", d: "② 단계의 '슬라이드 대본' 탭에서 대상·목적을 고르고 [📋 전체 복사] → 노트북LM 가운데 채팅창에 붙여 넣고 보내요." },
+  { t: "이 페이지에서 디자인을 골라요", d: "아래 ① 디자인 고르기에서 색을, ② 스타일 고르기에서 모양을 골라요. 디자인 지침은 노트북LM에 따로 넣지 않아요. 슬라이드 프롬프트(단계 3·4) 안에 이미 들어 있어요." },
+  { t: "2번 채팅창에 '대본' 프롬프트를 붙여 넣어요", d: "③ 단계의 '슬라이드 대본' 탭에서 대상·목적을 고르고 [📋 전체 복사] → 노트북LM 가운데 채팅창에 붙여 넣고 보내요." },
   { t: "대본을 '소스'로 바꿔요", d: "대본 답변 아래의 [메모에 저장]을 누르고, 메모를 열어 [소스로 변환]을 눌러요. 그다음 소스 칸에서 대본만 체크하고 나머지는 체크를 풀어요." },
   { t: "3번 스튜디오에 '슬라이드 프롬프트'를 붙여 넣어요", d: "스튜디오의 '슬라이드 자료' 연필 아이콘 → 형식·언어(한국어)·길이(기본값)를 고르고 → '만들려는 슬라이드 자료에 대한 설명' 칸에 '슬라이드 프롬프트' 탭의 글을 붙여 넣은 뒤 [지금 생성]. (그 탭 위쪽 '구성 방식' 메뉴에서 그래픽·도형·주요 내용·설명 위주 중 골라 복사할 수 있어요.)" },
   { t: "기다렸다가 고쳐요", d: "몇 분 걸려요. 완성되면 위쪽 수정 아이콘으로 슬라이드마다 고치고 [수정된 자료 생성]을 눌러요." },
@@ -383,7 +385,12 @@ export default function SlidesPage() {
   });
   const [step, setStep] = useState(TABS.some((x) => x.id === sp.get("s")) ? (sp.get("s") as string) : TABS[0].id);
   const [count, setCount] = useState<"20" | "60">("20");
-  const design = allDesigns.find((x) => x.id === designId) ?? data.designs[0];
+  const baseDesign = allDesigns.find((x) => x.id === designId) ?? data.designs[0];
+  // 스타일 템플릿: 색(디자인)과 따로 고른다. 부산 원본 2종은 형식이 달라 스타일을 바꿀 수 없다.
+  const [styleId, setStyleId] = useState(STYLES.some((x) => x.id === sp.get("t")) ? (sp.get("t") as string) : STYLES[0].id);
+  const styleOk = canStyle(baseDesign as unknown as DesignLike);
+  const styleT = STYLES.find((x) => x.id === styleId) ?? STYLES[0];
+  const design = styleOk ? (applyStyle(baseDesign as unknown as DesignLike, styleT) as unknown as typeof baseDesign) : baseDesign;
   const [more, setMore] = useState(false);
   const [openDesign, setOpenDesign] = useState(true); // 선택한 디자인 카드: 처음엔 펼침, 접기 버튼으로 접는다
   const [boost, setBoost] = useState(true); // 슬라이드 프롬프트 보강 지침: 처음엔 켬(추천)
@@ -406,10 +413,12 @@ export default function SlidesPage() {
     document.title = `슬라이드·인포그래픽 프롬프트 · 제미나이 노트북 · ${HUB_NAME}`;
   }, []);
 
-  const urlOf = (o: { d?: string; s?: string; v?: string; p?: Palette | null }) => {
+  const urlOf = (o: { d?: string; s?: string; v?: string; p?: Palette | null; t?: string }) => {
     const r: Record<string, string> = { d: o.d ?? designId, s: o.s ?? step };
     const v = o.v ?? variantId;
     if (v !== VARIANTS[0].id) r.v = v;
+    const st = o.t ?? styleId;
+    if (st !== STYLES[0].id) r.t = st;
     const pal = o.p === undefined ? customPal : o.p;
     if (pal) r.p = paletteToParam(pal);
     return r;
@@ -429,6 +438,10 @@ export default function SlidesPage() {
     setCustomPal(pal);
     setDesignId("custom");
     setSp(urlOf({ d: "custom", p: pal }), { replace: true });
+  };
+  const pickStyle = (id: string) => {
+    setStyleId(id);
+    setSp(urlOf({ t: id }), { replace: true });
   };
   const pickVariant = (id: string) => {
     setVariantId(id);
@@ -473,7 +486,7 @@ export default function SlidesPage() {
         </Link>
         <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">슬라이드·인포그래픽 프롬프트</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted">
-          디자인을 고르면 아래 프롬프트가 그 디자인으로 채워져요. 단계 순서대로 복사해서 노트북LM에 붙여 넣으세요.
+          디자인(색)과 스타일(모양)을 고르면 아래 프롬프트가 그대로 채워져요. 단계 순서대로 복사해서 노트북LM에 붙여 넣으세요.
         </p>
         <Guide />
 
@@ -604,6 +617,49 @@ export default function SlidesPage() {
           </ul>
         </details>
 
+        {/* 스타일 템플릿: 색과 따로 고르는 모양 */}
+        <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xl font-bold">② 스타일 고르기</h2>
+          <span className="text-sm text-muted">색은 그대로, 글꼴 느낌·도형·배치만 바뀌어요</span>
+        </div>
+        {!styleOk && (
+          <p className="mt-2 rounded-card bg-bg p-3 text-sm text-muted">
+            선택한 디자인(부산 원본)은 스타일이 정해져 있어서 바꿀 수 없어요. 스타일을 고르려면 위에서 다른 디자인을 고르세요.
+          </p>
+        )}
+        <ul className={`mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 ${styleOk ? "" : "pointer-events-none opacity-50"}`} role="radiogroup" aria-label="스타일 템플릿">
+          {STYLES.map((s) => {
+            const on = s.id === styleT.id;
+            const cs = Object.fromEntries(design.colors.map((x) => [x.name, x.hex]));
+            const col = { bg: design.bg, text: design.text, sub: cs.TEXT_SUB ?? design.text, a1: design.accents[0], a2: design.accents[1] ?? design.accents[0], point: design.accents[2] ?? design.accents[0] };
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={!styleOk}
+                  onClick={() => pickStyle(s.id)}
+                  className={`block h-full w-full rounded-card border-2 bg-surface p-2 text-left transition ${
+                    on ? "border-accent shadow-md" : "border-line hover:border-accent/60"
+                  }`}
+                >
+                  <StyleMock id={s.id} c={col} />
+                  <span className="mt-1.5 block text-sm font-bold leading-tight">
+                    {s.icon} {s.label}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-snug text-muted">{s.hint}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        {styleOk && styleT.id !== "basic" && (
+          <p className="mt-2 text-sm text-muted">
+            이럴 때 좋아요: {styleT.when}. 고른 스타일은 아래 프롬프트의 Style·Type A~D 줄에 들어가 있어요.
+          </p>
+        )}
+
         {/* 선택한 디자인: 색 목록 + 슬라이드 미리보기 + 단계 1 프롬프트 */}
         <section className="mt-5 rounded-card border-2 border-accent bg-surface p-5 sm:p-6" aria-label={`${design.name} 디자인`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -651,7 +707,7 @@ export default function SlidesPage() {
           )}
         </section>
 
-        <h2 className="mt-8 text-xl font-bold">② 단계별 프롬프트 복사</h2>
+        <h2 className="mt-8 text-xl font-bold">③ 단계별 프롬프트 복사</h2>
         <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 py-1.5" role="tablist" aria-label="단계">
           {TABS.map((s, i) => (
             <button

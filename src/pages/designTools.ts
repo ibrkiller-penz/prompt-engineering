@@ -121,7 +121,8 @@ export type DesignLike = {
   infoScript: string;
 };
 
-export function buildInfographic(d: Pick<DesignLike, "name" | "mood" | "bg" | "audience" | "colors" | "design">): string {
+/** look: 스타일 템플릿이 정한 전체 모양 설명 (없으면 기본 문장) */
+export function buildInfographic(d: Pick<DesignLike, "name" | "mood" | "bg" | "audience" | "colors" | "design">, look?: string): string {
   const surface = isDarkBg(d.bg) ? "dark" : "light";
   const palette = d.colors.map((c) => `  - ${ROLE_EN[c.role] ?? c.role}: ${colorName(c.hex)} (${c.hex})`).join("\n");
   const gr = d.design.match(/^Graphics:\s*(.+)$/m);
@@ -143,7 +144,7 @@ export function buildInfographic(d: Pick<DesignLike, "name" | "mood" | "bg" | "a
 - Viewers should notice the title and the biggest number first, then the supporting points.
 
 ## Visual style: ${d.name} (${d.mood})
-- Overall look: a clean, modern, well-organized infographic on a ${surface} background, with rounded cards, thin lines, and one consistent flat icon style.
+- Overall look: ${look ? `${look}, on a ${surface} background` : `a clean, modern, well-organized infographic on a ${surface} background, with rounded cards, thin lines, and one consistent flat icon style`}.
 - Palette:
 ${palette}
 ${extra}- Keep strong contrast between text and background so every letter stays readable.
