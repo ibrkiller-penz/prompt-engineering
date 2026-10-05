@@ -192,7 +192,7 @@ const TABS = data.steps.filter((s) => s.id !== "design");
 const FEATURED = ["busan-office", "classroom-bright", "paper-notes", "night-navy", "chalkboard-v2", "terracotta"];
 
 /** 노트북LM 화면의 세 칸. active를 주면 붙여 넣을 칸을 강조한다 */
-function PanelMap({ active }: { active?: 1 | 2 | 3 }) {
+function PanelMap({ active, stack }: { active?: 1 | 2 | 3; stack?: boolean }) {
   const items = [
     { n: 1, name: "소스", sub: "자료를 올리는 곳" },
     { n: 2, name: "채팅", sub: "질문·대본을 붙여 넣는 곳" },
@@ -200,7 +200,7 @@ function PanelMap({ active }: { active?: 1 | 2 | 3 }) {
   ] as const;
   return (
     <div
-      className="grid grid-cols-3 gap-2"
+      className={`grid grid-cols-3 gap-2 ${stack ? "md:grid-cols-1" : ""}`}
       role="img"
       aria-label={`노트북LM 화면의 세 칸: 1번 소스, 2번 채팅, 3번 스튜디오.${active ? ` ${active}번에 붙여 넣어요.` : ""}`}
     >
@@ -209,7 +209,7 @@ function PanelMap({ active }: { active?: 1 | 2 | 3 }) {
         return (
           <div
             key={it.n}
-            className={`rounded-card border-2 p-3 text-center ${on ? "border-accent bg-accent text-accent-ink" : "border-line bg-bg text-muted"}`}
+            className={`rounded-card border-2 p-3 text-center ${stack ? "md:py-2 md:text-left" : ""} ${on ? "border-accent bg-accent text-accent-ink" : "border-line bg-bg text-muted"}`}
           >
             <b className="block text-base leading-tight sm:text-lg">
               {it.n}번 {it.name}
@@ -521,57 +521,72 @@ export default function SlidesPage() {
 
           {isFinal && (
             <div className="mt-4 rounded-card border-2 border-accent bg-bg p-4">
-              <label htmlFor="variant" className="block font-bold">
-                ✨ 구성 방식 고르기
-              </label>
-              <p className="text-sm text-muted">고르면 아래 프롬프트가 바뀌고, 위의 [📋 전체 복사]를 누르면 고른 방식으로 복사돼요.</p>
-              <select
-                id="variant"
-                value={variant.id}
-                onChange={(e) => pickVariant(e.target.value)}
-                className="mt-2 min-h-[48px] w-full rounded-card border border-line bg-surface px-3 text-base font-semibold outline-none focus:border-accent sm:max-w-md"
-              >
-                {[...new Set(VARIANTS.map((o) => o.group))].map((g) => (
-                  <optgroup key={g} label={g}>
-                    {VARIANTS.filter((o) => o.group === g).map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.icon} {o.label}
-                      </option>
+              {/* 넓은 화면에서는 두 칸: 왼쪽 선택·설명 / 오른쪽 더해지는 지침 */}
+              <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+                <div className="min-w-0">
+                  <label htmlFor="variant" className="block font-bold">
+                    ✨ 구성 방식 고르기
+                  </label>
+                  <p className="text-sm text-muted">고르면 아래 프롬프트가 바뀌고, [📋 전체 복사]를 누르면 고른 방식으로 복사돼요.</p>
+                  <select
+                    id="variant"
+                    value={variant.id}
+                    onChange={(e) => pickVariant(e.target.value)}
+                    className="mt-2 min-h-[48px] w-full rounded-card border border-line bg-surface px-3 text-base font-semibold outline-none focus:border-accent"
+                  >
+                    {[...new Set(VARIANTS.map((o) => o.group))].map((g) => (
+                      <optgroup key={g} label={g}>
+                        {VARIANTS.filter((o) => o.group === g).map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.icon} {o.label}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
-                  </optgroup>
-                ))}
-              </select>
-              <p className="mt-3 font-semibold">{vt.hint}</p>
-              <p className="mt-1 text-sm text-muted">
-                이럴 때 좋아요: {vt.when}
-                <br />
-                {vt.settingsLabel}: <b className="text-ink">{vt.settings}</b>
-              </p>
-              {vt.ko.length > 0 && (
-                <div className="mt-3 rounded-lg bg-yellow-100/70 p-3 text-sm text-black dark:bg-yellow-200/20 dark:text-ink">
-                  <b>이 방식에서 프롬프트 끝에 더해지는 지침</b>
-                  <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                    {vt.ko.map((k) => (
-                      <li key={k}>{k}</li>
-                    ))}
-                  </ul>
-                  <p className="mt-1 text-xs">아래 글에서 노란 줄로 표시된 부분이에요.</p>
+                  </select>
+                  <p className="mt-3 font-semibold">{vt.hint}</p>
+                  <p className="mt-1 text-sm text-muted">
+                    이럴 때 좋아요: {vt.when}
+                    <br />
+                    {vt.settingsLabel}: <b className="text-ink">{vt.settings}</b>
+                  </p>
                 </div>
-              )}
+                <div className="min-w-0 self-start rounded-lg bg-yellow-100/70 p-3 text-sm text-black dark:bg-yellow-200/20 dark:text-ink">
+                  {vt.ko.length > 0 ? (
+                    <>
+                      <b>이 방식에서 프롬프트 끝에 더해지는 지침</b>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                        {vt.ko.map((k) => (
+                          <li key={k}>{k}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-1 text-xs">아래 글에서 노란 줄로 표시된 부분이에요.</p>
+                    </>
+                  ) : (
+                    <>
+                      <b>더해지는 지침이 없어요</b>
+                      <p className="mt-1">기본은 지금까지 쓰던 프롬프트 그대로예요. 다른 방식을 고르면 이 칸에 무엇이 더해지는지 보여 줘요.</p>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
           {PLACE[step] && (
             <div className="mt-4 rounded-card border border-accent bg-accent-soft/40 p-4">
               <p className="font-bold">📍 {PLACE[step].where}</p>
-              <div className="mt-2">
-                <PanelMap active={PLACE[step].panel} />
+              {/* 넓은 화면에서는 왼쪽에 칸 그림, 오른쪽에 순서 */}
+              <div className="mt-2 grid gap-4 md:grid-cols-[2fr_3fr] md:gap-6">
+                <div className="min-w-0">
+                  <PanelMap active={PLACE[step].panel} stack />
+                </div>
+                <ol className="min-w-0 list-decimal space-y-1.5 pl-5">
+                  {PLACE[step].steps.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ol>
               </div>
-              <ol className="mt-3 list-decimal space-y-1.5 pl-5">
-                {PLACE[step].steps.map((t) => (
-                  <li key={t}>{t}</li>
-                ))}
-              </ol>
             </div>
           )}
 
