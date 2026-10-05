@@ -2,7 +2,7 @@
 export const HUB_NAME = "살빠진 임선생과 함께하는 교육자료";
 export const COURSE_NAME = "다시 묻는 AI 교실";
 
-export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string }[] = [
+export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string; credit?: string }[] = [
   {
     path: "/setup",
     featured: true,
@@ -10,12 +10,14 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     tag: "먼저 해 두면 좋아요",
     desc: "ChatGPT·Claude·Gemini에 한 번 넣어 두는 설정 글이에요. 모델을 난이도에 맞게 고르게 해서 토큰을 아껴요.",
     cta: "설정 복사하러 가기 →",
+    credit: "자료 · uniquelfie 선생님",
   },
   {
     path: "/prompt",
     title: COURSE_NAME,
     tag: "프롬프트 엔지니어링",
     desc: "AI의 첫 결과물은 끝이 아니라 출발점. 부탁하고, 확인하고, 바로잡는 연습을 하는 초·중·고 13차시.",
+    credit: "자료 · uniquelfie 선생님",
     more: "AI의 첫 결과물은 끝이 아니라 출발점. 부탁하기 → 되말하기 확인 → 점검·검증 → 선택 기록 → 마무리를 직접 연습하는 초·중·고 13차시.",
   },
   {

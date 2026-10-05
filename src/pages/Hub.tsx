@@ -3,12 +3,23 @@ import { Link } from "react-router-dom";
 import { HUB_NAME, SECTIONS } from "../site";
 import SectionIcon from "../components/SectionIcon";
 
-/** 설명은 두 줄까지만 보이고, 더 긴 설명(more)이 있으면 '더보기'로 펼친다 (카드 전체가 링크라서 클릭이 이동하지 않게 막는다) */
+/**
+ * 설명은 두 줄까지만 보인다. 더 긴 설명(more)이 있으면
+ * - 마우스를 카드에 올리거나 키보드로 포커스하면 끝까지 펼쳐지고 (카드에 group 클래스 필요)
+ * - 터치 화면에서는 '더보기'를 눌러 펼친다 (카드 전체가 링크라서 클릭이 이동하지 않게 막는다)
+ */
 function Desc({ text, more }: { text: string; more?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2">
-      <p className={`text-muted ${open ? "" : "line-clamp-2"}`}>{open && more ? more : text}</p>
+      {open && more ? (
+        <p className="text-muted">{more}</p>
+      ) : (
+        <>
+          <p className={`text-muted line-clamp-2 ${more ? "group-hover:hidden group-focus-visible:hidden" : ""}`}>{text}</p>
+          {more && <p className="hidden text-muted group-hover:block group-focus-visible:block">{more}</p>}
+        </>
+      )}
       {more && (
         <button
           type="button"
@@ -60,6 +71,7 @@ export default function Hub() {
               <span className="inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">{s.tag}</span>
               <h2 className="mt-1 text-2xl font-extrabold leading-tight sm:text-3xl">{s.title}</h2>
               <p className="mt-1 text-muted">{s.desc}</p>
+              {s.credit && <p className="mt-2 text-xs text-muted">{s.credit}</p>}
             </div>
             <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
               <span className="flex gap-1.5 text-sm font-bold" aria-label="ChatGPT, Claude, Gemini용">
@@ -87,6 +99,7 @@ export default function Hub() {
                 </div>
                 <Desc text={s.desc} more={s.more} />
                 <span className="mt-3 inline-block font-semibold text-accent group-hover:underline">{s.cta ?? "들어가기 →"}</span>
+                {s.credit && <p className="mt-2 text-xs text-muted">{s.credit}</p>}
               </>
             );
             return (
