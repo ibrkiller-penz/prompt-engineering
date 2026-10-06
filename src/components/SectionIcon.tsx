@@ -68,6 +68,19 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 시간표 단말 — 터치 화면 + 시간표 칸 + 아래 받침
+  "/board": {
+    from: "#0e7490",
+    to: "#22d3ee",
+    glyph: (
+      <g>
+        <rect x="8" y="10" width="32" height="23" rx="3.5" fill="none" stroke="#fff" strokeWidth="3" />
+        <path d="M14 18h20M14 24h20M22 14v15" stroke="#fff" strokeWidth="2" strokeLinecap="round" opacity=".9" />
+        <circle cx="30" cy="27.5" r="2.4" fill="#fff" />
+        <path d="M17 38h14" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",

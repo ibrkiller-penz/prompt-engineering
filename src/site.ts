@@ -1,6 +1,7 @@
 // 사이트 이름·꼭지 목록. 새 교육자료를 더할 때는 SECTIONS에 한 줄을 추가하고 라우트를 연결한다.
 export const HUB_NAME = "살빠진 임선생과 함께하는 교육자료";
 export const COURSE_NAME = "다시 묻는 AI 교실";
+export const BOARD_NAME = "ESP32 터치 화면으로 시간표 단말 만들기";
 
 export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string }[] = [
   {
@@ -52,5 +53,13 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     desc: "학습 사이트를 AI와 함께 만드는 방법을 안내해요. 편집해서 복사할 수 있는 작업지시서와 단계별 확인표가 있어요.",
     more: "학습 사이트를 AI와 함께 만드는 방법을 안내해요. 편집해서 복사할 수 있는 작업지시서, 내 주제 정하기, 단계별 확인표를 따라 해 보고, 본보기인 손발전기 사이트(4단계 만들기·교육과정 기초자료·실험·영상·퀴즈·학습지)로 이어져요.",
     cta: "안내 보기 →",
+  },
+  {
+    path: "/board",
+    title: "시간표 단말 만들기",
+    tag: "ESP32 터치 화면 · 따라 하기",
+    desc: "보드 한 장으로 시계·날씨·급식·내 시간표가 뜨는 작은 터치 화면을 만들어요. 사는 법부터 화면 흔들림 잡기까지.",
+    more: "Waveshare ESP32-S3 터치 LCD 보드(7인치 중심, 4인치도)로 교실·교무실에 두는 시간표 단말을 만들어요. 살 것, PC 준비, 처음 굽기, 내 시간표 올리기, AI에게 시킬 작업지시서, 개인정보를 뺀 시작 프로젝트 내려받기까지 순서대로 따라 할 수 있어요. 직접 겪은 화면 흔들림·밀림의 원인과 해결도 자세히 적었어요.",
+    cta: "따라 하러 가기 →",
   },
 ];

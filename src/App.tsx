@@ -12,6 +12,15 @@ import { CardsPage, GlossaryPage, PledgePage } from "./pages/prompt/Appendix";
 import PrintPage from "./pages/prompt/PrintPage";
 import { TeacherHome, TeacherLesson } from "./pages/prompt/Teacher";
 import EssayPage from "./pages/prompt/EssayPage";
+import BoardLayout from "./pages/board/BoardLayout";
+import BoardHome from "./pages/board/BoardHome";
+import BoardBuy from "./pages/board/Buy";
+import BoardPc from "./pages/board/PcSetup";
+import BoardFlash from "./pages/board/Flash";
+import BoardData from "./pages/board/MyData";
+import BoardShake from "./pages/board/Shake";
+import BoardHelp from "./pages/board/Help";
+import BoardBrief from "./pages/board/Brief";
 import NotFound from "./pages/NotFound";
 import PromptLayout from "./components/PromptLayout";
 
@@ -41,6 +50,16 @@ export default function App() {
         <Route path=":level/teacher" element={<TeacherHome />} />
         <Route path=":level/teacher/:n" element={<TeacherLesson />} />
         <Route path="teacher" element={<Navigate to="/prompt/middle/teacher" replace />} />
+      </Route>
+      <Route path="/board" element={<BoardLayout />}>
+        <Route index element={<BoardHome />} />
+        <Route path="buy" element={<BoardBuy />} />
+        <Route path="pc" element={<BoardPc />} />
+        <Route path="flash" element={<BoardFlash />} />
+        <Route path="data" element={<BoardData />} />
+        <Route path="shake" element={<BoardShake />} />
+        <Route path="help" element={<BoardHelp />} />
+        <Route path="brief" element={<BoardBrief />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
