@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SS = 4                       # 4배로 그린다
-SIZES = {"L": 64}            # 시계 모드 날씨 카드(오늘|내일 반쪽씩)
+SIZES = {"L": 52}            # 시계 모드 날씨 카드(오늘|내일 반쪽씩). 64 → 52 (2026-10-06, 미리보기 F)
 
 SUN = (253, 184, 19)
 SUN_CORE = (255, 214, 102)
@@ -137,7 +137,7 @@ KINDS = ["sun", "partly", "cloud", "rain", "snow", "thunder", "fog"]
 
 def main():
     c = ["/* 날씨 그림 — tools/make_weather_icons.py 가 만든다. 고치지 말 것. */\n#include <lvgl.h>\n\n"]
-    h = ["#pragma once\n#include <lvgl.h>\n/* 날씨 그림 (L 64px). tools/make_weather_icons.py 가 만든다. */\n"]
+    h = ["#pragma once\n#include <lvgl.h>\n/* 날씨 그림 (L 52px). tools/make_weather_icons.py 가 만든다. */\n"]
     sheet = Image.new("RGBA", (len(KINDS) * 100, 180), (11, 17, 32, 255))
     for i, k in enumerate(KINDS):
         for tag, n in SIZES.items():

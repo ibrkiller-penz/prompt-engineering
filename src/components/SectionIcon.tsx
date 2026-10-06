@@ -81,6 +81,19 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // SVG Forge — 벡터 곡선(제어점) + 레이저 빔
+  "https://svg-forge-01.netlify.app/": {
+    from: "#dc2626",
+    to: "#fb923c",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 33C14 14 26 14 24 26S34 36 38 17" />
+        <circle cx="10" cy="33" r="3" fill="#fff" stroke="none" />
+        <circle cx="38" cy="17" r="3" fill="#fff" stroke="none" />
+        <path d="M24 5v8M20 9h8" strokeWidth="2.4" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",

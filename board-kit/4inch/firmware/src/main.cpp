@@ -84,6 +84,18 @@ static Preferences s_prefs;
 // (Arduino GFX 로 그리면 LVGL 버퍼·화면 버퍼가 모두 PSRAM 이라 PSRAM 이 바빠져 화면이 떨렸다)
 static Arduino_DataBus *s_bus = new Arduino_SWSPI(GFX_NOT_DEFINED /* DC */, 42 /* CS */, 2 /* SCK */, 1 /* MOSI */, GFX_NOT_DEFINED);
 static esp_lcd_panel_handle_t s_panel = nullptr;
+// ── 화면 밀림 대처(Espressif ESP-FAQ(LCD) 'RGB 화면 전체가 밀리는 drift') ──
+// · 와이파이 연결·찾기 동안은 PSRAM 이 바빠 박자가 어긋난다 → 그동안 PCLK 를 6MHz 로 낮추고 한 장(약 20ms) 기다린다.
+// · 끝나면 16MHz 로 되돌리고 esp_lcd_rgb_panel_restart() 로 박자를 다시 맞춘다(영구 밀림 방지).
+// · 그래도 밀릴 수 있으니 1분마다 한 번 다시 맞춘다(loop).
+static const uint32_t PCLK_HZ = 16 * 1000 * 1000, PCLK_SLOW_HZ = 6 * 1000 * 1000;
+static void lcdSlow(bool slow) {
+  if (!s_panel) return;
+  esp_lcd_rgb_panel_set_pclk(s_panel, slow ? PCLK_SLOW_HZ : PCLK_HZ);
+  delay(slow ? 40 : 25);
+  if (!slow) esp_lcd_rgb_panel_restart(s_panel);
+}
+static void lcdResync() { if (s_panel) esp_lcd_rgb_panel_restart(s_panel); }
 // 화면 칩(ST7701) 초기화 명령 — Waveshare BSP 3.0.0(공장 프로그램) esp32_s3_touch_lcd_4.c 의 lcd_init_cmds 그대로.
 // Arduino 데모(st7701_type1)와 C2(줄 타이밍)·B1·B2 값이 달라, 공장 박자(16MHz)와 함께 쓰면 화면이 밀렸다.
 struct InitCmd { uint8_t cmd; uint8_t len; uint8_t data[16]; uint16_t delayMs; };
@@ -183,14 +195,14 @@ static void initDisplay() {
   // RGB 패널: 16MHz, hsync 앞20·폭10·뒤10, vsync 앞10·폭10·뒤10(약 60Hz), 완충 버퍼 20줄(내부 RAM), 화면 버퍼 1장(PSRAM)
   esp_lcd_rgb_panel_config_t pc = {};
   pc.clk_src = LCD_CLK_SRC_DEFAULT;
-  pc.timings.pclk_hz = 16 * 1000 * 1000;
+  pc.timings.pclk_hz = PCLK_HZ;
   pc.timings.h_res = W; pc.timings.v_res = H;
   pc.timings.hsync_pulse_width = 10; pc.timings.hsync_back_porch = 10; pc.timings.hsync_front_porch = 20;
   pc.timings.vsync_pulse_width = 10; pc.timings.vsync_back_porch = 10; pc.timings.vsync_front_porch = 10;
   pc.data_width = 16;
   pc.bits_per_pixel = 16;
   pc.num_fbs = 1;
-  pc.bounce_buffer_size_px = W * 20;
+  pc.bounce_buffer_size_px = W * 30;   // ESP-FAQ: 클수록 밀림이 덜하다(내부 RAM 2×28KB). 480×480/(480×30)=16 → 짝수 조건 맞음
   pc.psram_trans_align = 64;
   pc.hsync_gpio_num = 38; pc.vsync_gpio_num = 39; pc.de_gpio_num = 40; pc.pclk_gpio_num = 41; pc.disp_gpio_num = -1;
   const int data[16] = {5, 45, 48, 47, 21 /* B0~B4 */, 14, 13, 12, 11, 10, 9 /* G0~G5 */, 46, 3, 8, 18, 17 /* R0~R4 */};
@@ -202,10 +214,10 @@ static void initDisplay() {
   WS_CH32_IO::setPwm(Wire, 0);   // 화면 불 켜기 — 이 보드는 거꾸로다(0 = 가장 밝음, 255 = 꺼짐. Waveshare BSP 3.0.0)
 
   lv_init();
-  // 그리기 버퍼는 내부 RAM 한 장(가로 30줄, 약 29KB). PSRAM 에서 그리면 화면 버퍼와 다투어 떨린다.
+  // 그리기 버퍼는 내부 RAM 한 장(가로 10줄). PSRAM 에서 그리면 화면 버퍼와 다투어 떨린다.
   // 나머지 내부 RAM 은 HTTPS(TLS)에 남긴다(켠 뒤 약 110KB 를 목표).
   static lv_disp_draw_buf_t buf;
-  const size_t n = W * 30;
+  const size_t n = W * 10;   // 10줄 — 내부 RAM 을 완충 버퍼·와이파이에 남긴다
   lv_color_t *b1 = (lv_color_t *)heap_caps_malloc(n * sizeof(lv_color_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   lv_disp_draw_buf_init(&buf, b1, nullptr, n);
   static lv_disp_drv_t dd;
@@ -996,6 +1008,7 @@ static void startSync() {
     WiFi.onEvent([](arduino_event_id_t, arduino_event_info_t info) { s_wifiReason = info.wifi_sta_disconnected.reason; },
                  ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   }
+  lcdSlow(true);   // 받는 동안 화면 박자를 낮춘다
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(false);
@@ -1011,6 +1024,7 @@ static void finishSync(bool ok, const char *msg) {
   s_failCount = ok ? 0 : s_failCount + 1;
   if (timeValid()) { time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm); snprintf(s_lastHM, sizeof s_lastHM, "%02d:%02d", tm.tm_hour, tm.tm_min); }
   wifiOff();
+  lcdSlow(false);  // 되돌리고 박자를 다시 맞춘다
   s_sync = SYNC_IDLE;
   Serial.printf("sync: %s (%s)\n", ok ? "ok" : "fail", msg);
   lock(); refreshWifiLabel(); setStatus(msg); unlock();
@@ -1438,7 +1452,7 @@ void loop() {
   // 와이파이 찾기: 찾는 동안만 켠다
   if (s_scanReq) {
     s_scanReq = false;
-    if (s_sync == SYNC_IDLE) WiFi.mode(WIFI_STA);
+    if (s_sync == SYNC_IDLE) { lcdSlow(true); WiFi.mode(WIFI_STA); }
     int n = WiFi.scanNetworks(false, false);
     lock();
     lv_obj_clean(s_wifiList);
@@ -1455,7 +1469,7 @@ void loop() {
     }
     unlock();
     WiFi.scanDelete();
-    if (s_sync == SYNC_IDLE) wifiOff();
+    if (s_sync == SYNC_IDLE) { wifiOff(); lcdSlow(false); }
   }
 
   // 1시간마다 잠깐 연결: 연결 → 시간 맞추기 → 자료 받기 → 끄기
@@ -1536,6 +1550,9 @@ void loop() {
     if (lv_disp_get_inactive_time(NULL) > 20UL * 60 * 1000 && s_page != P_CLOCK) { closePw(); goPage(P_CLOCK); }
     unlock();
   }
+  // 1분마다 화면 박자를 다시 맞춘다(밀려도 1분 안에 제자리로). 받는 중에는 끝날 때 맞춘다.
+  static uint32_t lastResync = 0;
+  if (ms - lastResync > 60000 && s_sync == SYNC_IDLE) { lastResync = ms; lcdResync(); }
   // 1분마다 상태 한 줄(화면·터치가 도는지)
   static uint32_t lastHb = 0;
   if (ms - lastHb > 60000) {

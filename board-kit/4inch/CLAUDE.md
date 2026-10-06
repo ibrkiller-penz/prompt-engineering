@@ -60,10 +60,11 @@
 
 화면은 Waveshare 공장(BSP) 방식으로 구동한다. 아래를 바꾸면 화면이 떨리거나 밀린다(실제로 겪음).
 
-1. `esp_lcd` RGB 패널: **pclk 16MHz**, hsync front/width/back **20/10/10**, vsync front/width/back **10/10/10**, `bounce_buffer_size_px = 480×20`, `num_fbs = 1`(PSRAM), `psram_trans_align = 64`, 데이터 16비트.
-2. LVGL 그리기 버퍼는 **내부 RAM 한 장 30줄**(`MALLOC_CAP_INTERNAL`). PSRAM 버퍼에 그리면 화면 버퍼와 PSRAM 을 다퉈 떨린다.
+1. `esp_lcd` RGB 패널: **pclk 16MHz**, hsync front/width/back **20/10/10**, vsync front/width/back **10/10/10**, `bounce_buffer_size_px = 480×30`, `num_fbs = 1`(PSRAM), `psram_trans_align = 64`, 데이터 16비트.
+2. LVGL 그리기 버퍼는 **내부 RAM 한 장 10줄**(`MALLOC_CAP_INTERNAL`). PSRAM 버퍼에 그리면 화면 버퍼와 PSRAM 을 다퉈 떨린다.
 3. **Arduino GFX 는 ST7701 시작 명령을 3선 SPI 로 보낼 때만** 쓴다(`Arduino_SWSPI(.., 42, 2, 1, ..)`). 그림 그리기에 쓰지 않는다. 시작 명령 표 `ST7701_INIT` 는 **공장(BSP 3.0.0) 것**이다(Arduino 데모와 C2·B1·B2 값이 다름 — 데모 값으로 바꾸지 말 것). 데모의 12MHz(약 42Hz)도 떨려 보였다.
-4. `custom_sdkconfig`: `CONFIG_LCD_RGB_ISR_IRAM_SAFE=y`, `CONFIG_SPIRAM_XIP_FROM_PSRAM=y`, `CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y`, `CONFIG_COMPILER_OPTIMIZATION_PERF=y`. **`CONFIG_LCD_RGB_RESTART_IN_VSYNC` 는 켜지 않는다**(ESP-IDF 5.5.x 버그 espressif/esp-idf#19070: 완충 버퍼 모드에서 박자가 한 번 어긋나면 화면이 영구히 밀림).
+4. `custom_sdkconfig`: `CONFIG_LCD_RGB_ISR_IRAM_SAFE=y`, `CONFIG_SPIRAM_XIP_FROM_PSRAM=y`, `CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y`, `CONFIG_COMPILER_OPTIMIZATION_PERF=y`, `CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n`(와이파이 버퍼를 PSRAM 에 두지 않음). **`CONFIG_LCD_RGB_RESTART_IN_VSYNC` 는 켜지 않는다**(ESP-IDF 5.5.x 버그 espressif/esp-idf#19070: 완충 버퍼 모드에서 박자가 한 번 어긋나면 화면이 영구히 밀림).
+4-1. **밀림 대비책(ESP-FAQ 'drift' 권장)** — `lcdSlow(true/false)`: 와이파이 연결·찾기 동안 `esp_lcd_rgb_panel_set_pclk` 로 6MHz(약 40ms 기다림), 끝나면 16MHz 로 되돌리고 `esp_lcd_rgb_panel_restart`. `loop()` 에서 와이파이가 쉬는 동안 **1분마다 `lcdResync()`**(`esp_lcd_rgb_panel_restart`)로 박자를 다시 맞춘다. 이 대비책을 빼면 한 번 밀린 화면이 굳을 수 있다.
 5. LVGL 은 별도 작업(`lvTask`)에서 돈다. 화면 물체나 받은 자료를 건드리는 곳은 `lock()/unlock()`. 백라이트(I2C)도 터치와 같은 선이라 **잠근 채** 쓴다.
 6. 화면을 켠 뒤 `heap_caps_malloc_extmem_enable(64)` 로 큰 할당은 PSRAM 먼저(내부 RAM 은 HTTPS 에 남김). 기본 회전 0(USB 단자 왼쪽).
 7. **백라이트 값은 거꾸로**: `WS_CH32_IO::setPwm(Wire, v)` 에서 **0 = 가장 밝음, 255 = 꺼짐.** 255 를 쓰면 깜깜해지고 CH32 는 ESP 리셋·굽기로 안 풀린다 → USB(배터리)를 완전히 뽑았다 꽂아야 돌아온다. 테스트로도 255 를 쓰지 말 것(`backlight(false)` 는 밤·주말 자동 끄기 전용).

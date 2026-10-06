@@ -62,4 +62,13 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     more: "Waveshare ESP32-S3 터치 LCD 보드(7인치 중심, 4인치도)로 교실·교무실에 두는 시간표 단말을 만들어요. 살 것, PC 준비, 처음 굽기, 내 시간표 올리기, AI에게 시킬 작업지시서, 개인정보를 뺀 시작 프로젝트 내려받기까지 순서대로 따라 할 수 있어요. 직접 겪은 화면 흔들림·밀림의 원인과 해결도 자세히 적었어요.",
     cta: "따라 하러 가기 →",
   },
+  {
+    path: "https://svg-forge-01.netlify.app/",
+    external: true,
+    title: "SVG Forge",
+    tag: "레이저커팅 · 벡터 그래픽",
+    desc: "그림과 글자를 벡터(SVG·DXF)로 바꿔 레이저커팅에 쓰는 사이트예요. 색마다 자르기·새기기를 정해요.",
+    more: "그림을 벡터 그래픽으로 바꾸고 글자를 넣어서 레이저커팅용 파일(SVG·DXF)로 저장하는 웹 도구예요. LightBurn·RDWorks 같은 프로그램에서 열 수 있고, 색마다 선은 ‘자르기’, 면은 ‘새기기’처럼 다른 작업을 정할 수 있어요. 곡선 정확도와 색 개수, 문턱값도 조절해요.",
+    cta: "도구 열어 보기 ↗",
+  },
 ];

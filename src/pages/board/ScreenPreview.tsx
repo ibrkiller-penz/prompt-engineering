@@ -19,8 +19,11 @@ export default function ScreenPreview() {
       <svg viewBox="0 0 800 480" role="img" aria-label="시계 화면 예시: 큰 시계, 날씨, 오늘 시간표" className="w-full rounded-card border-4 border-[#0b1220] bg-[#0b1220] shadow-lg">
         <rect width="800" height="480" fill="#0f172a" />
         <rect x="12" y="12" width="416" height="456" rx="14" fill="#111c33" stroke="#1e293b" />
-        <text x="220" y="140" fontSize="104" fontWeight="800" textAnchor="middle" fill="#f8fafc" letterSpacing="2">
+        <text x="220" y="120" fontSize="104" fontWeight="800" textAnchor="middle" fill="#f8fafc" letterSpacing="2">
           10:25
+        </text>
+        <text x="220" y="156" fontSize="22" fontWeight="600" textAnchor="middle" fill="#cbd5e1">
+          10월 6일 화요일
         </text>
         <rect x="32" y="170" width="376" height="86" rx="12" fill="#1e293b" />
         <text x="52" y="204" fontSize="18" fill="#94a3b8">
@@ -50,7 +53,7 @@ export default function ScreenPreview() {
           다음 4교시 국어 · 301 · 55분 뒤
         </text>
         <text x="440" y="46" fontSize="26" fontWeight="800" fill="#f8fafc">
-          샘플선생님 · 10월 6일 (화)
+          오늘 시간표
         </text>
         {row(64, "1", "수학", "201")}
         {row(112, "2", "수학", "202")}

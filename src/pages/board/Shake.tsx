@@ -36,7 +36,7 @@ export default function Shake() {
         rows={[
           ["지지직 떨림", "와이파이로 받는 동안, 또는 시계가 자주 바뀔 때", "PSRAM으로 가는 길이 바빠서 줄 하나씩 늦어요", "와이파이·전체 그리기 줄이기, 코드를 PSRAM에서 실행"],
           ["옆으로 밀림", "가끔 갑자기, 또는 저장·와이파이 연결 직후", "박자가 한 번 어긋나서 한 줄이 시작점에서 벗어나요", "완충 버퍼 방식 + 캐시 64B 설정"],
-          ["밀린 채 안 돌아옴", "한 번 밀리면 껐다 켤 때까지", "‘자동 복구 켜기’ 설정이 완충 버퍼와 부딪치는 버그", "그 설정(RESTART_IN_VSYNC)을 켜지 않기"],
+          ["밀린 채 안 돌아옴", "한 번 밀리면 껐다 켤 때까지", "‘자동 복구 켜기’ 설정이 완충 버퍼와 부딪치는 버그", "그 설정(RESTART_IN_VSYNC)을 켜지 않기, 그리고 1분마다 박자를 직접 다시 맞추기"],
         ]}
       />
 
@@ -58,7 +58,7 @@ export default function Shake() {
         </p>
       </Callout>
 
-      <H2>처방 여섯 가지</H2>
+      <H2>처방 일곱 가지</H2>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {[
           ["1", "그리는 횟수 줄이기", "시계를 매초 바꾸면 매초 800×480 전체를 다시 그려요. 이 화면 연결은 한 번 그릴 때마다 전체를 PSRAM에 다시 써요. 그래서 분이 바뀔 때만 그려요."],
@@ -67,6 +67,7 @@ export default function Shake() {
           ["4", "캐시 설정", "데이터 캐시 줄을 64바이트로(완충 버퍼 방식에 꼭 필요해요. 아니면 화면이 밀려요). 시간 박자(FREERTOS_HZ)를 1000으로, 컴파일 최적화를 속도 쪽으로."],
           ["5", "그림판은 칩 안쪽 RAM에", "PSRAM의 프레임 버퍼는 1장만 두고, 그림을 그리는 판(LVGL)은 칩 안쪽 RAM 10~30줄로 해요. 바뀐 곳만 PSRAM에 옮겨 길을 덜 써요."],
           ["6", "공장 방식으로 구동", "제조사(Waveshare) 공장 프로그램이 쓰는 방식 — ESP-IDF의 RGB 패널 드라이버와 공장 박자 값 — 으로 화면을 구동해요. 데모의 다른 방식(Arduino로 직접 그리기)은 떨렸어요."],
+          ["7", "박자를 다시 맞추기", "와이파이를 켜는 동안 화면 박자(PCLK)를 6MHz로 낮췄다가 끝나면 16MHz로 되돌리고 박자를 다시 맞춰요. 그래도 밀릴 수 있어서 1분마다 한 번 더 맞춰요 — 밀려도 1분 안에 제자리로 와요."],
         ].map(([n, t, d]) => (
           <div key={n} className="rounded-card border border-line bg-surface p-4">
             <p className="font-extrabold">
@@ -94,6 +95,7 @@ export default function Shake() {
           ["9/30", "픽셀 클록을 16MHz → 14MHz로 낮췄어요", <><b>더 나빠졌어요.</b> 계속 지지직 → 공장 값 16MHz로 되돌림</>],
           ["9/30", "옆으로 밀림 대책으로 ESP-IDF 라이브러리를 다시 컴파일(RESTART_IN_VSYNC·ISR_IRAM_SAFE·XIP)", "한동안 좋아졌고, 10/1에 연결해 보니 떨림이 없었어요"],
           ["10/2", "4인치에서 알게 된 것: RESTART_IN_VSYNC가 오히려 ‘영구 밀림’의 원인 (아래 설명)", "그 설정을 빼고, 설정을 공장 예제와 똑같이. 프레임 버퍼 1장 + 그림판은 안쪽 RAM 10줄"],
+          ["10/6", "4인치에서 효과를 본 ‘박자 다시 맞추기’(아래 3차 대책 ①②)를 7인치에도 적용", "와이파이 동안 PCLK 6MHz, 1분마다 박자 재설정. 완충 버퍼는 10줄 그대로, 와이파이 버퍼 설정(④)은 넣지 않음(가로가 넓어 칩 안쪽 RAM이 모자라요)"],
         ]}
       />
       <H3>
@@ -108,11 +110,12 @@ export default function Shake() {
           ["10/1", "그림은 ESP-IDF RGB 패널로 바로 보내고, 그림판은 칩 안쪽 RAM 한 장(30줄). Arduino 라이브러리는 화면 켜는 명령(초기화)만", <><b>떨림 전혀 없음</b>(확인). 다만 와이파이로 받는 20~30초 동안은 심하고 끝나면 멎어요</>],
           ["10/1", "RESTART_IN_VSYNC·ISR_IRAM_SAFE·XIP 설정 추가", "받는 중에도 정상 동작"],
           ["10/2", "화면이 영구히 밀린 채 남는 현상을 조사", "RESTART_IN_VSYNC가 원인으로 드러나 빼고, 초기화 명령도 공장 값으로. 올린 뒤 켜기·받기·터치는 정상"],
+          ["10/6", <><b>RESTART_IN_VSYNC를 뺀 뒤에도</b> 화면 전체가 오른쪽 아래로 밀린 채 굳는 일이 생겼어요</>, "Espressif ESP-FAQ의 ‘drift’ 처방을 그대로 적용(아래 3차 대책). 올린 뒤 켜기·받기 정상, 재발 여부는 지켜보는 중"],
         ]}
       />
-      <Callout tone="warn" title="아직 지켜보는 중이에요 (2026-10-02 기준)">
+      <Callout tone="warn" title="아직 지켜보는 중이에요 (2026-10-06 기준)">
         <p>
-          10월 2일에 올린 마지막 설정으로 <b>켜기·와이파이 받기·터치는 정상</b>인 것을 확인했고, <b>다시 밀리는지는 지켜보는 중</b>이에요. 새로 알게 되는 내용이 있으면 이 쪽에 이어서 적을게요.
+          4인치에서 <b>RESTART_IN_VSYNC를 뺀 뒤에도 밀림이 다시 생겼고</b>, 10월 6일에 아래 3차 대책을 올렸어요. 켜기·와이파이 받기는 정상인 것을 확인했고 <b>다시 밀리는지는 지켜보는 중</b>이에요. 7인치에도 같은 날 ①②를 옮겼어요(③~⑤는 칩 안쪽 RAM 때문에 4인치만). 새로 알게 되는 내용이 있으면 이 쪽에 이어서 적을게요.
         </p>
       </Callout>
 
@@ -129,6 +132,27 @@ export default function Shake() {
         Waveshare 같은 계열 보드의 비슷한 사례도 참고했어요(<Ext href="https://github.com/waveshareteam/ESP32-S3-Touch-LCD-5/issues/1">waveshareteam/ESP32-S3-Touch-LCD-5#1</Ext>): 그림판을 칩 안쪽 RAM에 두고, 프레임 버퍼는 1장만 쓰는 방식이에요.
       </P>
 
+      <H2>3차 대책 — 자동 복구 대신 ‘직접 다시 맞추기’ (10/6)</H2>
+      <P>
+        RESTART_IN_VSYNC(자동 복구)를 빼고도 한 번 밀린 화면이 굳는 일이 있었어요. 그래서 ESP-FAQ가 안내하는 방법을 하나씩 넣었어요. 다섯 가지이고, <b>①②는 두 보드 모두, ③~⑤는 4인치만</b> 넣었어요.
+      </P>
+      <Table
+        small
+        head={["#", "무엇을", "왜"]}
+        rows={[
+          ["①", "와이파이 연결·찾기 동안 PCLK를 6MHz로 낮추고 한 장(약 20ms) 기다림, 끝나면 16MHz로 되돌리고 박자를 다시 맞춤", "와이파이·플래시를 쓰는 짧은 동안은 PSRAM이 바빠서 어긋나기 쉬워요"],
+          ["②", "와이파이가 쉬는 동안 1분마다 박자를 다시 맞춤", "밀려도 1분 안에 제자리로"],
+          ["③ (4인치)", "완충 버퍼를 20줄에서 30줄로", "클수록 밀림이 덜해요(칩 안쪽 RAM을 더 써요)"],
+          ["④ (4인치)", <>와이파이 버퍼를 PSRAM이 아닌 칩 안쪽 RAM에(<code>SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n</code>)</>, "와이파이 중에도 밀리면 끄라는 안내예요"],
+          ["⑤ (4인치)", "LVGL 그림판을 30줄에서 10줄로", "③·④로 늘어난 안쪽 RAM 사용을 상쇄해요"],
+        ]}
+      />
+      <Callout tone="info" title="화면이 잠깐 깜빡일 수 있어요">
+        <p>
+          박자를 낮췄다 되돌릴 때 화면이 잠깐 깜빡이거나 비어 보일 수 있다고 ESP-FAQ가 알려요. 와이파이로 받는 때와 1분마다 한 번 일어나는 일이에요. 빌드는 설정이 바뀌어 첫 빌드가 길어요(약 37분).
+        </p>
+      </Callout>
+
       <H2>지금 쓰는 설정</H2>
       <P>
         키트의 <code>firmware\platformio.ini</code> 에 <code>custom_sdkconfig</code> 로 들어 있어요. 설정을 바꾸면 ESP-IDF 라이브러리를 다시 컴파일하느라 첫 빌드가 오래 걸려요(25~45분).
@@ -140,11 +164,12 @@ export default function Shake() {
           ["구동 방식", "ESP32_Display_Panel + 공장 예제 설정", "ESP-IDF esp_lcd RGB 패널(공장 BSP 방식), Arduino GFX는 초기화 명령에만"],
           ["픽셀 클록", "16MHz (낮추면 오히려 나빠짐)", "16MHz, 약 60Hz"],
           ["프레임 버퍼", "PSRAM 1장", "PSRAM 1장"],
-          ["그림판(LVGL)", "칩 안쪽 RAM 10줄 (바뀐 곳만)", "칩 안쪽 RAM 30줄"],
-          ["완충 버퍼", "10줄, 공장 예제와 같은 박자", "20줄"],
-          ["켜는 설정", <>SPIRAM_XIP_FROM_PSRAM, SPIRAM_RODATA, ESP32S3_INSTRUCTION_CACHE_32KB, ESP32S3_DATA_CACHE_64KB, ESP32S3_DATA_CACHE_LINE_64B, FREERTOS_HZ=1000</>, <>LCD_RGB_ISR_IRAM_SAFE, SPIRAM_XIP_FROM_PSRAM, ESP32S3_DATA_CACHE_LINE_64B, COMPILER_OPTIMIZATION_PERF</>],
+          ["그림판(LVGL)", "칩 안쪽 RAM 10줄 (바뀐 곳만)", "칩 안쪽 RAM 10줄"],
+          ["완충 버퍼", "10줄, 공장 예제와 같은 박자", "30줄"],
+          ["켜는 설정", <>SPIRAM_XIP_FROM_PSRAM, SPIRAM_RODATA, ESP32S3_INSTRUCTION_CACHE_32KB, ESP32S3_DATA_CACHE_64KB, ESP32S3_DATA_CACHE_LINE_64B, FREERTOS_HZ=1000</>, <>LCD_RGB_ISR_IRAM_SAFE, SPIRAM_XIP_FROM_PSRAM, ESP32S3_DATA_CACHE_LINE_64B, COMPILER_OPTIMIZATION_PERF, SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n</>],
           ["켜지 않는 설정", <b key="a">LCD_RGB_RESTART_IN_VSYNC</b>, <b key="b">LCD_RGB_RESTART_IN_VSYNC</b>],
-          ["와이파이", "평소 꺼 둠, 1시간마다 10~20초", "같은 정책(받는 동안 약 20~30초 떨림이 남을 수 있음)"],
+          ["와이파이", "평소 꺼 둠, 1시간마다 10~20초 + 켜는 동안 PCLK 6MHz로 낮춤", "같은 정책 (받는 동안 떨림이 남을 수 있음)"],
+          ["박자 다시 맞추기", "와이파이 뒤와 1분마다", "와이파이 뒤와 1분마다"],
           ["화면 갱신", "분이 바뀔 때만", "필요할 때만"],
         ]}
       />
@@ -170,7 +195,7 @@ custom_sdkconfig =
         rows={[
           [
             "와이파이로 받는 20~30초 동안만 흔들려요",
-            <>우리도 같았고 끝나면 멎었어요. 받는 횟수(1시간마다)와 시간을 줄이세요. 더 줄이고 싶으면 ESP-FAQ 방법이 있어요: 연결 전에 <code>esp_lcd_rgb_panel_set_pclk()</code> 로 PCLK를 잠깐 낮추고 약 20ms 쉰 뒤 되돌려요(화면이 잠깐 깜빡일 수 있어요). 우리는 써 보지 않았어요.</>,
+            <>우리도 같았고 끝나면 멎었어요. 받는 횟수(1시간마다)와 시간을 줄이세요. 더 줄이고 싶으면 ESP-FAQ 방법이 있어요: 연결 전에 <code>esp_lcd_rgb_panel_set_pclk()</code> 로 PCLK를 잠깐 낮추고(우리는 6MHz) 약 20ms 쉰 뒤 되돌리고 박자를 다시 맞춰요. 화면이 잠깐 깜빡일 수 있어요. 두 보드에 10/6부터 적용해 지켜보는 중이에요.</>,
           ],
           [
             "계속 지지직거려요",
@@ -178,7 +203,7 @@ custom_sdkconfig =
           ],
           [
             "가끔 옆으로 밀린 채 남아요",
-            <><code>RESTART_IN_VSYNC</code> 가 켜져 있지 않은지 보고, 있으면 빼요. 설정을 바꾸면 첫 빌드가 길어요.</>,
+            <><code>RESTART_IN_VSYNC</code> 가 켜져 있지 않은지 보고, 있으면 빼요. 그래도 남으면 1분마다 <code>esp_lcd_rgb_panel_restart()</code> 로 박자를 다시 맞추고, 완충 버퍼를 키워 보세요. 설정을 바꾸면 첫 빌드가 길어요.</>,
           ],
           [
             "저장하거나 와이파이를 연결한 직후에 한 번 밀려요",
