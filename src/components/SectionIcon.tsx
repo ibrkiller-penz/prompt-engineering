@@ -94,6 +94,23 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 레이저 이미지 변환기 — 사진 틀 + 점(디더링) + 레이저 빔
+  "/laser/": {
+    from: "#0f172a",
+    to: "#475569",
+    glyph: (
+      <g fill="#fff">
+        <rect x="9" y="17" width="30" height="22" rx="3.5" fill="none" stroke="#fff" strokeWidth="3" />
+        <circle cx="17" cy="26" r="2" />
+        <circle cx="24" cy="31" r="2" />
+        <circle cx="31" cy="26" r="2" />
+        <circle cx="17" cy="33" r="1.3" opacity=".7" />
+        <circle cx="31" cy="33" r="1.3" opacity=".7" />
+        <path d="M24 5v9" stroke="#fb923c" strokeWidth="3.4" strokeLinecap="round" />
+        <circle cx="24" cy="16" r="2.4" fill="#fb923c" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",

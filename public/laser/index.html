@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>레이저 이미지 변환기</title>
+<style>
+:root{--bg:#f3f2ee;--panel:#ffffff;--ink:#1d1d1b;--mute:#6b6a65;--line:#e2e0d9;--accent:#c2410c;--accent-ink:#fff;--soft:#fbeee6;--stage:#dddbd4;--field:#f7f6f3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161618;--panel:#202024;--ink:#ececea;--mute:#9a9a96;--line:#34343a;--accent:#fb8a3c;--accent-ink:#1a1a1a;--soft:#3a2516;--stage:#0e0e10;--field:#2a2a2f}}
+:root[data-theme="dark"]{--bg:#161618;--panel:#202024;--ink:#ececea;--mute:#9a9a96;--line:#34343a;--accent:#fb8a3c;--accent-ink:#1a1a1a;--soft:#3a2516;--stage:#0e0e10;--field:#2a2a2f}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Pretendard","Malgun Gothic",system-ui,sans-serif;display:grid;grid-template-rows:auto 1fr}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--field);border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--mute)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+select,input[type=number],input[type=text]{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--accent)}
+header{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:16px;margin:0 12px 0 0}
+header .sp{flex:1}
+.app{display:grid;grid-template-columns:350px 1fr;min-height:0}
+aside{overflow:auto;border-right:1px solid var(--line);background:var(--panel);padding:6px 14px 40px}
+main{display:grid;grid-template-rows:auto 1fr auto;min-width:0;min-height:0}
+details{border-bottom:1px solid var(--line);padding:8px 0}
+summary{font-weight:700;cursor:pointer;padding:4px 0;list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"＋";color:var(--mute)}
+details[open]>summary::after{content:"－"}
+.ctl{margin:8px 0}
+.ctl label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
+.ctl label span{cursor:default}
+.ctl input[type=number]{width:72px;text-align:right}
+.row{display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap;font-size:13px}
+.row label{color:var(--mute)}
+.chk{display:flex;gap:6px;align-items:center;margin:8px 0;font-size:13px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.preset{text-align:left;padding:7px 9px;white-space:normal;line-height:1.25}
+.preset.on,button.on{border-color:var(--accent);background:var(--soft)}
+.note{font-size:12.5px;color:var(--mute);background:var(--field);border-radius:7px;padding:8px 10px;margin:8px 0;line-height:1.5}
+.note b{color:var(--ink)}
+.toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;font-size:13px}
+.toolbar .info{color:var(--mute);margin-left:auto}
+.stage{overflow:auto;background:var(--stage);position:relative}
+.pad{min-width:100%;min-height:100%;width:max-content;display:flex;align-items:center;justify-content:center;padding:18px}
+.wrap{position:relative;box-shadow:0 2px 12px rgba(0,0,0,.25);background:#fff}
+.wrap canvas{position:absolute;inset:0;width:100%;height:100%}
+.wrap.px canvas{image-rendering:pixelated}
+#split{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);pointer-events:none}
+.drop{border:2px dashed var(--mute);border-radius:14px;padding:48px 36px;text-align:center;color:var(--mute);background:var(--panel);max-width:440px}
+.drop b{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
+.stage.over .drop{border-color:var(--accent)}
+.files{display:flex;gap:8px;padding:8px 14px;border-top:1px solid var(--line);background:var(--panel);overflow-x:auto;align-items:center}
+.thumb{position:relative;flex:none;width:64px;height:64px;border-radius:7px;border:2px solid transparent;overflow:hidden;cursor:pointer;background:var(--field)}
+.thumb.on{border-color:var(--accent)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .x{position:absolute;top:1px;right:1px;width:18px;height:18px;border-radius:50%;padding:0;font-size:11px;line-height:16px;background:rgba(0,0,0,.6);color:#fff;border:0}
+#busy{color:var(--accent);font-weight:600}
+#curve{width:100%;max-width:256px;aspect-ratio:1;border:1px solid var(--line);border-radius:6px;background:var(--field);touch-action:none;cursor:crosshair;display:block}
+pre#wf{white-space:pre-wrap;font-size:12.5px;background:var(--field);padding:10px;border-radius:7px;margin:8px 0}
+.up{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px;padding:4px 0}
+.up span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ul.tips{padding-left:18px;margin:6px 0;font-size:12.5px;color:var(--mute)}
+ul.tips li{margin:4px 0}
+ul.tips b{color:var(--ink)}
+@media (max-width:860px){
+  body{height:auto;display:block}
+  .app{grid-template-columns:1fr}
+  aside{border-right:0;order:2}
+  main{min-height:72vh}
+  .stage{height:60vh}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>레이저 이미지 변환기</h1>
+  <button class="primary" id="openBtn">사진 열기</button>
+  <input type="file" id="fileIn" accept="image/*" multiple hidden>
+  <button id="undoBtn" title="실행 취소 (Ctrl+Z)">↶ 되돌리기</button>
+  <button id="redoBtn" title="다시 실행 (Ctrl+Y)">↷ 다시</button>
+  <button id="resetBtn" title="모든 조정을 초기값으로">초기화</button>
+  <span class="sp"></span>
+  <select id="fmt" title="저장 형식">
+    <option value="bmp">BMP (RDWorks 권장)</option>
+    <option value="png">PNG</option>
+  </select>
+  <button class="primary" id="saveBtn" disabled>저장</button>
+  <button id="zipBtn" disabled title="불러온 모든 사진을 같은 설정으로 변환해 ZIP 하나로 저장">전체 일괄 저장 (ZIP)</button>
+</header>
+
+<div class="app">
+<aside id="side">
+  <details open><summary>재료 프리셋</summary>
+    <div class="grid2" id="presetBtns"></div>
+    <div class="note" id="presetNote">재료를 고르면 해상도·대비·디더링·반전이 한 번에 맞춰집니다. 이후 아래에서 미세 조정하세요.</div>
+  </details>
+
+  <details open><summary>크기 · 해상도</summary>
+    <div class="row">
+      <label>가로</label><input type="number" id="wmm" min="1" max="1500" step="0.1" style="width:80px"> mm
+      <label style="margin-left:6px">세로</label><input type="number" id="hmm" min="1" max="1500" step="0.1" style="width:80px"> mm
+    </div>
+    <div class="row">
+      <label>DPI</label><input type="number" id="dpi" min="50" max="1000" step="1" list="dpiList" style="width:80px">
+      <datalist id="dpiList"><option value="200"><option value="254"><option value="300"><option value="318"><option value="339"><option value="400"><option value="508"></datalist>
+      <span id="intv" class="note" style="margin:0;padding:3px 8px"></span>
+    </div>
+    <div class="row">
+      <button id="rotL">⟲ 90°</button><button id="rotR">⟳ 90°</button>
+      <label class="chk" style="margin:0 0 0 6px"><input type="checkbox" id="flipH"> 좌우 반전 (뒷면 각인)</label>
+    </div>
+  </details>
+
+  <details open><summary>톤 조정</summary>
+    <div id="toneCtl"></div>
+    <div class="note" style="margin-top:2px">슬라이더 이름을 더블클릭하면 그 값만 초기화됩니다.</div>
+  </details>
+
+  <details><summary>커브</summary>
+    <canvas id="curve" width="256" height="256"></canvas>
+    <div class="row"><button id="curveReset">커브 초기화</button></div>
+    <div class="note">빈 곳을 클릭하면 점이 추가되고, 끌어서 옮깁니다. 점을 더블클릭하면 삭제됩니다.</div>
+  </details>
+
+  <details open><summary>선명도 · 윤곽</summary>
+    <div id="sharpCtl"></div>
+  </details>
+
+  <details open><summary>디더링 (점 변환)</summary>
+    <div id="ditherCtl"></div>
+  </details>
+
+  <details><summary>내 프리셋</summary>
+    <div class="row"><input type="text" id="upName" placeholder="예: 자작합판 60W" style="flex:1"><button id="upSave">현재 설정 저장</button></div>
+    <div id="upList"></div>
+    <div class="row"><button id="upExport">파일로 내보내기</button><button id="upImport">파일에서 가져오기</button><input type="file" id="upFile" accept=".json" hidden></div>
+  </details>
+
+  <details id="wfBox"><summary>작업 순서 보기</summary>
+    <pre id="wf"></pre>
+    <button id="wfCopy">복사</button>
+  </details>
+
+  <details><summary>RDWorks 사용 팁</summary>
+    <ul class="tips">
+      <li><b>BMP로 저장</b> → RDWorks에서 <b>가져오기(Import, Ctrl+I)</b>로 불러옵니다.</li>
+      <li>파일 안에 DPI 정보가 들어 있어 지정한 mm 크기로 들어오는 것이 정상입니다. 크기가 다르게 들어오면 RDWorks 상단의 가로·세로 크기에 위 mm 값을 입력하세요.</li>
+      <li>레이어 설정: 모드 <b>스캔(Scan)</b>, <b>간격(Interval)</b>은 위에 표시된 값(예: 254 DPI → 0.1 mm)으로 맞춥니다. 간격이 DPI와 다르면 점이 다시 깎여 결과가 뭉개집니다.</li>
+      <li>이미 점으로 변환된 1비트 이미지이므로 RDWorks의 <b>비트맵 처리(Bitmap handle)</b>에서 다시 디더링하지 마세요.</li>
+      <li>양방향 스캔에서 윤곽이 지글지글하게 어긋나면 RDWorks의 <b>역방향 간격 보정(스캔 오프셋)</b>을 조정합니다.</li>
+      <li>속도·출력은 튜브 출력과 재료마다 다르므로, 같은 재료 자투리에 2~3 cm 크기로 먼저 시험하세요.</li>
+    </ul>
+  </details>
+</aside>
+
+<main>
+  <div class="toolbar">
+    <span>보기</span>
+    <button data-zoom="fit">화면 맞춤</button>
+    <button data-zoom="1">100%</button>
+    <button data-zoom="2">200%</button>
+    <span style="margin-left:10px">원본 비교</span>
+    <input type="range" id="cmp" min="0" max="100" value="0" style="width:130px">
+    <span id="busy" hidden>처리 중…</span>
+    <span class="info" id="info"></span>
+  </div>
+  <div class="stage" id="stage">
+    <div class="pad">
+      <div class="drop" id="drop"><b>사진을 여기로 끌어 놓으세요</b>또는 상단 「사진 열기」 · 붙여넣기(Ctrl+V)<br>여러 장을 한꺼번에 불러와 같은 설정으로 일괄 변환할 수 있습니다.<br><br>사진은 이 컴퓨터 안에서만 처리되며 어디에도 업로드되지 않습니다.</div>
+      <div class="wrap" id="wrap" hidden>
+        <canvas id="res"></canvas>
+        <canvas id="orig"></canvas>
+        <div id="split" hidden></div>
+      </div>
+    </div>
+  </div>
+  <div class="files" id="files" hidden></div>
+</main>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+/* ---------- 기본값 / 프리셋 ---------- */
+const DEF = {
+  widthMm: 100, dpi: 254, rotate: 0, flipH: false,
+  brightness: 0, contrast: 0, gamma: 1, black: 0, white: 255,
+  curve: [[0, 0], [255, 255]],
+  denoise: 0, sharpen: 0, sharpenR: 1, edge: 0, edgeOnly: false,
+  dither: 'jarvis', threshold: 128, serpentine: true, morph: 0, invert: false
+};
+
+const PRESETS = [
+  { id: 'wood', name: '나무 (합판·원목)', p: { dpi: 254, brightness: 5, contrast: 15, gamma: 1.1, black: 8, white: 245, sharpen: 80, sharpenR: 1, dither: 'jarvis', invert: false, flipH: false },
+    note: '<b>나무</b>: 각인부가 진하게 탑니다. 중간 톤이 실제보다 어둡게 나오므로 감마를 약간 올렸습니다. 결이 강한 원목은 대비를 더 올리세요.' },
+  { id: 'mdf', name: 'MDF', p: { dpi: 200, brightness: 15, contrast: 20, gamma: 1.25, black: 15, white: 240, sharpen: 60, sharpenR: 1, dither: 'stucki', invert: false, flipH: false },
+    note: '<b>MDF</b>: 점이 번지고 진하게 타서 해상도를 낮췄고(200 DPI ≈ 간격 0.127 mm) 전체를 밝게 잡았습니다. 표면이 코팅된 MDF는 출력을 낮추세요.' },
+  { id: 'acrylic-back', name: '투명 아크릴 (뒷면 각인)', p: { dpi: 300, brightness: 0, contrast: 15, gamma: 1, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: true },
+    note: '<b>투명 아크릴 뒷면</b>: 깎인 곳이 하얗게 보이므로 <b>반전</b>, 뒤에서 새기므로 <b>좌우 반전</b>을 켰습니다. 캐스트 아크릴이 하얗게 잘 나옵니다(압출 아크릴은 투명하게 깎임).' },
+  { id: 'acrylic-front', name: '유색 아크릴 (앞면)', p: { dpi: 300, brightness: 0, contrast: 15, gamma: 1, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
+    note: '<b>유색(검정 등) 아크릴</b>: 각인부가 밝게 드러나므로 반전을 켰습니다.' },
+  { id: 'slate', name: '슬레이트', p: { dpi: 254, brightness: 0, contrast: 25, gamma: 0.9, black: 10, white: 235, sharpen: 100, sharpenR: 1, dither: 'jarvis', invert: true, flipH: false },
+    note: '<b>슬레이트</b>: 각인부가 밝은 회색이 되므로 반전을 켜고 대비·선명도를 강하게 잡았습니다. 각인 후 오일을 바르면 대비가 살아납니다.' },
+  { id: 'line', name: '로고 · 선화', p: { dpi: 400, contrast: 0, gamma: 1, sharpen: 0, dither: 'threshold', threshold: 128, invert: false, flipH: false },
+    note: '<b>로고·선화</b>: 점 변환 없이 경계값 하나로 흑백을 나눕니다. 선이 끊기면 경계값을 올리거나 「선 굵기」를 조정하세요.' }
+];
+
+const DITHERS = [
+  ['jarvis', 'Jarvis (부드러움, 사진 추천)'], ['stucki', 'Stucki (선명, 사진)'], ['floyd', 'Floyd–Steinberg (세밀)'],
+  ['atkinson', 'Atkinson (대비 강함)'], ['sierra', 'Sierra'], ['sierralite', 'Sierra Lite (빠름)'], ['burkes', 'Burkes'],
+  ['bayer4', 'Bayer 4×4 (격자무늬)'], ['bayer8', 'Bayer 8×8'], ['cluster', '망점 (신문 인쇄 느낌)'],
+  ['threshold', '경계값 (흑백 2단)'], ['none', '없음 (회색조 그대로)']
+];
+
+let P = clone(DEF);
+let images = [], cur = -1, idSeq = 0;
+let baseCache = null, lastOut = null, zoom = 'fit', activePreset = null;
+
+/* ---------- 컨트롤 생성 ---------- */
+const binds = {};
+function update(key, v) { P[key] = v; changed(); }
+function changed() { activePresetMark(); scheduleRender(); scheduleCommit(); updateInfo(); }
+
+function slider(key, label, min, max, step) {
+  const row = document.createElement('div'); row.className = 'ctl';
+  row.innerHTML = `<label><span title="더블클릭: 초기화">${label}</span><input type="number" min="${min}" max="${max}" step="${step}"></label><input type="range" min="${min}" max="${max}" step="${step}">`;
+  const num = row.querySelector('input[type=number]'), rng = row.querySelector('input[type=range]');
+  const set = v => { num.value = v; rng.value = v; };
+  rng.addEventListener('input', () => { num.value = rng.value; update(key, +rng.value); });
+  num.addEventListener('change', () => { const v = clamp(+num.value || 0, min, max); set(v); update(key, v); });
+  row.querySelector('span').addEventListener('dblclick', () => { set(DEF[key]); update(key, DEF[key]); });
+  binds[key] = set; return row;
+}
+function check(key, label) {
+  const row = document.createElement('label'); row.className = 'chk';
+  row.innerHTML = `<input type="checkbox"> ${label}`;
+  const cb = row.querySelector('input');
+  cb.addEventListener('change', () => update(key, cb.checked));
+  binds[key] = v => cb.checked = v; return row;
+}
+function select(key, label, opts) {
+  const row = document.createElement('div'); row.className = 'row';
+  row.innerHTML = `<label>${label}</label><select style="flex:1">${opts.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')}</select>`;
+  const sel = row.querySelector('select');
+  sel.addEventListener('change', () => { update(key, sel.value); ditherVis(); });
+  binds[key] = v => sel.value = v; return row;
+}
+
+$('#toneCtl').append(
+  slider('brightness', '밝기', -100, 100, 1),
+  slider('contrast', '대비', -100, 100, 1),
+  slider('gamma', '감마 (중간 톤, 클수록 밝게)', 0.2, 3, 0.05),
+  slider('black', '레벨: 검정점', 0, 254, 1),
+  slider('white', '레벨: 흰점', 1, 255, 1)
+);
+$('#sharpCtl').append(
+  slider('denoise', '노이즈 제거 (흐림)', 0, 3, 0.1),
+  slider('sharpen', '선명하게 (%)', 0, 300, 5),
+  slider('sharpenR', '선명도 반경 (px)', 0.5, 5, 0.1),
+  slider('edge', '윤곽 강조', 0, 100, 1),
+  check('edgeOnly', '윤곽선만 남기기 (선화 만들기)')
+);
+const thrRow = slider('threshold', '경계값', 1, 254, 1);
+const serpRow = check('serpentine', '지그재그 처리 (줄무늬 감소)');
+const morphRow = slider('morph', '선 굵기 (−가늘게 / +굵게)', -3, 3, 1);
+$('#ditherCtl').append(
+  select('dither', '방식', DITHERS),
+  thrRow, serpRow, morphRow,
+  check('invert', '반전 (슬레이트·아크릴 등 밝게 깎이는 재료)')
+);
+function ditherVis() {
+  const d = P.dither, ed = !/^(bayer|cluster|threshold|none)/.test(d);
+  thrRow.hidden = d !== 'threshold';
+  serpRow.hidden = !ed;
+  morphRow.hidden = d === 'none';
+}
+
+/* 프리셋 버튼 */
+PRESETS.forEach(pr => {
+  const b = document.createElement('button'); b.className = 'preset'; b.textContent = pr.name; b.dataset.id = pr.id;
+  b.onclick = () => applyPreset(pr);
+  $('#presetBtns').append(b);
+});
+function applyPreset(pr) {
+  P = Object.assign(clone(DEF), { widthMm: P.widthMm, rotate: P.rotate }, clone(pr.p));
+  activePreset = pr.id;
+  $('#presetNote').innerHTML = pr.note;
+  syncUI(); scheduleRender(); scheduleCommit(); updateInfo(); activePresetMark();
+}
+function activePresetMark() {
+  if (activePreset) {
+    const pr = PRESETS.find(x => x.id === activePreset);
+    const ref = Object.assign(clone(DEF), { widthMm: P.widthMm, rotate: P.rotate }, clone(pr.p));
+    if (JSON.stringify(ref) !== JSON.stringify(P)) activePreset = null;
+  }
+  document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.dataset.id === activePreset));
+}
+
+/* 크기 입력 */
+function aspect() {
+  if (cur < 0) return 1;
+  const b = images[cur].bmp, r = P.rotate % 180 !== 0;
+  return r ? b.width / b.height : b.height / b.width; // 세로/가로
+}
+$('#wmm').addEventListener('change', e => { update('widthMm', clamp(+e.target.value || 1, 1, 1500)); syncUI(); });
+$('#hmm').addEventListener('change', e => { update('widthMm', +(clamp(+e.target.value || 1, 1, 1500) / aspect()).toFixed(2)); syncUI(); });
+$('#dpi').addEventListener('change', e => { update('dpi', clamp(Math.round(+e.target.value || 254), 50, 1000)); syncUI(); });
+$('#flipH').addEventListener('change', e => update('flipH', e.target.checked));
+$('#rotL').onclick = () => { update('rotate', (P.rotate + 270) % 360); syncUI(); };
+$('#rotR').onclick = () => { update('rotate', (P.rotate + 90) % 360); syncUI(); };
+
+function syncUI() {
+  for (const k in binds) binds[k](P[k]);
+  $('#wmm').value = +P.widthMm.toFixed(2);
+  $('#hmm').value = +(P.widthMm * aspect()).toFixed(2);
+  $('#dpi').value = P.dpi;
+  $('#flipH').checked = P.flipH;
+  ditherVis(); drawCurve(); updateInfo(); activePresetMark();
+}
+
+/* ---------- 실행 취소 ---------- */
+let hist = [clone(P)], hi = 0, commitT = 0;
+function scheduleCommit() {
+  clearTimeout(commitT);
+  commitT = setTimeout(() => {
+    if (JSON.stringify(hist[hi]) === JSON.stringify(P)) return;
+    hist = hist.slice(0, hi + 1); hist.push(clone(P)); if (hist.length > 200) hist.shift(); hi = hist.length - 1; histBtns();
+  }, 350);
+}
+function histBtns() { $('#undoBtn').disabled = hi <= 0; $('#redoBtn').disabled = hi >= hist.length - 1; }
+function undo() { clearTimeout(commitT); if (JSON.stringify(hist[hi]) !== JSON.stringify(P)) { hist = hist.slice(0, hi + 1); hist.push(clone(P)); hi++; } if (hi > 0) { hi--; P = clone(hist[hi]); syncUI(); scheduleRender(); } histBtns(); }
+function redo() { if (hi < hist.length - 1) { hi++; P = clone(hist[hi]); syncUI(); scheduleRender(); } histBtns(); }
+$('#undoBtn').onclick = undo; $('#redoBtn').onclick = redo;
+$('#resetBtn').onclick = () => { P = Object.assign(clone(DEF), { widthMm: P.widthMm }); activePreset = null; syncUI(); scheduleRender(); scheduleCommit(); };
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input[type=text],input[type=number]')) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+});
+
+/* ---------- 커브 ---------- */
+const cv = $('#curve'), cx = cv.getContext('2d');
+function curveLut(pts) {
+  const n = pts.length, xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), lut = new Float32Array(256);
+  const d = [], m = new Array(n);
+  for (let i = 0; i < n - 1; i++) d[i] = (ys[i + 1] - ys[i]) / Math.max(1e-6, xs[i + 1] - xs[i]);
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+  }
+  let k = 0;
+  for (let x = 0; x < 256; x++) {
+    while (k < n - 2 && x > xs[k + 1]) k++;
+    const h = xs[k + 1] - xs[k], t = h ? (x - xs[k]) / h : 0, t2 = t * t, t3 = t2 * t;
+    lut[x] = clamp((2 * t3 - 3 * t2 + 1) * ys[k] + (t3 - 2 * t2 + t) * h * m[k] + (-2 * t3 + 3 * t2) * ys[k + 1] + (t3 - t2) * h * m[k + 1], 0, 255);
+  }
+  return lut;
+}
+function drawCurve() {
+  const css = getComputedStyle(document.documentElement);
+  cx.clearRect(0, 0, 256, 256);
+  cx.strokeStyle = css.getPropertyValue('--line'); cx.lineWidth = 1;
+  for (let i = 64; i < 256; i += 64) { cx.beginPath(); cx.moveTo(i + .5, 0); cx.lineTo(i + .5, 256); cx.moveTo(0, i + .5); cx.lineTo(256, i + .5); cx.stroke(); }
+  cx.beginPath(); cx.moveTo(0, 256); cx.lineTo(256, 0); cx.stroke();
+  const lut = curveLut(P.curve);
+  cx.strokeStyle = css.getPropertyValue('--accent'); cx.lineWidth = 2; cx.beginPath();
+  for (let x = 0; x < 256; x++) cx[x ? 'lineTo' : 'moveTo'](x, 255 - lut[x]);
+  cx.stroke();
+  cx.fillStyle = css.getPropertyValue('--ink');
+  P.curve.forEach(p => { cx.beginPath(); cx.arc(p[0], 255 - p[1], 5, 0, 7); cx.fill(); });
+}
+let drag = -1;
+function cpos(e) { const r = cv.getBoundingClientRect(); return [clamp((e.clientX - r.left) / r.width * 256, 0, 255), clamp(255 - (e.clientY - r.top) / r.height * 256, 0, 255)]; }
+function nearPt(x, y) { return P.curve.findIndex(p => Math.hypot(p[0] - x, p[1] - y) < 12); }
+cv.addEventListener('pointerdown', e => {
+  const [x, y] = cpos(e); let i = nearPt(x, y);
+  if (i < 0) {
+    if (P.curve.some(p => Math.abs(p[0] - x) < 6)) return;
+    P.curve.push([Math.round(x), Math.round(y)]); P.curve.sort((a, b) => a[0] - b[0]); i = P.curve.findIndex(p => p[0] === Math.round(x));
+  }
+  drag = i; cv.setPointerCapture(e.pointerId); changed(); drawCurve();
+});
+cv.addEventListener('pointermove', e => {
+  if (drag < 0) return;
+  const [x, y] = cpos(e), pts = P.curve, last = pts.length - 1;
+  const nx = drag === 0 ? 0 : drag === last ? 255 : clamp(Math.round(x), pts[drag - 1][0] + 1, pts[drag + 1][0] - 1);
+  pts[drag] = [nx, Math.round(y)]; drawCurve(); changed();
+});
+cv.addEventListener('pointerup', () => drag = -1);
+cv.addEventListener('dblclick', e => {
+  const [x, y] = cpos(e), i = nearPt(x, y);
+  if (i > 0 && i < P.curve.length - 1) { P.curve.splice(i, 1); drawCurve(); changed(); }
+});
+$('#curveReset').onclick = () => { P.curve = [[0, 0], [255, 255]]; drawCurve(); changed(); };
+
+/* ---------- 이미지 처리 ---------- */
+const MAXPX = 12000;
+function outSize(im, p = P) {
+  const r = p.rotate % 180 !== 0, iw = r ? im.bmp.height : im.bmp.width, ih = r ? im.bmp.width : im.bmp.height;
+  let W = Math.max(1, Math.round(p.widthMm / 25.4 * p.dpi)), H = Math.max(1, Math.round(W * ih / iw)), capped = false;
+  if (W > MAXPX || H > MAXPX) { const s = MAXPX / Math.max(W, H); W = Math.max(1, Math.round(W * s)); H = Math.max(1, Math.round(H * s)); capped = true; }
+  return { W, H, capped };
+}
+function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function prescale(src, dw, dh) {
+  let s = src, w = src.width, h = src.height;
+  while (w / 2 >= dw * 1.2 && h / 2 >= dh * 1.2) {
+    w = Math.round(w / 2); h = Math.round(h / 2);
+    const c = mkCanvas(w, h), x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(s, 0, 0, w, h); s = c;
+  }
+  return s;
+}
+function buildBase(im, p = P) {
+  const { W, H } = outSize(im, p), r = p.rotate % 180 !== 0, dw = r ? H : W, dh = r ? W : H;
+  const c = mkCanvas(W, H), x = c.getContext('2d', { willReadFrequently: true });
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.imageSmoothingQuality = 'high';
+  x.translate(W / 2, H / 2); if (p.flipH) x.scale(-1, 1); x.rotate(p.rotate * Math.PI / 180);
+  x.drawImage(prescale(im.bmp, dw, dh), -dw / 2, -dh / 2, dw, dh);
+  const d = x.getImageData(0, 0, W, H).data, g = new Float32Array(W * H);
+  for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+  return { W, H, gray: g, color: c };
+}
+function getBase(im) {
+  const { W, H } = outSize(im), key = [im.id, W, H, P.rotate, P.flipH].join('|');
+  if (baseCache && baseCache.key === key) return baseCache;
+  baseCache = Object.assign(buildBase(im), { key }); return baseCache;
+}
+
+function gauss(src, W, H, s) {
+  const r = Math.max(1, Math.ceil(s * 3)), k = new Float32Array(2 * r + 1); let sum = 0;
+  for (let i = -r; i <= r; i++) { k[i + r] = Math.exp(-i * i / (2 * s * s)); sum += k[i + r]; }
+  for (let i = 0; i < k.length; i++) k[i] /= sum;
+  const tmp = new Float32Array(W * H), out = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) { const o = y * W; for (let x = 0; x < W; x++) { let a = 0; for (let i = -r; i <= r; i++) a += src[o + clamp(x + i, 0, W - 1)] * k[i + r]; tmp[o + x] = a; } }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let a = 0; for (let i = -r; i <= r; i++) a += tmp[clamp(y + i, 0, H - 1) * W + x] * k[i + r]; out[y * W + x] = a; }
+  return out;
+}
+function sobel(g, W, H) {
+  const m = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const y0 = Math.max(0, y - 1) * W, y1 = y * W, y2 = Math.min(H - 1, y + 1) * W;
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.max(0, x - 1), x2 = Math.min(W - 1, x + 1);
+      const gx = g[y0 + x2] + 2 * g[y1 + x2] + g[y2 + x2] - g[y0 + x0] - 2 * g[y1 + x0] - g[y2 + x0];
+      const gy = g[y2 + x0] + 2 * g[y2 + x] + g[y2 + x2] - g[y0 + x0] - 2 * g[y0 + x] - g[y0 + x2];
+      m[y1 + x] = Math.sqrt(gx * gx + gy * gy) / 4;
+    }
+  }
+  return m;
+}
+function buildLut(p) {
+  const lut = new Float32Array(256), cl = curveLut(p.curve), c = p.contrast * 2.55, f = 259 * (c + 255) / (255 * (259 - c));
+  for (let v = 0; v < 256; v++) {
+    let x = clamp((v - p.black) / Math.max(1, p.white - p.black), 0, 1);
+    x = Math.pow(x, 1 / p.gamma) * 255;
+    x = clamp(f * (x - 128) + 128 + p.brightness * 2.55, 0, 255);
+    lut[v] = cl[Math.round(x)];
+  }
+  return lut;
+}
+
+const KERNELS = {
+  floyd: [16, [1, 0, 7], [-1, 1, 3], [0, 1, 5], [1, 1, 1]],
+  atkinson: [8, [1, 0, 1], [2, 0, 1], [-1, 1, 1], [0, 1, 1], [1, 1, 1], [0, 2, 1]],
+  jarvis: [48, [1, 0, 7], [2, 0, 5], [-2, 1, 3], [-1, 1, 5], [0, 1, 7], [1, 1, 5], [2, 1, 3], [-2, 2, 1], [-1, 2, 3], [0, 2, 5], [1, 2, 3], [2, 2, 1]],
+  stucki: [42, [1, 0, 8], [2, 0, 4], [-2, 1, 2], [-1, 1, 4], [0, 1, 8], [1, 1, 4], [2, 1, 2], [-2, 2, 1], [-1, 2, 2], [0, 2, 4], [1, 2, 2], [2, 2, 1]],
+  burkes: [32, [1, 0, 8], [2, 0, 4], [-2, 1, 2], [-1, 1, 4], [0, 1, 8], [1, 1, 4], [2, 1, 2]],
+  sierra: [32, [1, 0, 5], [2, 0, 3], [-2, 1, 2], [-1, 1, 4], [0, 1, 5], [1, 1, 4], [2, 1, 2], [-1, 2, 2], [0, 2, 3], [1, 2, 2]],
+  sierralite: [4, [1, 0, 2], [-1, 1, 1], [0, 1, 1]]
+};
+function bayer(n) {
+  let M = [[0]];
+  while (M.length < n) {
+    const s = M.length, R = [];
+    for (let y = 0; y < 2 * s; y++) { R[y] = []; for (let x = 0; x < 2 * s; x++) R[y][x] = M[y % s][x % s] * 4 + [0, 2, 3, 1][(y >= s) * 2 + (x >= s)]; }
+    M = R;
+  }
+  return M;
+}
+function cluster(n) {
+  const c = (n - 1) / 2, cells = [];
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) cells.push([Math.hypot(x - c, y - c) + Math.atan2(y - c, x - c) * 1e-3, x, y]);
+  cells.sort((a, b) => a[0] - b[0]);
+  const M = Array.from({ length: n }, () => []); cells.forEach((e, i) => M[e[2]][e[1]] = i); return M;
+}
+const ORD = { bayer4: bayer(4), bayer8: bayer(8), cluster: cluster(6) };
+
+function dither(g, W, H, p) {
+  const N = W * H, out = new Uint8ClampedArray(N), d = p.dither;
+  if (d === 'none') { for (let i = 0; i < N; i++) out[i] = g[i]; return out; }
+  if (d === 'threshold') { for (let i = 0; i < N; i++) out[i] = g[i] >= p.threshold ? 255 : 0; return out; }
+  if (ORD[d]) {
+    const M = ORD[d], n = M.length, nn = n * n;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; out[i] = g[i] > (M[y % n][x % n] + 0.5) * 255 / nn ? 255 : 0; }
+    return out;
+  }
+  const K = KERNELS[d], div = K[0], taps = K.slice(1), e = g;
+  for (let y = 0; y < H; y++) {
+    const rev = p.serpentine && (y & 1);
+    for (let xi = 0; xi < W; xi++) {
+      const x = rev ? W - 1 - xi : xi, i = y * W + x, old = e[i], nv = old < 128 ? 0 : 255, err = old - nv;
+      out[i] = nv;
+      for (let t = 0; t < taps.length; t++) {
+        const xx = x + (rev ? -taps[t][0] : taps[t][0]), yy = y + taps[t][1];
+        if (xx >= 0 && xx < W && yy < H) e[yy * W + xx] += err * taps[t][2] / div;
+      }
+    }
+  }
+  return out;
+}
+function morph(a, W, H, n) {
+  let s = a; const thick = n > 0, from = thick ? 255 : 0, to = thick ? 0 : 255;
+  for (let k = 0; k < Math.abs(n); k++) {
+    const d = new Uint8ClampedArray(s);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x; if (s[i] !== from) continue;
+      if ((x > 0 && s[i - 1] === to) || (x < W - 1 && s[i + 1] === to) || (y > 0 && s[i - W] === to) || (y < H - 1 && s[i + W] === to)) d[i] = to;
+    }
+    s = d;
+  }
+  return s;
+}
+function processGray(base, W, H, p) {
+  const N = W * H; let g = new Float32Array(base);
+  if (p.denoise > 0) g = gauss(g, W, H, p.denoise);
+  const lut = buildLut(p);
+  for (let i = 0; i < N; i++) g[i] = lut[clamp(Math.round(g[i]), 0, 255)];
+  if (p.sharpen > 0) { const b = gauss(g, W, H, p.sharpenR), a = p.sharpen / 100; for (let i = 0; i < N; i++) g[i] += a * (g[i] - b[i]); }
+  if (p.edge > 0 || p.edgeOnly) {
+    const m = sobel(g, W, H);
+    if (p.edgeOnly) { const k = Math.max(p.edge, 25) / 25; for (let i = 0; i < N; i++) g[i] = 255 - m[i] * k; }
+    else { const k = p.edge / 100; for (let i = 0; i < N; i++) g[i] -= m[i] * k; }
+  }
+  for (let i = 0; i < N; i++) { let v = clamp(g[i], 0, 255); g[i] = p.invert ? 255 - v : v; }
+  let out = dither(g, W, H, p);
+  if (p.morph && p.dither !== 'none') out = morph(out, W, H, p.morph);
+  return out;
+}
+
+/* ---------- 화면 표시 ---------- */
+let renderT = 0;
+function scheduleRender() { clearTimeout(renderT); if (cur < 0) return; $('#busy').hidden = false; renderT = setTimeout(render, 60); }
+function render() {
+  if (cur < 0) return;
+  const t0 = performance.now(), b = getBase(images[cur]), out = processGray(b.gray, b.W, b.H, P);
+  lastOut = { gray: out, W: b.W, H: b.H };
+  const res = $('#res'), org = $('#orig');
+  res.width = org.width = b.W; res.height = org.height = b.H;
+  const id = new ImageData(b.W, b.H), d = id.data;
+  for (let i = 0, j = 0; i < out.length; i++, j += 4) { d[j] = d[j + 1] = d[j + 2] = out[i]; d[j + 3] = 255; }
+  res.getContext('2d').putImageData(id, 0, 0);
+  org.getContext('2d').drawImage(b.color, 0, 0);
+  applyZoom(); applyCmp();
+  $('#busy').hidden = true;
+  if ($('#ms')) $('#ms').textContent = `${Math.round(performance.now() - t0)} ms`;
+  if ($('#wfBox').open) $('#wf').textContent = workflowText();
+}
+function applyZoom() {
+  if (!lastOut) return;
+  const st = $('#stage'), { W, H } = lastOut;
+  let s = zoom === 'fit' ? Math.min((st.clientWidth - 36) / W, (st.clientHeight - 36) / H, 4) : +zoom;
+  s = Math.max(s, 0.02);
+  const dpr = window.devicePixelRatio || 1, w = $('#wrap');
+  w.style.width = W * s / (zoom === 'fit' ? 1 : dpr) + 'px';
+  w.style.height = H * s / (zoom === 'fit' ? 1 : dpr) + 'px';
+  w.classList.toggle('px', zoom !== 'fit' || s >= 1);
+  document.querySelectorAll('[data-zoom]').forEach(b => b.classList.toggle('on', b.dataset.zoom === String(zoom)));
+}
+document.querySelectorAll('[data-zoom]').forEach(b => b.onclick = () => { zoom = b.dataset.zoom === 'fit' ? 'fit' : +b.dataset.zoom; applyZoom(); });
+window.addEventListener('resize', () => zoom === 'fit' && applyZoom());
+function applyCmp() {
+  const v = +$('#cmp').value;
+  $('#orig').style.clipPath = `inset(0 ${100 - v}% 0 0)`;
+  $('#split').hidden = v === 0 || v === 100; $('#split').style.left = v + '%';
+}
+$('#cmp').addEventListener('input', applyCmp);
+
+function updateInfo() {
+  const iv = 25.4 / P.dpi;
+  $('#intv').textContent = `RDWorks 간격 ${iv.toFixed(3)} mm`;
+  if (cur < 0) { $('#info').innerHTML = '<span id="ms"></span>'; return; }
+  const { W, H, capped } = outSize(images[cur]);
+  $('#info').innerHTML = `${(W / P.dpi * 25.4).toFixed(1)} × ${(H / P.dpi * 25.4).toFixed(1)} mm · ${W} × ${H} px · ${P.dpi} DPI${capped ? ' · <b style="color:var(--accent)">최대 크기로 제한됨</b>' : ''} · <span id="ms"></span>`;
+  $('#hmm').value = +(P.widthMm * aspect()).toFixed(2);
+}
+
+function workflowText() {
+  const D = Object.fromEntries(DITHERS), L = [];
+  let n = 1;
+  const add = s => L.push(`${n++}. ${s}`);
+  const sz = cur >= 0 ? outSize(images[cur]) : null;
+  add(`크기: 가로 ${P.widthMm} mm, ${P.dpi} DPI${sz ? ` (${sz.W}×${sz.H}px)` : ''}, RDWorks 간격 ${(25.4 / P.dpi).toFixed(3)} mm`);
+  if (P.rotate) add(`회전 ${P.rotate}°`);
+  if (P.flipH) add('좌우 반전');
+  add('흑백 변환 (휘도)');
+  if (P.denoise) add(`노이즈 제거: 가우시안 ${P.denoise}`);
+  if (P.black || P.white !== 255) add(`레벨: 검정점 ${P.black}, 흰점 ${P.white}`);
+  if (P.gamma !== 1) add(`감마 ${P.gamma}`);
+  if (P.brightness || P.contrast) add(`밝기 ${P.brightness}, 대비 ${P.contrast}`);
+  if (P.curve.length > 2 || P.curve[0][1] !== 0 || P.curve[1][1] !== 255) add(`커브: ${P.curve.map(p => `(${p[0]},${p[1]})`).join(' ')}`);
+  if (P.sharpen) add(`선명하게 ${P.sharpen}% (반경 ${P.sharpenR}px)`);
+  if (P.edgeOnly) add(`윤곽선만 남기기 (강도 ${Math.max(P.edge, 25)})`); else if (P.edge) add(`윤곽 강조 ${P.edge}`);
+  if (P.invert) add('반전');
+  add(`디더링: ${D[P.dither]}${P.dither === 'threshold' ? ` (경계값 ${P.threshold})` : ''}${KERNELS[P.dither] && P.serpentine ? ', 지그재그' : ''}`);
+  if (P.morph && P.dither !== 'none') add(`선 굵기 ${P.morph > 0 ? '+' : ''}${P.morph}`);
+  return L.join('\n');
+}
+$('#wfBox').addEventListener('toggle', e => { if (e.target.open) $('#wf').textContent = workflowText(); });
+$('#wfCopy').onclick = () => navigator.clipboard.writeText(workflowText()).then(() => { $('#wfCopy').textContent = '복사됨'; setTimeout(() => $('#wfCopy').textContent = '복사', 1200); });
+
+/* ---------- 파일 불러오기 ---------- */
+async function loadFiles(list) {
+  const files = [...list].filter(f => f.type.startsWith('image/'));
+  for (const f of files) {
+    try {
+      let bmp;
+      try { bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }); }
+      catch { bmp = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = URL.createObjectURL(f); }); }
+      const t = mkCanvas(96, 96), tx = t.getContext('2d'), s = Math.max(96 / bmp.width, 96 / bmp.height);
+      tx.drawImage(bmp, (96 - bmp.width * s) / 2, (96 - bmp.height * s) / 2, bmp.width * s, bmp.height * s);
+      images.push({ id: ++idSeq, name: f.name.replace(/\.[^.]+$/, '') || 'image', bmp, thumb: t.toDataURL() });
+    } catch (e) { alert(`${f.name} 을(를) 열 수 없습니다.`); }
+  }
+  if (files.length && images.length) select_(cur < 0 ? 0 : images.length - files.length);
+}
+function select_(i) {
+  cur = i; baseCache = null;
+  const has = cur >= 0;
+  $('#drop').hidden = has; $('#wrap').hidden = !has; $('#files').hidden = !has;
+  $('#saveBtn').disabled = !has; $('#zipBtn').disabled = images.length < 1;
+  renderThumbs(); syncUI(); if (has) scheduleRender();
+}
+function renderThumbs() {
+  const f = $('#files'); f.innerHTML = '';
+  images.forEach((im, i) => {
+    const d = document.createElement('div'); d.className = 'thumb' + (i === cur ? ' on' : ''); d.title = im.name;
+    d.innerHTML = `<img src="${im.thumb}" alt=""><button class="x" title="목록에서 빼기">✕</button>`;
+    d.onclick = () => select_(i);
+    d.querySelector('.x').onclick = e => { e.stopPropagation(); images.splice(i, 1); select_(images.length ? Math.min(cur, images.length - 1) : -1); };
+    f.append(d);
+  });
+  const add = document.createElement('button'); add.textContent = '+ 추가'; add.onclick = () => $('#fileIn').click(); f.append(add);
+}
+$('#openBtn').onclick = () => $('#fileIn').click();
+$('#fileIn').addEventListener('change', e => { loadFiles(e.target.files); e.target.value = ''; });
+const stage = $('#stage');
+stage.addEventListener('dragover', e => { e.preventDefault(); stage.classList.add('over'); });
+stage.addEventListener('dragleave', () => stage.classList.remove('over'));
+stage.addEventListener('drop', e => { e.preventDefault(); stage.classList.remove('over'); loadFiles(e.dataTransfer.files); });
+$('#drop').onclick = () => $('#fileIn').click();
+document.addEventListener('paste', e => { const fs = [...e.clipboardData.items].filter(i => i.kind === 'file').map(i => i.getAsFile()); if (fs.length) loadFiles(fs); });
+
+/* ---------- 저장 (DPI 포함 BMP / PNG, ZIP) ---------- */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8, c = 0xFFFFFFFF) { for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return c; }
+const crcDone = u8 => (crc32(u8) ^ 0xFFFFFFFF) >>> 0;
+
+function makeBMP(gray, W, H, dpi, oneBit) {
+  const ppm = Math.round(dpi / 0.0254), bpp = oneBit ? 1 : 8, rowBytes = Math.ceil(W * bpp / 32) * 4, palN = oneBit ? 2 : 256;
+  const off = 54 + palN * 4, size = off + rowBytes * H, buf = new ArrayBuffer(size), dv = new DataView(buf), u8 = new Uint8Array(buf);
+  u8[0] = 0x42; u8[1] = 0x4D; dv.setUint32(2, size, true); dv.setUint32(10, off, true);
+  dv.setUint32(14, 40, true); dv.setInt32(18, W, true); dv.setInt32(22, H, true); dv.setUint16(26, 1, true); dv.setUint16(28, bpp, true);
+  dv.setUint32(34, rowBytes * H, true); dv.setInt32(38, ppm, true); dv.setInt32(42, ppm, true); dv.setUint32(46, palN, true);
+  for (let i = 0; i < palN; i++) { const v = oneBit ? (i ? 255 : 0) : i; u8[54 + i * 4] = u8[55 + i * 4] = u8[56 + i * 4] = v; }
+  for (let y = 0; y < H; y++) {
+    const row = off + (H - 1 - y) * rowBytes, o = y * W;
+    if (oneBit) { for (let x = 0; x < W; x++) if (gray[o + x] >= 128) u8[row + (x >> 3)] |= 0x80 >> (x & 7); }
+    else u8.set(gray.subarray(o, o + W), row);
+  }
+  return u8;
+}
+async function makePNG(gray, W, H, dpi) {
+  const c = mkCanvas(W, H), id = new ImageData(W, H), d = id.data;
+  for (let i = 0, j = 0; i < gray.length; i++, j += 4) { d[j] = d[j + 1] = d[j + 2] = gray[i]; d[j + 3] = 255; }
+  c.getContext('2d').putImageData(id, 0, 0);
+  const png = new Uint8Array(await (await new Promise(r => c.toBlob(r, 'image/png'))).arrayBuffer());
+  const ppm = Math.round(dpi / 0.0254), ch = new Uint8Array(21), dv = new DataView(ch.buffer);
+  dv.setUint32(0, 9); ch.set([0x70, 0x48, 0x59, 0x73], 4); dv.setUint32(8, ppm); dv.setUint32(12, ppm); ch[16] = 1;
+  dv.setUint32(17, crcDone(ch.subarray(4, 17)));
+  const out = new Uint8Array(png.length + 21); out.set(png.subarray(0, 33)); out.set(ch, 33); out.set(png.subarray(33), 54);
+  return out;
+}
+async function encode(gray, W, H, p, fmt) {
+  return fmt === 'png' ? makePNG(gray, W, H, p.dpi) : makeBMP(gray, W, H, p.dpi, p.dither !== 'none');
+}
+function fname(im, W, p, fmt) { return `${im.name}_${(W / p.dpi * 25.4).toFixed(0)}mm_${p.dpi}dpi.${fmt}`; }
+function download(data, name, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+$('#saveBtn').onclick = async () => {
+  if (!lastOut) render();
+  const fmt = $('#fmt').value, { gray, W, H } = lastOut;
+  download(await encode(gray, W, H, P, fmt), fname(images[cur], W, P, fmt), fmt === 'png' ? 'image/png' : 'image/bmp');
+};
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = crcDone(f.data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
+    h.setUint32(14, crc, true); h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(h.buffer), nm, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+    c.setUint32(16, crc, true); c.setUint32(20, f.data.length, true); c.setUint32(24, f.data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    cen.push(new Uint8Array(c.buffer), nm);
+    off += 30 + nm.length + f.data.length;
+  }
+  const cs = cen.reduce((a, b) => a + b.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+$('#zipBtn').onclick = async () => {
+  const btn = $('#zipBtn'), fmt = $('#fmt').value, files = [], names = new Set();
+  btn.disabled = true;
+  for (let i = 0; i < images.length; i++) {
+    btn.textContent = `변환 중 ${i + 1}/${images.length}`;
+    await new Promise(r => setTimeout(r, 20));
+    const b = buildBase(images[i]), g = processGray(b.gray, b.W, b.H, P);
+    let n = fname(images[i], b.W, P, fmt); while (names.has(n)) n = n.replace(/(\.\w+)$/, '_' + i + '$1'); names.add(n);
+    files.push({ name: n, data: await encode(g, b.W, b.H, P, fmt) });
+  }
+  const zipName = `레이저변환_${new Date().toISOString().slice(0, 10)}.zip`;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(makeZip(files)); a.download = zipName; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  btn.textContent = '전체 일괄 저장 (ZIP)'; btn.disabled = false;
+};
+
+/* ---------- 내 프리셋 ---------- */
+const UPKEY = 'laserprep.presets.v1';
+function upLoad() { try { return JSON.parse(localStorage.getItem(UPKEY) || '[]'); } catch { return []; } }
+function upStore(a) { try { localStorage.setItem(UPKEY, JSON.stringify(a)); } catch { alert('이 브라우저에서는 저장할 수 없습니다. 「파일로 내보내기」를 사용하세요.'); } upRender(); }
+let upMem = upLoad();
+function upRender() {
+  const box = $('#upList'); box.innerHTML = upMem.length ? '' : '<div class="note">저장된 프리셋이 없습니다.</div>';
+  upMem.forEach((u, i) => {
+    const r = document.createElement('div'); r.className = 'up';
+    r.innerHTML = `<span title="${u.name}">${u.name}</span><button>적용</button><button title="삭제">✕</button>`;
+    const [ap, del] = r.querySelectorAll('button');
+    ap.onclick = () => { P = Object.assign(clone(DEF), clone(u.p)); activePreset = null; syncUI(); scheduleRender(); scheduleCommit(); };
+    del.onclick = () => { if (confirm(`'${u.name}' 프리셋을 삭제할까요?`)) { upMem.splice(i, 1); upStore(upMem); } };
+    box.append(r);
+  });
+}
+$('#upSave').onclick = () => {
+  const name = $('#upName').value.trim() || `프리셋 ${upMem.length + 1}`;
+  const i = upMem.findIndex(u => u.name === name);
+  if (i >= 0) upMem[i].p = clone(P); else upMem.push({ name, p: clone(P) });
+  $('#upName').value = ''; upStore(upMem);
+};
+$('#upExport').onclick = () => download(JSON.stringify(upMem, null, 1), '레이저변환_프리셋.json', 'application/json');
+$('#upImport').onclick = () => $('#upFile').click();
+$('#upFile').addEventListener('change', async e => {
+  try {
+    const arr = JSON.parse(await e.target.files[0].text());
+    if (!Array.isArray(arr)) throw 0;
+    arr.forEach(u => { if (u && u.name && u.p) { const i = upMem.findIndex(x => x.name === u.name); if (i >= 0) upMem[i] = u; else upMem.push(u); } });
+    upStore(upMem);
+  } catch { alert('프리셋 파일 형식이 올바르지 않습니다.'); }
+  e.target.value = '';
+});
+
+/* 시작 */
+upRender(); syncUI(); histBtns(); updateInfo();
+</script>
+</body>
+</html>
