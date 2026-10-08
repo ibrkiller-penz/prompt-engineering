@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import Hub from "./pages/Hub";
 import SetupPage from "./pages/SetupPage";
@@ -23,6 +23,8 @@ import BoardHelp from "./pages/board/Help";
 import BoardBrief from "./pages/board/Brief";
 import NotFound from "./pages/NotFound";
 import PromptLayout from "./components/PromptLayout";
+
+const AimathApp = lazy(() => import("./aimath/AimathApp"));
 
 export default function App() {
   const { pathname } = useLocation();
@@ -61,6 +63,14 @@ export default function App() {
         <Route path="help" element={<BoardHelp />} />
         <Route path="brief" element={<BoardBrief />} />
       </Route>
+      <Route
+        path="/aimath/*"
+        element={
+          <Suspense fallback={<p className="p-8 text-center text-muted">불러오는 중…</p>}>
+            <AimathApp />
+          </Suspense>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

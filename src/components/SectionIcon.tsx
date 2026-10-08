@@ -124,6 +124,20 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 인공지능 수학 — 시그마 + 연결 점(신경망)
+  "/aimath": {
+    from: "#4f46e5",
+    to: "#a78bfa",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M30 11H15l9 13-9 13h15" />
+        <circle cx="35" cy="14" r="2.6" fill="#fff" stroke="none" />
+        <circle cx="38" cy="24" r="2.6" fill="#fff" stroke="none" />
+        <circle cx="35" cy="34" r="2.6" fill="#fff" stroke="none" />
+        <path d="M33 16l3 6M36 26l-2 6" strokeWidth="1.8" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",

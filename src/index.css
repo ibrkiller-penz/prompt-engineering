@@ -59,6 +59,14 @@ html[data-level="high"] {
   font-size: 16px;
 }
 
+/* 인공지능 수학: 대단원마다 포인트 색이 달라진다 */
+html[data-aiunit="0"] { --accent: #4f46e5; --accent-soft: #eef0ff; }
+html[data-aiunit="1"] { --accent: #4f46e5; --accent-soft: #eef0ff; }
+html[data-aiunit="2"] { --accent: #0f766e; --accent-soft: #e3f6f2; }
+html[data-aiunit="3"] { --accent: #e11d48; --accent-soft: #ffe8ee; }
+html[data-aiunit="4"] { --accent: #b45309; --accent-soft: #fff1dc; }
+html[data-aiunit="5"] { --accent: #7c3aed; --accent-soft: #f0e9ff; }
+
 body {
   background: var(--bg);
   color: var(--ink);

@@ -94,4 +94,12 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
       { label: "프로그램 받기 (HappyMpX)", href: "/happy/HappyMpX.zip", download: true, note: "Windows 프로그램을 zip으로 묶은 파일(약 53MB). 압축을 풀어 HappyMpX.exe를 실행해요. 서명이 없어서 Windows 보호 창이 뜨면 ‘추가 정보 → 실행’을 눌러요." },
     ],
   },
+  {
+    path: "/aimath",
+    title: "인공지능 수학",
+    tag: "고등 진로선택 · 단원별 학습",
+    desc: "이야기로 시작해서 개념·체험·계단 문제까지. 인공지능 수학 5개 대단원을 새봄고 AI랩 친구들과 함께 공부해요.",
+    more: "인공지능과 빅데이터, 텍스트·이미지 데이터 처리, 예측과 최적화, 탐구까지 5개 대단원·12개 레슨을 단원별로 정리했어요. 레슨마다 이야기, 개념과 예제, 직접 만져 보는 체험 도구, 힌트가 있는 계단 문제, AI 프로젝트, 요약이 있고 틀린 문제는 오답노트에 모여요. 모든 글과 문제는 새로 쓴 것이에요.",
+    cta: "공부하러 가기 →",
+  },
 ];
