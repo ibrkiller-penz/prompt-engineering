@@ -3,7 +3,7 @@ export const HUB_NAME = "살빠진 임선생과 함께하는 교육자료";
 export const COURSE_NAME = "다시 묻는 AI 교실";
 export const BOARD_NAME = "ESP32 터치 화면으로 시간표 단말 만들기";
 
-export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string; lock?: string }[] = [
+export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string; lock?: string; unlocked?: { label: string; href: string; note: string; download?: boolean }[] }[] = [
   // lock: 들어가기 전에 비밀번호를 묻는다. 값은 SHA-256('penedu-lock:' + 비밀번호). 화면 안에서 확인하는 간단한 잠금이라 보안 장치는 아니다.
   {
     path: "/setup",
@@ -90,5 +90,9 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     desc: "유튜브 링크를 붙여 넣으면 MP3 파일로 바꿔 줘요. 구글 로그인 후 쓰는 개인용 변환기예요.",
     more: "유튜브 링크를 붙여 넣고 변환 단추를 누르면 MP3로 내려받을 수 있는 변환기예요. 구글 계정으로 로그인해서 쓰는 개인용이에요. 직접 만든 영상이나 사용을 허락받은 영상(저작권 만료·공유 허용 등)에만 쓰고, 저작권이 있는 영상은 이용 조건과 학교의 저작권 지침을 먼저 확인하세요.",
     cta: "비밀번호 입력 후 열기 🔒",
+    unlocked: [
+      { label: "웹에서 쓰기", href: "https://happymp3.web.app/", note: "브라우저에서 링크를 붙여 넣고 MP3·MP4로 내려받아요." },
+      { label: "프로그램 받기 (HappyMpX.exe)", href: "/happy/HappyMpX.exe", download: true, note: "Windows 프로그램, 약 53MB. 서명이 없어서 Windows 보호 창이 뜨면 ‘추가 정보 → 실행’을 눌러요." },
+    ],
   },
 ];

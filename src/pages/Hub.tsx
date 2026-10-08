@@ -32,16 +32,31 @@ async function sha256(text: string) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** 비밀번호를 묻는 작은 창. 맞으면 onOk 를 부른다. */
-function LockDialog({ title, lock, onOk, onClose }: { title: string; lock: string; onOk: () => void; onClose: () => void }) {
+/** 비밀번호를 묻는 작은 창. 맞으면 links 가 있을 때는 고르는 화면으로, 없으면 onOk 로 간다. */
+function LockDialog({
+  title,
+  lock,
+  links,
+  onOk,
+  onClose,
+}: {
+  title: string;
+  lock: string;
+  links?: { label: string; href: string; note: string; download?: boolean }[];
+  onOk: () => void;
+  onClose: () => void;
+}) {
   const [pw, setPw] = useState("");
   const [bad, setBad] = useState(false);
+  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => ref.current?.focus(), []);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((await sha256("penedu-lock:" + pw)) === lock) onOk();
-    else {
+    if ((await sha256("penedu-lock:" + pw)) === lock) {
+      if (links && links.length) setOpen(true);
+      else onOk();
+    } else {
       setBad(true);
       setPw("");
       ref.current?.focus();
@@ -49,43 +64,69 @@ function LockDialog({ title, lock, onOk, onClose }: { title: string; lock: strin
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label={`${title} 비밀번호`} onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-card border border-line bg-surface p-6 shadow-xl">
-        <h2 className="text-xl font-extrabold">🔒 {title}</h2>
-        <p className="mt-2 text-sm text-muted">저작권 문제가 있을 수 있어서 비밀번호를 아는 분만 들어갈 수 있어요.</p>
-        <input
-          ref={ref}
-          type="password"
-          inputMode="numeric"
-          autoComplete="off"
-          value={pw}
-          onChange={(e) => {
-            setPw(e.target.value);
-            setBad(false);
-          }}
-          aria-label="비밀번호"
-          placeholder="비밀번호"
-          className="mt-4 min-h-[44px] w-full rounded-card border border-line bg-bg px-3 text-lg outline-none focus:border-accent"
-        />
-        {bad && (
-          <p className="mt-2 text-sm font-semibold text-bad" role="alert">
-            비밀번호가 맞지 않아요.
-          </p>
-        )}
-        <div className="mt-4 flex gap-2">
-          <button type="submit" className="min-h-[44px] flex-1 rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110">
-            들어가기
-          </button>
-          <button type="button" onClick={onClose} className="min-h-[44px] rounded-card border border-line px-4 font-semibold hover:bg-bg">
+      {open && links ? (
+        <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-card border border-line bg-surface p-6 shadow-xl">
+          <h2 className="text-xl font-extrabold">{title}</h2>
+          <p className="mt-2 text-sm text-muted">어떻게 쓸까요?</p>
+          <ul className="mt-4 space-y-3">
+            {links.map((l) => (
+              <li key={l.href}>
+                <a
+                  href={l.href}
+                  {...(l.download ? { download: true } : { target: "_blank", rel: "noopener" })}
+                  onClick={onClose}
+                  className="block rounded-card border border-line p-4 hover:border-accent hover:bg-accent-soft"
+                >
+                  <span className="font-bold text-accent">{l.label} {l.download ? "⬇" : "↗"}</span>
+                  <span className="mt-1 block text-sm text-muted">{l.note}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-muted">저작권이 있는 영상은 이용 조건과 학교 지침을 먼저 확인해 주세요.</p>
+          <button type="button" onClick={onClose} className="mt-4 min-h-[44px] w-full rounded-card border border-line px-4 font-semibold hover:bg-bg">
             닫기
           </button>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-card border border-line bg-surface p-6 shadow-xl">
+          <h2 className="text-xl font-extrabold">🔒 {title}</h2>
+          <p className="mt-2 text-sm text-muted">저작권 문제가 있을 수 있어서 비밀번호를 아는 분만 들어갈 수 있어요.</p>
+          <input
+            ref={ref}
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            value={pw}
+            onChange={(e) => {
+              setPw(e.target.value);
+              setBad(false);
+            }}
+            aria-label="비밀번호"
+            placeholder="비밀번호"
+            className="mt-4 min-h-[44px] w-full rounded-card border border-line bg-bg px-3 text-lg outline-none focus:border-accent"
+          />
+          {bad && (
+            <p className="mt-2 text-sm font-semibold text-bad" role="alert">
+              비밀번호가 맞지 않아요.
+            </p>
+          )}
+          <div className="mt-4 flex gap-2">
+            <button type="submit" className="min-h-[44px] flex-1 rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110">
+              들어가기
+            </button>
+            <button type="button" onClick={onClose} className="min-h-[44px] rounded-card border border-line px-4 font-semibold hover:bg-bg">
+              닫기
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
 
 export default function Hub() {
-  const [locked, setLocked] = useState<{ title: string; lock: string; path: string } | null>(null);
+  const [locked, setLocked] = useState<{ title: string; lock: string; path: string; links?: { label: string; href: string; note: string; download?: boolean }[] } | null>(null);
   useEffect(() => {
     document.title = HUB_NAME;
   }, []);
@@ -159,7 +200,7 @@ export default function Hub() {
                       s.lock
                         ? (e) => {
                             e.preventDefault();
-                            setLocked({ title: s.title, lock: s.lock!, path: s.path });
+                            setLocked({ title: s.title, lock: s.lock!, path: s.path, links: s.unlocked });
                           }
                         : undefined
                     }
@@ -180,6 +221,7 @@ export default function Hub() {
         <LockDialog
           title={locked.title}
           lock={locked.lock}
+          links={locked.links}
           onClose={() => setLocked(null)}
           onOk={() => {
             window.open(locked.path, "_blank", "noopener");
