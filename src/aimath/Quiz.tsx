@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import RichMath from "./RichMath";
 import { recordResult } from "./store";
 import type { QResult } from "./store";
@@ -35,13 +35,38 @@ const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
 
 type Status = "idle" | "wrong" | "correct" | "solution";
 
+const BURST = ["🎉", "⭐", "✨", "🎊", "💫", "⭐", "✨", "🎉"];
+
+/** 정답일 때 터지는 작은 꽃가루 */
+function Burst() {
+  return (
+    <div className="relative h-0" aria-hidden>
+      {BURST.map((e, i) => {
+        const a = (i / BURST.length) * Math.PI * 2;
+        return (
+          <span
+            key={i}
+            className="am-burst"
+            style={{ "--dx": `${Math.cos(a) * 90}px`, "--dy": `${Math.sin(a) * 60 - 20}px` } as React.CSSProperties}
+          >
+            {e}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export function QuestionCard({
   q,
   onDone,
+  onNext,
   open = true,
 }: {
   q: Question;
   onDone?: (ok: boolean) => void;
+  /** 있으면 정답 뒤에 ‘다음 문제’ 단추를 보여 준다 */
+  onNext?: () => void;
   open?: boolean;
 }) {
   const order = useMemo(() => (q.type === "choice" ? seededOrder(q.choices.length, q.id) : []), [q]);
@@ -51,6 +76,7 @@ export function QuestionCard({
   const [status, setStatus] = useState<Status>("idle");
   const [msg, setMsg] = useState("");
   const [done, setDone] = useState(false);
+  const [shake, setShake] = useState(false); // 오답일 때 한 번 흔들기
 
   const finish = (ok: boolean) => {
     if (!done) {
@@ -64,20 +90,20 @@ export function QuestionCard({
     if (q.type === "choice") {
       if (sel == null) return setMsg("보기를 하나 골라 주세요.");
       if (order[sel] === q.answer) { setStatus("correct"); setMsg(""); finish(true); }
-      else { setStatus("wrong"); setMsg("아쉬워요. 힌트를 보고 다시 해 봐요."); }
+      else { setStatus("wrong"); setShake(true); setMsg("아쉬워요. 힌트를 보고 다시 해 봐요."); }
     } else if (q.type === "number") {
       const v = parseNumber(text);
       if (v == null) return setMsg("숫자(소수나 3/4 같은 분수)로 입력해 주세요.");
       const tol = q.tolerance ?? 1e-9 * Math.max(1, Math.abs(q.answer));
       if (Math.abs(v - q.answer) <= tol + 1e-12) { setStatus("correct"); setMsg(""); finish(true); }
-      else { setStatus("wrong"); setMsg("값이 달라요. 힌트를 보고 다시 해 봐요."); }
+      else { setStatus("wrong"); setShake(true); setMsg("값이 달라요. 힌트를 보고 다시 해 봐요."); }
     }
   };
   const chooseOx = (v: boolean) => {
     if (status === "correct" || status === "solution") return;
     setSel(v ? 1 : 0);
     if (q.type === "ox" && v === q.answer) { setStatus("correct"); setMsg(""); finish(true); }
-    else { setStatus("wrong"); setMsg("아쉬워요. 힌트를 보고 다시 해 봐요."); }
+    else { setStatus("wrong"); setShake(true); setMsg("아쉬워요. 힌트를 보고 다시 해 봐요."); }
   };
   const showSolution = () => {
     if (status !== "correct") setStatus("solution");
@@ -89,7 +115,7 @@ export function QuestionCard({
   const hintList = q.type === "open" ? q.hints ?? [] : q.hints;
 
   return (
-    <article className={`rounded-card border bg-surface p-4 sm:p-5 ${status === "correct" ? "border-ok" : status === "wrong" ? "border-bad/60" : "border-line"}`} aria-label="문제">
+    <article onAnimationEnd={(e) => e.target === e.currentTarget && setShake(false)} className={`rounded-card border bg-surface p-4 sm:p-5 ${status === "correct" ? "am-pop border-ok" : status === "wrong" ? `${shake ? "am-shake " : ""}border-bad/60` : "border-line"}`} aria-label="문제">
       <header className="flex flex-wrap items-center gap-2 text-sm">
         <span className="rounded-full bg-accent-soft px-2.5 py-0.5 font-semibold text-accent">{q.group}</span>
         <span className="text-warn" title={`난이도 ${q.level}`} aria-label={`난이도 ${q.level} / 5`}>{stars(q.level)}</span>
@@ -215,6 +241,7 @@ export function QuestionCard({
 
           {locked && (
             <div className={`mt-3 rounded-card p-3 ${status === "correct" ? "bg-ok-soft" : "bg-bg"}`} role="status">
+              {status === "correct" && <Burst />}
               <p className={`font-bold ${status === "correct" ? "text-ok" : "text-ink"}`}>
                 {status === "correct" ? "정답이에요! 🎉" : "풀이를 봤어요. 다음에 다시 도전해요."}
               </p>
@@ -222,6 +249,11 @@ export function QuestionCard({
                 <p className="mt-1 leading-relaxed"><RichMath text={q.solution} /></p>
               )}
               {q.type === "open" && <OpenModel q={q} />}
+              {onNext && (
+                <button type="button" onClick={onNext} className="mt-3 min-h-[44px] rounded-card bg-accent px-5 font-bold text-accent-ink hover:brightness-110">
+                  다음 문제 ▶
+                </button>
+              )}
             </div>
           )}
         </>
@@ -283,6 +315,22 @@ export function StairRunner({ questions, results }: { questions: Question[]; res
   const [open, setOpen] = useState<Record<string, number>>({}); // 다시 풀기용 key 증가
   const [peek, setPeek] = useState<string | null>(null);
 
+  const [held, setHeld] = useState<string | null>(null); // 방금 푼 카드는 효과·풀이를 볼 수 있게 열어 둔다
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  /** 푼 카드를 접고 다음 문제 카드를 화면 가운데로 */
+  const goNext = (i: number) => {
+    clearTimeout(timer.current);
+    setHeld(null);
+    const next = questions[i + 1];
+    if (!next) return;
+    setTimeout(() => {
+      const el = document.getElementById(`q-${next.id}`);
+      const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      el?.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" });
+    }, 60);
+  };
+
   let lastGroup = "";
   return (
     <div className="space-y-3">
@@ -291,15 +339,22 @@ export function StairRunner({ questions, results }: { questions: Question[]; res
         lastGroup = q.group;
         const r = results[q.id];
         const isCur = i === cur;
-        const expanded = isCur || peek === q.id;
+        const expanded = isCur || peek === q.id || held === q.id;
         return (
-          <div key={q.id}>
+          <div key={q.id} id={`q-${q.id}`}>
             {header && i > 0 && <h4 className="mb-2 mt-6 text-sm font-bold tracking-wide text-accent">▸ {header}</h4>}
             {expanded ? (
               <QuestionCard
                 key={q.id + ":" + (open[q.id] ?? 0)}
                 q={q}
-                onDone={() => isCur && setCur((c) => Math.max(c, i + 1))}
+                onDone={(ok) => {
+                  if (!isCur) return;
+                  setCur((c) => Math.max(c, i + 1));
+                  setHeld(q.id);
+                  clearTimeout(timer.current);
+                  if (ok) timer.current = setTimeout(() => goNext(i), 1800); // 효과를 보여 준 뒤 다음 문제로
+                }}
+                onNext={i < questions.length - 1 ? () => goNext(i) : undefined}
               />
             ) : (
               <button
