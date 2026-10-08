@@ -273,7 +273,7 @@ const DEF = {
   curve: [[0, 0], [255, 255]],
   denoise: 0, sharpen: 0, sharpenR: 1, edge: 0, edgeOnly: false,
   dither: 'jarvis', threshold: 128, serpentine: true, morph: 0, invert: false,
-  cropL: 0, cropT: 0, cropR: 0, cropB: 0
+  cropL: 0, cropT: 0, cropR: 0, cropB: 0, maxInk: 100
 };
 
 const MATS = [
@@ -289,6 +289,20 @@ const MATS = [
   { id: 'tile', name: '흰색 타일', trait: '유약 처리된 흰 타일에 검은 페인트를 입히면, 레이저가 페인트를 걷어낸 곳에 흰 바탕이 드러납니다. 걷힌 곳이 밝아지므로 반전이 필요하고, 페인트층이 얇고 고를수록 선명합니다.', tip: '<b>흰색 타일</b>: 검정 스프레이 페인트를 칠해 완전히 말린 뒤 새기면 페인트가 걷히며 흰 바탕이 드러납니다. 환기하세요.' },
   { id: 'line', name: '로고 · 선화', trait: '점 변환 없이 검정과 흰색 두 가지로만 나눕니다. 선·글자·로고처럼 경계가 분명한 그림에 어울리고 사진에는 맞지 않습니다. 재료와 무관하게 쓸 수 있습니다.', tip: '<b>로고·선화</b>: 점 변환 없이 선으로 표현합니다. 어떤 재료에서도 쓸 수 있습니다.' }
 ];
+const TIPS = {
+  wood: ["표면에 마스킹 테이프(또는 전사지)를 붙이고 새긴 뒤 떼면 그을음이 덜 남습니다.", "송진·기름기가 많은 나무는 피하세요. 연기가 많고 얼룩이 생깁니다.", "단단한 나무(참나무 등)는 대비가 낮게, 무른 나무(소나무 등)는 고르지 않게 타는 경향이 있습니다. 합판은 접착제층 때문에 자국이 고르지 않을 수 있으니 같은 판으로 시험하세요.", "연기와 불꽃: 환기하고 에어어시스트를 쓰며 자리를 비우지 마세요.", "새긴 뒤 그을음은 마른 천이나 아주 고운 샌딩으로 닦고, 투명 마감제를 바르면 표면이 보호됩니다."],
+  mdf: ["환기가 필수입니다. 엔지니어드 우드라 연기와 그을음이 많고, 같은 출력에서 나무보다 더 타는 편입니다.", "코팅·무늬 MDF는 반응이 다르니 같은 종류로 시험하세요.", "그을음은 마스킹 테이프로 줄이고, 새긴 뒤 마른 천으로 닦습니다.", "가루가 몸에 좋지 않으니 가공 뒤 청소할 때 마스크를 쓰세요."],
+  acrylic: ["보호 필름(또는 마스킹)을 붙인 채 새기면 표면이 덜 상하고 그을음이 줄어듭니다. 뒷면 각인은 새길 면의 필름을 떼세요.", "캐스트 아크릴은 새기면 서리처럼 하얗고, 압출 아크릴은 투명하게 깎입니다. 사기 전에 종류를 확인하세요.", "PVC 계열 플라스틱은 새기지 마세요. 유해한 연기가 납니다.", "새긴 뒤 부드러운 천과 물로 가루를 닦습니다. 새긴 곳에 아크릴 물감을 문질러 넣으면 색을 입힐 수 있습니다."],
+  slate: ["먼지가 많이 납니다. 환기하고 기계 청소를 자주 하세요.", "값싼 슬레이트 코스터 블랭크로 연습하면 부담이 적습니다.", "새긴 뒤 솔로 가루를 털고 식용유나 광택 오일을 얇게 바르면 대비가 살아납니다.", "표면이 고르지 않으면 초점이 달라집니다. 가능한 평평한 면을 쓰세요."],
+  leather: ["진짜 가죽만 새기세요(식물성 태닝이 잘 됩니다). 합성 가죽·비닐 계열은 유해한 연기가 납니다.", "냄새가 강하고 연기가 많습니다. 환기하고, 낮은 출력·빠른 속도로 시작해 조금씩 올리세요.", "가죽은 두께와 수분에 따라 반응이 다릅니다. 새길 가죽과 같은 자투리로 시험하세요.", "불꽃이 나기 쉬우니 자리를 비우지 말고, 마스킹 테이프로 그을음을 줄일 수 있습니다."],
+  cork: ["코르크가 얇으면 휘어서 초점이 달라집니다. 테이프나 무게로 평평하게 고정하세요.", "구멍 때문에 가는 선이 끊깁니다. 굵은 선과 큰 그림을 쓰세요.", "불이 붙기 쉬운 재료입니다. 낮은 출력으로 시작하고 자리를 비우지 마세요."],
+  glass: ["<b>주방세제(예: 퐁퐁)</b>를 얇게 펴 바르고, 젖은 채로 새깁니다. 세제막이 열을 흩어 금이 가는 것을 줄이고 서리처럼 고르게 새겨진다고 알려져 있습니다. 긴 작업이면 마르기 전에 다시 바르세요.", "<b>젖은 키친타월·신문지</b>를 주름 없이 펴서 새길 곳보다 조금 크게 덮고, 그 위로 새기는 방법도 있습니다. 세제를 같이 묻히면 더 좋다는 경험담이 많습니다. <b>무늬 있는 휴지는 무늬가 유리에 묻을 수 있으니</b> 무지를 쓰세요.", "<b>점을 벌리세요</b>: 해상도 300 DPI 안팎, 최대 농도 70~80%, 점이 흩어지는 Jarvis가 권장됩니다. 점이 붙을수록 미세 균열이 이어져 금이 갑니다. 이 변환기의 「최대 농도」 슬라이더가 이 값입니다.", "<b>유리 종류</b>: 값싼 일반(소다석회) 유리가 잘 새겨진다는 경험담이 많습니다. 크리스털·강화유리·코팅 유리는 결과가 다르거나 깨질 수 있으니 같은 종류 자투리로 먼저 시험하세요.", "같은 그림을 여러 번 덧새기면 점점 흐려집니다. 시험 카드로 설정을 정한 뒤 한 번에 새기세요.", "<b>곡면(컵·병)</b>: 가장 볼록한 곳에 초점을 맞추고, 바깥쪽은 초점을 다시 맞춰 따로 새깁니다. 너무 바깥은 초점이 약해 새겨지지 않습니다.", "렌즈 초점거리가 긴 쪽(2~2.5인치)이 유리에 유리하다는 안내가 있습니다(장비에 따라 다름).", "새긴 뒤 세제와 가루를 물로 씻고, 거칠거나 날카로운 곳은 고운 연마 패드(스카치브라이트, 8000~10000방 마이크로메시)로 가볍게 닦습니다.", "출력은 낮게 시작해서 올립니다. 열이 많을수록 깨질 위험이 큽니다. 환기하고 보안경을 쓰며 자리를 비우지 마세요.", "<span style='color:var(--mute)'>참고: Epilog·JP Plus·Graphics Pro·Boss Laser의 유리 각인 안내와 LightBurn 포럼 경험담. 장비와 유리마다 결과가 다르니 시험이 먼저입니다.</span>"],
+  anodized: ["반응이 레이저 종류(CO2·다이오드·파이버)와 피막에 따라 크게 다릅니다. 같은 판 자투리로 출력·속도를 먼저 시험하세요.", "표면에 보호 필름이나 코팅이 있으면 먼저 벗기세요.", "새긴 뒤 알코올로 닦아 가루를 제거하면 대비가 잘 보입니다."],
+  steel: ["마킹제는 제품 설명서의 도포 두께·건조 시간·세기를 따르세요. 두께가 고르지 않으면 진하기도 고르지 않습니다.", "완전히 마른 뒤 새기고, 새긴 뒤 남은 마킹제는 제품 설명서에 맞는 방법으로 씻어 냅니다.", "연기가 나므로 환기하세요. 금속은 빛 반사가 강하니 보안경을 꼭 쓰세요."],
+  tile: ["검정 무광 스프레이를 얇게 여러 번 뿌리고 완전히 말립니다. 두꺼우면 걷히는 시간이 길어지고 가장자리가 지저분해집니다.", "타일은 타지 않지만 페인트는 탈 수 있으니 불연성 받침(금속·세라믹)을 쓰세요.", "페인트 연기가 나므로 환기하세요.", "새긴 뒤 물티슈나 젖은 천으로 남은 가루를 닦습니다."],
+  line: ["사진이 아니라 선(벡터) 그림이라면, 이미지 변환보다 레이저 프로그램의 벡터 각인이 더 선명할 수 있습니다.", "선이 끊기면 경계값을 올리거나 선 굵기를 +1, 해상도를 올려 보세요.", "아주 작은 글자는 재료 질감에 묻힙니다. 재료에서 시험해 읽히는 크기를 확인하세요."],
+};
+MATS.forEach(m => { m.tips = TIPS[m.id] || [m.tip]; });
 const START = ' <br><span class="s">※ 시작값입니다. 같은 재료 자투리에서 시험 카드로 먼저 확인하세요.</span>';
 const WORKFLOWS = [
   { id: 'wood', mat: 'wood', name: '나무 사진', sub: '합판 · 원목', p: { dpi: 254, brightness: 5, contrast: 15, gamma: 1.1, black: 8, white: 245, sharpen: 80, sharpenR: 1, dither: 'jarvis', invert: false, flipH: false },
@@ -318,10 +332,10 @@ const WORKFLOWS = [
   { id: 'cork', mat: 'cork', name: '코르크 사진', sub: '큰 그림 · 거친 표면', p: { dpi: 200, brightness: 12, contrast: 25, gamma: 1.2, black: 10, white: 240, denoise: 0.6, sharpen: 40, sharpenR: 1.2, dither: 'stucki', invert: false, flipH: false },
     why: ['거친 표면에서 점이 일정하게 찍히지 않아 해상도를 200 DPI로 낮췄습니다. 노이즈 제거 0.6은 표면 질감이 만드는 작은 잡티를 줄이기 위한 것이고, 대비 +25는 낮은 바탕 대비를 보충합니다.'],
     note: '<b>코르크</b>: 표면이 거칠어 해상도를 낮추고 노이즈를 약간 줄였습니다. 작은 글자는 피하세요.' + START },
-  { id: 'glass-front', mat: 'glass', name: '유리 앞면', sub: '반전 · 서리 효과', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
-    why: ['새긴 곳이 하얗게 되므로 반전. 유리는 점이 고르게 찍히는 쪽이 깔끔해 보여 Floyd–Steinberg를 썼습니다.'],
-    note: '<b>유리 앞면</b>: 각인부가 뿌옇게(서리처럼) 하얗게 변하므로 반전을 켰습니다. 금이 가지 않게 낮은 출력으로 시작하세요.' + START },
-  { id: 'glass-back', mat: 'glass', name: '유리 뒷면', sub: '반전 · 좌우 반전', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: true },
+  { id: 'glass-front', mat: 'glass', name: '유리 앞면', sub: '반전 · 점 벌리기', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, maxInk: 75, sharpen: 70, sharpenR: 1, dither: 'jarvis', invert: true, flipH: false },
+    why: ['새긴 곳이 하얗게 되므로 반전. 유리는 점이 서로 붙으면 미세 균열이 이어져 금이 가기 쉽습니다. 그래서 최대 농도를 75%로 낮춰 점 사이를 벌리고(유리 각인 안내들은 70~80%를 권합니다), 점을 흩뜨려 부드럽게 보이는 Jarvis를 골랐습니다.'],
+    note: '<b>유리 앞면</b>: 각인부가 뿌옇게(서리처럼) 하얗게 변하므로 반전을 켰습니다. 점 사이를 벌려(최대 농도 75%) 금이 가는 것을 줄였습니다. <b>주방세제나 젖은 키친타월을 쓰는 방법은 아래 현장 팁을 보세요.</b>' + START },
+  { id: 'glass-back', mat: 'glass', name: '유리 뒷면', sub: '반전 · 좌우 반전', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, maxInk: 75, sharpen: 70, sharpenR: 1, dither: 'jarvis', invert: true, flipH: true },
     why: ['앞면 설정과 같고, 뒷면에서 새겨 앞에서 보므로 좌우 반전만 더했습니다.'],
     note: '<b>유리 뒷면</b>: 뒤에서 새겨 앞에서 보는 방식이라 <b>좌우 반전</b>을 함께 켰습니다.' + START },
   { id: 'anodized', mat: 'anodized', name: '알루미늄 사진', sub: '반전 · 고해상도', p: { dpi: 400, contrast: 20, gamma: 0.95, black: 8, white: 242, sharpen: 90, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
@@ -388,7 +402,8 @@ $('#toneCtl').append(
   slider('contrast', '대비', -100, 100, 1),
   slider('gamma', '감마 (중간 톤, 클수록 밝게)', 0.2, 3, 0.05),
   slider('black', '레벨: 검정점', 0, 254, 1),
-  slider('white', '레벨: 흰점', 1, 255, 1)
+  slider('white', '레벨: 흰점', 1, 255, 1),
+  slider('maxInk', '최대 농도 (%, 낮을수록 점 사이가 벌어짐)', 30, 100, 1)
 );
 $('#sharpCtl').append(
   slider('denoise', '노이즈 제거 (흐림)', 0, 3, 0.1),
@@ -439,6 +454,7 @@ function whyList(w) {
   if (q.gamma !== 1) tone.push(`감마 ${q.gamma}`);
   if (q.black || q.white !== 255) tone.push(`레벨 ${q.black}–${q.white}`);
   if (tone.length) L.push(`<b>톤 (${tone.join(' · ')})</b>: 재료가 사진을 실제보다 어둡게·흐리게 만드는 경향을 미리 보정합니다. 감마가 1보다 크면 중간 톤이 밝아지고, 레벨은 너무 어둡거나 밝은 끝을 잘라 점이 막히거나 사라지는 것을 막습니다.`);
+  if (q.maxInk < 100) L.push(`<b>최대 농도 ${q.maxInk}%</b>: 가장 어두운 곳도 점을 ${q.maxInk}%만 찍어 점 사이를 벌립니다. 점이 너무 붙으면 열이 쌓여 유리·세라믹 같은 재료가 갈라지거나 번지기 쉽습니다.`);
   if (q.sharpen) L.push(`<b>선명하게 ${q.sharpen}%</b>: 새기면 가장자리가 번지므로 미리 또렷하게 만듭니다.`);
   if (q.denoise) L.push(`<b>노이즈 제거 ${q.denoise}</b>: 거친 표면이나 사진의 작은 잡티가 점으로 찍히지 않게 줄입니다.`);
   if (q.edgeOnly) L.push('<b>윤곽선만 남기기</b>: 사진에서 경계만 뽑아 선화로 만듭니다.');
@@ -473,7 +489,9 @@ function wfList() {
     box.append(b);
   });
   const m = MATS.find(x => x.id === curMat), t = document.createElement('div');
-  t.className = 'note'; t.innerHTML = `<b>${m.name}의 특징</b>: ${m.trait}<br><br>${m.tip}`; box.append(t);
+  t.className = 'note'; t.innerHTML = `<b>${m.name}의 특징</b>: ${m.trait}`; box.append(t);
+  const tp = document.createElement('div'); tp.className = 'note';
+  tp.innerHTML = `<b>현장 팁</b><ul class="tips">${m.tips.map(x => `<li>${x}</li>`).join('')}</ul>`; box.append(tp);
   activePresetMark();
 }
 function applyPreset(pr) {
@@ -743,6 +761,7 @@ function processGray(base, W, H, p) {
     else { const k = p.edge / 100; for (let i = 0; i < N; i++) g[i] -= m[i] * k; }
   }
   for (let i = 0; i < N; i++) { let v = clamp(g[i], 0, 255); g[i] = p.invert ? 255 - v : v; }
+  if (p.maxInk < 100) { const m = p.maxInk / 100, lo = 255 * (1 - m); for (let i = 0; i < N; i++) g[i] = lo + g[i] * m; }
   let out = dither(g, W, H, p);
   if (p.morph && p.dither !== 'none') out = morph(out, W, H, p.morph);
   return out;
@@ -815,6 +834,7 @@ function workflowText() {
   if (P.sharpen) add(`선명하게 ${P.sharpen}% (반경 ${P.sharpenR}px)`);
   if (P.edgeOnly) add(`윤곽선만 남기기 (강도 ${Math.max(P.edge, 25)})`); else if (P.edge) add(`윤곽 강조 ${P.edge}`);
   if (P.invert) add('반전');
+  if (P.maxInk < 100) add(`최대 농도 ${P.maxInk}% (가장 어두운 곳도 점을 ${P.maxInk}%만 찍음)`);
   add(`디더링: ${D[P.dither]}${P.dither === 'threshold' ? ` (경계값 ${P.threshold})` : ''}${KERNELS[P.dither] && P.serpentine ? ', 지그재그' : ''}`);
   if (P.morph && P.dither !== 'none') add(`선 굵기 ${P.morph > 0 ? '+' : ''}${P.morph}`);
   return L.join('\n');
@@ -1062,6 +1082,7 @@ function wfFacts(p) {
   if (q.flipH) L.push('좌우 반전 켬 (뒷면 각인)');
   const tone = [q.brightness && `밝기 ${q.brightness}`, q.contrast && `대비 ${q.contrast}`, q.gamma !== 1 && `감마 ${q.gamma}`, (q.black || q.white !== 255) && `레벨 ${q.black}–${q.white}`].filter(Boolean);
   if (tone.length) L.push(tone.join(' · '));
+  if (q.maxInk < 100) L.push(`최대 농도 ${q.maxInk}%`);
   if (q.sharpen) L.push(`선명하게 ${q.sharpen}%`);
   if (q.denoise) L.push(`노이즈 제거 ${q.denoise}`);
   if (q.edgeOnly) L.push('윤곽선만 남기기');
@@ -1094,14 +1115,15 @@ function hWfList() {
   }
   const m = MATS.find(x => x.id === hMat);
   const tr = document.createElement('div'); tr.className = 'trait'; tr.style.gridColumn = '1/-1'; tr.innerHTML = `<b>${m.name}의 특징</b><br>${m.trait}`; box.append(tr);
+  const tq = document.createElement('div'); tq.className = 'trait'; tq.style.gridColumn = '1/-1';
+  tq.innerHTML = `<b>현장 팁</b><ul class="tips" style="color:var(--ink)">${m.tips.map(x => `<li>${x}</li>`).join('')}</ul>`; box.append(tq);
   WORKFLOWS.filter(w => w.mat === hMat).forEach(w => {
     const c = document.createElement('div'); c.className = 'wcard';
     c.innerHTML = `<h3>${w.name}</h3><div class="sub">${w.sub}</div><ul>${wfFacts(w.p).map(t => `<li>${t}</li>`).join('')}</ul><div class="note">${w.note}</div><details class="why" open><summary>왜 이렇게 잡았나요?</summary><ul>${whyList(w).map(t => `<li>${t}</li>`).join('')}</ul></details><button class="primary">이 워크플로우로 시작</button>`;
     c.querySelector('button').onclick = () => enterConv(() => { curMat = hMat; matChips(); wfList(); applyPreset(w); });
     box.append(c);
   });
-  const t = document.createElement('div'); t.className = 'note'; t.style.gridColumn = '1/-1'; t.innerHTML = m.tip; box.append(t);
-}
+  const t = document.createElement('div'); t.className = 'note'; }
 $('#goWf').onclick = () => showHome('wf');
 $('#hBack').onclick = () => showHome('tiles');
 $('#goConv').onclick = () => enterConv();
