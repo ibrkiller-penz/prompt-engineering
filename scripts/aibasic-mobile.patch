@@ -1,0 +1,1024 @@
+--- a/style.css	2026-10-08 22:11:02.565016157 +0000
++++ b/style.css	2026-10-08 22:11:02.567019814 +0000
+@@ -33,10 +33,10 @@
+ /* 머리글 */
+ .top{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+ .top .r1{max-width:1024px;margin:0 auto;display:flex;align-items:center;gap:6px;padding:4px 16px}
+-.logo{display:flex;align-items:center;gap:8px;min-height:44px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
++.logo{white-space:nowrap;display:flex;align-items:center;gap:8px;min-height:44px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
+ .logo i{font-style:normal;width:32px;height:32px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:.95rem}
+ .top .sp{flex:1}
+-.pill{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:99px;font-size:.95rem;font-weight:700;color:var(--muted);text-decoration:none;background:none;border:0}
++.pill{white-space:nowrap;display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:99px;font-size:.95rem;font-weight:700;color:var(--muted);text-decoration:none;background:none;border:0}
+ .pill:hover{background:var(--bg)}.pill.on{background:var(--accent);color:var(--accent-ink)}
+ .tabs{border-top:1px solid var(--line)}
+ .tabs nav{max-width:1024px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;padding:0 16px}
+@@ -61,8 +61,8 @@
+ .ugrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+ .ucard{display:block;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);border-top:4px solid var(--uc)}
+ .ucard:hover{border-color:var(--uc);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+-.ucard .ic{font-size:1.5rem}
+-.ucard h3{margin:2px 0 2px;font-size:1.05rem;line-height:1.5}
++.ucard .ic{font-size:1.4rem;line-height:1}
++.ucard h3{display:flex;align-items:center;gap:8px;margin:2px 0 4px;font-size:1.05rem;line-height:1.5}
+ .ucard p{margin:0 0 10px;color:var(--muted);font-size:.98rem;line-height:1.65}
+ .bar{height:7px;background:var(--line);border-radius:99px;overflow:hidden}
+ .bar i{display:block;height:100%;background:var(--uc,var(--accent));border-radius:99px;transition:width .4s}
+@@ -193,6 +193,9 @@
+   .story{padding:16px}.step .bd{padding:4px 16px 16px}.step>header{padding:12px 16px}
+   .chk{margin:4px 14px 18px}
+   .top .pill span.hide{display:none}
++  .top .r1{gap:2px;padding:4px 10px}.logo{gap:6px;font-size:.95rem}.logo i{width:28px;height:28px;font-size:.85rem}
++  .pill{padding:0 8px;font-size:.88rem}.pill.xp{gap:4px}
++  .bdg{padding:8px 0}.bdg small{font-size:.76rem}
+ }
+ 
+ .bd h4{margin:1.6em 0 .4em;font-size:1.02rem;line-height:1.5;color:var(--accent)}
+@@ -232,9 +235,9 @@
+ .mehead{display:flex;gap:14px;align-items:center;margin-bottom:10px}
+ .melv{width:54px;height:54px;border-radius:16px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800}
+ .mexp{font-size:.95rem;color:var(--muted)}
+-.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+-.bdg{display:flex;flex-direction:column;align-items:center;width:78px;padding:8px 4px;border-radius:12px;background:var(--bg);filter:grayscale(1);opacity:.45;text-align:center;line-height:1.3}
+-.bdg i{font-style:normal;font-size:1.5rem}.bdg small{font-size:.82rem;font-weight:700}
++.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
++.bdg{display:flex;flex-direction:column;align-items:center;min-width:0;padding:8px 4px;border-radius:12px;background:var(--bg);filter:grayscale(1);opacity:.45;text-align:center;line-height:1.3}
++.bdg i{font-style:normal;font-size:1.5rem}.bdg small{font-size:.82rem;font-weight:700;white-space:nowrap}
+ .bdg.on{filter:none;opacity:1;background:var(--warn-soft)}
+ 
+ /* 용어 카드 맞추기 */
+--- a/app.js	2026-10-08 22:11:02.565083193 +0000
++++ b/app.js	2026-10-08 22:11:02.567084825 +0000
+@@ -1,486 +1,486 @@
+-/* 인공지능 기초 학습사이트 — 단일 페이지 앱 (의존성 없음) */
+-const ROMAN = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
+-const UNITS = [
+-  { n: 1, emoji: '🧭', title: '인공지능의 이해', color: '#4f46e5',
+-    desc: 'AI가 무엇이고 어떻게 “생각하는 것처럼” 보이는지, 탐색과 추론으로 알아봐요.',
+-    ids: ['1-1-1', '1-1-2', '1-2-1', '1-2-2', '1-A'] },
+-  { n: 2, emoji: '🧠', title: '인공지능과 학습', color: '#0f766e',
+-    desc: '데이터로 배우는 기계학습과 딥러닝(비전·음성·언어)의 원리를 코드와 함께 익혀요.',
+-    ids: ['2-1-1', '2-1-2', '2-1-3', '2-1-4', '2-1-5', '2-2-1', '2-2-2', '2-2-3', '2-2-4', '2-A'] },
+-  { n: 3, emoji: '⚖️', title: '인공지능의 사회적 영향', color: '#e11d48',
+-    desc: 'AI가 바꾸는 사회와 직업, 그리고 편향·책임 같은 윤리 문제를 생각해 봐요.',
+-    ids: ['3-1-1', '3-1-2', '3-2-1', '3-2-2', '3-2-3', '3-A'] },
+-  { n: 4, emoji: '🚀', title: '인공지능 프로젝트', color: '#b45309',
+-    desc: '지속가능한 발전을 위해 직접 AI 프로젝트(회귀·이미지 분류)를 해 봐요.',
+-    ids: ['4-1-1', '4-1-2', '4-2', '4-3', '4-A'] }
+-];
+-const CH = {
+-  '1-1': '1. 인공지능의 개념과 원리', '1-2': '2. 탐색과 추론', '1-A': '활동 · 단원 정리',
+-  '2-1': '1. 기계학습', '2-2': '2. 딥러닝', '2-A': '활동 · 단원 정리',
+-  '3-1': '1. 인공지능과 사회', '3-2': '2. 인공지능과 윤리', '3-A': '활동 · 단원 정리',
+-  '4-1': '1. 지속 가능 발전 문제 해결', '4-2': '2. 정형 데이터 프로젝트', '4-3': '3. 비정형 데이터 프로젝트', '4-A': '단원 정리'
+-};
+-const PASS = 80, MAX_TRIES = 3;                       // 합격 점수, 실패 허용 횟수
+-const QB = (typeof QBANK !== 'undefined') ? QBANK : {};
+-const L = {}; LESSONS.forEach(l => L[l.id] = l);
+-const ALL = UNITS.flatMap(u => u.ids);
+-const $ = (s, r = document) => r.querySelector(s);
+-const el = (h) => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; };
+-const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+-const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+-
+-/* ---------- 진도·게임 기록 저장 ---------- */
+-let P = { done: {}, steps: {}, quiz: {}, tries: {}, used: {}, forced: {}, stars: {}, tg: {}, xp: 0, badges: {}, last: '', streak: 0 };
+-try { P = Object.assign(P, JSON.parse(localStorage.getItem('aikc') || '{}')); } catch (e) { }
+-const save = () => { try { localStorage.setItem('aikc', JSON.stringify(P)); } catch (e) { } };
+-const chapterNo = (id) => id.split('-')[1] === 'A' ? 'A' : id.split('-')[1];
+-const labelOf = (id) => { const p = id.split('-'); return p[1] === 'A' ? '활동' : p.length === 3 ? p[1] + '-' + p[2] : p[1] + '장'; };
+-function status(id) {
+-  if (P.done[id]) return 'done';
+-  if ((P.steps[id] || 0) > 0 || (P.tries[id] || 0) > 0) return 'part';
+-  return L[id] ? 'new' : 'soon';
+-}
+-const checksOf = (l, i) => { const q = QB[l.id]; const a = q && q.checks && q.checks[i]; return (a && a.length) ? a : (l.steps[i].check ? [l.steps[i].check] : []); };
+-const quizOf = (l) => { const q = QB[l.id]; return (q && q.quiz && q.quiz.length) ? q.quiz : (l.quiz || []); };
+-
+-/* ---------- 게임 요소: XP·레벨·배지·효과 ---------- */
+-const LEVELS = ['새싹', '호기심', '탐험가', '해결사', '분석가', '설계자', '연구원', '박사', '마스터', '전설'];
+-const XP_PER_LEVEL = 150;
+-const levelOf = (xp) => Math.min(LEVELS.length, Math.floor(xp / XP_PER_LEVEL) + 1);
+-const BADGES = [
+-  { id: 'first', icon: '🌱', name: '첫걸음', desc: '레슨 1개 완료' },
+-  { id: 'once', icon: '⚡', name: '한 번에 통과', desc: '처음 도전에 80점 이상' },
+-  { id: 'perfect', icon: '💯', name: '만점왕', desc: '마무리 퀴즈 100점' },
+-  { id: 'terms', icon: '🧩', name: '용어 박사', desc: '용어 게임을 실수 없이 클리어' },
+-  { id: 'unit', icon: '🏔️', name: '단원 정복', desc: '대단원 하나를 모두 완료' },
+-  { id: 'streak', icon: '🔥', name: '3일 연속', desc: '3일 연속 공부' },
+-  { id: 'grad', icon: '🎓', name: '졸업', desc: '모든 레슨 완료' }
+-];
+-function toast(msg, cls = '') {
+-  const t = $('#toast'); if (!t) return; const n = el(`<div class="tt ${cls}">${msg}</div>`); t.appendChild(n);
+-  setTimeout(() => n.classList.add('out'), 2600); setTimeout(() => n.remove(), 3100);
+-}
+-function renderXP() {
+-  const b = $('#xpBox'); if (!b) return;
+-  const lv = levelOf(P.xp);
+-  b.innerHTML = `<span class="lv">Lv.${lv}</span><span class="xpn">${P.xp} XP</span>`;
+-  b.title = `${LEVELS[lv - 1]} · 다음 레벨까지 ${lv >= LEVELS.length ? '-' : XP_PER_LEVEL - (P.xp % XP_PER_LEVEL)} XP`;
+-}
+-function addXP(n, why) {
+-  if (!n) return;
+-  const before = levelOf(P.xp); P.xp += n; save(); renderXP();
+-  const f = el(`<div class="xpfloat">+${n} XP</div>`); document.body.appendChild(f); setTimeout(() => f.remove(), 1200);
+-  const after = levelOf(P.xp);
+-  if (after > before) { toast(`🎉 레벨 업! Lv.${after} · ${LEVELS[after - 1]}`, 'lvup'); confetti(); }
+-}
+-function giveBadge(id) {
+-  if (P.badges[id]) return; P.badges[id] = 1; save();
+-  const b = BADGES.find(x => x.id === id); toast(`${b.icon} 배지 획득! <b>${b.name}</b>`, 'badge');
+-}
+-function checkBadges() {
+-  const n = ALL.filter(i => P.done[i]).length;
+-  if (n >= 1) giveBadge('first');
+-  if (UNITS.some(u => u.ids.every(i => P.done[i]))) giveBadge('unit');
+-  if (ALL.every(i => P.done[i])) giveBadge('grad');
+-  if (P.streak >= 3) giveBadge('streak');
+-}
+-function confetti() {
+-  const e = ['🎉', '⭐', '✨', '🎊', '💫'];
+-  for (let i = 0; i < 36; i++) {
+-    const s = el(`<span class="cf">${e[i % e.length]}</span>`);
+-    s.style.left = Math.random() * 100 + 'vw'; s.style.animationDelay = Math.random() * 0.5 + 's'; s.style.fontSize = (14 + Math.random() * 16) + 'px';
+-    s.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
+-    document.body.appendChild(s); setTimeout(() => s.remove(), 2600);
+-  }
+-}
+-(function daily() {
+-  const today = new Date().toISOString().slice(0, 10);
+-  if (P.last !== today) {
+-    const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+-    P.streak = (P.last === y) ? (P.streak || 0) + 1 : 1; P.last = today; save();
+-  }
+-})();
+-
+-/* ---------- 머리글 탭 ---------- */
+-function renderTabs(unit, glossary) {
+-  document.documentElement.dataset.unit = unit ? unit.n : '';
+-  $('#tabs').innerHTML = UNITS.map(u => `<a href="#/unit/${u.n}" class="${unit && unit.n === u.n ? 'on' : ''}"><span>${u.emoji}</span> ${ROMAN[u.n - 1]}. ${esc(u.title)}</a>`).join('');
+-  $('#glossLink').classList.toggle('on', !!glossary);
+-  renderXP();
+-}
+-const starsHtml = (n) => n == null ? '' : '★'.repeat(n) + '☆'.repeat(3 - n);
+-
+-/* ---------- 홈 ---------- */
+-function myCard() {
+-  const lv = levelOf(P.xp), into = P.xp % XP_PER_LEVEL;
+-  return `<div class="me"><div class="mehead"><div class="melv">Lv.${lv}</div><div><b>${LEVELS[lv - 1]}</b><div class="mexp">${P.xp} XP · 🔥 ${P.streak || 0}일 연속</div></div></div>
+-  <div class="bar"><i style="width:${lv >= LEVELS.length ? 100 : into / XP_PER_LEVEL * 100}%"></i></div>
+-  <div class="badges">${BADGES.map(b => `<span class="bdg ${P.badges[b.id] ? 'on' : ''}" title="${esc(b.name)} — ${esc(b.desc)}"><i>${b.icon}</i><small>${esc(b.name)}</small></span>`).join('')}</div></div>`;
+-}
+-function viewHome() {
+-  const total = ALL.filter(i => L[i]).length, dn = ALL.filter(i => P.done[i]).length;
+-  const nx = ALL.find(i => L[i] && !P.done[i]);
+-  const started = Object.keys(P.done).length || Object.keys(P.steps).length;
+-  let h = `<div class="hello"><h1>이야기로 시작해서, 계단처럼 한 칸씩<br>고등학교 인공지능 기초</h1>
+-  <p>교과서를 쉬운 말로 풀어 다시 썼어요. 레슨을 깰 때마다 XP를 모으고 배지를 얻어요. (${dn}/${total} 레슨 완료)</p>
+-  ${nx ? `<a class="cta" href="#/lesson/${nx}">${started ? '이어서 학습하기 →' : '첫 레슨 시작하기 →'}</a>` : '<b>🎉 모든 레슨을 마쳤어요!</b>'}
+-  <div class="steps4"><div><b>📖</b>① 짧은 글로<br>궁금증 만들기</div><div><b>🪜</b>② 계단 오르며<br>문제를 풀어요</div><div><b>🧩</b>③ 용어 카드를<br>끌어 맞춰요</div><div><b>🏁</b>④ 10문제 시험<br>80점이면 통과!</div></div></div>
+-  <h2 class="h2">내 기록</h2>${myCard()}
+-  <h2 class="h2">대단원</h2><div class="ugrid">`;
+-  UNITS.forEach(u => {
+-    const ids = u.ids.filter(i => L[i]); const d = u.ids.filter(i => P.done[i]).length;
+-    h += `<a class="ucard" href="#/unit/${u.n}" style="--uc:${u.color}"><span class="ic">${u.emoji}</span><h3>${ROMAN[u.n - 1]}. ${esc(u.title)}</h3><p>${esc(u.desc)}</p>
+-    <div class="bar"><i style="width:${ids.length ? d / ids.length * 100 : 0}%"></i></div><small>${d}/${ids.length} 레슨 완료</small></a>`;
+-  });
+-  h += `</div><p style="text-align:center;margin-top:30px;color:var(--muted);font-size:.8rem"><a href="#" id="reset" style="color:inherit">기록 모두 지우기</a></p>`;
+-  $('#main').innerHTML = h;
+-  $('#reset').onclick = (e) => { e.preventDefault(); if (confirm('진도·XP·배지를 모두 지울까요?')) { try { localStorage.removeItem('aikc'); } catch (x) { } location.reload(); } };
+-}
+-function viewMe() {
+-  renderTabs(null);
+-  $('#main').innerHTML = `<div class="lh"><h1>🏆 내 기록</h1><p class="tg">XP는 문제를 맞히거나 게임을 깰 때 쌓여요. ${XP_PER_LEVEL} XP마다 레벨이 올라요.</p></div>
+-  <div style="margin-top:16px">${myCard()}</div>
+-  <h2 class="h2">레슨별 성적</h2>` + ALL.filter(i => L[i]).map(id => {
+-    const s = P.stars[id];
+-    return `<a class="lcard ${status(id)}" href="#/lesson/${id}"><span class="no">${labelOf(id)}</span><span><b>${esc(L[id].title)}</b><span class="tg">${P.quiz[id] != null ? '최고 ' + P.quiz[id] + '점' : '아직 시험 전'}${P.forced[id] ? ' · 3번 도전 후 완료' : ''}</span></span><span class="st" style="color:#d4a017;font-size:1.05rem">${P.done[id] ? starsHtml(P.forced[id] ? 0 : s) : ''}</span></a>`;
+-  }).join('');
+-  window.scrollTo(0, 0);
+-}
+-
+-/* ---------- 단원 ---------- */
+-function viewUnit(n) {
+-  const u = UNITS[n - 1]; if (!u) return viewHome();
+-  renderTabs(u);
+-  const d = u.ids.filter(i => P.done[i]).length;
+-  let h = `<div class="crumb"><a href="#/">인공지능 기초</a> › ${ROMAN[n - 1]}. ${esc(u.title)}</div>
+-  <div class="uhead"><div class="k">${u.emoji} ${ROMAN[n - 1]}단원 · ${d}/${u.ids.length} 완료</div><h1>${esc(u.title)}</h1><p>${esc(u.desc)}</p>
+-  <div class="bar" style="--uc:${u.color}"><i style="width:${d / u.ids.length * 100}%"></i></div></div>`;
+-  let last = '';
+-  u.ids.forEach(id => {
+-    const key = n + '-' + chapterNo(id);
+-    if (key !== last) { last = key; h += `<div class="chh">${esc(CH[key] || '')}</div>`; }
+-    const l = L[id], st = status(id);
+-    h += `<a class="lcard ${st}" href="#/lesson/${id}"><span class="no">${labelOf(id)}</span><span><b>${esc(l ? l.title : id + ' (준비 중)')}</b>${l ? `<span class="tg">${esc(l.tagline || '')}</span>` : ''}</span><span class="st">${st === 'done' ? `<span style="color:#d4a017;font-size:1.05rem">${starsHtml(P.forced[id] ? 0 : P.stars[id])}</span>` : st === 'part' ? '진행 중' : ''}</span></a>`;
+-  });
+-  $('#main').innerHTML = h; window.scrollTo(0, 0);
+-}
+-
+-/* ---------- 문제 렌더 ---------- */
+-function question(q, onResult, opts = {}) {
+-  const box = el(`<div></div>`);
+-  const lock = { v: false };
+-  const fb = el('<div class="fb"></div>');
+-  let tries = 0;
+-  const finish = (ok) => {
+-    fb.className = 'fb ' + (ok ? 'ok' : 'no');
+-    fb.innerHTML = (ok ? '⭕ 정답! ' : '❌ 아쉬워요. ') + (ok || tries >= 2 || opts.once ? (q.explain || '') : '다시 한 번 생각해 볼까요?');
+-  };
+-  const mark = (ok, firstTry) => { lock.v = true; box.querySelectorAll('.opt').forEach(x => x.disabled = true); onResult(ok, firstTry); };
+-  if (q.type === 'ox') {
+-    const row = el('<div class="oxrow"></div>');
+-    [[true, 'O'], [false, 'X']].forEach(([v, t]) => {
+-      const b = el(`<button class="opt">${t}</button>`);
+-      b.onclick = () => {
+-        if (lock.v) return; tries++;
+-        const ok = v === q.answer;
+-        b.classList.add(ok ? 'ok' : 'no'); finish(ok);
+-        if (ok || opts.once) { if (opts.once && !ok) fb.innerHTML = '❌ 오답. 정답: ' + (q.answer ? 'O' : 'X') + ' — ' + (q.explain || ''); mark(ok, tries === 1); }
+-        else b.disabled = true;
+-      };
+-      row.appendChild(b);
+-    });
+-    box.appendChild(row);
+-  } else {
+-    q.choices.forEach((c, i) => {
+-      const b = el(`<button class="opt">${'①②③④⑤'[i]} ${c}</button>`);
+-      b.onclick = () => {
+-        if (lock.v) return; tries++;
+-        const ok = i === q.answer;
+-        b.classList.add(ok ? 'ok' : 'no'); finish(ok);
+-        if (ok || opts.once) {
+-          box.querySelectorAll('.opt').forEach((x, j) => { if (j === q.answer) x.classList.add('ok'); });
+-          if (opts.once && !ok) fb.innerHTML = '❌ 오답. ' + (q.explain || '');
+-          mark(ok, tries === 1);
+-        } else b.disabled = true;
+-      };
+-      box.appendChild(b);
+-    });
+-  }
+-  box.appendChild(fb);
+-  return box;
+-}
+-
+-/* ---------- 이야기(수필) ---------- */
+-function storyHtml(st) {
+-  const items = st.paras || st.scenes || [];
+-  return items.map(it => {
+-    if (typeof it === 'string') return `<p class="es">${esc(it)}</p>`;
+-    if (it.who === '해설') return `<div class="sc nar"><div class="bb">${esc(it.text)}</div></div>`;
+-    const key = it.who.replace(/\s/g, '');
+-    return `<div class="sc p-${esc(key)}"><div class="av">${esc(it.who.slice(0, 2))}</div><div class="bb"><span class="nm">${esc(it.who)}</span>${esc(it.text)}</div></div>`;
+-  }).join('');
+-}
+-
+-/* ---------- 용어 카드 맞추기 게임 ---------- */
+-function termGame(l, host) {
+-  const terms = (l.terms || []).slice(0, 8);
+-  if (terms.length < 2) return;
+-  const N = terms.length;
+-  host.innerHTML = `<div class="tgm"><div class="tg-bar"><span>맞춘 수 <b class="c">0</b>/${N}</span><span>🔥 콤보 <b class="cb">0</b></span><span>실수 <b class="m">0</b></span><button class="btn ghost sm">다시 섞기</button></div>
+-  <p class="tg-hint">아래 <b>설명 카드</b>를 마우스로 끌어서 알맞은 <b>낱말</b> 위에 놓아요. (끌기 어려우면 카드를 누른 뒤 낱말을 눌러도 돼요)</p>
+-  <div class="tg-slots"></div><div class="tg-pool"></div><div class="tg-res"></div></div>`;
+-  const slots = $('.tg-slots', host), pool = $('.tg-pool', host), res = $('.tg-res', host);
+-  let matched, combo, miss, sel, best = 0;
+-  const upd = () => { $('.c', host).textContent = matched; $('.cb', host).textContent = combo; $('.m', host).textContent = miss; };
+-  function setup() {
+-    matched = 0; combo = 0; miss = 0; sel = null; res.innerHTML = ''; upd();
+-    slots.innerHTML = shuffle(terms.map((t, i) => i)).map(i => `<div class="slot" data-i="${i}"><div class="slot-t">${esc(terms[i].t)}</div><div class="slot-d">여기에 놓기</div></div>`).join('');
+-    pool.innerHTML = shuffle(terms.map((t, i) => i)).map(i => `<div class="dcard" data-i="${i}">${terms[i].d}</div>`).join('');
+-  }
+-  function attempt(card, slot) {
+-    if (!card || !slot || slot.classList.contains('ok') || card.classList.contains('done')) return;
+-    if (card.dataset.i === slot.dataset.i) {
+-      matched++; combo++; best = Math.max(best, combo);
+-      slot.classList.add('ok'); $('.slot-d', slot).innerHTML = card.innerHTML; card.classList.add('done'); card.classList.remove('sel'); sel = null;
+-      addXP(3 + Math.min(combo, 5)); upd();
+-      if (matched === N) done();
+-    } else {
+-      miss++; combo = 0; upd();
+-      card.classList.add('shake'); slot.classList.add('bad'); setTimeout(() => { card.classList.remove('shake'); slot.classList.remove('bad'); }, 450);
+-    }
+-  }
+-  function done() {
+-    const stars = miss === 0 ? 3 : miss <= 2 ? 2 : 1;
+-    const prev = P.tg[l.id] || 0;
+-    if (stars > prev) { addXP(10 * (stars - prev) + (prev ? 0 : 10)); P.tg[l.id] = stars; save(); }
+-    if (miss === 0) giveBadge('terms');
+-    confetti();
+-    res.innerHTML = `<div class="score">🧩 용어 카드 완성! <span class="stars">${starsHtml(stars)}</span><br><span style="font-weight:500;font-size:.9rem">실수 ${miss}번 · 최고 콤보 ${best}${stars < 3 ? ' — 실수 없이 다시 도전하면 ★3개!' : ''}</span></div>`;
+-  }
+-  $('.btn', host).onclick = setup;
+-  /* 끌기(포인터 이벤트: 마우스·터치 모두) + 누르기 선택 */
+-  let drag = null;
+-  pool.addEventListener('pointerdown', (e) => {
+-    const c = e.target.closest('.dcard'); if (!c || c.classList.contains('done')) return;
+-    drag = { c, x: e.clientX, y: e.clientY, moved: false, ghost: null };
+-    try { c.setPointerCapture(e.pointerId); } catch (_) { }
+-  });
+-  pool.addEventListener('pointermove', (e) => {
+-    if (!drag) return;
+-    if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) {
+-      drag.moved = true; const r = drag.c.getBoundingClientRect();
+-      drag.ghost = drag.c.cloneNode(true); drag.ghost.classList.add('ghost');
+-      drag.ghost.style.width = r.width + 'px'; document.body.appendChild(drag.ghost); drag.c.classList.add('drag');
+-      const auto = () => { if (!drag || !drag.moved) return; const y = drag.ly || 0; if (y < 90) window.scrollBy(0, -16); else if (y > innerHeight - 90) window.scrollBy(0, 16); requestAnimationFrame(auto); };
+-      requestAnimationFrame(auto);
+-    }
+-    drag.ly = e.clientY;
+-    if (drag.moved) {
+-      drag.ghost.style.left = (e.clientX - 40) + 'px'; drag.ghost.style.top = (e.clientY - 20) + 'px';
+-      slots.querySelectorAll('.slot').forEach(s => s.classList.remove('hover'));
+-      drag.ghost.style.pointerEvents = 'none';
+-      const t = document.elementFromPoint(e.clientX, e.clientY); const s = t && t.closest('.slot'); if (s) s.classList.add('hover');
+-    }
+-  });
+-  const end = (e) => {
+-    if (!drag) return; const d = drag; drag = null;
+-    slots.querySelectorAll('.slot').forEach(s => s.classList.remove('hover'));
+-    if (d.moved) {
+-      d.ghost.remove(); d.c.classList.remove('drag');
+-      const t = document.elementFromPoint(e.clientX, e.clientY); attempt(d.c, t && t.closest('.slot'));
+-    } else {
+-      pool.querySelectorAll('.dcard').forEach(x => x.classList.remove('sel'));
+-      if (sel === d.c) sel = null; else { sel = d.c; d.c.classList.add('sel'); }
+-    }
+-  };
+-  pool.addEventListener('pointerup', end);
+-  pool.addEventListener('pointercancel', () => { if (drag) { if (drag.ghost) drag.ghost.remove(); drag.c.classList.remove('drag'); drag = null; } });
+-  slots.addEventListener('click', (e) => { const s = e.target.closest('.slot'); if (s && sel) attempt(sel, s); });
+-  setup();
+-}
+-
+-/* ---------- 마무리 시험: 10문항, 한 문제씩 드러남, 80점 통과 ---------- */
+-function runQuiz(l, host, practice) {
+-  const qs = quizOf(l); const id = l.id;
+-  let idx = 0, correct = 0, combo = 0, maxCombo = 0;
+-  host.innerHTML = `<div class="qhead"><span class="qp">문제 <b>1</b>/${qs.length}</span><span class="qc"></span><span class="qt">${practice ? '연습 모드 (기록에 영향 없음)' : `도전 ${(P.tries[id] || 0) + 1}/${MAX_TRIES} · ${PASS}점 이상이면 통과`}</span></div><div class="qlist"></div><div class="qend"></div>`;
+-  const list = $('.qlist', host);
+-  function next() {
+-    if (idx >= qs.length) return finish();
+-    const q = qs[idx];
+-    const card = el(`<div class="qz reveal"><div class="qh">문제 ${idx + 1}</div>${q.passage ? `<div class="passage">${q.passage}</div>` : ''}<div class="q">${q.q}</div></div>`);
+-    card.appendChild(question(q, async (ok) => {
+-      if (ok) { correct++; combo++; maxCombo = Math.max(maxCombo, combo); addXP(practice ? 2 : 6 + Math.min(combo, 4)); } else combo = 0;
+-      $('.qc', host).textContent = combo >= 2 ? `🔥 ${combo}연속` : '';
+-      idx++; $('.qp b', host).textContent = Math.min(idx + 1, qs.length);
+-      await sleep(900); next();
+-      const last = list.lastElementChild; if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+-    }, { once: true }));
+-    list.appendChild(card);
+-  }
+-  function finish() {
+-    const pct = Math.round(correct / qs.length * 100), pass = pct >= PASS, end = $('.qend', host);
+-    $('.qp', host).textContent = '시험 끝!';
+-    if (practice) {
+-      const s = pct === 100 ? 3 : pct >= 90 ? 2 : pct >= PASS ? 1 : 0;
+-      if (P.done[id] && !P.forced[id] && s > (P.stars[id] || 0)) { P.stars[id] = s; save(); }
+-      end.innerHTML = `<div class="score">📝 연습 결과 ${correct}/${qs.length} (${pct}점)<br><button class="btn ghost" style="margin-top:10px" onclick="route()">돌아가기</button></div>`; return;
+-    }
+-    P.quiz[id] = Math.max(P.quiz[id] || 0, pct);
+-    if (pass) {
+-      const firstTry = !(P.tries[id] > 0);
+-      const stars = pct === 100 ? 3 : pct >= 90 ? 2 : 1;
+-      P.done[id] = 1; delete P.forced[id]; P.stars[id] = Math.max(P.stars[id] || 0, stars); save();
+-      addXP(40 + correct * 4 + (firstTry ? 20 : 0));
+-      if (firstTry) giveBadge('once'); if (pct === 100) giveBadge('perfect'); checkBadges(); confetti();
+-      end.innerHTML = `<div class="score pass">🎉 ${correct}/${qs.length} (${pct}점) 통과! <span class="stars">${starsHtml(stars)}</span><br><span style="font-weight:500;font-size:.92rem">레슨 완료! 최고 콤보 ${maxCombo}</span><br>${nextBtn(id)}</div>`;
+-    } else {
+-      P.tries[id] = (P.tries[id] || 0) + 1;
+-      if (P.tries[id] >= MAX_TRIES) {
+-        P.done[id] = 1; P.forced[id] = 1; save(); checkBadges(); addXP(20);
+-        end.innerHTML = `<div class="score">💪 ${correct}/${qs.length} (${pct}점)<br><span style="font-weight:500;font-size:.92rem">${MAX_TRIES}번 도전했어요. 이 레슨은 완료로 처리해요. 틀린 부분은 다시 읽어 보고, 아래 연습 모드로 복습해 보세요!</span><br>${nextBtn(id)}<br><button class="btn ghost" style="margin-top:8px" onclick="window.__practice()">연습 모드로 다시 풀기</button></div>`;
+-      } else {
+-        save();
+-        end.innerHTML = `<div class="score">😢 ${correct}/${qs.length} (${pct}점) — ${PASS}점이 안 됐어요<br><span style="font-weight:500;font-size:.92rem">1계단부터 새 문제로 다시 올라가 볼까요? (남은 도전 ${MAX_TRIES - P.tries[id]}번)</span><br><button class="btn" style="margin-top:10px" id="redo">1계단부터 다시 도전 ▶</button></div>`;
+-        $('#redo', host).onclick = () => { P.steps[id] = 0; save(); route(); setTimeout(() => { const s = $('#stairs'); if (s) s.scrollIntoView(); }, 60); };
+-      }
+-    }
+-    end.scrollIntoView({ behavior: 'smooth', block: 'center' });
+-  }
+-  window.__practice = () => runQuiz(l, host, true);
+-  next();
+-}
+-function nextBtn(id) {
+-  const idx = ALL.indexOf(id), nx = ALL.slice(idx + 1).find(i => L[i]);
+-  return nx ? `<a class="cta" style="margin-top:12px" href="#/lesson/${nx}">다음 레슨 →</a>` : `<a class="cta" style="margin-top:12px" href="#/">처음으로</a>`;
+-}
+-
+-/* ---------- 레슨 ---------- */
+-function viewLesson(id) {
+-  const l = L[id], main = $('#main');
+-  if (!l) { renderTabs(null); main.innerHTML = `<div class="lh"><h1>준비 중인 레슨이에요</h1><p><a href="#/">홈으로</a></p></div>`; return; }
+-  const u = UNITS[l.unit - 1]; renderTabs(u);
+-  const idx = ALL.indexOf(id);
+-  const prev = ALL.slice(0, idx).reverse().find(i => L[i]), next = ALL.slice(idx + 1).find(i => L[i]);
+-  const root = el(`<div></div>`);
+-  root.innerHTML = `<div class="crumb"><a href="#/">인공지능 기초</a> › <a href="#/unit/${u.n}">${ROMAN[u.n - 1]}. ${esc(u.title)}</a></div>
+-  <div class="lh"><div class="kk">${esc(CH[l.unit + '-' + chapterNo(id)] || '')}</div>
+-  <h1>${esc(l.title)} ${P.done[id] ? `<span class="stars">${starsHtml(P.forced[id] ? 0 : P.stars[id])}</span>` : ''}</h1><p class="tg">${esc(l.tagline || '')}</p><div class="pg">${esc(l.pages || '')}</div>
+-  ${l.goals ? `<ul class="goals"><b>🎯 이번 레슨의 목표</b>${l.goals.map(g => `<li>${esc(g)}</li>`).join('')}</ul>` : ''}</div>`;
+-
+-  if (l.story) {
+-    root.appendChild(el(`<div class="sec"><h2><span>이야기</span> 먼저 읽어 봐요</h2><div class="story"><h3>📖 ${esc(l.story.title || '')}</h3>${storyHtml(l.story)}${l.story.question ? `<div class="qbox">🤔 ${esc(l.story.question)}</div>` : ''}</div></div>`));
+-  }
+-
+-  /* 계단: 계단마다 문제 5개 중 하나를 무작위로 */
+-  const steps = l.steps || [];
+-  let open = Math.min(P.steps[id] || 0, steps.length);
+-  const sec2 = el(`<div class="sec" id="stairs"><h2><span>${steps.length}계단</span> 한 칸씩 올라가요</h2><div class="rail"></div><div class="stl"></div></div>`);
+-  const rail = $('.rail', sec2), stl = $('.stl', sec2);
+-  const after = el('<div></div>');
+-  const chosen = {};
+-  const paint = () => {
+-    rail.innerHTML = steps.map((s, i) => `<a href="#" data-i="${i}" class="${i < open ? 'pass' : i === open ? 'open' : 'lock'}">${esc(s.level || (i + 1) + '계단')}<br>${i < open ? '✓' : i === open ? '▲' : '🔒'}</a>`).join('');
+-    rail.querySelectorAll('a').forEach(a => a.onclick = (e) => { e.preventDefault(); const c = $('#st' + a.dataset.i); if (c) c.scrollIntoView({ behavior: 'smooth' }); });
+-    steps.forEach((s, i) => {
+-      const c = $('#st' + i, stl);
+-      const state = i < open ? 'pass' : i === open ? 'open' : 'lock';
+-      if (c && c.dataset.state === state) return;
+-      const n = el(`<div class="step ${state}" id="st${i}" data-state="${state}"><header><span class="lv">${esc(s.level || (i + 1) + '계단')}</span><h3>${esc(s.title)}</h3></header></div>`);
+-      if (state === 'lock') n.appendChild(el(`<div class="lockmsg">🔒 앞 계단의 확인문제를 맞히면 열려요.</div>`));
+-      else {
+-        n.appendChild(el(`<div class="bd">${s.body}${s.keypoints && s.keypoints.length ? `<div class="kp"><b>✔ 꼭 기억해요</b><ul>${s.keypoints.map(k => `<li>${k}</li>`).join('')}</ul></div>` : ''}</div>`));
+-        const pool = checksOf(l, i);
+-        if (pool.length && state === 'open') {
+-          if (!chosen[i]) {
+-            const key = id + ':' + i; let used = P.used[key] || [];
+-            let cand = pool.map((_, k) => k).filter(k => !used.includes(k));
+-            if (!cand.length) { used = []; cand = pool.map((_, k) => k); P.used[key] = used; }
+-            chosen[i] = { k: cand[Math.floor(Math.random() * cand.length)] };
+-          }
+-          const q = pool[chosen[i].k];
+-          const cw = el(`<div class="chk"><div class="qh">✅ 확인문제 — 맞히면 다음 계단이 열려요</div><div class="q">${q.q}</div></div>`);
+-          cw.appendChild(question(q, (ok, first) => {
+-            if (!ok) return;
+-            const key = id + ':' + i; (P.used[key] = P.used[key] || []).push(chosen[i].k);
+-            addXP(first ? 10 : 5);
+-            setTimeout(() => { open = i + 1; P.steps[id] = open; save(); paint(); const t = open < steps.length ? $('#st' + open) : after; if (t) t.scrollIntoView({ behavior: 'smooth' }); }, 900);
+-          }));
+-          n.appendChild(cw);
+-        } else if (state === 'open' && !pool.length) {
+-          const b = el('<div class="chk"><button class="btn">이 계단 완료 →</button></div>');
+-          $('button', b).onclick = () => { open = i + 1; P.steps[id] = open; save(); paint(); };
+-          n.appendChild(b);
+-        }
+-      }
+-      if (c) c.replaceWith(n); else stl.appendChild(n);
+-    });
+-    after.style.display = open >= steps.length ? '' : 'none';
+-  };
+-  root.appendChild(sec2);
+-
+-  /* 정리 / 용어 게임 / 시험 */
+-  if (l.recap) after.appendChild(el(`<div class="sec"><h2><span>정리</span> 한 줄로 다시 보기</h2><ul class="recap">${l.recap.map(r => `<li>${r}</li>`).join('')}</ul></div>`));
+-  if (l.terms && l.terms.length > 1) {
+-    const g = el(`<div class="sec"><h2><span>게임</span> 용어 카드 맞추기</h2><div class="gamehost"></div></div>`);
+-    after.appendChild(g); termGame(l, $('.gamehost', g));
+-  }
+-  const qs = el(`<div class="sec"><h2><span>시험</span> 마무리 ${quizOf(l).length}문제 — ${PASS}점이면 통과!</h2><div class="quizhost"></div></div>`);
+-  const qh = $('.quizhost', qs);
+-  const startBtn = () => {
+-    if (P.done[id]) {
+-      qh.innerHTML = `<div class="score pass">${P.forced[id] ? `💪 ${MAX_TRIES}번 도전 후 완료 처리됐어요` : `✅ 통과! 최고 ${P.quiz[id]}점 <span class="stars">${starsHtml(P.stars[id])}</span>`}<br><button class="btn ghost" style="margin-top:10px" id="pr">연습 모드로 다시 풀기</button> ${nextBtn(id)}</div>`;
+-      $('#pr', qh).onclick = () => runQuiz(l, qh, true);
+-    } else {
+-      qh.innerHTML = `<div class="score">📝 ${quizOf(l).length}문제 · 제시문을 읽고 5지선다로 풀어요.<br><span style="font-weight:500;font-size:.9rem">한 문제를 풀면 다음 문제가 나타나요. ${PASS}점 미만이면 1계단부터 새 문제로 다시 올라가요. (${MAX_TRIES}번까지 도전 가능${P.tries[id] ? ` · 지금까지 ${P.tries[id]}번 실패` : ''})</span><br><button class="btn" style="margin-top:10px" id="qs">시험 시작 ▶</button></div>`;
+-      $('#qs', qh).onclick = () => runQuiz(l, qh, false);
+-    }
+-  };
+-  startBtn(); after.appendChild(qs);
+-  root.appendChild(after);
+-  paint();
+-
+-  root.appendChild(el(`<div class="pn">${prev ? `<a href="#/lesson/${prev}"><small>← 이전 레슨</small>${esc(L[prev].title)}</a>` : '<span style="flex:1"></span>'}${next ? `<a class="nx" href="#/lesson/${next}"><small>다음 레슨 →</small>${esc(L[next].title)}</a>` : '<a class="nx" href="#/"><small>마지막이에요</small>홈으로</a>'}</div>`));
+-  main.innerHTML = ''; main.appendChild(root); window.scrollTo(0, 0);
+-  main.querySelectorAll('details.sm>summary').forEach(sm => { sm.title = '스토리 보기'; sm.setAttribute('aria-label', '스토리 보기'); });
+-}
+-
+-/* ---------- 용어 사전 ---------- */
+-function viewGlossary() {
+-  renderTabs(null, true);
+-  const items = [];
+-  LESSONS.forEach(l => (l.terms || []).forEach(t => items.push({ t: t.t, d: t.d, id: l.id, lt: l.title })));
+-  items.sort((a, b) => a.t.localeCompare(b.t, 'ko'));
+-  $('#main').innerHTML = `<div class="lh"><h1>📖 용어 사전</h1><p class="tg">${items.length}개의 낱말 · 검색해 보세요</p></div><input class="gs" id="gs" placeholder="용어나 설명으로 검색"><div id="gl"></div>`;
+-  const draw = (q) => {
+-    const f = items.filter(i => !q || (i.t + i.d).toLowerCase().includes(q.toLowerCase()));
+-    $('#gl').innerHTML = f.map(i => `<div class="gi"><b>${esc(i.t)}</b><a href="#/lesson/${i.id}">${esc(i.lt)}</a><div>${i.d}</div></div>`).join('') || '<p>검색 결과가 없어요.</p>';
+-  };
+-  $('#gs').oninput = (e) => draw(e.target.value); draw('');
+-  window.scrollTo(0, 0);
+-}
+-
+-/* ---------- 라우터 / 테마 / 그림 확대 ---------- */
+-function route() {
+-  const h = location.hash.replace(/^#\/?/, '');
+-  const [a, b] = h.split('/');
+-  if (a === 'lesson') viewLesson(b);
+-  else if (a === 'unit') viewUnit(+b);
+-  else if (a === 'glossary') viewGlossary();
+-  else if (a === 'me') viewMe();
+-  else { renderTabs(null); viewHome(); window.scrollTo(0, 0); }
+-}
+-window.addEventListener('hashchange', route);
+-$('#themeBtn').onclick = () => {
+-  const d = document.documentElement; const cur = d.dataset.theme || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+-  d.dataset.theme = cur === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('aikc-theme', d.dataset.theme); } catch (e) { }
+-};
+-try { const t = localStorage.getItem('aikc-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { }
+-document.addEventListener('click', (e) => {
+-  const lb = $('#lb');
+-  if (e.target.matches('.bd figure.fig img')) { lb.innerHTML = `<img src="${e.target.src}" alt="">`; lb.hidden = false; }
+-  else if (!lb.hidden) lb.hidden = true;
+-});
+-checkBadges();
+-route();
++/* 인공지능 기초 학습사이트 — 단일 페이지 앱 (의존성 없음) */
++const ROMAN = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
++const UNITS = [
++  { n: 1, emoji: '🧭', title: '인공지능의 이해', color: '#4f46e5',
++    desc: 'AI가 무엇이고 어떻게 “생각하는 것처럼” 보이는지, 탐색과 추론으로 알아봐요.',
++    ids: ['1-1-1', '1-1-2', '1-2-1', '1-2-2', '1-A'] },
++  { n: 2, emoji: '🧠', title: '인공지능과 학습', color: '#0f766e',
++    desc: '데이터로 배우는 기계학습과 딥러닝(비전·음성·언어)의 원리를 코드와 함께 익혀요.',
++    ids: ['2-1-1', '2-1-2', '2-1-3', '2-1-4', '2-1-5', '2-2-1', '2-2-2', '2-2-3', '2-2-4', '2-A'] },
++  { n: 3, emoji: '⚖️', title: '인공지능의 사회적 영향', color: '#e11d48',
++    desc: 'AI가 바꾸는 사회와 직업, 그리고 편향·책임 같은 윤리 문제를 생각해 봐요.',
++    ids: ['3-1-1', '3-1-2', '3-2-1', '3-2-2', '3-2-3', '3-A'] },
++  { n: 4, emoji: '🚀', title: '인공지능 프로젝트', color: '#b45309',
++    desc: '지속가능한 발전을 위해 직접 AI 프로젝트(회귀·이미지 분류)를 해 봐요.',
++    ids: ['4-1-1', '4-1-2', '4-2', '4-3', '4-A'] }
++];
++const CH = {
++  '1-1': '1. 인공지능의 개념과 원리', '1-2': '2. 탐색과 추론', '1-A': '활동 · 단원 정리',
++  '2-1': '1. 기계학습', '2-2': '2. 딥러닝', '2-A': '활동 · 단원 정리',
++  '3-1': '1. 인공지능과 사회', '3-2': '2. 인공지능과 윤리', '3-A': '활동 · 단원 정리',
++  '4-1': '1. 지속 가능 발전 문제 해결', '4-2': '2. 정형 데이터 프로젝트', '4-3': '3. 비정형 데이터 프로젝트', '4-A': '단원 정리'
++};
++const PASS = 80, MAX_TRIES = 3;                       // 합격 점수, 실패 허용 횟수
++const QB = (typeof QBANK !== 'undefined') ? QBANK : {};
++const L = {}; LESSONS.forEach(l => L[l.id] = l);
++const ALL = UNITS.flatMap(u => u.ids);
++const $ = (s, r = document) => r.querySelector(s);
++const el = (h) => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; };
++const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
++const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
++const sleep = (ms) => new Promise(r => setTimeout(r, ms));
++
++/* ---------- 진도·게임 기록 저장 ---------- */
++let P = { done: {}, steps: {}, quiz: {}, tries: {}, used: {}, forced: {}, stars: {}, tg: {}, xp: 0, badges: {}, last: '', streak: 0 };
++try { P = Object.assign(P, JSON.parse(localStorage.getItem('aikc') || '{}')); } catch (e) { }
++const save = () => { try { localStorage.setItem('aikc', JSON.stringify(P)); } catch (e) { } };
++const chapterNo = (id) => id.split('-')[1] === 'A' ? 'A' : id.split('-')[1];
++const labelOf = (id) => { const p = id.split('-'); return p[1] === 'A' ? '활동' : p.length === 3 ? p[1] + '-' + p[2] : p[1] + '장'; };
++function status(id) {
++  if (P.done[id]) return 'done';
++  if ((P.steps[id] || 0) > 0 || (P.tries[id] || 0) > 0) return 'part';
++  return L[id] ? 'new' : 'soon';
++}
++const checksOf = (l, i) => { const q = QB[l.id]; const a = q && q.checks && q.checks[i]; return (a && a.length) ? a : (l.steps[i].check ? [l.steps[i].check] : []); };
++const quizOf = (l) => { const q = QB[l.id]; return (q && q.quiz && q.quiz.length) ? q.quiz : (l.quiz || []); };
++
++/* ---------- 게임 요소: XP·레벨·배지·효과 ---------- */
++const LEVELS = ['새싹', '호기심', '탐험가', '해결사', '분석가', '설계자', '연구원', '박사', '마스터', '전설'];
++const XP_PER_LEVEL = 150;
++const levelOf = (xp) => Math.min(LEVELS.length, Math.floor(xp / XP_PER_LEVEL) + 1);
++const BADGES = [
++  { id: 'first', icon: '🌱', name: '첫걸음', desc: '레슨 1개 완료' },
++  { id: 'once', icon: '⚡', name: '한 번에 통과', desc: '처음 도전에 80점 이상' },
++  { id: 'perfect', icon: '💯', name: '만점왕', desc: '마무리 퀴즈 100점' },
++  { id: 'terms', icon: '🧩', name: '용어 박사', desc: '용어 게임을 실수 없이 클리어' },
++  { id: 'unit', icon: '🏔️', name: '단원 정복', desc: '대단원 하나를 모두 완료' },
++  { id: 'streak', icon: '🔥', name: '3일 연속', desc: '3일 연속 공부' },
++  { id: 'grad', icon: '🎓', name: '졸업', desc: '모든 레슨 완료' }
++];
++function toast(msg, cls = '') {
++  const t = $('#toast'); if (!t) return; const n = el(`<div class="tt ${cls}">${msg}</div>`); t.appendChild(n);
++  setTimeout(() => n.classList.add('out'), 2600); setTimeout(() => n.remove(), 3100);
++}
++function renderXP() {
++  const b = $('#xpBox'); if (!b) return;
++  const lv = levelOf(P.xp);
++  b.innerHTML = `<span class="lv">Lv.${lv}</span><span class="xpn">${P.xp} XP</span>`;
++  b.title = `${LEVELS[lv - 1]} · 다음 레벨까지 ${lv >= LEVELS.length ? '-' : XP_PER_LEVEL - (P.xp % XP_PER_LEVEL)} XP`;
++}
++function addXP(n, why) {
++  if (!n) return;
++  const before = levelOf(P.xp); P.xp += n; save(); renderXP();
++  const f = el(`<div class="xpfloat">+${n} XP</div>`); document.body.appendChild(f); setTimeout(() => f.remove(), 1200);
++  const after = levelOf(P.xp);
++  if (after > before) { toast(`🎉 레벨 업! Lv.${after} · ${LEVELS[after - 1]}`, 'lvup'); confetti(); }
++}
++function giveBadge(id) {
++  if (P.badges[id]) return; P.badges[id] = 1; save();
++  const b = BADGES.find(x => x.id === id); toast(`${b.icon} 배지 획득! <b>${b.name}</b>`, 'badge');
++}
++function checkBadges() {
++  const n = ALL.filter(i => P.done[i]).length;
++  if (n >= 1) giveBadge('first');
++  if (UNITS.some(u => u.ids.every(i => P.done[i]))) giveBadge('unit');
++  if (ALL.every(i => P.done[i])) giveBadge('grad');
++  if (P.streak >= 3) giveBadge('streak');
++}
++function confetti() {
++  const e = ['🎉', '⭐', '✨', '🎊', '💫'];
++  for (let i = 0; i < 36; i++) {
++    const s = el(`<span class="cf">${e[i % e.length]}</span>`);
++    s.style.left = Math.random() * 100 + 'vw'; s.style.animationDelay = Math.random() * 0.5 + 's'; s.style.fontSize = (14 + Math.random() * 16) + 'px';
++    s.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
++    document.body.appendChild(s); setTimeout(() => s.remove(), 2600);
++  }
++}
++(function daily() {
++  const today = new Date().toISOString().slice(0, 10);
++  if (P.last !== today) {
++    const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
++    P.streak = (P.last === y) ? (P.streak || 0) + 1 : 1; P.last = today; save();
++  }
++})();
++
++/* ---------- 머리글 탭 ---------- */
++function renderTabs(unit, glossary) {
++  document.documentElement.dataset.unit = unit ? unit.n : '';
++  $('#tabs').innerHTML = UNITS.map(u => `<a href="#/unit/${u.n}" class="${unit && unit.n === u.n ? 'on' : ''}"><span>${u.emoji}</span> ${ROMAN[u.n - 1]}. ${esc(u.title)}</a>`).join('');
++  $('#glossLink').classList.toggle('on', !!glossary);
++  renderXP();
++}
++const starsHtml = (n) => n == null ? '' : '★'.repeat(n) + '☆'.repeat(3 - n);
++
++/* ---------- 홈 ---------- */
++function myCard() {
++  const lv = levelOf(P.xp), into = P.xp % XP_PER_LEVEL;
++  return `<div class="me"><div class="mehead"><div class="melv">Lv.${lv}</div><div><b>${LEVELS[lv - 1]}</b><div class="mexp">${P.xp} XP · 🔥 ${P.streak || 0}일 연속</div></div></div>
++  <div class="bar"><i style="width:${lv >= LEVELS.length ? 100 : into / XP_PER_LEVEL * 100}%"></i></div>
++  <div class="badges">${BADGES.map(b => `<span class="bdg ${P.badges[b.id] ? 'on' : ''}" title="${esc(b.name)} — ${esc(b.desc)}"><i>${b.icon}</i><small>${esc(b.name)}</small></span>`).join('')}</div></div>`;
++}
++function viewHome() {
++  const total = ALL.filter(i => L[i]).length, dn = ALL.filter(i => P.done[i]).length;
++  const nx = ALL.find(i => L[i] && !P.done[i]);
++  const started = Object.keys(P.done).length || Object.keys(P.steps).length;
++  let h = `<div class="hello"><h1>이야기로 시작해서, 계단처럼 한 칸씩<br>고등학교 인공지능 기초</h1>
++  <p>교과서를 쉬운 말로 풀어 다시 썼어요. 레슨을 깰 때마다 XP를 모으고 배지를 얻어요. (${dn}/${total} 레슨 완료)</p>
++  ${nx ? `<a class="cta" href="#/lesson/${nx}">${started ? '이어서 학습하기 →' : '첫 레슨 시작하기 →'}</a>` : '<b>🎉 모든 레슨을 마쳤어요!</b>'}
++  <div class="steps4"><div><b>📖</b>① 짧은 글로<br>궁금증 만들기</div><div><b>🪜</b>② 계단 오르며<br>문제를 풀어요</div><div><b>🧩</b>③ 용어 카드를<br>끌어 맞춰요</div><div><b>🏁</b>④ 10문제 시험<br>80점이면 통과!</div></div></div>
++  <h2 class="h2">내 기록</h2>${myCard()}
++  <h2 class="h2">대단원</h2><div class="ugrid">`;
++  UNITS.forEach(u => {
++    const ids = u.ids.filter(i => L[i]); const d = u.ids.filter(i => P.done[i]).length;
++    h += `<a class="ucard" href="#/unit/${u.n}" style="--uc:${u.color}"><h3><span class="ic">${u.emoji}</span>${ROMAN[u.n - 1]}. ${esc(u.title)}</h3><p>${esc(u.desc)}</p>
++    <div class="bar"><i style="width:${ids.length ? d / ids.length * 100 : 0}%"></i></div><small>${d}/${ids.length} 레슨 완료</small></a>`;
++  });
++  h += `</div><p style="text-align:center;margin-top:30px;color:var(--muted);font-size:.8rem"><a href="#" id="reset" style="color:inherit">기록 모두 지우기</a></p>`;
++  $('#main').innerHTML = h;
++  $('#reset').onclick = (e) => { e.preventDefault(); if (confirm('진도·XP·배지를 모두 지울까요?')) { try { localStorage.removeItem('aikc'); } catch (x) { } location.reload(); } };
++}
++function viewMe() {
++  renderTabs(null);
++  $('#main').innerHTML = `<div class="lh"><h1>🏆 내 기록</h1><p class="tg">XP는 문제를 맞히거나 게임을 깰 때 쌓여요. ${XP_PER_LEVEL} XP마다 레벨이 올라요.</p></div>
++  <div style="margin-top:16px">${myCard()}</div>
++  <h2 class="h2">레슨별 성적</h2>` + ALL.filter(i => L[i]).map(id => {
++    const s = P.stars[id];
++    return `<a class="lcard ${status(id)}" href="#/lesson/${id}"><span class="no">${labelOf(id)}</span><span><b>${esc(L[id].title)}</b><span class="tg">${P.quiz[id] != null ? '최고 ' + P.quiz[id] + '점' : '아직 시험 전'}${P.forced[id] ? ' · 3번 도전 후 완료' : ''}</span></span><span class="st" style="color:#d4a017;font-size:1.05rem">${P.done[id] ? starsHtml(P.forced[id] ? 0 : s) : ''}</span></a>`;
++  }).join('');
++  window.scrollTo(0, 0);
++}
++
++/* ---------- 단원 ---------- */
++function viewUnit(n) {
++  const u = UNITS[n - 1]; if (!u) return viewHome();
++  renderTabs(u);
++  const d = u.ids.filter(i => P.done[i]).length;
++  let h = `<div class="crumb"><a href="#/">인공지능 기초</a> › ${ROMAN[n - 1]}. ${esc(u.title)}</div>
++  <div class="uhead"><div class="k">${u.emoji} ${ROMAN[n - 1]}단원 · ${d}/${u.ids.length} 완료</div><h1>${esc(u.title)}</h1><p>${esc(u.desc)}</p>
++  <div class="bar" style="--uc:${u.color}"><i style="width:${d / u.ids.length * 100}%"></i></div></div>`;
++  let last = '';
++  u.ids.forEach(id => {
++    const key = n + '-' + chapterNo(id);
++    if (key !== last) { last = key; h += `<div class="chh">${esc(CH[key] || '')}</div>`; }
++    const l = L[id], st = status(id);
++    h += `<a class="lcard ${st}" href="#/lesson/${id}"><span class="no">${labelOf(id)}</span><span><b>${esc(l ? l.title : id + ' (준비 중)')}</b>${l ? `<span class="tg">${esc(l.tagline || '')}</span>` : ''}</span><span class="st">${st === 'done' ? `<span style="color:#d4a017;font-size:1.05rem">${starsHtml(P.forced[id] ? 0 : P.stars[id])}</span>` : st === 'part' ? '진행 중' : ''}</span></a>`;
++  });
++  $('#main').innerHTML = h; window.scrollTo(0, 0);
++}
++
++/* ---------- 문제 렌더 ---------- */
++function question(q, onResult, opts = {}) {
++  const box = el(`<div></div>`);
++  const lock = { v: false };
++  const fb = el('<div class="fb"></div>');
++  let tries = 0;
++  const finish = (ok) => {
++    fb.className = 'fb ' + (ok ? 'ok' : 'no');
++    fb.innerHTML = (ok ? '⭕ 정답! ' : '❌ 아쉬워요. ') + (ok || tries >= 2 || opts.once ? (q.explain || '') : '다시 한 번 생각해 볼까요?');
++  };
++  const mark = (ok, firstTry) => { lock.v = true; box.querySelectorAll('.opt').forEach(x => x.disabled = true); onResult(ok, firstTry); };
++  if (q.type === 'ox') {
++    const row = el('<div class="oxrow"></div>');
++    [[true, 'O'], [false, 'X']].forEach(([v, t]) => {
++      const b = el(`<button class="opt">${t}</button>`);
++      b.onclick = () => {
++        if (lock.v) return; tries++;
++        const ok = v === q.answer;
++        b.classList.add(ok ? 'ok' : 'no'); finish(ok);
++        if (ok || opts.once) { if (opts.once && !ok) fb.innerHTML = '❌ 오답. 정답: ' + (q.answer ? 'O' : 'X') + ' — ' + (q.explain || ''); mark(ok, tries === 1); }
++        else b.disabled = true;
++      };
++      row.appendChild(b);
++    });
++    box.appendChild(row);
++  } else {
++    q.choices.forEach((c, i) => {
++      const b = el(`<button class="opt">${'①②③④⑤'[i]} ${c}</button>`);
++      b.onclick = () => {
++        if (lock.v) return; tries++;
++        const ok = i === q.answer;
++        b.classList.add(ok ? 'ok' : 'no'); finish(ok);
++        if (ok || opts.once) {
++          box.querySelectorAll('.opt').forEach((x, j) => { if (j === q.answer) x.classList.add('ok'); });
++          if (opts.once && !ok) fb.innerHTML = '❌ 오답. ' + (q.explain || '');
++          mark(ok, tries === 1);
++        } else b.disabled = true;
++      };
++      box.appendChild(b);
++    });
++  }
++  box.appendChild(fb);
++  return box;
++}
++
++/* ---------- 이야기(수필) ---------- */
++function storyHtml(st) {
++  const items = st.paras || st.scenes || [];
++  return items.map(it => {
++    if (typeof it === 'string') return `<p class="es">${esc(it)}</p>`;
++    if (it.who === '해설') return `<div class="sc nar"><div class="bb">${esc(it.text)}</div></div>`;
++    const key = it.who.replace(/\s/g, '');
++    return `<div class="sc p-${esc(key)}"><div class="av">${esc(it.who.slice(0, 2))}</div><div class="bb"><span class="nm">${esc(it.who)}</span>${esc(it.text)}</div></div>`;
++  }).join('');
++}
++
++/* ---------- 용어 카드 맞추기 게임 ---------- */
++function termGame(l, host) {
++  const terms = (l.terms || []).slice(0, 8);
++  if (terms.length < 2) return;
++  const N = terms.length;
++  host.innerHTML = `<div class="tgm"><div class="tg-bar"><span>맞춘 수 <b class="c">0</b>/${N}</span><span>🔥 콤보 <b class="cb">0</b></span><span>실수 <b class="m">0</b></span><button class="btn ghost sm">다시 섞기</button></div>
++  <p class="tg-hint">아래 <b>설명 카드</b>를 마우스로 끌어서 알맞은 <b>낱말</b> 위에 놓아요. (끌기 어려우면 카드를 누른 뒤 낱말을 눌러도 돼요)</p>
++  <div class="tg-slots"></div><div class="tg-pool"></div><div class="tg-res"></div></div>`;
++  const slots = $('.tg-slots', host), pool = $('.tg-pool', host), res = $('.tg-res', host);
++  let matched, combo, miss, sel, best = 0;
++  const upd = () => { $('.c', host).textContent = matched; $('.cb', host).textContent = combo; $('.m', host).textContent = miss; };
++  function setup() {
++    matched = 0; combo = 0; miss = 0; sel = null; res.innerHTML = ''; upd();
++    slots.innerHTML = shuffle(terms.map((t, i) => i)).map(i => `<div class="slot" data-i="${i}"><div class="slot-t">${esc(terms[i].t)}</div><div class="slot-d">여기에 놓기</div></div>`).join('');
++    pool.innerHTML = shuffle(terms.map((t, i) => i)).map(i => `<div class="dcard" data-i="${i}">${terms[i].d}</div>`).join('');
++  }
++  function attempt(card, slot) {
++    if (!card || !slot || slot.classList.contains('ok') || card.classList.contains('done')) return;
++    if (card.dataset.i === slot.dataset.i) {
++      matched++; combo++; best = Math.max(best, combo);
++      slot.classList.add('ok'); $('.slot-d', slot).innerHTML = card.innerHTML; card.classList.add('done'); card.classList.remove('sel'); sel = null;
++      addXP(3 + Math.min(combo, 5)); upd();
++      if (matched === N) done();
++    } else {
++      miss++; combo = 0; upd();
++      card.classList.add('shake'); slot.classList.add('bad'); setTimeout(() => { card.classList.remove('shake'); slot.classList.remove('bad'); }, 450);
++    }
++  }
++  function done() {
++    const stars = miss === 0 ? 3 : miss <= 2 ? 2 : 1;
++    const prev = P.tg[l.id] || 0;
++    if (stars > prev) { addXP(10 * (stars - prev) + (prev ? 0 : 10)); P.tg[l.id] = stars; save(); }
++    if (miss === 0) giveBadge('terms');
++    confetti();
++    res.innerHTML = `<div class="score">🧩 용어 카드 완성! <span class="stars">${starsHtml(stars)}</span><br><span style="font-weight:500;font-size:.9rem">실수 ${miss}번 · 최고 콤보 ${best}${stars < 3 ? ' — 실수 없이 다시 도전하면 ★3개!' : ''}</span></div>`;
++  }
++  $('.btn', host).onclick = setup;
++  /* 끌기(포인터 이벤트: 마우스·터치 모두) + 누르기 선택 */
++  let drag = null;
++  pool.addEventListener('pointerdown', (e) => {
++    const c = e.target.closest('.dcard'); if (!c || c.classList.contains('done')) return;
++    drag = { c, x: e.clientX, y: e.clientY, moved: false, ghost: null };
++    try { c.setPointerCapture(e.pointerId); } catch (_) { }
++  });
++  pool.addEventListener('pointermove', (e) => {
++    if (!drag) return;
++    if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) {
++      drag.moved = true; const r = drag.c.getBoundingClientRect();
++      drag.ghost = drag.c.cloneNode(true); drag.ghost.classList.add('ghost');
++      drag.ghost.style.width = r.width + 'px'; document.body.appendChild(drag.ghost); drag.c.classList.add('drag');
++      const auto = () => { if (!drag || !drag.moved) return; const y = drag.ly || 0; if (y < 90) window.scrollBy(0, -16); else if (y > innerHeight - 90) window.scrollBy(0, 16); requestAnimationFrame(auto); };
++      requestAnimationFrame(auto);
++    }
++    drag.ly = e.clientY;
++    if (drag.moved) {
++      drag.ghost.style.left = (e.clientX - 40) + 'px'; drag.ghost.style.top = (e.clientY - 20) + 'px';
++      slots.querySelectorAll('.slot').forEach(s => s.classList.remove('hover'));
++      drag.ghost.style.pointerEvents = 'none';
++      const t = document.elementFromPoint(e.clientX, e.clientY); const s = t && t.closest('.slot'); if (s) s.classList.add('hover');
++    }
++  });
++  const end = (e) => {
++    if (!drag) return; const d = drag; drag = null;
++    slots.querySelectorAll('.slot').forEach(s => s.classList.remove('hover'));
++    if (d.moved) {
++      d.ghost.remove(); d.c.classList.remove('drag');
++      const t = document.elementFromPoint(e.clientX, e.clientY); attempt(d.c, t && t.closest('.slot'));
++    } else {
++      pool.querySelectorAll('.dcard').forEach(x => x.classList.remove('sel'));
++      if (sel === d.c) sel = null; else { sel = d.c; d.c.classList.add('sel'); }
++    }
++  };
++  pool.addEventListener('pointerup', end);
++  pool.addEventListener('pointercancel', () => { if (drag) { if (drag.ghost) drag.ghost.remove(); drag.c.classList.remove('drag'); drag = null; } });
++  slots.addEventListener('click', (e) => { const s = e.target.closest('.slot'); if (s && sel) attempt(sel, s); });
++  setup();
++}
++
++/* ---------- 마무리 시험: 10문항, 한 문제씩 드러남, 80점 통과 ---------- */
++function runQuiz(l, host, practice) {
++  const qs = quizOf(l); const id = l.id;
++  let idx = 0, correct = 0, combo = 0, maxCombo = 0;
++  host.innerHTML = `<div class="qhead"><span class="qp">문제 <b>1</b>/${qs.length}</span><span class="qc"></span><span class="qt">${practice ? '연습 모드 (기록에 영향 없음)' : `도전 ${(P.tries[id] || 0) + 1}/${MAX_TRIES} · ${PASS}점 이상이면 통과`}</span></div><div class="qlist"></div><div class="qend"></div>`;
++  const list = $('.qlist', host);
++  function next() {
++    if (idx >= qs.length) return finish();
++    const q = qs[idx];
++    const card = el(`<div class="qz reveal"><div class="qh">문제 ${idx + 1}</div>${q.passage ? `<div class="passage">${q.passage}</div>` : ''}<div class="q">${q.q}</div></div>`);
++    card.appendChild(question(q, async (ok) => {
++      if (ok) { correct++; combo++; maxCombo = Math.max(maxCombo, combo); addXP(practice ? 2 : 6 + Math.min(combo, 4)); } else combo = 0;
++      $('.qc', host).textContent = combo >= 2 ? `🔥 ${combo}연속` : '';
++      idx++; $('.qp b', host).textContent = Math.min(idx + 1, qs.length);
++      await sleep(900); next();
++      const last = list.lastElementChild; if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
++    }, { once: true }));
++    list.appendChild(card);
++  }
++  function finish() {
++    const pct = Math.round(correct / qs.length * 100), pass = pct >= PASS, end = $('.qend', host);
++    $('.qp', host).textContent = '시험 끝!';
++    if (practice) {
++      const s = pct === 100 ? 3 : pct >= 90 ? 2 : pct >= PASS ? 1 : 0;
++      if (P.done[id] && !P.forced[id] && s > (P.stars[id] || 0)) { P.stars[id] = s; save(); }
++      end.innerHTML = `<div class="score">📝 연습 결과 ${correct}/${qs.length} (${pct}점)<br><button class="btn ghost" style="margin-top:10px" onclick="route()">돌아가기</button></div>`; return;
++    }
++    P.quiz[id] = Math.max(P.quiz[id] || 0, pct);
++    if (pass) {
++      const firstTry = !(P.tries[id] > 0);
++      const stars = pct === 100 ? 3 : pct >= 90 ? 2 : 1;
++      P.done[id] = 1; delete P.forced[id]; P.stars[id] = Math.max(P.stars[id] || 0, stars); save();
++      addXP(40 + correct * 4 + (firstTry ? 20 : 0));
++      if (firstTry) giveBadge('once'); if (pct === 100) giveBadge('perfect'); checkBadges(); confetti();
++      end.innerHTML = `<div class="score pass">🎉 ${correct}/${qs.length} (${pct}점) 통과! <span class="stars">${starsHtml(stars)}</span><br><span style="font-weight:500;font-size:.92rem">레슨 완료! 최고 콤보 ${maxCombo}</span><br>${nextBtn(id)}</div>`;
++    } else {
++      P.tries[id] = (P.tries[id] || 0) + 1;
++      if (P.tries[id] >= MAX_TRIES) {
++        P.done[id] = 1; P.forced[id] = 1; save(); checkBadges(); addXP(20);
++        end.innerHTML = `<div class="score">💪 ${correct}/${qs.length} (${pct}점)<br><span style="font-weight:500;font-size:.92rem">${MAX_TRIES}번 도전했어요. 이 레슨은 완료로 처리해요. 틀린 부분은 다시 읽어 보고, 아래 연습 모드로 복습해 보세요!</span><br>${nextBtn(id)}<br><button class="btn ghost" style="margin-top:8px" onclick="window.__practice()">연습 모드로 다시 풀기</button></div>`;
++      } else {
++        save();
++        end.innerHTML = `<div class="score">😢 ${correct}/${qs.length} (${pct}점) — ${PASS}점이 안 됐어요<br><span style="font-weight:500;font-size:.92rem">1계단부터 새 문제로 다시 올라가 볼까요? (남은 도전 ${MAX_TRIES - P.tries[id]}번)</span><br><button class="btn" style="margin-top:10px" id="redo">1계단부터 다시 도전 ▶</button></div>`;
++        $('#redo', host).onclick = () => { P.steps[id] = 0; save(); route(); setTimeout(() => { const s = $('#stairs'); if (s) s.scrollIntoView(); }, 60); };
++      }
++    }
++    end.scrollIntoView({ behavior: 'smooth', block: 'center' });
++  }
++  window.__practice = () => runQuiz(l, host, true);
++  next();
++}
++function nextBtn(id) {
++  const idx = ALL.indexOf(id), nx = ALL.slice(idx + 1).find(i => L[i]);
++  return nx ? `<a class="cta" style="margin-top:12px" href="#/lesson/${nx}">다음 레슨 →</a>` : `<a class="cta" style="margin-top:12px" href="#/">처음으로</a>`;
++}
++
++/* ---------- 레슨 ---------- */
++function viewLesson(id) {
++  const l = L[id], main = $('#main');
++  if (!l) { renderTabs(null); main.innerHTML = `<div class="lh"><h1>준비 중인 레슨이에요</h1><p><a href="#/">홈으로</a></p></div>`; return; }
++  const u = UNITS[l.unit - 1]; renderTabs(u);
++  const idx = ALL.indexOf(id);
++  const prev = ALL.slice(0, idx).reverse().find(i => L[i]), next = ALL.slice(idx + 1).find(i => L[i]);
++  const root = el(`<div></div>`);
++  root.innerHTML = `<div class="crumb"><a href="#/">인공지능 기초</a> › <a href="#/unit/${u.n}">${ROMAN[u.n - 1]}. ${esc(u.title)}</a></div>
++  <div class="lh"><div class="kk">${esc(CH[l.unit + '-' + chapterNo(id)] || '')}</div>
++  <h1>${esc(l.title)} ${P.done[id] ? `<span class="stars">${starsHtml(P.forced[id] ? 0 : P.stars[id])}</span>` : ''}</h1><p class="tg">${esc(l.tagline || '')}</p><div class="pg">${esc(l.pages || '')}</div>
++  ${l.goals ? `<ul class="goals"><b>🎯 이번 레슨의 목표</b>${l.goals.map(g => `<li>${esc(g)}</li>`).join('')}</ul>` : ''}</div>`;
++
++  if (l.story) {
++    root.appendChild(el(`<div class="sec"><h2><span>이야기</span> 먼저 읽어 봐요</h2><div class="story"><h3>📖 ${esc(l.story.title || '')}</h3>${storyHtml(l.story)}${l.story.question ? `<div class="qbox">🤔 ${esc(l.story.question)}</div>` : ''}</div></div>`));
++  }
++
++  /* 계단: 계단마다 문제 5개 중 하나를 무작위로 */
++  const steps = l.steps || [];
++  let open = Math.min(P.steps[id] || 0, steps.length);
++  const sec2 = el(`<div class="sec" id="stairs"><h2><span>${steps.length}계단</span> 한 칸씩 올라가요</h2><div class="rail"></div><div class="stl"></div></div>`);
++  const rail = $('.rail', sec2), stl = $('.stl', sec2);
++  const after = el('<div></div>');
++  const chosen = {};
++  const paint = () => {
++    rail.innerHTML = steps.map((s, i) => `<a href="#" data-i="${i}" class="${i < open ? 'pass' : i === open ? 'open' : 'lock'}">${esc(s.level || (i + 1) + '계단')}<br>${i < open ? '✓' : i === open ? '▲' : '🔒'}</a>`).join('');
++    rail.querySelectorAll('a').forEach(a => a.onclick = (e) => { e.preventDefault(); const c = $('#st' + a.dataset.i); if (c) c.scrollIntoView({ behavior: 'smooth' }); });
++    steps.forEach((s, i) => {
++      const c = $('#st' + i, stl);
++      const state = i < open ? 'pass' : i === open ? 'open' : 'lock';
++      if (c && c.dataset.state === state) return;
++      const n = el(`<div class="step ${state}" id="st${i}" data-state="${state}"><header><span class="lv">${esc(s.level || (i + 1) + '계단')}</span><h3>${esc(s.title)}</h3></header></div>`);
++      if (state === 'lock') n.appendChild(el(`<div class="lockmsg">🔒 앞 계단의 확인문제를 맞히면 열려요.</div>`));
++      else {
++        n.appendChild(el(`<div class="bd">${s.body}${s.keypoints && s.keypoints.length ? `<div class="kp"><b>✔ 꼭 기억해요</b><ul>${s.keypoints.map(k => `<li>${k}</li>`).join('')}</ul></div>` : ''}</div>`));
++        const pool = checksOf(l, i);
++        if (pool.length && state === 'open') {
++          if (!chosen[i]) {
++            const key = id + ':' + i; let used = P.used[key] || [];
++            let cand = pool.map((_, k) => k).filter(k => !used.includes(k));
++            if (!cand.length) { used = []; cand = pool.map((_, k) => k); P.used[key] = used; }
++            chosen[i] = { k: cand[Math.floor(Math.random() * cand.length)] };
++          }
++          const q = pool[chosen[i].k];
++          const cw = el(`<div class="chk"><div class="qh">✅ 확인문제 — 맞히면 다음 계단이 열려요</div><div class="q">${q.q}</div></div>`);
++          cw.appendChild(question(q, (ok, first) => {
++            if (!ok) return;
++            const key = id + ':' + i; (P.used[key] = P.used[key] || []).push(chosen[i].k);
++            addXP(first ? 10 : 5);
++            setTimeout(() => { open = i + 1; P.steps[id] = open; save(); paint(); const t = open < steps.length ? $('#st' + open) : after; if (t) t.scrollIntoView({ behavior: 'smooth' }); }, 900);
++          }));
++          n.appendChild(cw);
++        } else if (state === 'open' && !pool.length) {
++          const b = el('<div class="chk"><button class="btn">이 계단 완료 →</button></div>');
++          $('button', b).onclick = () => { open = i + 1; P.steps[id] = open; save(); paint(); };
++          n.appendChild(b);
++        }
++      }
++      if (c) c.replaceWith(n); else stl.appendChild(n);
++    });
++    after.style.display = open >= steps.length ? '' : 'none';
++  };
++  root.appendChild(sec2);
++
++  /* 정리 / 용어 게임 / 시험 */
++  if (l.recap) after.appendChild(el(`<div class="sec"><h2><span>정리</span> 한 줄로 다시 보기</h2><ul class="recap">${l.recap.map(r => `<li>${r}</li>`).join('')}</ul></div>`));
++  if (l.terms && l.terms.length > 1) {
++    const g = el(`<div class="sec"><h2><span>게임</span> 용어 카드 맞추기</h2><div class="gamehost"></div></div>`);
++    after.appendChild(g); termGame(l, $('.gamehost', g));
++  }
++  const qs = el(`<div class="sec"><h2><span>시험</span> 마무리 ${quizOf(l).length}문제 — ${PASS}점이면 통과!</h2><div class="quizhost"></div></div>`);
++  const qh = $('.quizhost', qs);
++  const startBtn = () => {
++    if (P.done[id]) {
++      qh.innerHTML = `<div class="score pass">${P.forced[id] ? `💪 ${MAX_TRIES}번 도전 후 완료 처리됐어요` : `✅ 통과! 최고 ${P.quiz[id]}점 <span class="stars">${starsHtml(P.stars[id])}</span>`}<br><button class="btn ghost" style="margin-top:10px" id="pr">연습 모드로 다시 풀기</button> ${nextBtn(id)}</div>`;
++      $('#pr', qh).onclick = () => runQuiz(l, qh, true);
++    } else {
++      qh.innerHTML = `<div class="score">📝 ${quizOf(l).length}문제 · 제시문을 읽고 5지선다로 풀어요.<br><span style="font-weight:500;font-size:.9rem">한 문제를 풀면 다음 문제가 나타나요. ${PASS}점 미만이면 1계단부터 새 문제로 다시 올라가요. (${MAX_TRIES}번까지 도전 가능${P.tries[id] ? ` · 지금까지 ${P.tries[id]}번 실패` : ''})</span><br><button class="btn" style="margin-top:10px" id="qs">시험 시작 ▶</button></div>`;
++      $('#qs', qh).onclick = () => runQuiz(l, qh, false);
++    }
++  };
++  startBtn(); after.appendChild(qs);
++  root.appendChild(after);
++  paint();
++
++  root.appendChild(el(`<div class="pn">${prev ? `<a href="#/lesson/${prev}"><small>← 이전 레슨</small>${esc(L[prev].title)}</a>` : '<span style="flex:1"></span>'}${next ? `<a class="nx" href="#/lesson/${next}"><small>다음 레슨 →</small>${esc(L[next].title)}</a>` : '<a class="nx" href="#/"><small>마지막이에요</small>홈으로</a>'}</div>`));
++  main.innerHTML = ''; main.appendChild(root); window.scrollTo(0, 0);
++  main.querySelectorAll('details.sm>summary').forEach(sm => { sm.title = '스토리 보기'; sm.setAttribute('aria-label', '스토리 보기'); });
++}
++
++/* ---------- 용어 사전 ---------- */
++function viewGlossary() {
++  renderTabs(null, true);
++  const items = [];
++  LESSONS.forEach(l => (l.terms || []).forEach(t => items.push({ t: t.t, d: t.d, id: l.id, lt: l.title })));
++  items.sort((a, b) => a.t.localeCompare(b.t, 'ko'));
++  $('#main').innerHTML = `<div class="lh"><h1>📖 용어 사전</h1><p class="tg">${items.length}개의 낱말 · 검색해 보세요</p></div><input class="gs" id="gs" placeholder="용어나 설명으로 검색"><div id="gl"></div>`;
++  const draw = (q) => {
++    const f = items.filter(i => !q || (i.t + i.d).toLowerCase().includes(q.toLowerCase()));
++    $('#gl').innerHTML = f.map(i => `<div class="gi"><b>${esc(i.t)}</b><a href="#/lesson/${i.id}">${esc(i.lt)}</a><div>${i.d}</div></div>`).join('') || '<p>검색 결과가 없어요.</p>';
++  };
++  $('#gs').oninput = (e) => draw(e.target.value); draw('');
++  window.scrollTo(0, 0);
++}
++
++/* ---------- 라우터 / 테마 / 그림 확대 ---------- */
++function route() {
++  const h = location.hash.replace(/^#\/?/, '');
++  const [a, b] = h.split('/');
++  if (a === 'lesson') viewLesson(b);
++  else if (a === 'unit') viewUnit(+b);
++  else if (a === 'glossary') viewGlossary();
++  else if (a === 'me') viewMe();
++  else { renderTabs(null); viewHome(); window.scrollTo(0, 0); }
++}
++window.addEventListener('hashchange', route);
++$('#themeBtn').onclick = () => {
++  const d = document.documentElement; const cur = d.dataset.theme || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
++  d.dataset.theme = cur === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('aikc-theme', d.dataset.theme); } catch (e) { }
++};
++try { const t = localStorage.getItem('aikc-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { }
++document.addEventListener('click', (e) => {
++  const lb = $('#lb');
++  if (e.target.matches('.bd figure.fig img')) { lb.innerHTML = `<img src="${e.target.src}" alt="">`; lb.hidden = false; }
++  else if (!lb.hidden) lb.hidden = true;
++});
++checkBadges();
++route();
