@@ -111,7 +111,7 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
-  // HappyMP3 — 음표 + 아래 화살표(내려받기)
+  // HappyMpX — 음표 + 아래 화살표(내려받기)
   "https://happymp3.web.app/": {
     from: "#16a34a",
     to: "#86efac",
