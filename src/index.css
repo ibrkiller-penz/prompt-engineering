@@ -130,3 +130,9 @@ a.btn {
   .am-pop, .am-shake { animation: none; }
   .am-circle { display: none; }
 }
+
+/* aimath: 한글은 단어 단위로 줄바꿈하고, 제목은 줄 길이를 고르게 */
+.aimath-root { word-break: keep-all; overflow-wrap: break-word; }
+.aimath-root :is(h1, h2, h3, h4) { text-wrap: balance; }
+.aimath-root :is(p, li) { text-wrap: pretty; }
+.aimath-root :is(pre, code, textarea, input, .katex) { word-break: normal; }

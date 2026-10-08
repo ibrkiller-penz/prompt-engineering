@@ -23,7 +23,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="aimath-root flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:p-3">본문으로 건너뛰기</a>
       <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-1">
