@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import RichMath from "./RichMath";
 import { recordResult } from "./store";
 import type { QResult } from "./store";
@@ -35,25 +36,16 @@ const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
 
 type Status = "idle" | "wrong" | "correct" | "solution";
 
-const BURST = ["🎉", "⭐", "✨", "🎊", "💫", "⭐", "✨", "🎉"];
-
-/** 정답일 때 터지는 작은 꽃가루 */
-function Burst() {
-  return (
-    <div className="relative h-0" aria-hidden>
-      {BURST.map((e, i) => {
-        const a = (i / BURST.length) * Math.PI * 2;
-        return (
-          <span
-            key={i}
-            className="am-burst"
-            style={{ "--dx": `${Math.cos(a) * 90}px`, "--dy": `${Math.sin(a) * 60 - 20}px` } as React.CSSProperties}
-          >
-            {e}
-          </span>
-        );
-      })}
-    </div>
+/** 정답일 때 화면 가운데에 겹쳐 그려지는 큰 동그라미 */
+function CircleOverlay() {
+  // 카드의 애니메이션(transform) 안에 두면 fixed 가 카드 기준이 되므로 body 로 뺀다
+  return createPortal(
+    <div className="am-circle" aria-hidden>
+      <svg viewBox="0 0 100 100" width="min(70vw, 320px)" height="min(70vw, 320px)">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" pathLength="100" />
+      </svg>
+    </div>,
+    document.body,
   );
 }
 
@@ -116,6 +108,7 @@ export function QuestionCard({
 
   return (
     <article onAnimationEnd={(e) => e.target === e.currentTarget && setShake(false)} className={`rounded-card border bg-surface p-4 sm:p-5 ${status === "correct" ? "am-pop border-ok" : status === "wrong" ? `${shake ? "am-shake " : ""}border-bad/60` : "border-line"}`} aria-label="문제">
+      {status === "correct" && <CircleOverlay />}
       <header className="flex flex-wrap items-center gap-2 text-sm">
         <span className="rounded-full bg-accent-soft px-2.5 py-0.5 font-semibold text-accent">{q.group}</span>
         <span className="text-warn" title={`난이도 ${q.level}`} aria-label={`난이도 ${q.level} / 5`}>{stars(q.level)}</span>
@@ -241,7 +234,7 @@ export function QuestionCard({
 
           {locked && (
             <div className={`mt-3 rounded-card p-3 ${status === "correct" ? "bg-ok-soft" : "bg-bg"}`} role="status">
-              {status === "correct" && <Burst />}
+              
               <p className={`font-bold ${status === "correct" ? "text-ok" : "text-ink"}`}>
                 {status === "correct" ? "정답이에요! 🎉" : "풀이를 봤어요. 다음에 다시 도전해요."}
               </p>
@@ -352,7 +345,7 @@ export function StairRunner({ questions, results }: { questions: Question[]; res
                   setCur((c) => Math.max(c, i + 1));
                   setHeld(q.id);
                   clearTimeout(timer.current);
-                  if (ok) timer.current = setTimeout(() => goNext(i), 1800); // 효과를 보여 준 뒤 다음 문제로
+                  if (ok) timer.current = setTimeout(() => goNext(i), 1100); // 효과를 보여 준 뒤 다음 문제로
                 }}
                 onNext={i < questions.length - 1 ? () => goNext(i) : undefined}
               />
