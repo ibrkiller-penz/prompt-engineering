@@ -4,7 +4,7 @@
 - 쪽 8개 + AI 작업지시서(`content/board/brief.md`) + 시작 프로젝트 zip(`board-kit/` → `scripts/make-board-zips.py`). 결정은 D12.
 - 키트 두 개 컴파일 성공(업로드·실물 시험은 안 함), 개인정보 검색 0건, 모바일 확인, **배포 완료(2026-10-06)**.
 - 2026-10-06 오후: 밀림 3차 대책(두 보드)·7인치 새 기능(12/24시간, 시계 복귀 시간, 보이기 설정)을 키트에 반영·재컴파일, 7번째 꼭지 SVG Forge 추가.
-- 2026-10-08 저녁: 허브 9번째 꼭지 HappyMpX(비밀번호 창, 웹/프로그램 선택) 배포. 새 서버·웹은 별도 프로젝트 `26_HappyMpX-웹서버`(비공개 저장소 ibrkiller-penz/happymp3)에 있고 Render 배포 전. 다음 할 일은 그 저장소의 `다음할일.md`.
+- 2026-10-08 밤: HappyMpX 카드 = 비밀번호 → 프로그램(HappyMpX.zip) 받기만. 웹 변환은 **중단**(유튜브가 Render 서버 주소를 막아 yt-dlp 접속 방식 9가지가 모두 실패). 변환 서버·웹페이지는 비공개가 아닌 공개 저장소 ibrkiller-penz/happymp3 에 남겨 두었고 happymp3.web.app 은 안내 페이지다.
 - 주의: `public/happy/HappyMpX.zip` 은 git 에 없다(.gitignore). 다른 PC 에서 배포하기 전에 https://github.com/ibrkiller-penz/happymp3/releases/download/files-2026-10-08/HappyMpX.zip 을 `public/happy/` 에 받아 둔다(안 그러면 사이트에서 빠진다).
 - 남은 일: 실물 보드에서 키트 시험, 흔들림 ‘지켜보는 중’ 상자 갱신, 교시 시각(PERIOD_START)을 board_config.h로 옮길지 결정.
 

@@ -67,7 +67,7 @@ function LockDialog({
       {open && links ? (
         <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-card border border-line bg-surface p-6 shadow-xl">
           <h2 className="text-xl font-extrabold">{title}</h2>
-          <p className="mt-2 text-sm text-muted">어떻게 쓸까요?</p>
+          <p className="mt-2 text-sm text-muted">{links.length > 1 ? "어떻게 쓸까요?" : "아래 파일을 받으세요."}</p>
           <ul className="mt-4 space-y-3">
             {links.map((l) => (
               <li key={l.href}>
