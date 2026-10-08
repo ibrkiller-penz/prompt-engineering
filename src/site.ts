@@ -92,7 +92,7 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     cta: "비밀번호 입력 후 열기 🔒",
     unlocked: [
       { label: "웹에서 쓰기", href: "https://happymp3.web.app/", note: "브라우저에서 링크를 붙여 넣고 MP3·MP4로 내려받아요." },
-      { label: "프로그램 받기 (HappyMpX.exe)", href: "/happy/HappyMpX.exe", download: true, note: "Windows 프로그램, 약 53MB. 서명이 없어서 Windows 보호 창이 뜨면 ‘추가 정보 → 실행’을 눌러요." },
+      { label: "프로그램 받기 (HappyMpX)", href: "/happy/HappyMpX.zip", download: true, note: "Windows 프로그램을 zip으로 묶은 파일(약 53MB). 압축을 풀어 HappyMpX.exe를 실행해요. 서명이 없어서 Windows 보호 창이 뜨면 ‘추가 정보 → 실행’을 눌러요." },
     ],
   },
 ];
