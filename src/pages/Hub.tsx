@@ -42,7 +42,7 @@ function LockDialog({
 }: {
   title: string;
   lock: string;
-  links?: { label: string; href: string; note: string; download?: boolean }[];
+  links?: { label: string; href: string; note: string; download?: boolean; withCode?: boolean }[];
   onOk: () => void;
   onClose: () => void;
 }) {
@@ -72,7 +72,7 @@ function LockDialog({
             {links.map((l) => (
               <li key={l.href}>
                 <a
-                  href={l.href}
+                  href={l.href + (l.withCode ? "#c=" + encodeURIComponent(pw) : "")}
                   {...(l.download ? { download: true } : { target: "_blank", rel: "noopener" })}
                   onClick={onClose}
                   className="block rounded-card border border-line p-4 hover:border-accent hover:bg-accent-soft"
@@ -126,7 +126,7 @@ function LockDialog({
 }
 
 export default function Hub() {
-  const [locked, setLocked] = useState<{ title: string; lock: string; path: string; links?: { label: string; href: string; note: string; download?: boolean }[] } | null>(null);
+  const [locked, setLocked] = useState<{ title: string; lock: string; path: string; links?: { label: string; href: string; note: string; download?: boolean; withCode?: boolean }[] } | null>(null);
   useEffect(() => {
     document.title = HUB_NAME;
   }, []);
