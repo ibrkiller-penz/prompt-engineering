@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>레이저 이미지 변환기</title>
 <style>
-:root{--bg:#f3f2ee;--panel:#ffffff;--ink:#1d1d1b;--mute:#6b6a65;--line:#e2e0d9;--accent:#c2410c;--accent-ink:#fff;--soft:#fbeee6;--stage:#dddbd4;--field:#f7f6f3}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161618;--panel:#202024;--ink:#ececea;--mute:#9a9a96;--line:#34343a;--accent:#fb8a3c;--accent-ink:#1a1a1a;--soft:#3a2516;--stage:#0e0e10;--field:#2a2a2f}}
-:root[data-theme="dark"]{--bg:#161618;--panel:#202024;--ink:#ececea;--mute:#9a9a96;--line:#34343a;--accent:#fb8a3c;--accent-ink:#1a1a1a;--soft:#3a2516;--stage:#0e0e10;--field:#2a2a2f}
+/* penedu 사이트 기본 테마(밝은 바탕 + 파랑 포인트)와 같은 색. 시스템 어두운 모드는 따르지 않는다. */
+:root{color-scheme:light;--bg:#f7f6f2;--panel:#ffffff;--ink:#1f2328;--mute:#5b6168;--line:#e3e1da;--accent:#3b5bdb;--accent-ink:#fff;--soft:#e8edff;--stage:#e9e7e0;--field:#f4f3ef}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#161618;--panel:#202024;--ink:#ececea;--mute:#9a9a96;--line:#34343a;--accent:#8ea2ff;--accent-ink:#10131f;--soft:#232a4a;--stage:#0e0e10;--field:#2a2a2f}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font:14px/1.45 "Pretendard","Malgun Gothic",system-ui,sans-serif;display:grid;grid-template-rows:auto 1fr}
