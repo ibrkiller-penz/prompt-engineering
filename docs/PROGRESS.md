@@ -58,4 +58,4 @@
 
 ## 2026-10-08 — /aibasic 모바일 줄 줄이기 (소스가 이 저장소에 없음)
 - `penedu.web.app/aibasic/` 소스(index.html·app.js·style.css·lessons.js·fonts·img)는 이 저장소에 **없다**(교재 이미지가 있어 공개 저장소에 올리지 않은 것으로 보임). 배포는 그 소스가 있는 PC 에서 `npm run deploy` 로 해야 하고, 그 PC 의 `public/aibasic/` 가 없는 곳에서 배포하면 /aibasic 이 사이트에서 빠진다.
-- 변경(모바일 줄 줄이기): 헤더 '인공지능 기초'·'용어 사전' 한 줄, 단원 카드 이모지 옆에 단원명, 배지 4+3 두 줄. 패치: `scripts/aibasic-mobile.patch` → `cd public/aibasic && patch -p1 < ../../scripts/aibasic-mobile.patch` (style.css·app.js).
+- 변경(모바일 줄 줄이기): 헤더 '인공지능 기초'·'용어 사전' 한 줄, 단원 카드 이모지 옆에 단원명, 배지 4+3 두 줄, 첫 화면 제목·설명을 단어 단위로 줄바꿈. 패치: `scripts/aibasic-mobile.patch` → `cd public/aibasic && patch -p1 < ../../scripts/aibasic-mobile.patch` (style.css·app.js).

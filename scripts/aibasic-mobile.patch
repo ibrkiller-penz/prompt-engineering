@@ -1,5 +1,5 @@
 --- a/style.css	2026-10-08 22:11:02.565016157 +0000
-+++ b/style.css	2026-10-08 22:11:02.567019814 +0000
++++ b/style.css	2026-10-08 22:11:28.775971072 +0000
 @@ -33,10 +33,10 @@
  /* 머리글 */
  .top{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
@@ -13,7 +13,15 @@
  .pill:hover{background:var(--bg)}.pill.on{background:var(--accent);color:var(--accent-ink)}
  .tabs{border-top:1px solid var(--line)}
  .tabs nav{max-width:1024px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;padding:0 16px}
-@@ -61,8 +61,8 @@
+@@ -51,6 +51,7 @@
+ /* 홈·단원 */
+ .hello{background:var(--accent-soft);border-radius:calc(var(--radius) + 6px);padding:30px 28px}
+ .hello h1{margin:0 0 8px;font-size:1.7rem;line-height:1.4;letter-spacing:-.02em}
++.hello h1,.hello p,.ucard p{word-break:keep-all;overflow-wrap:break-word}.hello h1{text-wrap:balance}.hello p{text-wrap:pretty}
+ .hello p{margin:0 0 16px;color:var(--muted)}
+ .cta{display:inline-flex;align-items:center;min-height:48px;padding:0 22px;background:var(--accent);color:var(--accent-ink);font-weight:800;border:0;border-radius:var(--radius);text-decoration:none}
+ .cta:hover{filter:brightness(1.08)}
+@@ -61,8 +62,8 @@
  .ugrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
  .ucard{display:block;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);border-top:4px solid var(--uc)}
  .ucard:hover{border-color:var(--uc);box-shadow:0 4px 14px rgba(0,0,0,.08)}
@@ -24,7 +32,7 @@
  .ucard p{margin:0 0 10px;color:var(--muted);font-size:.98rem;line-height:1.65}
  .bar{height:7px;background:var(--line);border-radius:99px;overflow:hidden}
  .bar i{display:block;height:100%;background:var(--uc,var(--accent));border-radius:99px;transition:width .4s}
-@@ -193,6 +193,9 @@
+@@ -193,6 +194,9 @@
    .story{padding:16px}.step .bd{padding:4px 16px 16px}.step>header{padding:12px 16px}
    .chk{margin:4px 14px 18px}
    .top .pill span.hide{display:none}
@@ -34,7 +42,7 @@
  }
  
  .bd h4{margin:1.6em 0 .4em;font-size:1.02rem;line-height:1.5;color:var(--accent)}
-@@ -232,9 +235,9 @@
+@@ -232,9 +236,9 @@
  .mehead{display:flex;gap:14px;align-items:center;margin-bottom:10px}
  .melv{width:54px;height:54px;border-radius:16px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800}
  .mexp{font-size:.95rem;color:var(--muted)}
@@ -48,7 +56,7 @@
  
  /* 용어 카드 맞추기 */
 --- a/app.js	2026-10-08 22:11:02.565083193 +0000
-+++ b/app.js	2026-10-08 22:11:02.567084825 +0000
++++ b/app.js	2026-10-08 22:11:28.776089810 +0000
 @@ -1,486 +1,486 @@
 -/* 인공지능 기초 학습사이트 — 단일 페이지 앱 (의존성 없음) */
 -const ROMAN = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
@@ -661,7 +669,7 @@
 +  const nx = ALL.find(i => L[i] && !P.done[i]);
 +  const started = Object.keys(P.done).length || Object.keys(P.steps).length;
 +  let h = `<div class="hello"><h1>이야기로 시작해서, 계단처럼 한 칸씩<br>고등학교 인공지능 기초</h1>
-+  <p>교과서를 쉬운 말로 풀어 다시 썼어요. 레슨을 깰 때마다 XP를 모으고 배지를 얻어요. (${dn}/${total} 레슨 완료)</p>
++  <p>교과서를 쉬운 말로 풀어 다시 썼어요. 레슨을 깰 때마다 XP를 모으고 배지를 얻어요. <span style="white-space:nowrap">(${dn}/${total} 레슨 완료)</span></p>
 +  ${nx ? `<a class="cta" href="#/lesson/${nx}">${started ? '이어서 학습하기 →' : '첫 레슨 시작하기 →'}</a>` : '<b>🎉 모든 레슨을 마쳤어요!</b>'}
 +  <div class="steps4"><div><b>📖</b>① 짧은 글로<br>궁금증 만들기</div><div><b>🪜</b>② 계단 오르며<br>문제를 풀어요</div><div><b>🧩</b>③ 용어 카드를<br>끌어 맞춰요</div><div><b>🏁</b>④ 10문제 시험<br>80점이면 통과!</div></div></div>
 +  <h2 class="h2">내 기록</h2>${myCard()}
