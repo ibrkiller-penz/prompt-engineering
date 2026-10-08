@@ -14,3 +14,6 @@ dist/
 # 비밀번호 뒤에서 내려받는 프로그램(크기가 크고 공개 저장소에 두지 않는다). 사이트에는 npm run deploy 때 이 PC의 파일이 올라간다.
 public/happy/*.exe
 public/happy/*.zip
+
+# /aibasic 은 소스가 저장소 밖(교재 이미지 포함). scripts/fetch-aibasic.mjs 로 배포본을 내려받아 쓴다.
+public/aibasic/
