@@ -95,6 +95,14 @@ ul.tips b{color:var(--ink)}
 .wcard .note{margin:2px 0}
 .wcard button.primary{margin-top:auto;align-self:flex-start}
 .hfoot{margin-top:26px;font-size:12.5px;color:var(--mute)}
+.why{margin-top:4px;font-size:12.5px}
+.why summary{font-weight:600;padding:2px 0;color:var(--accent)}
+.why summary::after{content:""}
+.why ul{margin:4px 0 0;padding-left:18px;color:var(--ink)}
+.why li{margin:4px 0;line-height:1.5}
+.why li b{color:var(--ink)}
+.trait{background:var(--soft);border-radius:9px;padding:10px 12px;margin:6px 0 10px;font-size:13.5px;line-height:1.6}
+.trait b{color:var(--accent)}
 @media (max-width:860px){
   .tiles,.wcards{grid-template-columns:1fr}
   body{height:auto;display:block}
@@ -145,6 +153,7 @@ ul.tips b{color:var(--ink)}
   <details open><summary>워크플로우 (재료별 시작 설정)</summary>
     <div class="chips" id="matChips"></div>
     <div id="wfList"></div>
+    <details class="why" id="whyBox" hidden open><summary>왜 이렇게 잡았나요?</summary><ul id="whyList"></ul></details>
     <div class="note" id="presetNote">재료를 고르면 그 재료의 워크플로우가 나옵니다. 원하는 워크플로우를 누르면 해상도·대비·디더링·반전이 한 번에 맞춰집니다. 숫자는 <b>시작값</b>이에요 — 같은 재료 자투리에 <b>시험 카드</b>를 먼저 각인해 보고 아래에서 미세 조정하세요.</div>
   </details>
 
@@ -268,51 +277,67 @@ const DEF = {
 };
 
 const MATS = [
-  { id: 'wood', name: '나무', tip: '<b>나무</b>: 표면에 마스킹 테이프를 붙여 새기면 그을음 자국이 줄어듭니다. 결이 센 원목은 대비를 올리세요.' },
-  { id: 'mdf', name: 'MDF', tip: '<b>MDF</b>: 연기와 그을음이 많습니다. 환기를 하고, 코팅된 판은 출력을 낮추세요.' },
-  { id: 'acrylic', name: '아크릴', tip: '<b>아크릴</b>: 보호 필름을 붙인 채 새기면 표면이 덜 상합니다. 투명 아크릴은 뒷면 각인이 더 선명합니다.' },
-  { id: 'slate', name: '슬레이트', tip: '<b>슬레이트</b>: 각인 뒤 식용유·광택제를 얇게 바르면 대비가 살아납니다.' },
-  { id: 'leather', name: '가죽', tip: '<b>가죽</b>: 식물성 태닝 가죽이 잘 새겨집니다. 낮은 출력으로 시작하고 불꽃과 냄새에 주의해 환기하세요. 합성 가죽은 유독 가스가 나올 수 있으니 재질을 확인하세요.' },
-  { id: 'cork', name: '코르크', tip: '<b>코르크</b>: 표면이 거칠어 작은 글자는 뭉개집니다. 큰 그림과 굵은 선이 잘 맞습니다.' },
-  { id: 'glass', name: '유리', tip: '<b>유리</b>: 열 충격으로 금이 갈 수 있습니다. 낮은 출력으로 시작하고, 유리 위에 젖은 키친타월이나 마스킹을 덮는 방법이 알려져 있습니다. 유리 종류에 따라 결과가 크게 다릅니다.' },
-  { id: 'anodized', name: '아노다이즈드 알루미늄', tip: '<b>아노다이즈드 알루미늄</b>: 표면 염색층을 날려 밝은 자국을 냅니다. 레이저 종류와 코팅에 따라 반응이 크게 다르므로 시험이 꼭 필요합니다.' },
-  { id: 'steel', name: '스테인리스 스틸', tip: '<b>스테인리스 스틸</b>: CO2 레이저는 금속을 직접 새기지 못합니다. 레이저용 마킹제를 얇게 바르고 말린 뒤 새기는 방식입니다. 마킹제 사용법을 따르세요.' },
-  { id: 'tile', name: '흰색 타일', tip: '<b>흰색 타일</b>: 검정 스프레이 페인트를 칠해 완전히 말린 뒤 새기면 페인트가 걷히며 흰 바탕이 드러납니다. 환기하세요.' },
-  { id: 'line', name: '로고 · 선화', tip: '<b>로고·선화</b>: 점 변환 없이 선으로 표현합니다. 어떤 재료에서도 쓸 수 있습니다.' }
+  { id: 'wood', name: '나무', trait: '레이저가 나무를 태워 갈색~짙은 갈색 자국을 냅니다. 새기지 않은 곳은 나무 본래 색 그대로라서, 사진의 어두운 부분을 많이 태우고 밝은 부분은 비워 둡니다. 결·옹이에 따라 같은 설정에도 진하기가 달라지고 그을음이 번지기 쉽습니다.', tip: '<b>나무</b>: 표면에 마스킹 테이프를 붙여 새기면 그을음 자국이 줄어듭니다. 결이 센 원목은 대비를 올리세요.' },
+  { id: 'mdf', name: 'MDF', trait: '접착제가 섞인 균일한 판이라 결은 없지만, 연기와 그을음이 많고 같은 출력에서 나무보다 진하게 탑니다. 점이 번져 이어지기 쉬워서 사진이 어둡고 뭉개져 보이기 쉽습니다.', tip: '<b>MDF</b>: 연기와 그을음이 많습니다. 환기를 하고, 코팅된 판은 출력을 낮추세요.' },
+  { id: 'acrylic', name: '아크릴', trait: '새기면 표면이 서리처럼 하얗게 변합니다(캐스트 아크릴). 투명 아크릴은 뒷면에서 새겨 앞으로 보면 선명한데, 이때 글자와 그림이 거울처럼 뒤집히므로 미리 좌우 반전해야 합니다. 유색 아크릴은 새긴 곳이 바탕색보다 밝게 드러납니다. 압출 아크릴은 하얗게 되지 않고 투명하게 깎입니다.', tip: '<b>아크릴</b>: 보호 필름을 붙인 채 새기면 표면이 덜 상합니다. 투명 아크릴은 뒷면 각인이 더 선명합니다.' },
+  { id: 'slate', name: '슬레이트', trait: '어두운 돌이라 새긴 곳이 밝은 회색으로 드러납니다. 그래서 사진의 밝은 부분을 새겨야 합니다(반전). 표면이 단단하고 고르지 않아 선명도를 높이는 것이 도움이 되고, 새긴 뒤 오일을 바르면 대비가 살아납니다.', tip: '<b>슬레이트</b>: 각인 뒤 식용유·광택제를 얇게 바르면 대비가 살아납니다.' },
+  { id: 'leather', name: '가죽', trait: '타서 갈색~검은 갈색이 됩니다. 가죽 종류·두께에 따라 반응이 다르고 탄 냄새와 불꽃이 나기 쉽습니다. 표면 질감 때문에 가는 선이 묻히기 쉽습니다. 합성 가죽(비닐 계열)은 유해한 연기가 날 수 있으니 새기지 않습니다.', tip: '<b>가죽</b>: 식물성 태닝 가죽이 잘 새겨집니다. 낮은 출력으로 시작하고 불꽃과 냄새에 주의해 환기하세요. 합성 가죽은 유독 가스가 나올 수 있으니 재질을 확인하세요.' },
+  { id: 'cork', name: '코르크', trait: '구멍이 많은 거친 재료라 점이 고르게 찍히지 않고 가는 선과 작은 글자가 묻힙니다. 색이 밝은 갈색이라 대비가 낮은 편이므로 대비를 올리고 큰 그림에 쓰는 것이 좋습니다.', tip: '<b>코르크</b>: 표면이 거칠어 작은 글자는 뭉개집니다. 큰 그림과 굵은 선이 잘 맞습니다.' },
+  { id: 'glass', name: '유리', trait: '레이저가 표면에 미세한 균열을 만들어 서리처럼 하얗게 보입니다. 새긴 곳이 밝아지므로 반전이 필요합니다. 열 충격으로 금이 갈 수 있어 약한 세기로 시작하세요. 유리 종류에 따라 결과가 크게 다릅니다. 뒷면에서 새기면 유리 두께 너머로 보여 입체감이 납니다.', tip: '<b>유리</b>: 열 충격으로 금이 갈 수 있습니다. 낮은 출력으로 시작하고, 유리 위에 젖은 키친타월이나 마스킹을 덮는 방법이 알려져 있습니다. 유리 종류에 따라 결과가 크게 다릅니다.' },
+  { id: 'anodized', name: '아노다이즈드 알루미늄', trait: '표면의 염색된 산화 피막을 레이저가 벗겨 내면 금속 본래의 은색이 드러납니다. 검은 알루미늄에서는 새긴 곳이 밝아져 반전이 필요합니다. 점이 작고 정밀하게 표현되어 높은 해상도가 어울리지만, 레이저 종류와 피막에 따라 반응이 크게 다릅니다.', tip: '<b>아노다이즈드 알루미늄</b>: 표면 염색층을 날려 밝은 자국을 냅니다. 레이저 종류와 코팅에 따라 반응이 크게 다르므로 시험이 꼭 필요합니다.' },
+  { id: 'steel', name: '스테인리스 스틸', trait: '스테인리스는 CO2 레이저로 직접 새겨지지 않아 레이저용 마킹제를 바르고 말립니다. 레이저가 닿은 마킹제가 금속에 검게 굳고 나머지는 씻어 냅니다. 검게 굳은 곳이 점이므로 반전하지 않으며, 표면이 매끈해 높은 해상도가 가능합니다.', tip: '<b>스테인리스 스틸</b>: CO2 레이저는 금속을 직접 새기지 못합니다. 레이저용 마킹제를 얇게 바르고 말린 뒤 새기는 방식입니다. 마킹제 사용법을 따르세요.' },
+  { id: 'tile', name: '흰색 타일', trait: '유약 처리된 흰 타일에 검은 페인트를 입히면, 레이저가 페인트를 걷어낸 곳에 흰 바탕이 드러납니다. 걷힌 곳이 밝아지므로 반전이 필요하고, 페인트층이 얇고 고를수록 선명합니다.', tip: '<b>흰색 타일</b>: 검정 스프레이 페인트를 칠해 완전히 말린 뒤 새기면 페인트가 걷히며 흰 바탕이 드러납니다. 환기하세요.' },
+  { id: 'line', name: '로고 · 선화', trait: '점 변환 없이 검정과 흰색 두 가지로만 나눕니다. 선·글자·로고처럼 경계가 분명한 그림에 어울리고 사진에는 맞지 않습니다. 재료와 무관하게 쓸 수 있습니다.', tip: '<b>로고·선화</b>: 점 변환 없이 선으로 표현합니다. 어떤 재료에서도 쓸 수 있습니다.' }
 ];
 const START = ' <br><span class="s">※ 시작값입니다. 같은 재료 자투리에서 시험 카드로 먼저 확인하세요.</span>';
 const WORKFLOWS = [
   { id: 'wood', mat: 'wood', name: '나무 사진', sub: '합판 · 원목', p: { dpi: 254, brightness: 5, contrast: 15, gamma: 1.1, black: 8, white: 245, sharpen: 80, sharpenR: 1, dither: 'jarvis', invert: false, flipH: false },
+    why: ['감마 1.1·레벨 8–245: 나무는 중간 톤이 실제보다 어둡게 타므로 약간 밝게 보정하고, 완전한 검정·흰색 끝을 조금 잘라 점이 막히거나 빈 곳이 생기지 않게 했습니다.'],
     note: '<b>나무</b>: 각인부가 진하게 탑니다. 중간 톤이 실제보다 어둡게 나오므로 감마를 약간 올렸습니다. 결이 강한 원목은 대비를 더 올리세요.' },
   { id: 'wood-strong', mat: 'wood', name: '나무 · 결 강한 원목', sub: '대비 강하게', p: { dpi: 254, brightness: 8, contrast: 28, gamma: 1.2, black: 10, white: 240, sharpen: 60, sharpenR: 1, dither: 'atkinson', invert: false, flipH: false },
+    why: ['결이 강한 원목은 결 무늬가 사진을 덮어 버립니다. 그래서 대비를 크게 올리고, 밝고 어두운 곳을 단순하게 만드는 Atkinson을 골랐습니다.'],
     note: '<b>결이 강한 원목</b>: 결 때문에 사진이 묻히므로 대비를 올리고 대비가 강한 Atkinson 디더링을 썼습니다.' + START },
   { id: 'mdf', mat: 'mdf', name: 'MDF 사진', sub: '밝게 · 낮은 해상도', p: { dpi: 200, brightness: 15, contrast: 20, gamma: 1.25, black: 15, white: 240, sharpen: 60, sharpenR: 1, dither: 'stucki', invert: false, flipH: false },
+    why: ['MDF는 같은 출력에서 진하게 타고 점이 번져 이어집니다. 그래서 해상도를 200 DPI로 낮춰 점 사이를 벌리고, 전체를 밝게(밝기 +15, 감마 1.25) 잡았습니다.'],
     note: '<b>MDF</b>: 점이 번지고 진하게 타서 해상도를 낮췄고(200 DPI ≈ 간격 0.127 mm) 전체를 밝게 잡았습니다. 표면이 코팅된 MDF는 출력을 낮추세요.' },
   { id: 'acrylic-back', mat: 'acrylic', name: '투명 아크릴', sub: '뒷면 각인', p: { dpi: 300, brightness: 0, contrast: 15, gamma: 1, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: true },
+    why: ['뒷면에서 새기므로 좌우 반전, 새긴 곳이 하얗게 보이므로 반전을 함께 켰습니다. 점이 작을수록 부드러워 보이는 재료라 300 DPI를 썼습니다.'],
     note: '<b>투명 아크릴 뒷면</b>: 깎인 곳이 하얗게 보이므로 <b>반전</b>, 뒤에서 새기므로 <b>좌우 반전</b>을 켰습니다. 캐스트 아크릴이 하얗게 잘 나옵니다(압출 아크릴은 투명하게 깎임).' },
   { id: 'acrylic-front', mat: 'acrylic', name: '유색 아크릴', sub: '앞면 각인', p: { dpi: 300, brightness: 0, contrast: 15, gamma: 1, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
+    why: ['유색 아크릴은 새긴 곳이 바탕색보다 밝아지므로 반전만 켰습니다. 앞면에서 새기므로 좌우 반전은 필요 없습니다.'],
     note: '<b>유색(검정 등) 아크릴</b>: 각인부가 밝게 드러나므로 반전을 켰습니다.' },
   { id: 'slate', mat: 'slate', name: '슬레이트 사진', sub: '반전 · 선명하게', p: { dpi: 254, brightness: 0, contrast: 25, gamma: 0.9, black: 10, white: 235, sharpen: 100, sharpenR: 1, dither: 'jarvis', invert: true, flipH: false },
+    why: ['새긴 곳이 밝게 나오므로 반전. 슬레이트는 새겨도 대비가 약해서 대비 +25, 선명도 100%, 감마 0.9(중간 톤을 약간 어둡게)로 대비를 최대한 끌어올렸습니다.'],
     note: '<b>슬레이트</b>: 각인부가 밝은 회색이 되므로 반전을 켜고 대비·선명도를 강하게 잡았습니다. 각인 후 오일을 바르면 대비가 살아납니다.' },
   { id: 'leather', mat: 'leather', name: '가죽 사진', sub: '식물성 태닝', p: { dpi: 254, brightness: 8, contrast: 12, gamma: 1.15, black: 6, white: 245, sharpen: 50, sharpenR: 1, dither: 'jarvis', invert: false, flipH: false },
+    why: ['가죽은 타서 갈색이 되므로 사진의 어두운 곳을 태웁니다. 부드러운 톤이 어울려 Jarvis를 쓰고, 약간 밝게(밝기 +8, 감마 1.15) 잡아 과하게 타는 것을 줄였습니다.'],
     note: '<b>가죽</b>: 각인부가 진한 갈색으로 탑니다. 부드럽게 보이도록 Jarvis, 약간 밝게 잡았습니다. 낮은 출력으로 시작하세요.' + START },
   { id: 'leather-logo', mat: 'leather', name: '가죽 로고', sub: '굵은 선 · 글자', p: { dpi: 300, contrast: 10, sharpen: 0, dither: 'threshold', threshold: 140, morph: 1, invert: false, flipH: false },
-    note: '<b>가죽 로고</b>: 점 변환 없이 경계값 하나로 나눕니다. 가죽은 선이 번지므로 선을 약간 굵게(+1) 잡았습니다.' + START },
+    why: ['가죽은 표면 질감 때문에 얇은 선이 묻히기 쉽습니다. 그래서 점 없이 경계값으로 나누고, 선을 한 단계 굵게(+1) 했습니다.'],
+    note: '<b>가죽 로고</b>: 점 변환 없이 경계값 하나로 나눕니다. 가죽은 얇은 선이 표면 질감에 묻히기 쉬워 선을 약간 굵게(+1) 잡았습니다.' + START },
   { id: 'cork', mat: 'cork', name: '코르크 사진', sub: '큰 그림 · 거친 표면', p: { dpi: 200, brightness: 12, contrast: 25, gamma: 1.2, black: 10, white: 240, denoise: 0.6, sharpen: 40, sharpenR: 1.2, dither: 'stucki', invert: false, flipH: false },
+    why: ['거친 표면에서 점이 일정하게 찍히지 않아 해상도를 200 DPI로 낮췄습니다. 노이즈 제거 0.6은 표면 질감이 만드는 작은 잡티를 줄이기 위한 것이고, 대비 +25는 낮은 바탕 대비를 보충합니다.'],
     note: '<b>코르크</b>: 표면이 거칠어 해상도를 낮추고 노이즈를 약간 줄였습니다. 작은 글자는 피하세요.' + START },
   { id: 'glass-front', mat: 'glass', name: '유리 앞면', sub: '반전 · 서리 효과', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
+    why: ['새긴 곳이 하얗게 되므로 반전. 유리는 점이 고르게 찍히는 쪽이 깔끔해 보여 Floyd–Steinberg를 썼습니다.'],
     note: '<b>유리 앞면</b>: 각인부가 뿌옇게(서리처럼) 하얗게 변하므로 반전을 켰습니다. 금이 가지 않게 낮은 출력으로 시작하세요.' + START },
   { id: 'glass-back', mat: 'glass', name: '유리 뒷면', sub: '반전 · 좌우 반전', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: true },
+    why: ['앞면 설정과 같고, 뒷면에서 새겨 앞에서 보므로 좌우 반전만 더했습니다.'],
     note: '<b>유리 뒷면</b>: 뒤에서 새겨 앞에서 보는 방식이라 <b>좌우 반전</b>을 함께 켰습니다.' + START },
   { id: 'anodized', mat: 'anodized', name: '알루미늄 사진', sub: '반전 · 고해상도', p: { dpi: 400, contrast: 20, gamma: 0.95, black: 8, white: 242, sharpen: 90, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
+    why: ['피막이 벗겨진 곳이 은색으로 밝아지므로 반전. 점이 작게 표현되는 재료라 400 DPI, 선명하게 90%로 가장자리를 또렷하게 했습니다.'],
     note: '<b>아노다이즈드 알루미늄</b>: 염색층이 날아간 곳이 밝게 나오므로 반전을 켰습니다. 점이 작아 400 DPI로 잡았습니다.' + START },
   { id: 'steel', mat: 'steel', name: '스테인리스 사진', sub: '마킹제 사용', p: { dpi: 400, contrast: 25, gamma: 1, black: 10, white: 240, sharpen: 90, sharpenR: 1, dither: 'floyd', invert: false, flipH: false },
+    why: ['마킹제가 검게 굳은 곳이 점이 되므로 반전하지 않습니다. 매끈한 금속이라 400 DPI, 대비 +25·선명하게 90%로 점을 또렷하게 했습니다.'],
     note: '<b>스테인리스 스틸</b>: 마킹제가 검게 굳은 부분이 어두운 점이 됩니다. 마킹제 설명서의 속도·출력을 먼저 따르세요.' + START },
   { id: 'tile', mat: 'tile', name: '블랙 페인트 타일', sub: '반전 · 페인트 걷어내기', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, sharpen: 80, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
+    why: ['페인트가 걷힌 곳이 흰색으로 밝아지므로 반전. 페인트는 얇게 걷히므로 300 DPI에서 Floyd–Steinberg의 촘촘한 점이 잘 맞습니다.'],
     note: '<b>블랙 페인트 타일</b>: 페인트가 걷히는 곳이 흰색으로 드러나므로 반전을 켰습니다.' + START },
   { id: 'line', mat: 'line', name: '로고 · 선화', sub: '경계값 흑백', p: { dpi: 400, contrast: 0, gamma: 1, sharpen: 0, dither: 'threshold', threshold: 128, invert: false, flipH: false },
+    why: ['사진이 아니라 선·글자·로고용이라 점 변환 없이 경계값으로 나눕니다. 선이 가늘게 살도록 400 DPI를 썼습니다.'],
     note: '<b>로고·선화</b>: 점 변환 없이 경계값 하나로 흑백을 나눕니다. 선이 끊기면 경계값을 올리거나 「선 굵기」를 조정하세요.' },
   { id: 'line-edge', mat: 'line', name: '사진 → 윤곽선', sub: '선화 만들기', p: { dpi: 300, denoise: 0.8, edge: 50, edgeOnly: true, dither: 'threshold', threshold: 160, invert: false, flipH: false },
+    why: ['사진에서 윤곽선만 뽑아 선화를 만듭니다. 윤곽 검출은 잡티에도 반응하므로 노이즈 제거 0.8로 먼저 부드럽게 하고, 경계값 160으로 약한 선은 지웁니다.'],
     note: '<b>사진 → 윤곽선</b>: 사진에서 윤곽만 뽑아 선화로 만듭니다. 선이 지저분하면 노이즈 제거를 올리고, 끊기면 경계값을 올리세요.' + START }
 ];
 const PRESETS = WORKFLOWS;
@@ -393,6 +418,36 @@ function ditherVis() {
   morphRow.hidden = d === 'none';
 }
 
+/* 설정 이유 설명 (일반적인 레이저 각인 경험칙 — 장비·재료마다 다름) */
+const DITHER_WHY = {
+  jarvis: '오차를 넓은 범위로 퍼뜨려 부드럽게 이어지는 톤을 만듭니다(사진용).',
+  stucki: 'Jarvis처럼 부드럽지만 조금 더 선명합니다.',
+  floyd: '점이 촘촘하고 세밀해서 작은 점을 잘 찍는 재료에 어울립니다.',
+  atkinson: '밝은 곳과 어두운 곳을 단순하게 만들어 대비가 강해집니다. 바탕 무늬가 센 재료에서 사진이 묻히는 것을 막습니다.',
+  threshold: '점 없이 검정과 흰색 두 가지로만 나눕니다. 선·글자·로고용입니다.'
+};
+function whyList(w) {
+  const q = Object.assign(clone(DEF), w.p), D = Object.fromEntries(DITHERS), L = [];
+  const iv = (25.4 / q.dpi).toFixed(3);
+  L.push(`<b>${q.dpi} DPI</b> (점 간격 ${iv} mm): ` + (q.dpi >= 400 ? '아주 촘촘한 점이라 매끈한 표면에서 가는 선과 작은 글자를 살립니다.' : q.dpi >= 300 ? '사진과 작은 글자를 함께 살리는 중간값입니다.' : q.dpi >= 254 ? '0.1 mm 간격으로, 많은 CO2 레이저에서 사진 각인의 기본으로 쓰는 값입니다.' : '간격을 넓혀 점이 서로 겹치지 않게 합니다. 점이 번지거나 표면이 거친 재료에 맞습니다.'));
+  L.push(`<b>${D[q.dither].split(' (')[0]}</b>: ` + (DITHER_WHY[q.dither] || '점의 밀도로 명암을 표현합니다.') + (q.dither === 'threshold' ? ` 경계값 ${q.threshold}보다 어두운 곳을 새깁니다.` : ''));
+  if (q.invert) L.push('<b>반전</b>: 레이저는 검은 점 자리를 새깁니다. 이 재료는 새긴 곳이 밝아지므로, 사진의 밝은 부분을 새기도록 흑백을 뒤집습니다.');
+  if (q.flipH) L.push('<b>좌우 반전</b>: 뒷면에서 새겨 앞에서 보는 방식이라, 글자와 그림이 거울처럼 보이지 않도록 미리 좌우를 뒤집습니다.');
+  const tone = [];
+  if (q.brightness) tone.push(`밝기 ${q.brightness > 0 ? '+' : ''}${q.brightness}`);
+  if (q.contrast) tone.push(`대비 ${q.contrast > 0 ? '+' : ''}${q.contrast}`);
+  if (q.gamma !== 1) tone.push(`감마 ${q.gamma}`);
+  if (q.black || q.white !== 255) tone.push(`레벨 ${q.black}–${q.white}`);
+  if (tone.length) L.push(`<b>톤 (${tone.join(' · ')})</b>: 재료가 사진을 실제보다 어둡게·흐리게 만드는 경향을 미리 보정합니다. 감마가 1보다 크면 중간 톤이 밝아지고, 레벨은 너무 어둡거나 밝은 끝을 잘라 점이 막히거나 사라지는 것을 막습니다.`);
+  if (q.sharpen) L.push(`<b>선명하게 ${q.sharpen}%</b>: 새기면 가장자리가 번지므로 미리 또렷하게 만듭니다.`);
+  if (q.denoise) L.push(`<b>노이즈 제거 ${q.denoise}</b>: 거친 표면이나 사진의 작은 잡티가 점으로 찍히지 않게 줄입니다.`);
+  if (q.edgeOnly) L.push('<b>윤곽선만 남기기</b>: 사진에서 경계만 뽑아 선화로 만듭니다.');
+  if (q.morph) L.push(`<b>선 굵기 ${q.morph > 0 ? '+' : ''}${q.morph}</b>: ` + (q.morph > 0 ? '가는 선이 재료 질감에 묻히지 않게 굵힙니다.' : '선이 번져 뭉치는 것을 줄이도록 가늘게 합니다.'));
+  (w.why || []).forEach(t => L.push('<b>이 재료에서는</b> ' + t));
+  L.push('<span style="color:var(--mute)">※ 이유는 일반적인 레이저 각인 경험칙입니다. 레이저 종류·출력·속도·재료 상태에 따라 달라지므로 시험 카드로 확인하세요.</span>');
+  return L;
+}
+
 /* 워크플로우 (재료별) */
 let curMat = 'wood';
 function keepView() { return { widthMm: P.widthMm, rotate: P.rotate, cropL: P.cropL, cropT: P.cropT, cropR: P.cropR, cropB: P.cropB }; }
@@ -418,13 +473,14 @@ function wfList() {
     box.append(b);
   });
   const m = MATS.find(x => x.id === curMat), t = document.createElement('div');
-  t.className = 'note'; t.innerHTML = m.tip; box.append(t);
+  t.className = 'note'; t.innerHTML = `<b>${m.name}의 특징</b>: ${m.trait}<br><br>${m.tip}`; box.append(t);
   activePresetMark();
 }
 function applyPreset(pr) {
   P = Object.assign(clone(DEF), keepView(), clone(pr.p));
   activePreset = pr.id;
   $('#presetNote').innerHTML = pr.note;
+  $('#whyList').innerHTML = whyList(pr).map(x => `<li>${x}</li>`).join(''); $('#whyBox').hidden = false;
   syncUI(); scheduleRender(); scheduleCommit(); updateInfo(); activePresetMark();
 }
 function activePresetMark() {
@@ -1037,9 +1093,10 @@ function hWfList() {
     return;
   }
   const m = MATS.find(x => x.id === hMat);
+  const tr = document.createElement('div'); tr.className = 'trait'; tr.style.gridColumn = '1/-1'; tr.innerHTML = `<b>${m.name}의 특징</b><br>${m.trait}`; box.append(tr);
   WORKFLOWS.filter(w => w.mat === hMat).forEach(w => {
     const c = document.createElement('div'); c.className = 'wcard';
-    c.innerHTML = `<h3>${w.name}</h3><div class="sub">${w.sub}</div><ul>${wfFacts(w.p).map(t => `<li>${t}</li>`).join('')}</ul><div class="note">${w.note}</div><button class="primary">이 워크플로우로 시작</button>`;
+    c.innerHTML = `<h3>${w.name}</h3><div class="sub">${w.sub}</div><ul>${wfFacts(w.p).map(t => `<li>${t}</li>`).join('')}</ul><div class="note">${w.note}</div><details class="why" open><summary>왜 이렇게 잡았나요?</summary><ul>${whyList(w).map(t => `<li>${t}</li>`).join('')}</ul></details><button class="primary">이 워크플로우로 시작</button>`;
     c.querySelector('button').onclick = () => enterConv(() => { curMat = hMat; matChips(); wfList(); applyPreset(w); });
     box.append(c);
   });
