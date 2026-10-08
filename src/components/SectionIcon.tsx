@@ -111,6 +111,19 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // HappyMP3 — 음표 + 아래 화살표(내려받기)
+  "https://happymp3.web.app/": {
+    from: "#16a34a",
+    to: "#86efac",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 29V10l14-3v18" />
+        <ellipse cx="15.5" cy="29.5" rx="4.3" ry="3.4" fill="#fff" stroke="none" />
+        <ellipse cx="29.5" cy="25.5" rx="4.3" ry="3.4" fill="#fff" stroke="none" />
+        <path d="M24 34v8M20 39l4 4 4-4" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",
