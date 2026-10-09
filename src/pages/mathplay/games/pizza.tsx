@@ -43,10 +43,36 @@ export function makeCompare(rnd: (n: number) => number): [Fr, Fr] {
     if (x.n !== y.n) return [x, y];
   }
 }
+/** 쉬운 목표: 1/2, 1/4, 3/4, 1/3, 2/3 */
+export function makeEasyTarget(rnd: (n: number) => number): Fr {
+  const list: Fr[] = [{ k: 1, n: 2 }, { k: 1, n: 4 }, { k: 3, n: 4 }, { k: 1, n: 3 }, { k: 2, n: 3 }, { k: 1, n: 2 }];
+  return list[rnd(list.length)];
+}
+
+/** 쉬운 비교: 조각 수가 2·4·8 또는 2·3·6 처럼 서로 맞추기 쉬운 것끼리 */
+export function makeCompareEasy(rnd: (n: number) => number): [Fr, Fr] {
+  const sets = [[2, 4, 8], [2, 3, 6], [3, 6], [2, 4]];
+  for (;;) {
+    const set = sets[rnd(sets.length)];
+    const n1 = set[rnd(set.length)];
+    const n2 = set[rnd(set.length)];
+    if (n1 === n2) continue;
+    let x: Fr = { k: 1 + rnd(n1 - 1), n: n1 };
+    let y: Fr = { k: 1 + rnd(n2 - 1), n: n2 };
+    if (rnd(4) === 0) {
+      const base = reduceFr(x);
+      const m = n2 / base.n;
+      if (Number.isInteger(m)) y = { k: base.k * m, n: base.n * m };
+    }
+    if (x.n !== y.n) return [x, y];
+    x = y;
+  }
+}
 // ==END==
 
 const frText = (f: Fr) => `${f.k}/${f.n}`;
 const PN = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const PN_EASY = [2, 3, 4, 6, 8, 12];
 const ROUNDS = 5;
 
 function Pizza({ n, sel, onToggle, label, size = 200 }: { n: number; sel: boolean[]; onToggle?: (i: number) => void; label: string; size?: number }) {
@@ -91,17 +117,17 @@ function Pizza({ n, sel, onToggle, label, size = 200 }: { n: number; sel: boolea
   );
 }
 
-function Counter({ n, setN, disabled }: { n: number; setN: (n: number) => void; disabled?: boolean }) {
+function Counter({ n, setN, disabled, list = PN }: { n: number; setN: (n: number) => void; disabled?: boolean; list?: number[] }) {
   return (
     <div className="flex flex-wrap justify-center gap-1" role="group" aria-label="피자를 나눌 조각 수">
-      {PN.map((v) => (
+      {list.map((v) => (
         <button
           key={v}
           type="button"
           disabled={disabled}
           aria-pressed={n === v}
           onClick={() => setN(v)}
-          className={`inline-flex h-11 min-w-[40px] items-center justify-center rounded-card px-2 text-sm font-bold tabular-nums transition disabled:opacity-40 ${n === v ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"}`}
+          className={`inline-flex h-12 min-w-[44px] items-center justify-center rounded-card px-2 text-base font-bold tabular-nums transition disabled:opacity-40 ${n === v ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"}`}
         >
           {v}
         </button>
@@ -122,7 +148,7 @@ function FreeMode() {
   return (
     <div className="space-y-3">
       <Board>
-        <p className="mb-1 text-center text-sm font-semibold">몇 조각으로 나눌까요?</p>
+        <p className="mb-1 text-center text-base font-semibold">피자를 몇 조각으로 나눌까요?</p>
         <Counter n={n} setN={(v) => { setN(v); setSel(blank(v)); }} />
         <div className="mt-3">
           <Pizza n={n} sel={sel} onToggle={(i) => setSel((s) => s.map((x, j) => (j === i ? !x : x)))} label={`피자 ${n}조각 중 ${k}조각을 골랐어요`} size={240} />
@@ -131,27 +157,28 @@ function FreeMode() {
           {k}/{n}
           {k > 0 && r.n !== n && <span className="ml-2 text-lg text-muted">= {frText(r)}</span>}
         </p>
-        <p className="text-center text-sm text-muted tabular-nums">{n}조각 중 {k}조각 · 피자의 약 {Math.round((k / n) * 100)}%</p>
+        <p className="text-center text-base text-muted tabular-nums">{n}조각 중 {k}조각을 골랐어요</p>
       </Board>
       <div className="flex flex-wrap gap-2">
         <GButton onClick={() => setSel(blank(n))}>다시 하기 (모두 비우기)</GButton>
         <GButton onClick={() => setSel(sel.map((_, i) => i < Math.floor(n / 2)))}>절반 채우기</GButton>
       </div>
-      <Say>조각을 눌러 먹을 양을 골라 봐요. 조각 수를 바꿔도 같은 양을 만들 수 있는지 살펴봐요.</Say>
+      <Say>조각을 눌러 먹을 만큼 골라 봐요. 조각 수를 바꿔도 같은 양을 만들 수 있을까요?</Say>
     </div>
   );
 }
 
 /* ── 같은 양 만들기 ── */
-function MakeMode() {
-  const [target, setTarget] = useState(() => makeTarget(rand));
+function MakeMode({ hard }: { hard: boolean }) {
+  const gen = () => (hard ? makeTarget(rand) : makeEasyTarget(rand));
+  const [target, setTarget] = useState(gen);
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
   const [tries, setTries] = useState(0);
-  const [nA, setNA] = useState(2);
-  const [nB, setNB] = useState(4);
-  const [sA, setSA] = useState<boolean[]>(blank(2));
-  const [sB, setSB] = useState<boolean[]>(blank(4));
+  const [nA, setNA] = useState(target.n);
+  const [nB, setNB] = useState(target.n * 2);
+  const [sA, setSA] = useState<boolean[]>(blank(target.n));
+  const [sB, setSB] = useState<boolean[]>(blank(target.n * 2));
   const [res, setRes] = useState<null | { ok: boolean; text: string }>(null);
   const [hint, setHint] = useState(false);
   const [solved, setSolved] = useState(false);
@@ -162,10 +189,10 @@ function MakeMode() {
 
   const reset = (t: Fr) => {
     setTarget(t);
-    setNA(2);
-    setNB(4);
-    setSA(blank(2));
-    setSB(blank(4));
+    setNA(t.n);
+    setNB(t.n * 2);
+    setSA(blank(t.n));
+    setSB(blank(t.n * 2));
     setRes(null);
     setHint(false);
     setSolved(false);
@@ -175,13 +202,13 @@ function MakeMode() {
     setTries((t) => t + 1);
     const lines: string[] = [];
     if (nA === nB) {
-      setRes({ ok: false, text: "두 피자의 조각 수가 같아요. 서로 다른 조각 수로 만들어야 해요." });
+      setRes({ ok: false, text: "두 피자의 조각 수가 같아요. 괜찮아요! 한쪽 조각 수를 바꿔 봐요." });
       return;
     }
     for (const [name, f] of [["왼쪽", fA], ["오른쪽", fB]] as const) {
       if (!eqFr(f, target)) {
-        if (f.n % target.n !== 0) lines.push(`${name} 피자는 ${f.n}조각이라서 ${frText(target)}를 정확히 만들 수 없어요. 조각 수가 ${target.n}의 배수여야 해요.`);
-        else lines.push(`${name} 피자는 지금 ${frText(f)}예요. ${frText(target)}와 다르니 조각 수를 다시 세어 봐요.`);
+        if (f.n % target.n !== 0) lines.push(`${name} 피자는 ${f.n}조각이라서 ${frText(target)}를 딱 맞게 만들 수 없어요. ${target.n}, ${target.n * 2}, ${target.n * 3}…조각으로 해 봐요.`);
+        else lines.push(`${name} 피자는 지금 ${frText(f)}예요. 괜찮아요! ${frText(target)}가 되도록 칠한 조각을 다시 세어 봐요.`);
       }
     }
     if (lines.length) {
@@ -191,7 +218,7 @@ function MakeMode() {
     const pts = tries === 0 ? 2 : 1;
     setScore((s) => s + pts);
     setSolved(true);
-    setRes({ ok: true, text: `성공! ${[...new Set([frText(fA), frText(target), frText(fB)])].join(" = ")}. 조각 수가 달라도 양은 같아요. (+${pts}점)` });
+    setRes({ ok: true, text: `잘했어요! ⭐ ${[...new Set([frText(fA), frText(target), frText(fB)])].join(" = ")} — 조각 수가 달라도 양은 같아요! (+${pts}점)` });
   };
 
   const mults = [1, 2, 3, 4, 5, 6].filter((m) => target.n * m <= 12);
@@ -202,8 +229,8 @@ function MakeMode() {
         <Stat label="라운드" value={`${round}/${ROUNDS}`} />
         <Stat label="점수" value={score} tone="ok" />
       </div>
-      <p className="text-center text-lg font-extrabold">
-        <span className="text-accent tabular-nums">{frText(target)}</span> 만큼 두 피자에 만들어 봐요 <span className="text-sm font-semibold text-muted">(조각 수는 서로 다르게!)</span>
+      <p className="text-center text-xl font-extrabold">
+        <span className="text-accent tabular-nums">{frText(target)}</span> 만큼 두 피자에 칠해 봐요 <span className="text-base font-semibold text-muted">(두 피자의 조각 수는 서로 다르게!)</span>
       </p>
       <Board>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -212,14 +239,14 @@ function MakeMode() {
             { id: "오른쪽", n: nB, setN: (v: number) => { setNB(v); setSB(blank(v)); setRes(null); }, sel: sB, setSel: setSB, f: fB },
           ].map((p) => (
             <div key={p.id}>
-              <p className="mb-1 text-center text-sm font-semibold">{p.id} 피자 · 조각 수</p>
-              <Counter n={p.n} setN={p.setN} disabled={solved} />
+              <p className="mb-1 text-center text-base font-semibold">{p.id} 피자 · 조각 수</p>
+              <Counter n={p.n} setN={p.setN} disabled={solved} list={hard ? PN : PN_EASY} />
               <div className="mt-2">
                 <Pizza n={p.n} sel={p.sel} onToggle={solved ? undefined : (i) => { p.setSel((s) => s.map((x, j) => (j === i ? !x : x))); setRes(null); }} label={`${p.id} 피자 ${p.n}조각 중 ${p.f.k}조각`} size={190} />
               </div>
               <p className="text-center text-xl font-extrabold tabular-nums">
                 {p.f.k}/{p.f.n}
-                {p.f.k > 0 && reduceFr(p.f).n !== p.f.n && <span className="ml-2 text-base text-muted">= {frText(reduceFr(p.f))}</span>}
+                {p.f.k > 0 && reduceFr(p.f).n !== p.f.n && <span className="ml-2 text-base text-muted">(= {frText(reduceFr(p.f))})</span>}
               </p>
             </div>
           ))}
@@ -232,29 +259,30 @@ function MakeMode() {
           </GButton>
         )}
         {solved && !last && (
-          <GButton variant="primary" onClick={() => { setRound((r) => r + 1); reset(makeTarget(rand)); }}>
+          <GButton variant="primary" onClick={() => { setRound((r) => r + 1); reset(gen()); }}>
             다음 문제
           </GButton>
         )}
         <GButton pressed={hint} onClick={() => setHint((h) => !h)}>
-          힌트 {hint ? "끄기" : "보기"}
+          힌트 {hint ? "숨기기" : "보기"}
         </GButton>
-        <GButton onClick={() => { setRound(1); setScore(0); reset(makeTarget(rand)); }}>다시 하기</GButton>
+        <GButton onClick={() => { setRound(1); setScore(0); reset(gen()); }}>다시 하기</GButton>
       </div>
       {hint && (
         <Say>
-          분모와 분자에 같은 수를 곱해도 양은 같아요(통분). {mults.map((m) => `${target.k * m}/${target.n * m}`).join(" = ")}. 거꾸로 같은 수로 나누면 약분이에요.
+          같은 양은 이렇게 여러 가지로 쓸 수 있어요: {mults.map((m) => `${target.k * m}/${target.n * m}`).join(" = ")}. 조각을 2배로 잘게 나누면 칠할 조각도 2배가 돼요!
         </Say>
       )}
-      {res ? <Say tone={res.ok ? "ok" : "bad"}>{res.text}</Say> : !hint && <Say>피자마다 조각 수를 고르고, 조각을 눌러 {frText(target)} 만큼 칠해요. 다 되면 ‘확인’!</Say>}
-      {solved && last && <Say tone={score >= 8 ? "ok" : "info"}>5문제 끝! 모두 {score}점 / 10점이에요.</Say>}
+      {res ? <Say tone={res.ok ? "ok" : "bad"}>{res.text}</Say> : !hint && <Say>두 피자에 {frText(target)} 만큼씩 칠해요. 조각을 누르면 색이 칠해져요. 다 칠하면 ‘확인’!</Say>}
+      {solved && last && <Say tone={score >= 8 ? "ok" : "info"}>5문제 끝! {score}점 / 10점이에요. {score >= 8 ? "대단해요!" : "잘했어요!"}</Say>}
     </div>
   );
 }
 
 /* ── 크기 비교 ── */
-function CompareMode() {
-  const [q, setQ] = useState(() => makeCompare(rand));
+function CompareMode({ hard }: { hard: boolean }) {
+  const gen = () => (hard ? makeCompare(rand) : makeCompareEasy(rand));
+  const [q, setQ] = useState(gen);
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
   const [pick, setPick] = useState<null | -1 | 0 | 1>(null);
@@ -271,11 +299,10 @@ function CompareMode() {
   const L = lcm(x.n, y.n);
   const xs = x.k * (L / x.n);
   const ys = y.k * (L / y.n);
-  const sym = truth > 0 ? ">" : truth < 0 ? "<" : "=";
-  const explain = `분모를 ${L}로 맞춰요(통분). ${frText(x)} = ${xs}/${L}, ${frText(y)} = ${ys}/${L} 이니까 ${xs}/${L} ${sym} ${ys}/${L}, 곧 ${frText(x)} ${sym} ${frText(y)} 예요.`;
+  const explain = `조각 크기를 똑같이 ${L}조각으로 맞춰 봐요. ${frText(x)}는 ${xs}/${L}, ${frText(y)}는 ${ys}/${L}이에요. ${truth > 0 ? `${xs}가 ${ys}보다 커서 왼쪽이 더 커요.` : truth < 0 ? `${xs}가 ${ys}보다 작아서 오른쪽이 더 커요.` : "둘이 같아서 양이 같아요."}`;
 
   const again = () => {
-    setQ(makeCompare(rand));
+    setQ(gen());
     setRound(1);
     setScore(0);
     setPick(null);
@@ -296,7 +323,7 @@ function CompareMode() {
           ))}
         </div>
       </Board>
-      <p className="text-center text-sm font-semibold">왼쪽 {frText(x)} 은(는) 오른쪽 {frText(y)} 보다…</p>
+      <p className="text-center text-base font-semibold">왼쪽 피자 {frText(x)} 는 오른쪽 피자 {frText(y)} 보다…</p>
       <div className="flex flex-wrap justify-center gap-2">
         <GButton variant="soft" disabled={pick !== null} onClick={() => choose(1)} className="min-w-[110px]">
           더 커요 ( &gt; )
@@ -310,14 +337,14 @@ function CompareMode() {
       </div>
       <div className="flex flex-wrap gap-2">
         {pick !== null && !last && (
-          <GButton variant="primary" onClick={() => { setQ(makeCompare(rand)); setRound((r) => r + 1); setPick(null); }}>
+          <GButton variant="primary" onClick={() => { setQ(gen()); setRound((r) => r + 1); setPick(null); }}>
             다음 문제
           </GButton>
         )}
         <GButton onClick={again}>다시 하기</GButton>
       </div>
-      {pick === null ? <Say>두 피자의 양을 비교해 봐요. 조각 수가 달라서 눈으로만은 어려울 수 있어요.</Say> : <Say tone={pick === truth ? "ok" : "bad"}>{pick === truth ? "정답이에요! " : "아쉬워요. "}{explain}</Say>}
-      {pick !== null && last && <Say tone={score >= 4 ? "ok" : "info"}>5문제 끝! {score}문제 맞혔어요.</Say>}
+      {pick === null ? <Say>어느 쪽이 더 많이 칠해졌는지 골라요. 칠한 부분의 넓이를 눈으로 비교해 봐요!</Say> : <Say tone={pick === truth ? "ok" : "bad"}>{pick === truth ? "정답이에요! 잘했어요! ⭐ " : "아쉬워요, 괜찮아요! "}{explain}</Say>}
+      {pick !== null && last && <Say tone={score >= 4 ? "ok" : "info"}>5문제 끝! {score}문제 맞혔어요. {score >= 4 ? "대단해요!" : "잘했어요!"}</Say>}
     </div>
   );
 }
@@ -325,16 +352,18 @@ function CompareMode() {
 type Mode = "free" | "make" | "compare";
 export default function PizzaGame() {
   const [mode, setMode] = useState<Mode>("make");
+  const [hard, setHard] = useState(false);
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <GButton pressed={mode === "make"} onClick={() => setMode("make")}>같은 양 만들기</GButton>
         <GButton pressed={mode === "compare"} onClick={() => setMode("compare")}>크기 비교</GButton>
         <GButton pressed={mode === "free"} onClick={() => setMode("free")}>마음대로 나누기</GButton>
+        {mode !== "free" && <GButton pressed={hard} onClick={() => setHard((h) => !h)}>더 어려운 도전</GButton>}
       </div>
       {mode === "free" && <FreeMode key="free" />}
-      {mode === "make" && <MakeMode key="make" />}
-      {mode === "compare" && <CompareMode key="compare" />}
+      {mode === "make" && <MakeMode key={`make${hard}`} hard={hard} />}
+      {mode === "compare" && <CompareMode key={`cmp${hard}`} hard={hard} />}
     </div>
   );
 }

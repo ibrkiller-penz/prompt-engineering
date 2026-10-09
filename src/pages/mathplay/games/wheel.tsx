@@ -39,7 +39,12 @@ export function pose(n: number, road: Road, x: number): { h: number; rot: number
 }
 // ==PURE-END==
 
-const NAMES: Record<number, string> = { 0: "원", 3: "정삼각형", 4: "정사각형", 5: "정오각형", 6: "정육각형", 7: "정칠각형", 8: "정팔각형" };
+const NAMES: Record<number, string> = { 0: "동그라미", 3: "세모", 4: "네모", 5: "오각형", 6: "육각형", 7: "칠각형", 8: "팔각형" };
+const BIG = "min-h-[48px]! text-base";
+/** 덜컹거림을 쉬운 말로 */
+function bumpWord(w: number) {
+  return w === 0 ? "매끈매끈" : w <= 0.1 ? "조금" : w <= 0.2 ? "덜컹덜컹" : "아주 많이";
+}
 const GRAPH_H = 124;
 const H_LO = 0.42;
 const H_HI = 1.1;
@@ -118,9 +123,9 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.fillStyle = "#ef4444";
-  ctx.font = "600 11px sans-serif";
+  ctx.font = "700 13px sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("중심 높이 1", 6, groundY - R - 4);
+  ctx.fillText("가장 높을 때", 6, groundY - R - 5);
 
   ctx.beginPath();
   if (n === 0) ctx.arc(cx0, cy, R, 0, Math.PI * 2);
@@ -162,7 +167,7 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
   const bot = gy0 + GRAPH_H - 12;
   const gyOf = (hh: number) => bot - ((hh - H_LO) / (H_HI - H_LO)) * (bot - top);
   const lowH = n === 0 || road === "bumpy" ? 1 : apothem(n);
-  ctx.font = "600 11px sans-serif";
+  ctx.font = "700 12px sans-serif";
   ctx.setLineDash([4, 4]);
   ctx.strokeStyle = "#ef4444";
   ctx.beginPath();
@@ -179,16 +184,16 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
   ctx.setLineDash([]);
   ctx.fillStyle = "#ef4444";
   ctx.textAlign = "right";
-  ctx.fillText("1", W - 6, gyOf(1) - 3);
+  ctx.fillText("높음", W - 6, gyOf(1) - 3);
   if (lowH < 1) {
     ctx.fillStyle = "#2563eb";
-    ctx.fillText(lowH.toFixed(2), W - 6, gyOf(lowH) + 12);
+    ctx.fillText("낮음", W - 6, gyOf(lowH) + 14);
   }
   ctx.fillStyle = "#334155";
   ctx.textAlign = "left";
-  ctx.font = "700 12px sans-serif";
+  ctx.font = "700 14px sans-serif";
   const wg = wiggle(n, road);
-  ctx.fillText(`중심 높이 그래프 · 흔들림 폭 ${(wg * 100).toFixed(1)}%`, 8, gy0 + 16);
+  ctx.fillText(`바퀴 가운데 점의 높이 (덜컹거림: ${bumpWord(wg)})`, 8, gy0 + 18);
   // 자취: 지나온 곳은 굵게, 앞으로 갈 곳은 연하게
   const draw = (from: number, to: number, color: string, lw: number) => {
     ctx.beginPath();
@@ -229,10 +234,11 @@ export default function WheelGame() {
   const [n, setN] = useState(4);
   const [road, setRoad] = useState<Road>("flat");
   const [running, setRunning] = useState(false);
-  const [speed, setSpeed] = useState(4);
+  const [speed, setSpeed] = useState(5);
+  const [more, setMore] = useState(false);
   const [m1, setM1] = useState(false);
   const [m2, setM2] = useState(false);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "‘굴리기’를 눌러 보세요. 정사각형 바퀴는 평평한 길에서 어떻게 굴러갈까요?" });
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "‘굴리기’를 눌러요. 네모 바퀴는 어떻게 굴러갈까요?" });
   const [W, setW] = useState(600);
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -265,14 +271,15 @@ export default function WheelGame() {
     xRef.current += v * dt;
     distRef.current += v * dt;
     paint();
-    if (distRef.current >= 6) {
+    if (distRef.current >= 4) {
       if (road === "flat" && wiggle(n, road) <= 0.1 && !m1) {
         setM1(true);
-        setMsg({ tone: "ok", text: `미션 1 성공! ${NAMES[n]} 바퀴는 평평한 길에서 중심이 ${(wiggle(n, road) * 100).toFixed(1)}%만 흔들려요. 변이 많을수록 원에 가까워져요.` });
+        setMore(true);
+        setMsg({ tone: "ok", text: `⭐ 미션 1 성공! ${NAMES[n]} 바퀴는 거의 덜컹거리지 않아요. 변이 많을수록 동그라미에 가까워져요. 이제 미션 2에 도전해 봐요!` });
       }
       if (road === "bumpy" && n === 4 && !m2) {
         setM2(true);
-        setMsg({ tone: "ok", text: "미션 2 성공! 네모 바퀴가 올록볼록한 길 위에서 중심 높이가 늘 1로 일정해요. 흔들림이 없어요." });
+        setMsg({ tone: "ok", text: "⭐ 미션 2 성공! 네모 바퀴도 물결 길에서는 덜컹거리지 않고 매끈하게 굴러가요!" });
       }
     }
   }, running);
@@ -283,24 +290,37 @@ export default function WheelGame() {
 
   const pickN = (k: number) => {
     let r = road;
-    if (!bumpyFits(k) && road === "bumpy") r = "flat";
+    const reroad = !bumpyFits(k) && road === "bumpy";
+    if (reroad) r = "flat";
     setN(k);
     setRoad(r);
     resetDist();
     const w = wiggle(k, r);
-    const base = k === 0 ? "원 바퀴는 어디서나 중심 높이가 1로 일정해요." : `${NAMES[k]} 바퀴(변 ${k}개): 평평한 길에서 중심 높이가 ${apothem(k).toFixed(3)}~1 사이를 오르내려요.`;
-    setMsg({ tone: "info", text: r === "bumpy" ? `${NAMES[k]} 바퀴에 꼭 맞는 올록볼록 길로 바뀌었어요. 중심 높이는 늘 1이에요.` : `${base}${k ? ` 흔들림 폭 ${(w * 100).toFixed(1)}%.` : ""}` });
-    if (!bumpyFits(k) && road === "bumpy") setMsg({ tone: "info", text: `${NAMES[k]} 바퀴는 올록볼록 길에 맞지 않아 평평한 길로 바꿨어요.` });
+    setMsg({
+      tone: "info",
+      text: reroad
+        ? `${NAMES[k]} 바퀴는 물결 길에 안 맞아서 평평한 길로 바꿨어요.`
+        : r === "bumpy"
+          ? `${NAMES[k]} 바퀴에 꼭 맞는 물결 길이에요. 굴려 봐요!`
+          : k === 0
+            ? "동그라미 바퀴는 언제나 높이가 그대로예요. 매끈매끈!"
+            : `${NAMES[k]} 바퀴예요. 굴렸을 때 덜컹거림: ${bumpWord(w)} (${(w * 100).toFixed(0)}%)`,
+    });
   };
 
   const pickRoad = (r: Road) => {
     if (r === "bumpy" && !bumpyFits(n)) {
-      setMsg({ tone: "bad", text: n === 0 ? "원은 평평한 길이 가장 잘 맞아요." : "정삼각형은 변이 너무 길어서 올록볼록 길의 이웃 둔덕에 걸려요. 변이 4개 이상인 바퀴로 해 보세요." });
+      setMsg({ tone: "bad", text: n === 0 ? "동그라미는 평평한 길이 어울려요." : "세모 바퀴는 변이 너무 길어서 물결 길에 걸려요. 변이 4개 이상인 바퀴로 해 봐요." });
       return;
     }
     setRoad(r);
     resetDist();
-    setMsg(r === "bumpy" ? { tone: "info", text: `${NAMES[n]} 바퀴 한 변의 길이와 둔덕 한 조각의 곡선 길이가 같아요. 굴려서 중심 높이 그래프를 봐요.` } : { tone: "info", text: "평평한 길이에요. 꼭짓점이 땅에 닿을 때마다 중심이 올라갔다 내려와요." });
+    setMsg(r === "bumpy" ? { tone: "info", text: "물결 길이에요. 바퀴 한 변의 길이와 둔덕 하나의 길이가 같게 만든 길이에요. 굴려서 점의 높이를 봐요!" } : { tone: "info", text: "평평한 길이에요. 모서리가 땅에 닿을 때마다 가운데 점이 올라갔다 내려와요." });
+  };
+
+  const giveHint = () => {
+    if (!m1) setMsg({ tone: "info", text: "힌트: 바퀴의 변을 7개나 8개로 바꿔 보세요. 변이 많을수록 동그라미에 가까워져요!" });
+    else setMsg({ tone: "info", text: "힌트: ‘네모’ 바퀴를 고르고 ‘물결 길’을 누른 다음 ‘굴리기’를 눌러요." });
   };
 
   const restart = () => {
@@ -309,7 +329,7 @@ export default function WheelGame() {
     resetDist();
     setM1(false);
     setM2(false);
-    setMsg({ tone: "info", text: "처음으로 돌아왔어요. 바퀴와 길을 골라 굴려 보세요. 화면을 끌어서 직접 굴릴 수도 있어요." });
+    setMsg({ tone: "info", text: "처음으로 돌아왔어요. 바퀴를 골라 굴려 봐요. 그림을 옆으로 끌어서 직접 굴릴 수도 있어요!" });
   };
 
   const onDown = (e: React.PointerEvent) => {
@@ -332,34 +352,39 @@ export default function WheelGame() {
   const bars = [3, 4, 5, 6, 7, 8, 0];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 text-base">
+      <p className="rounded-card bg-accent-soft px-3 py-2 font-bold">
+        {m1 ? "미션 2: 네모 바퀴를 덜컹거리지 않게 굴려 봐요! (길 모양을 바꿔 봐요)" : "미션 1: 바퀴를 바꿔서 덜컹거림을 ‘조금’ 이하로 만들어 굴려 봐요!"}
+      </p>
       <Board>
         <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="바퀴 모양 고르기">
-          <span className="text-sm font-semibold">바퀴</span>
+          <span className="font-semibold">바퀴 (변의 수)</span>
           {bars.map((k) => (
             <button
               key={k}
               type="button"
               onClick={() => pickN(k)}
               aria-pressed={k === n}
-              aria-label={k === 0 ? "원 바퀴" : `변 ${k}개 바퀴`}
-              className={`h-11 min-w-[44px] rounded-card px-3 text-base font-bold ${k === n ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"}`}
+              aria-label={k === 0 ? "동그라미 바퀴" : `변 ${k}개 바퀴`}
+              className={`h-12 min-w-[48px] rounded-card px-3 text-lg font-bold ${k === n ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"}`}
             >
               {k === 0 ? "원" : k}
             </button>
           ))}
         </div>
-        <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="길 모양 고르기">
-          <span className="text-sm font-semibold">길 모양</span>
-          <GButton variant={road === "flat" ? "soft" : "ghost"} pressed={road === "flat"} onClick={() => pickRoad("flat")} className="text-sm">평평한 길</GButton>
-          <GButton variant={road === "bumpy" ? "soft" : "ghost"} pressed={road === "bumpy"} onClick={() => pickRoad("bumpy")} className="text-sm">올록볼록 길 (현수선)</GButton>
-        </div>
+        {more && (
+          <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="길 모양 고르기">
+            <span className="font-semibold">길 모양</span>
+            <GButton variant={road === "flat" ? "soft" : "ghost"} pressed={road === "flat"} onClick={() => pickRoad("flat")} className={BIG}>평평한 길</GButton>
+            <GButton variant={road === "bumpy" ? "soft" : "ghost"} pressed={road === "bumpy"} onClick={() => pickRoad("bumpy")} className={BIG}>물결 길</GButton>
+          </div>
+        )}
 
         <div ref={wrapRef} className="w-full overflow-hidden rounded-card border border-line">
           <canvas
             ref={canvasRef}
             role="img"
-            aria-label={`${NAMES[n]} 바퀴가 ${road === "flat" ? "평평한" : "올록볼록한"} 길을 구르는 모습과 중심 높이 그래프. 흔들림 폭 ${(w * 100).toFixed(1)}퍼센트`}
+            aria-label={`${NAMES[n]} 바퀴가 ${road === "flat" ? "평평한" : "물결"} 길을 구르는 모습과 바퀴 가운데 점의 높이 그래프. 덜컹거림 ${bumpWord(w)}`}
             style={{ width: W, height: H, display: "block", touchAction: "pan-y", cursor: "grab" }}
             onPointerDown={onDown}
             onPointerMove={onMove}
@@ -374,43 +399,35 @@ export default function WheelGame() {
       </Board>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Stat label="흔들림 폭" value={`${(w * 100).toFixed(1)}%`} tone={w === 0 ? "ok" : "plain"} />
-        <Stat label="미션" value={`${(m1 ? 1 : 0) + (m2 ? 1 : 0)}/2`} tone={m1 && m2 ? "ok" : "plain"} />
+        <Stat label="덜컹거림" value={`${bumpWord(w)} (${(w * 100).toFixed(0)}%)`} tone={w === 0 ? "ok" : "plain"} />
+        <Stat label="⭐ 미션" value={`${(m1 ? 1 : 0) + (m2 ? 1 : 0)}/2`} tone={m1 && m2 ? "ok" : "plain"} />
       </div>
       <Say tone={msg.tone}>{msg.text}</Say>
 
       <div className="flex flex-wrap gap-2">
-        <GButton variant="primary" onClick={() => setRunning(!running)}>{running ? "■ 멈추기" : "▶ 굴리기"}</GButton>
-        <GButton onClick={restart}>↻ 다시</GButton>
+        <GButton variant="primary" onClick={() => setRunning(!running)} className="min-h-[52px]! min-w-[8rem] text-lg">{running ? "■ 멈추기" : "▶ 굴리기"}</GButton>
+        <GButton onClick={restart} className={BIG}>↻ 다시 하기</GButton>
+        <GButton variant="soft" onClick={giveHint} className={BIG}>💡 힌트 보기</GButton>
+        <GButton pressed={more} onClick={() => setMore(!more)} className={BIG}>{more ? "길 바꾸기 닫기" : "더 어려운 도전"}</GButton>
       </div>
 
       <Board>
-        <h3 className="mb-2 text-sm font-bold">미션</h3>
-        <ul className="space-y-1 text-sm">
-          <li className={m1 ? "font-semibold text-ok" : ""}>{m1 ? "✔" : "○"} 평평한 길에서 흔들림 폭을 10% 이하로 만들어 굴려 보세요. 바퀴의 변은 몇 개가 필요할까요?</li>
-          <li className={m2 ? "font-semibold text-ok" : ""}>{m2 ? "✔" : "○"} 네모 바퀴(변 4개)를 흔들림 없이 굴려 보세요.</li>
-        </ul>
-      </Board>
-
-      <Board>
-        <h3 className="mb-2 text-sm font-bold">평평한 길에서 바퀴마다 흔들리는 폭 (바퀴 반지름 기준)</h3>
+        <h3 className="mb-2 text-base font-bold">바퀴마다 얼마나 덜컹거릴까? (평평한 길)</h3>
         <ul className="space-y-1.5">
           {bars.map((k) => {
             const v = wiggle(k, "flat");
             return (
-              <li key={k} className="flex items-center gap-2 text-sm">
-                <span className="w-16 shrink-0">{k === 0 ? "원" : `변 ${k}개`}</span>
+              <li key={k} className="flex items-center gap-2 text-base">
+                <span className="w-20 shrink-0">{k === 0 ? "동그라미" : `변 ${k}개`}</span>
                 <span className="h-4 flex-1 overflow-hidden rounded-full bg-bg">
                   <span className={`block h-full rounded-full ${k === n ? "bg-accent" : "bg-accent-soft"}`} style={{ width: `${Math.max(v / 0.5, 0.01) * 100}%` }} />
                 </span>
-                <span className="w-14 shrink-0 text-right tabular-nums text-muted">{(v * 100).toFixed(1)}%</span>
+                <span className="w-12 shrink-0 text-right tabular-nums text-muted">{(v * 100).toFixed(0)}%</span>
               </li>
             );
           })}
         </ul>
-        <p className="mt-2 text-xs leading-relaxed text-muted">
-          정n각형 바퀴의 중심 높이는 cos(180°/n) 에서 1까지 오르내려서 흔들림 폭은 1 − cos(180°/n) 이에요. 올록볼록 길은 뒤집힌 현수선(y = −a·cosh(x/a), a는 중심에서 변까지의 거리) 조각을 이어 붙여 만들어요.
-        </p>
+        <p className="mt-2 leading-relaxed text-muted">막대가 짧을수록 덜컹거림이 작아요. 변이 많아질수록 막대가 줄어드는 걸 봐요!</p>
       </Board>
     </div>
   );
