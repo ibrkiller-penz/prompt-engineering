@@ -1,6 +1,8 @@
 // 배포 준비: /aibasic 복원 + 패치 적용 + HappyMpX.zip 받기. `npm run build` 앞에서 자동으로 돈다(prebuild).
 // 이미 있는 파일은 건너뛰고, 이미 적용된 패치는 건너뛴다. 여러 번 돌려도 안전하다.
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 const AIBASIC = "public/aibasic";
@@ -33,7 +35,9 @@ const MARK = `${AIBASIC}/.applied`;
 const applied = new Set(fs.existsSync(MARK) ? fs.readFileSync(MARK, "utf8").split("\n").filter(Boolean) : []);
 const mark = (name) => { applied.add(name); fs.writeFileSync(MARK, [...applied].join("\n") + "\n"); };
 for (const name of PATCHES) {
-  const file = `scripts/${name}.patch`;
+  // 윈도우의 git 이 패치 파일을 CRLF 로 저장해 두면 적용이 안 되므로, LF 로 바꾼 임시 파일로 적용한다.
+  const file = path.join(os.tmpdir(), `${name}.lf.patch`);
+  fs.writeFileSync(file, fs.readFileSync(`scripts/${name}.patch`, "utf8").replace(/\r\n/g, "\n"));
   const opts = [`--directory=${AIBASIC}`, file];
   if (applied.has(name)) {
     console.log(`[prepare] ${name}: 이미 적용됨`);
