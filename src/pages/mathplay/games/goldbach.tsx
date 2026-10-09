@@ -107,7 +107,7 @@ export default function GoldbachGame() {
         } else setMsg({ t: "ok", s: `맞아요! ${nx[0]} + ${nx[1]} = ${q1}. 끝까지 해냈어요!` });
       } else {
         setWrong1((w) => w + 1);
-        setMsg({ t: "bad", s: `${nx[0]} + ${nx[1]} = ${sum} 이에요. ${q1} 이 되어야 해요. 괜찮아요, 다시 해 봐요!` });
+        setMsg({ t: "bad", s: `${nx[0]} + ${nx[1]} = ${sum} 이에요. 목표는 ${q1} 이에요. 괜찮아요, 다시 해 봐요!` });
       }
     } else setMsg({ t: "info", s: `${p} 을(를) 골랐어요. 하나 더 골라 보세요.` });
   };

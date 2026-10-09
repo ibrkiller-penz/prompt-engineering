@@ -24,7 +24,7 @@ function makeQuestions(): Q[] {
     if (k === 0)
       return { text: `바퀴 둘레가 ${c} cm 예요. 바퀴가 한 바퀴 굴러가면 바퀴 가운데는 몇 cm 갈까요?`, answer: c, choices: shuffle([c, c / 2, 2 * c]), hint: "힌트: 바퀴가 한 바퀴 돌면 바퀴 둘레만큼 가요. 아래 파란 막대를 보세요.", why: "한 바퀴 돌면 바퀴 둘레만큼 가요." };
     if (k === 1)
-      return { text: `바퀴 둘레가 ${c} cm 예요. 바퀴가 두 바퀴 굴러가면 몇 cm 갈까요?`, answer: 2 * c, choices: shuffle([2 * c, c, 3 * c]), hint: `힌트: 한 바퀴에 ${c} cm 씩 가요. 두 바퀴 위치까지 끌어 보세요.`, why: `${c} cm 가 두 번이니까 ${2 * c} cm 예요.` };
+      return { text: `바퀴 둘레가 ${c} cm 예요. 바퀴가 두 바퀴 굴러가면 몇 cm 갈까요?`, answer: 2 * c, choices: shuffle([2 * c, c, 3 * c]), hint: `힌트: 한 바퀴에 ${c} cm 씩 가요. 두 바퀴는 그 두 배예요.`, why: `${c} cm 가 두 번이니까 ${2 * c} cm 예요.` };
     if (k === 2)
       return { text: `바퀴 지름(가장 긴 폭)이 ${D} cm 예요. 빨간 점이 가장 높이 올라가면 땅에서 몇 cm 일까요? (점은 가장자리)`, answer: D, choices: shuffle([D, D / 2, 2 * D]), hint: "힌트: 점이 바퀴 맨 위에 오면 가장 높아요. 반 바퀴 굴려 보세요.", why: "맨 위에 오면 바퀴 지름만큼 높아요." };
     const a = Math.round(3.14 * D * 10) / 10;
@@ -32,12 +32,12 @@ function makeQuestions(): Q[] {
   });
 }
 
-const W = 720;
+const W = 440;
 const H = 270;
 const R = 48; // 화면에서 바퀴 반지름(px)
 const X0 = 60;
 const GY = 140; // 땅 높이(y)
-const TURNS = 2;
+const TURNS = 1;
 const TH_MAX = TURNS * 2 * Math.PI;
 const BIG = "!min-h-[48px] !text-base";
 
