@@ -15,7 +15,7 @@ export function Talk({ children, tone = "info" }: { children: ReactNode; tone?: 
 export function Pill({ label, value, tone = "plain" }: { label: string; value: ReactNode; tone?: "plain" | "ok" | "bad" }) {
   const c = tone === "ok" ? "bg-ok-soft text-ok" : tone === "bad" ? "bg-bad-soft text-bad" : "bg-bg text-ink";
   return (
-    <span className={`inline-flex items-baseline gap-1.5 rounded-full px-4 py-1.5 text-base ${c}`}>
+    <span className={`inline-flex items-baseline gap-1.5 rounded-full px-3 py-1 text-base ${c}`}>
       <span>{label}</span>
       <strong className="text-lg font-extrabold tabular-nums">{value}</strong>
     </span>

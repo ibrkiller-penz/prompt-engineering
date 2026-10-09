@@ -215,13 +215,20 @@ export default function EpidemicGame() {
   return (
     <div className="space-y-3">
       <Board className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="rounded-card bg-accent-soft px-4 py-2 text-center">
-            <div className="text-sm font-bold">💉 남은 백신</div>
-            <div className="text-4xl font-extrabold tabular-nums" aria-live="polite">{Math.max(0, budget - mUsed)}</div>
+        {phase === "done" && result ? (
+          <div className="space-y-1 rounded-card bg-bg p-3 text-center">
+            <p className="text-4xl"><Stars n={result.stars} /></p>
+            <p className="text-base">아팠던 친구는 <strong>{(result.ratio * 100).toFixed(0)}%</strong> · 가장 많이 아팠을 때 <strong>{result.peak}명</strong></p>
           </div>
-          <div className="flex-1 text-base font-bold leading-snug">🎯 아픈 친구를 <span className="text-bad">20%보다 적게</span> 막아요!</div>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            <div className="rounded-card bg-accent-soft px-4 py-2 text-center">
+              <div className="text-sm font-bold">💉 남은 백신</div>
+              <div className="text-4xl font-extrabold tabular-nums" aria-live="polite">{Math.max(0, budget - mUsed)}</div>
+            </div>
+            <div className="flex-1 text-base font-bold leading-snug">🎯 아픈 친구를 <span className="text-bad">20%보다 적게</span> 막아요!</div>
+          </div>
+        )}
         <Talk tone={msg.tone}>{msg.t}</Talk>
         <div className="mx-auto w-full max-w-[440px]">
           <svg
@@ -267,16 +274,10 @@ export default function EpidemicGame() {
             <GButton className={`${BIG} min-h-[60px]!`} onClick={again}>다시 하기</GButton>
           </div>
         ) : (
-          result && (
-            <div className="space-y-2 rounded-card bg-bg p-4 text-center">
-              <p className="text-3xl"><Stars n={result.stars} /></p>
-              <p className="text-base">아팠던 친구는 <strong>{(result.ratio * 100).toFixed(0)}%</strong> · 가장 많이 아팠을 때 <strong>{result.peak}명</strong></p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <GButton variant="primary" className={BIG} onClick={() => newVillage2(level)}>{won && left > 0 ? `새 마을 ▶ (${Math.ceil(left)})` : "새 마을 ▶"}</GButton>
-                <GButton className={BIG} onClick={again}>이 마을 다시</GButton>
-              </div>
-            </div>
-          )
+          <div className="flex flex-wrap justify-center gap-2">
+            <GButton variant="primary" className="min-h-[60px]! flex-1 text-xl" onClick={() => newVillage2(level)}>{won && left > 0 ? `새 마을 ▶ (${Math.ceil(left)})` : "새 마을 ▶"}</GButton>
+            <GButton className={`${BIG} min-h-[60px]!`} onClick={again}>이 마을 다시</GButton>
+          </div>
         )}
         <div className="flex flex-wrap gap-2">
           <Pill label="아픈 친구" value={`${nI}명`} tone={nI ? "bad" : "plain"} />

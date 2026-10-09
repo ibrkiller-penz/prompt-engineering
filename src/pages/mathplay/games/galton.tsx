@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, fitCanvas, useFrame } from "./kit";
+import { Board, GButton, Say, Stat, cheer, clamp, fitCanvas, oops, tick, useFrame } from "./kit";
 
 // <pure>
 /** 이항계수 C(n,k) */
@@ -20,14 +20,14 @@ function makePath(rows: number, rnd: () => number): number[] {
 }
 // </pure>
 
-type Ball = { path: number[]; s: number; pred: number | null };
+type Ball = { path: number[]; s: number; pred: number | null; x0: number };
 
 const BALL_R = 5;
 
 function layout(w: number, rows: number) {
   const dx = Math.min(60, (w - 16) / (rows + 1));
   const dy = Math.min(34, dx * 0.85);
-  const top = 24;
+  const top = 48;
   const binTop = top + rows * dy - dy * 0.3;
   const h = Math.round(top + rows * dy + 140);
   return { dx, dy, top, binTop, h, cx: w / 2 };
@@ -40,7 +40,7 @@ export default function GaltonGame() {
   const [theory, setTheory] = useState(false);
   const [pred, setPred] = useState<number | null>(null);
   const [score, setScore] = useState({ hit: 0, tries: 0 });
-  const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "구슬이 어느 칸에 들어갈지 맞혀 봐요! 칸을 누르고 ‘구슬 떨어뜨리기’를 눌러요." });
+  const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "위쪽을 눌러서 구슬을 떨어뜨려 봐요! 꾹 누르면 계속 떨어져요. 아래 칸을 누르면 🚩 로 예측할 수 있어요." });
   const [, setTick] = useState(0);
   const [width, setWidth] = useState(640);
 
@@ -51,6 +51,7 @@ export default function GaltonGame() {
   const queue = useRef(0);
   const relAcc = useRef(0);
   const bellShown = useRef(false);
+  const holding = useRef<{ x: number; t: number; acc: number } | null>(null);
   const scoreRef = useRef(score);
   scoreRef.current = score;
 
@@ -75,6 +76,8 @@ export default function GaltonGame() {
       const sc = scoreRef.current;
       const tries = sc.tries + 1;
       setScore({ hit: sc.hit + (hit ? 1 : 0), tries });
+      if (hit) cheer();
+      else oops();
       const tail = tries >= 5 ? ` 5번 끝! 별 ${sc.hit + (hit ? 1 : 0)}개예요. 이제 ‘구슬 100개’를 떨어뜨려 봐요.` : "";
       setMsg(hit ? { t: "ok", s: `맞았어요! ⭐ 구슬이 ${bin + 1}번 칸에 들어갔어요. 잘했어요!${tail}` } : { t: "bad", s: `아쉬워요! 구슬은 ${bin + 1}번 칸에 들어갔어요. 괜찮아요, 다시 해 봐요!${tail}` });
     }
@@ -126,14 +129,16 @@ export default function GaltonGame() {
         ctx.fillStyle = "rgba(245,158,11,0.18)";
         ctx.fillRect(x + 1, L.binTop, L.dx - 2, binH);
         ctx.fillStyle = "#b45309";
-        ctx.fillText("내 예측", x + L.dx / 2, L.binTop + 14);
+        ctx.font = "bold 15px sans-serif";
+        ctx.fillText("🚩 여기!", x + L.dx / 2, L.binTop + 18);
+        ctx.font = "13px sans-serif";
       }
       const hgt = cs[b] * unit;
       ctx.fillStyle = "#38bdf8";
       ctx.fillRect(x + 3, bot - hgt, L.dx - 6, hgt);
       if (cs[b] > 0) {
         ctx.fillStyle = "#0369a1";
-        ctx.fillText(String(cs[b]), x + L.dx / 2, Math.max(L.binTop + 28, bot - hgt - 4));
+        ctx.fillText(String(cs[b]), x + L.dx / 2, Math.max(L.binTop + 34, bot - hgt - 4));
       }
       ctx.fillStyle = "#64748b";
       ctx.fillText(String(b + 1), x + L.dx / 2, L.h - 6);
@@ -157,6 +162,15 @@ export default function GaltonGame() {
         ctx.fill();
       }
     }
+    // 깔때기
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(left, 4);
+    ctx.lineTo(L.cx - 10, L.top - 14);
+    ctx.moveTo(left + (rows + 1) * L.dx, 4);
+    ctx.lineTo(L.cx + 10, L.top - 14);
+    ctx.stroke();
     // 못
     ctx.fillStyle = "#64748b";
     for (let k = 0; k < rows; k++) {
@@ -172,7 +186,7 @@ export default function GaltonGame() {
     ctx.lineWidth = 1;
     for (const b of balls.current) {
       const P = (k: number): [number, number] =>
-        k < 0 ? [L.cx, L.top - L.dy] : [L.cx + (b.path[k] - k / 2) * L.dx, k >= rows ? L.binTop + 8 : L.top + k * L.dy - 7];
+        k < 0 ? [b.x0, 8] : [L.cx + (b.path[k] - k / 2) * L.dx, k >= rows ? L.binTop + 8 : L.top + k * L.dy - 7];
       const k = Math.floor(b.s);
       const f = b.s - k;
       const [x0, y0] = P(k);
@@ -185,6 +199,19 @@ export default function GaltonGame() {
       ctx.fill();
       ctx.stroke();
     }
+    // 처음 안내
+    if (tot === 0 && balls.current.length === 0) {
+      ctx.textAlign = "center";
+      ctx.font = "bold 17px sans-serif";
+      const hy = L.top + rows * L.dy * 0.4;
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fillRect(L.cx - 130, hy - 24, 260, 50);
+      ctx.fillStyle = "#0369a1";
+      ctx.fillText("👆 위쪽을 눌러 구슬을 떨어뜨려요!", L.cx, hy - 2);
+      ctx.font = "14px sans-serif";
+      ctx.fillStyle = "#64748b";
+      ctx.fillText("꾹 누르면 계속 떨어져요", L.cx, hy + 18);
+    }
   }, [width, rows, theory, pred]);
 
   useFrame((_t, dt) => {
@@ -194,7 +221,18 @@ export default function GaltonGame() {
       while (relAcc.current >= 1 && queue.current > 0) {
         relAcc.current -= 1;
         queue.current--;
-        balls.current.push({ path: makePath(rows, Math.random), s: -1, pred: null });
+        balls.current.push({ path: makePath(rows, Math.random), s: -1, pred: null, x0: lay.cx + (Math.random() - 0.5) * lay.dx * rows * 0.6 });
+      }
+    }
+    const h = holding.current;
+    if (h) {
+      h.t += dt;
+      if (h.t > 0.35) {
+        h.acc += dt * 4 * speed;
+        while (h.acc >= 1) {
+          h.acc -= 1;
+          spawn(h.x);
+        }
       }
     }
     const rate = 4.5 * speed;
@@ -225,18 +263,16 @@ export default function GaltonGame() {
     setPred(null);
     setTick((v) => v + 1);
   };
-  const dropOne = () => {
-    if (balls.current.some((b) => b.pred !== null)) return; // 예측한 구슬이 아직 내려오는 중
-    const roundsLeft = score.tries < 5;
-    if (roundsLeft && pred === null) {
-      setMsg({ t: "info", s: "먼저 구슬이 들어갈 칸을 눌러 보세요!" });
-      return;
-    }
-    balls.current.push({ path: makePath(rows, Math.random), s: -1, pred: roundsLeft ? pred : null });
-    if (roundsLeft && pred !== null) {
-      setMsg({ t: "info", s: `${pred + 1}번 칸으로 예측했어요. 구슬이 내려와요…` });
+  const spawn = (x: number) => {
+    const left = lay.cx - ((rows + 1) * lay.dx) / 2;
+    const x0 = clamp(x, left + 8, left + (rows + 1) * lay.dx - 8);
+    const useP = pred !== null && score.tries < 5 && !balls.current.some((b) => b.pred !== null);
+    balls.current.push({ path: makePath(rows, Math.random), s: -1, pred: useP ? pred : null, x0 });
+    tick();
+    if (useP) {
+      setMsg({ t: "info", s: `🚩 ${(pred ?? 0) + 1}번 칸으로 예측했어요. 구슬이 내려와요…` });
       setPred(null);
-    } else setMsg({ t: "info", s: "구슬을 떨어뜨렸어요!" });
+    }
   };
   const dropMany = () => {
     queue.current += 100;
@@ -244,14 +280,31 @@ export default function GaltonGame() {
     setMsg({ t: "info", s: "구슬 100개를 떨어뜨려요. 쌓이는 모양을 지켜봐요." });
   };
 
-  const onCanvas = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const localXY = (e: React.PointerEvent<HTMLCanvasElement>): [number, number] => {
     const r = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - r.left;
-    const y = e.clientY - r.top;
-    const left = lay.cx - ((rows + 1) * lay.dx) / 2;
-    if (y < lay.binTop - 4) return;
-    const b = Math.floor((x - left) / lay.dx);
-    if (b >= 0 && b <= rows) setPred(b);
+    return [e.clientX - r.left, e.clientY - r.top];
+  };
+  const onDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const [x, y] = localXY(e);
+    if (y >= lay.binTop - 4) {
+      const left = lay.cx - ((rows + 1) * lay.dx) / 2;
+      const b = Math.floor((x - left) / lay.dx);
+      if (b >= 0 && b <= rows && score.tries < 5) {
+        tick();
+        setPred((p) => (p === b ? null : b));
+        setMsg({ t: "info", s: `🚩 ${b + 1}번 칸에 깃발을 꽂았어요! 이제 위쪽을 눌러 구슬을 떨어뜨려요.` });
+      }
+      return;
+    }
+    e.currentTarget.setPointerCapture(e.pointerId);
+    holding.current = { x, t: 0, acc: 0 };
+    spawn(x);
+  };
+  const onMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (holding.current) holding.current.x = localXY(e)[0];
+  };
+  const onUp = () => {
+    holding.current = null;
   };
 
   const roundsLeft = score.tries < 5;
@@ -260,51 +313,38 @@ export default function GaltonGame() {
     <div className="space-y-3 text-base">
       <Board>
         <p className="mb-2 text-base font-bold">
-          {roundsLeft ? "👇 구슬이 들어갈 칸을 눌러 맞혀 보세요" : "예측 놀이가 끝났어요. 구슬을 마음껏 떨어뜨려 봐요!"}
+          {roundsLeft ? "👆 위쪽을 눌러 구슬을 떨어뜨려요. 아래 칸을 누르면 🚩 예측!" : "🚩 예측 5번이 끝났어요. 구슬을 마음껏 떨어뜨려 봐요!"}
         </p>
         <div className="mb-2 flex flex-wrap gap-2">
-          <Stat label="예측" value={`${Math.min(score.tries, 5)} / 5`} />
+          <Stat label="🚩 예측" value={`${Math.min(score.tries, 5)} / 5`} />
           <Stat label="별" value={score.hit > 0 ? "⭐".repeat(score.hit) : "0"} tone={score.hit > 0 ? "ok" : "plain"} />
           <Stat label="떨어진 구슬" value={total} />
         </div>
         <div ref={wrap} className="w-full overflow-hidden rounded-card bg-bg">
           <canvas
             ref={cv}
-            role="img"
-            aria-label={`구슬 떨어뜨리기 판. 칸 ${rows + 1}개. 칸별 구슬 수: ${counts.current.slice(0, rows + 1).join(", ")}`}
-            onPointerDown={(e) => roundsLeft && onCanvas(e)}
-            style={{ touchAction: "manipulation", display: "block", cursor: "pointer" }}
+            role="button"
+            tabIndex={0}
+            aria-label={`구슬 판. 누르면 구슬이 떨어져요. 칸 ${rows + 1}개, 칸별 구슬 수: ${counts.current.slice(0, rows + 1).join(", ")}`}
+            onPointerDown={onDown}
+            onPointerMove={onMove}
+            onPointerUp={onUp}
+            onPointerCancel={onUp}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                spawn(lay.cx);
+              }
+            }}
+            style={{ touchAction: "none", display: "block", cursor: "pointer" }}
           />
-        </div>
-        <p className="mt-1 text-base text-muted">구슬은 못에 닿을 때마다 왼쪽·오른쪽으로 반반씩 갈려요. 가운데 칸에 가장 많이 들어가요.</p>
-        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="예측할 칸 고르기">
-          {Array.from({ length: rows + 1 }, (_, b) => (
-            <button
-              key={b}
-              type="button"
-              aria-label={`${b + 1}번 칸 예측`}
-              aria-pressed={pred === b}
-              disabled={!roundsLeft}
-              onClick={() => setPred(b)}
-              className={`min-h-[48px] min-w-[48px] rounded-card border border-line px-2 text-lg font-bold tabular-nums disabled:opacity-40 ${pred === b ? "bg-accent text-accent-ink" : "bg-surface hover:bg-bg"}`}
-            >
-              {b + 1}
-            </button>
-          ))}
         </div>
         <div className="mt-3 [&_p]:!text-base">
           <Say tone={msg.t}>{msg.s}</Say>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <GButton variant="primary" className={BIG} onClick={dropOne}>구슬 떨어뜨리기</GButton>
           <GButton variant="soft" className={BIG} onClick={dropMany}>구슬 100개 한꺼번에</GButton>
-          <GButton className={BIG} onClick={() => { reset(); setScore({ hit: 0, tries: 0 }); setMsg({ t: "info", s: "처음부터 다시 해요. 칸을 눌러 예측해 봐요!" }); }}>처음부터</GButton>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="속도">
-          <span className="font-semibold">속도</span>
-          {([["느리게", 0.8], ["보통", 1.5], ["빠르게", 3]] as const).map(([l, v]) => (
-            <GButton key={l} className={BIG} pressed={speed === v} onClick={() => setSpeed(v)}>{l}</GButton>
-          ))}
+          <GButton className={BIG} onClick={() => { reset(); setScore({ hit: 0, tries: 0 }); setMsg({ t: "info", s: "처음부터 다시 해요. 위쪽을 눌러 구슬을 떨어뜨려요!" }); }}>처음부터</GButton>
         </div>
       </Board>
 
@@ -312,6 +352,12 @@ export default function GaltonGame() {
         <GButton className={BIG} pressed={hard} onClick={() => { setHard((h) => !h); if (hard) setTheory(false); }}>🔥 더 어려운 도전 {hard ? "닫기" : "열기"}</GButton>
         {hard && (
           <div className="mt-3 space-y-3">
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="속도">
+          <span className="font-semibold">속도</span>
+          {([["느리게", 0.8], ["보통", 1.5], ["빠르게", 3]] as const).map(([l, v]) => (
+            <GButton key={l} className={BIG} pressed={speed === v} onClick={() => setSpeed(v)}>{l}</GButton>
+          ))}
+        </div>
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="못 줄 수">
               <span className="font-semibold">못 줄 수</span>
               {[6, 8, 10, 12].map((r) => (

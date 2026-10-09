@@ -40,6 +40,16 @@ function Tip({ tone = "info", children }: { tone?: Msg["t"]; children: ReactNode
   );
 }
 
+const CSS = `
+@keyframes pa-flow{to{stroke-dashoffset:-14}}
+@keyframes pa-pop{0%{transform:scale(.6)}55%{transform:scale(1.35)}100%{transform:scale(1)}}
+@keyframes pa-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.pa-flow{animation:pa-flow .7s linear infinite}
+.pa-pop{animation:pa-pop .5s ease-out;transform-box:fill-box;transform-origin:center}
+.pa-bob{display:inline-block;animation:pa-bob 1s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.pa-flow,.pa-pop,.pa-bob{animation:none!important}}
+`;
+
 function pickHidden(rows: number, count = 2): Set<string> {
   for (let tries = 0; tries < 200; tries++) {
     const cells: [number, number][] = [];
@@ -56,7 +66,7 @@ function pickHidden(rows: number, count = 2): Set<string> {
 
 function initial() {
   const t = triangle(6);
-  const h = pickHidden(6);
+  const h = pickHidden(6, 1);
   const f = [...h][0].split(",").map(Number);
   return { h, sel: { n: f[0], k: f[1] }, opts: choices(t[f[0]][f[1]], [t[f[0] - 1][f[1] - 1], t[f[0] - 1][f[1]]]) };
 }
@@ -66,6 +76,10 @@ export default function PascalGame() {
   const [rows, setRows] = useState(6);
   const [mode, setMode] = useState<Mode>("blank");
   const [more, setMore] = useState(false);
+  const [popCell, setPopCell] = useState("");
+  const [drag, setDrag] = useState<null | { v: number; x: number; y: number }>(null);
+  const dragStart = useRef({ x: 0, y: 0, moved: false });
+  const svgRef = useRef<SVGSVGElement>(null);
   const [sel, setSel] = useState(init.sel);
   const [diagN, setDiagN] = useState(5);
   const [hidden, setHidden] = useState<Set<string>>(init.h);
@@ -81,12 +95,18 @@ export default function PascalGame() {
   const quest = mode === "blank" || mode === "sumq";
   const roundDone = mode === "blank" ? hidden.size === 0 : sumDone;
   const finished = quest && round >= 5;
+  useEffect(() => {
+    if (!quest || !roundDone || finished) return;
+    const id = setTimeout(nextRound, mode === "blank" ? 1700 : 2600);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quest, roundDone, finished, round, mode]);
   const dN = Math.min(diagN, rows - 1);
   const diagCells = mode === "diag" ? shallowDiagonal(dN) : [];
 
   const blankOpts = (n: number, k: number) => setOpts(choices(T[n][k], [T[n - 1][k - 1], T[n - 1][k]]));
-  const setupBlank = (rws: number, t = triangle(rws)) => {
-    const h = pickHidden(rws);
+  const setupBlank = (rws: number, t = triangle(rws), r = 0) => {
+    const h = pickHidden(rws, r < 2 ? 1 : 2);
     setHidden(h);
     const f = [...h][0].split(",").map(Number);
     setSel({ n: f[0], k: f[1] });
@@ -111,7 +131,7 @@ export default function PascalGame() {
     setHidden(new Set());
     setWrong([]);
     setSumDone(false);
-    if (md === "blank") setupBlank(rws);
+    if (md === "blank") setupBlank(rws, undefined, 0);
     else if (md === "sumq") setupSum(rws);
   };
   const nextRound = () => {
@@ -120,18 +140,30 @@ export default function PascalGame() {
     if (r >= 5) {
       setSel(SEL);
       setMsg({ t: "ok", s: `끝까지 해냈어요! ⭐ ${stars}개를 모았어요. 정말 잘했어요!` });
+      cheer();
       return;
     }
     setMsg({ t: "info", s: `${r + 1}번째 판이에요. 해 봐요!` });
-    if (mode === "blank") setupBlank(rows, T);
+    if (mode === "blank") setupBlank(rows, T, r);
     else setupSum(rows, T);
   };
-  const pickAnswer = (v: number) => {
+  const pickAnswer = (v: number, cell?: { n: number; k: number }) => {
     if (mode === "blank") {
-      const { n, k } = sel;
+      const { n, k } = cell ?? sel;
       if (!hidden.has(key(n, k))) return;
       const truth = T[n][k];
+      if (cell && (cell.n !== sel.n || cell.k !== sel.k) && v !== truth) {
+        setSel(cell);
+        blankOpts(n, k);
+        setWrong([]);
+        oops();
+        setMsg({ t: "bad", s: `괜찮아요! 이 칸은 ${T[n - 1][k - 1]} + ${T[n - 1][k]} 예요. 다른 풍선을 놓아 봐요.` });
+        return;
+      }
       if (v === truth) {
+        setPopCell(key(n, k));
+        if (hidden.size === 1) cheer();
+        else tick();
         const h = new Set(hidden);
         h.delete(key(n, k));
         setHidden(h);
@@ -147,6 +179,7 @@ export default function PascalGame() {
         setMsg({ t: "ok", s: `${first ? "⭐ " : ""}맞아요! ${T[n - 1][k - 1]} + ${T[n - 1][k]} = ${truth}.` + (h.size === 0 ? " 이번 판을 모두 채웠어요!" : " 다음 ? 칸도 해 봐요.") });
       } else {
         setWrong((w) => [...w, v]);
+        oops();
         setMsg({ t: "bad", s: `괜찮아요, 다시 해 봐요! 노란 두 칸은 ${T[n - 1][k - 1]} 와(과) ${T[n - 1][k]} 예요. 두 수를 더해요.` });
       }
     } else if (mode === "sumq") {
@@ -155,21 +188,24 @@ export default function PascalGame() {
         const first = wrong.length === 0;
         if (first) setStars((s) => s + 1);
         setSumDone(true);
+        cheer();
         setMsg({ t: "ok", s: `${first ? "⭐ " : ""}맞아요! ${T[sumRow].join(" + ")} = ${truth}` });
       } else {
         setWrong((w) => [...w, v]);
+        oops();
         setMsg({ t: "bad", s: `괜찮아요, 다시 해 봐요! ${T[sumRow].join(" + ")} 를 차례로 더해 봐요.` });
       }
     }
   };
 
   const tap = (n: number, k: number) => {
+    tick();
     if (mode === "blank") {
       if (hidden.has(key(n, k))) {
         setSel({ n, k });
         blankOpts(n, k);
         setWrong([]);
-        setMsg({ t: "info", s: "위의 두 수를 더해서 맞는 수를 골라요." });
+        setMsg({ t: "info", s: "노란 두 수를 더한 풍선을 ? 칸에 놓아요." });
       } else {
         setSel({ n, k });
         setMsg(null);
@@ -178,6 +214,45 @@ export default function PascalGame() {
     }
     setSel({ n, k });
     if (mode !== "sumq") setMsg(null);
+  };
+
+  const cellScreen = (n: number, k: number) => {
+    const svg = svgRef.current;
+    const m = svg?.getScreenCTM();
+    if (!svg || !m) return null;
+    return { x: m.a * cx(n, k) + m.e, y: m.d * cy(n) + m.f, r: Math.abs(m.a) * R };
+  };
+  const balloonDown = (e: RPointerEvent<HTMLButtonElement>, v: number) => {
+    if (wrong.includes(v)) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStart.current = { x: e.clientX, y: e.clientY, moved: false };
+    setDrag({ v, x: e.clientX, y: e.clientY });
+  };
+  const balloonMove = (e: RPointerEvent<HTMLButtonElement>) => {
+    if (!drag) return;
+    if (Math.hypot(e.clientX - dragStart.current.x, e.clientY - dragStart.current.y) > 10) dragStart.current.moved = true;
+    setDrag({ v: drag.v, x: e.clientX, y: e.clientY });
+  };
+  const balloonUp = (e: RPointerEvent<HTMLButtonElement>) => {
+    if (!drag) return;
+    const v = drag.v;
+    setDrag(null);
+    let target: { n: number; k: number } | undefined;
+    if (dragStart.current.moved) {
+      let best = Infinity;
+      for (const h of hidden) {
+        const [n, k] = h.split(",").map(Number);
+        const c = cellScreen(n, k);
+        if (!c) continue;
+        const d = Math.hypot(e.clientX - c.x, e.clientY - 24 - c.y);
+        if (d < c.r * 1.6 && d < best) {
+          best = d;
+          target = { n, k };
+        }
+      }
+      if (!target) return; // 엉뚱한 곳에 놓으면 풍선은 제자리로
+    }
+    pickAnswer(v, target);
   };
 
   const W = rows * CW;
@@ -224,7 +299,7 @@ export default function PascalGame() {
     if (msg) return msg;
     const { n, k } = sel;
     const has = n >= 0;
-    if (mode === "blank") return { t: "info", s: hidden.size ? "아래 보기에서 답을 골라요. 노란 칸이 위의 두 수예요." : "다음 판으로 가 봐요." };
+    if (mode === "blank") return { t: "info", s: hidden.size ? "노란 두 칸을 더한 수예요. 풍선을 ? 칸에 놓아요." : "잘했어요! 곧 다음 판이 나와요." };
     if (mode === "sumq") return { t: "info", s: "보기 중에서 답을 골라요." };
     if (mode === "diag") {
       const parts = diagCells.map(([a, b]) => T[a][b]);
@@ -251,11 +326,15 @@ export default function PascalGame() {
 
   return (
     <Board>
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="놀이 고르기">
-        {MAIN.map((t) => (
-          <GButton key={t.id} pressed={mode === t.id} className={BIG} onClick={() => goMode(t.id)}>{t.label}</GButton>
-        ))}
-        <GButton variant="soft" pressed={more} className={BIG} onClick={() => setMore((m) => !m)}>{more ? "접기 ▲" : "더 보기 ▼"}</GButton>
+      <style>{CSS}</style>
+      <div className="flex flex-wrap items-center gap-2">
+        {quest && (
+          <>
+            <Stat label="판" value={finished ? "끝" : `${round + 1} / 5`} />
+            <Stat label="별" value={"⭐".repeat(Math.min(stars, 10)) || "0"} tone={stars ? "ok" : "plain"} />
+          </>
+        )}
+        <GButton variant="soft" pressed={more} className={`${BIG} ml-auto`} onClick={() => setMore((m) => !m)}>🔥 더 어려운 도전 {more ? "▲" : "▼"}</GButton>
       </div>
       {more && (
         <div className="mt-2 rounded-card bg-bg p-3">
@@ -282,22 +361,15 @@ export default function PascalGame() {
         </div>
       )}
 
-      {quest && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Stat label="판" value={finished ? "끝" : `${round + 1} / 5`} />
-          <Stat label="별" value={"⭐".repeat(Math.min(stars, 10)) || "0"} tone={stars ? "ok" : "plain"} />
-        </div>
-      )}
-
       <p className="mt-3 text-base font-semibold">{GUIDE[mode]}</p>
 
       <div className="mt-2 overflow-hidden rounded-card bg-bg p-1">
-        <svg viewBox={`0 0 ${vw} ${vh}`} width="100%" style={{ maxWidth: vw * 1.4, margin: "0 auto", display: "block", touchAction: "manipulation" }} role="group" aria-label="파스칼 삼각형 판">
+        <svg ref={svgRef} viewBox={`0 0 ${vw} ${vh}`} width="100%" style={{ maxWidth: vw * 1.05, margin: "0 auto", display: "block", touchAction: "manipulation" }} role="group" aria-label="파스칼 삼각형 판">
           {sel.n >= 1 &&
             sel.n < rows &&
             [sel.k - 1, sel.k]
               .filter((k) => k >= 0 && k <= sel.n - 1)
-              .map((k) => <line key={k} x1={cx(sel.n - 1, k)} y1={cy(sel.n - 1) + R - 3} x2={cx(sel.n, sel.k)} y2={cy(sel.n) - R + 3} stroke="#b45309" strokeWidth={2.4} strokeDasharray="4 3" />)}
+              .map((k) => <line key={k} x1={cx(sel.n - 1, k)} y1={cy(sel.n - 1) + R - 3} x2={cx(sel.n, sel.k)} y2={cy(sel.n) - R + 3} stroke="#b45309" strokeWidth={3} strokeDasharray="8 6" className="pa-flow" />)}
           {T.map((row, n) => (
             <g key={n}>
               <text x={LM - 4} y={cy(n)} textAnchor="end" dominantBaseline="central" fontSize={10} fill="var(--muted)">{n}</text>
@@ -322,9 +394,9 @@ export default function PascalGame() {
                       }
                     }}
                   >
-                    {hid ? <circle r={R} fill="#fef3c7" stroke={isSel(n, k) ? "#dc2626" : "#b45309"} strokeWidth={isSel(n, k) ? 3.5 : 2.4} strokeDasharray="5 3" /> : <circle r={R} fill={st.fill} stroke={st.stroke} strokeWidth={isSel(n, k) ? 3.5 : 1.6} />}
+                    <g className={popCell === key(n, k) && !hid ? "pa-pop" : undefined}>{hid ? <circle r={R} fill="#fef3c7" stroke={isSel(n, k) ? "#dc2626" : "#b45309"} strokeWidth={isSel(n, k) ? 3.5 : 2.4} strokeDasharray="5 3" /> : <circle r={R} fill={st.fill} stroke={st.stroke} strokeWidth={isSel(n, k) ? 3.5 : 1.6} />}
                     <text textAnchor="middle" dominantBaseline="central" fontSize={fs} fontWeight={800} fill={hid ? "#92400e" : st.text}>{label}</text>
-                  </g>
+                  </g></g>
                 );
               })}
               {mode === "rowsum" && (
@@ -338,23 +410,48 @@ export default function PascalGame() {
       </div>
 
       <div className="mt-3 space-y-3">
-        <Tip tone={info.t}>{info.s}</Tip>
-        {showOpts && (
+        {showOpts && mode === "blank" && (
           <div>
-            <p className="mb-1 text-base font-semibold">{mode === "blank" ? "? 칸에 들어갈 수는?" : `${sumRow}줄의 합은?`}</p>
+            <p className="mb-1 text-base font-semibold">
+              <span className="pa-bob" aria-hidden>👆</span> 풍선을 ? 칸에 끌어다 놓아요 (톡 눌러도 돼요)
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {opts.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  aria-label={`${o} 풍선`}
+                  disabled={wrong.includes(o)}
+                  onPointerDown={(e) => balloonDown(e, o)}
+                  onPointerMove={balloonMove}
+                  onPointerUp={balloonUp}
+                  onPointerCancel={() => setDrag(null)}
+                  className="h-16 w-16 select-none rounded-full border-2 border-accent bg-accent-soft text-2xl font-extrabold text-accent shadow disabled:opacity-30"
+                  style={{ touchAction: "none", opacity: drag?.v === o ? 0.35 : undefined }}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {showOpts && mode === "sumq" && (
+          <div>
+            <p className="mb-1 text-base font-semibold">{sumRow}줄의 합은?</p>
             <div className="flex flex-wrap gap-2">
               {opts.map((o) => (
-                <GButton key={o} variant="soft" disabled={wrong.includes(o)} className="min-h-[52px]! min-w-[72px] text-xl" onClick={() => pickAnswer(o)}>
+                <GButton key={o} variant="soft" disabled={wrong.includes(o)} className="min-h-[56px]! min-w-[72px] text-xl" onClick={() => pickAnswer(o)}>
                   {o}
                 </GButton>
               ))}
             </div>
           </div>
         )}
+        <Tip tone={info.t}>{info.s}</Tip>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {quest && roundDone && !finished && <GButton variant="primary" className={BIG} onClick={nextRound}>{round >= 4 ? "결과 보기" : "다음 판"}</GButton>}
+        {quest && roundDone && !finished && <GButton variant="primary" className={BIG} onClick={nextRound}>{round >= 4 ? "끝내기 ▶" : "다음 판 ▶"}</GButton>}
         {quest && <GButton className={BIG} onClick={() => begin(mode, rows)}>다시 하기</GButton>}
         {!quest && <GButton className={BIG} onClick={() => { setSel(SEL); setMsg(null); }}>선택 지우기</GButton>}
       </div>
@@ -362,6 +459,11 @@ export default function PascalGame() {
       {mode === "diag" && (
         <div className="mt-2">
           <Slider label="줄 고르기" value={dN} min={0} max={rows - 1} onChange={setDiagN} />
+        </div>
+      )}
+      {drag && (
+        <div className="pointer-events-none fixed z-[70] flex h-16 w-16 items-center justify-center rounded-full border-2 border-accent bg-accent-soft text-2xl font-extrabold text-accent shadow-xl" style={{ left: drag.x - 32, top: drag.y - 56 }}>
+          {drag.v}
         </div>
       )}
     </Board>

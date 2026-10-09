@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Slider, Stat, clamp, fitCanvas, useFrame } from "./kit";
+import { Board, GButton, Say, Slider, Stat, cheer, clamp, fitCanvas, tick, useFrame } from "./kit";
 
 // ==PURE-START==
 // 단위: 바퀴의 외접원 반지름 R = 1. n = 0 이면 원.
@@ -230,6 +230,21 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
 
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
 
+function Icon({ n }: { n: number }) {
+  const r = 18;
+  const pts = Array.from({ length: n }, (_, k) => {
+    const a = -Math.PI / 2 + (k * 2 * Math.PI) / n;
+    return `${22 + r * Math.cos(a)},${22 + r * Math.sin(a)}`;
+  }).join(" ");
+  return (
+    <svg viewBox="0 0 44 44" width="40" height="40" aria-hidden="true">
+      {n === 0 ? <circle cx="22" cy="22" r={r} fill="#fbbf24" stroke="#b45309" strokeWidth="3" /> : <polygon points={pts} fill="#fbbf24" stroke="#b45309" strokeWidth="3" strokeLinejoin="round" />}
+    </svg>
+  );
+}
+
+const NEED = 4; // 미션 성공에 필요한 굴린 거리 (바퀴 반지름의 몇 배)
+
 export default function WheelGame() {
   const [n, setN] = useState(4);
   const [road, setRoad] = useState<Road>("flat");
@@ -238,14 +253,19 @@ export default function WheelGame() {
   const [more, setMore] = useState(false);
   const [m1, setM1] = useState(false);
   const [m2, setM2] = useState(false);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "‘굴리기’를 눌러요. 네모 바퀴는 어떻게 굴러갈까요?" });
+  const [touched, setTouched] = useState(false);
+  const [prog, setProg] = useState(0);
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "바퀴를 손가락으로 쓱 밀어 봐요! 네모 바퀴는 어떻게 굴러갈까요?" });
   const [W, setW] = useState(600);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const xRef = useRef(0);
+  const vRef = useRef(0);
   const distRef = useRef(0);
-  const drag = useRef<{ px: number } | null>(null);
+  const drag = useRef<{ px: number; t: number; v: number } | null>(null);
+  const cfg = useRef({ n, road, m1, m2 });
+  cfg.current = { n, road, m1, m2 };
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -259,39 +279,59 @@ export default function WheelGame() {
 
   const paint = () => {
     const c = canvasRef.current;
-    if (c) drawAll(c, W, n, road, xRef.current);
+    if (c) drawAll(c, W, cfg.current.n, cfg.current.road, xRef.current);
   };
-
   useEffect(() => {
     paint();
   });
 
-  useFrame((_, dt) => {
-    const v = speed * 0.3;
-    xRef.current += v * dt;
-    distRef.current += v * dt;
-    paint();
-    if (distRef.current >= 4) {
-      if (road === "flat" && wiggle(n, road) <= 0.1 && !m1) {
-        setM1(true);
-        setMore(true);
-        setMsg({ tone: "ok", text: `⭐ 미션 1 성공! ${NAMES[n]} 바퀴는 거의 덜컹거리지 않아요. 변이 많을수록 동그라미에 가까워져요. 이제 미션 2에 도전해 봐요!` });
-      }
-      if (road === "bumpy" && n === 4 && !m2) {
-        setM2(true);
-        setMsg({ tone: "ok", text: "⭐ 미션 2 성공! 네모 바퀴도 물결 길에서는 덜컹거리지 않고 매끈하게 굴러가요!" });
-      }
+  const addDist = (d: number) => {
+    distRef.current += d;
+    const p = Math.min(1, distRef.current / NEED);
+    setProg((old) => (Math.floor(p * 20) !== Math.floor(old * 20) ? p : old));
+    if (distRef.current < NEED) return;
+    const { n: cn, road: cr, m1: a, m2: b } = cfg.current;
+    if (cr === "flat" && wiggle(cn, cr) <= 0.1 && !a) {
+      setM1(true);
+      setMore(true);
+      cheer();
+      setMsg({ tone: "ok", text: `⭐ 미션 1 성공! ${NAMES[cn]} 바퀴는 거의 덜컹거리지 않아요. 변이 많을수록 동그라미에 가까워져요. 이제 미션 2에 도전해 봐요!` });
     }
-  }, running);
+    if (cr === "bumpy" && cn === 4 && !b) {
+      setM2(true);
+      cheer();
+      setMsg({ tone: "ok", text: "⭐ 미션 2 성공! 네모 바퀴도 물결 길에서는 덜컹거리지 않고 매끈하게 굴러가요!" });
+    }
+  };
+
+  useFrame((_, dt) => {
+    if (drag.current) return;
+    let v: number;
+    if (running) {
+      v = speed * 0.3;
+      vRef.current = v;
+    } else {
+      vRef.current *= Math.exp(-1.5 * dt);
+      if (Math.abs(vRef.current) < 0.03) vRef.current = 0;
+      v = vRef.current;
+    }
+    if (v !== 0) {
+      xRef.current += v * dt;
+      addDist(Math.abs(v * dt));
+      paint();
+    }
+  });
 
   const resetDist = () => {
     distRef.current = 0;
+    setProg(0);
   };
 
   const pickN = (k: number) => {
     let r = road;
     const reroad = !bumpyFits(k) && road === "bumpy";
     if (reroad) r = "flat";
+    tick();
     setN(k);
     setRoad(r);
     resetDist();
@@ -301,10 +341,10 @@ export default function WheelGame() {
       text: reroad
         ? `${NAMES[k]} 바퀴는 물결 길에 안 맞아서 평평한 길로 바꿨어요.`
         : r === "bumpy"
-          ? `${NAMES[k]} 바퀴에 꼭 맞는 물결 길이에요. 굴려 봐요!`
+          ? `${NAMES[k]} 바퀴에 꼭 맞는 물결 길이에요. 쓱 밀어 봐요!`
           : k === 0
             ? "동그라미 바퀴는 언제나 높이가 그대로예요. 매끈매끈!"
-            : `${NAMES[k]} 바퀴예요. 굴렸을 때 덜컹거림: ${bumpWord(w)} (${(w * 100).toFixed(0)}%)`,
+            : `${NAMES[k]} 바퀴예요. 쓱 밀어 봐요! 덜컹거림: ${bumpWord(w)} (${(w * 100).toFixed(0)}%)`,
     });
   };
 
@@ -313,88 +353,111 @@ export default function WheelGame() {
       setMsg({ tone: "bad", text: n === 0 ? "동그라미는 평평한 길이 어울려요." : "세모 바퀴는 변이 너무 길어서 물결 길에 걸려요. 변이 4개 이상인 바퀴로 해 봐요." });
       return;
     }
+    tick();
     setRoad(r);
     resetDist();
-    setMsg(r === "bumpy" ? { tone: "info", text: "물결 길이에요. 바퀴 한 변의 길이와 둔덕 하나의 길이가 같게 만든 길이에요. 굴려서 점의 높이를 봐요!" } : { tone: "info", text: "평평한 길이에요. 모서리가 땅에 닿을 때마다 가운데 점이 올라갔다 내려와요." });
+    setMsg(r === "bumpy" ? { tone: "info", text: "물결 길이에요. 바퀴 한 변의 길이와 둔덕 하나의 길이가 같게 만든 길이에요. 쓱 밀어서 점의 높이를 봐요!" } : { tone: "info", text: "평평한 길이에요. 모서리가 땅에 닿을 때마다 가운데 점이 올라갔다 내려와요." });
   };
 
   const giveHint = () => {
-    if (!m1) setMsg({ tone: "info", text: "힌트: 바퀴의 변을 7개나 8개로 바꿔 보세요. 변이 많을수록 동그라미에 가까워져요!" });
-    else setMsg({ tone: "info", text: "힌트: ‘네모’ 바퀴를 고르고 ‘물결 길’을 누른 다음 ‘굴리기’를 눌러요." });
+    if (!m1) setMsg({ tone: "info", text: "힌트: 바퀴의 변을 7개나 8개로 바꿔서 쓱 밀어 보세요. 변이 많을수록 동그라미에 가까워져요!" });
+    else setMsg({ tone: "info", text: "힌트: ‘네모’ 바퀴를 고르고 ‘물결 길’을 누른 다음 바퀴를 쓱 밀어요." });
   };
 
   const restart = () => {
     setRunning(false);
     xRef.current = 0;
+    vRef.current = 0;
     resetDist();
     setM1(false);
     setM2(false);
-    setMsg({ tone: "info", text: "처음으로 돌아왔어요. 바퀴를 골라 굴려 봐요. 그림을 옆으로 끌어서 직접 굴릴 수도 있어요!" });
+    setMsg({ tone: "info", text: "처음으로 돌아왔어요. 바퀴를 쓱 밀어 봐요!" });
   };
 
   const onDown = (e: React.PointerEvent) => {
-    drag.current = { px: e.clientX };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setRunning(false);
+    setTouched(true);
+    vRef.current = 0;
+    drag.current = { px: e.clientX, t: performance.now(), v: 0 };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      /* 무시 */
+    }
   };
   const onMove = (e: React.PointerEvent) => {
-    if (!drag.current) return;
+    const d = drag.current;
+    if (!d) return;
     const R = sceneH(W) * 0.3;
-    xRef.current -= (e.clientX - drag.current.px) / R;
-    drag.current.px = e.clientX;
+    const now = performance.now();
+    const dX = (e.clientX - d.px) / R;
+    const dtS = Math.max(0.008, (now - d.t) / 1000);
+    xRef.current += dX;
+    addDist(Math.abs(dX));
+    d.v = d.v * 0.6 + (dX / dtS) * 0.4;
+    d.px = e.clientX;
+    d.t = now;
     paint();
   };
   const onUp = () => {
+    const d = drag.current;
     drag.current = null;
+    if (d && performance.now() - d.t < 90) vRef.current = clamp(d.v, -6, 6);
   };
 
   const w = wiggle(n, road);
   const H = sceneH(W) + GRAPH_H;
-  const bars = [3, 4, 5, 6, 7, 8, 0];
+  const shapes = [3, 4, 5, 6, 7, 8, 0];
 
   return (
     <div className="space-y-3 text-base">
       <p className="rounded-card bg-accent-soft px-3 py-2 font-bold">
-        {m1 ? "미션 2: 네모 바퀴를 덜컹거리지 않게 굴려 봐요! (길 모양을 바꿔 봐요)" : "미션 1: 바퀴를 바꿔서 덜컹거림을 ‘조금’ 이하로 만들어 굴려 봐요!"}
+        {m1 ? "미션 2: 네모 바퀴를 덜컹거리지 않게 굴려 봐요! (길 모양을 바꿔 봐요)" : "미션 1: 바퀴를 바꿔서 덜컹거림을 ‘조금’ 이하로 만들고 쓱 밀어 굴려 봐요!"}
       </p>
       <Board>
-        <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="바퀴 모양 고르기">
-          <span className="font-semibold">바퀴 (변의 수)</span>
-          {bars.map((k) => (
+        <div className="mb-3 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="바퀴 모양 고르기">
+          {shapes.map((k) => (
             <button
               key={k}
               type="button"
               onClick={() => pickN(k)}
               aria-pressed={k === n}
               aria-label={k === 0 ? "동그라미 바퀴" : `변 ${k}개 바퀴`}
-              className={`h-12 min-w-[48px] rounded-card px-3 text-lg font-bold ${k === n ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"}`}
+              className={`flex min-h-[72px] flex-col items-center justify-center rounded-card px-1 py-1 text-sm font-bold shadow-sm ${k === n ? "bg-accent-soft ring-2 ring-accent" : "border border-line bg-surface hover:bg-bg"}`}
+              style={{ touchAction: "manipulation" }}
             >
-              {k === 0 ? "원" : k}
+              <Icon n={k} />
+              <span>{k === 0 ? "동그라미" : `${NAMES[k]}`}</span>
             </button>
           ))}
         </div>
-        {more && (
-          <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="길 모양 고르기">
-            <span className="font-semibold">길 모양</span>
-            <GButton variant={road === "flat" ? "soft" : "ghost"} pressed={road === "flat"} onClick={() => pickRoad("flat")} className={BIG}>평평한 길</GButton>
-            <GButton variant={road === "bumpy" ? "soft" : "ghost"} pressed={road === "bumpy"} onClick={() => pickRoad("bumpy")} className={BIG}>물결 길</GButton>
-          </div>
-        )}
 
-        <div ref={wrapRef} className="w-full overflow-hidden rounded-card border border-line">
+        <div ref={wrapRef} className="relative w-full overflow-hidden rounded-card border border-line">
           <canvas
             ref={canvasRef}
             role="img"
-            aria-label={`${NAMES[n]} 바퀴가 ${road === "flat" ? "평평한" : "물결"} 길을 구르는 모습과 바퀴 가운데 점의 높이 그래프. 덜컹거림 ${bumpWord(w)}`}
-            style={{ width: W, height: H, display: "block", touchAction: "pan-y", cursor: "grab" }}
+            aria-label={`${NAMES[n]} 바퀴가 ${road === "flat" ? "평평한" : "물결"} 길 위에 있어요. 좌우로 끌면 굴러가요. 덜컹거림 ${bumpWord(w)}`}
+            style={{ width: W, height: H, display: "block", touchAction: "none", cursor: "grab" }}
             onPointerDown={onDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
             onPointerCancel={onUp}
           />
+          {!touched && !running && (
+            <div className="pointer-events-none absolute left-[18%] top-[30%]">
+              <style>{`@keyframes wh-nudge{0%{transform:translateX(0);opacity:0}15%{opacity:1}80%{transform:translateX(110px);opacity:1}100%{transform:translateX(130px);opacity:0}}`}</style>
+              <div style={{ animation: "wh-nudge 1.6s ease-in-out infinite" }} className="rounded-full bg-white/90 px-3 py-1.5 text-base font-extrabold text-orange-700 shadow-md">
+                👉 쓱 밀어 봐요!
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="mt-3">
-          <Slider label="굴러가는 속도" value={speed} min={1} max={10} onChange={setSpeed} show={(v) => `${v}단계`} />
+        <div className="mt-3" aria-label="미션 진행">
+          <p className="mb-1 text-sm text-muted">굴린 거리 (가득 차면 미션 확인!)</p>
+          <div className="h-4 overflow-hidden rounded-full bg-bg">
+            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.round(prog * 100)}%` }} />
+          </div>
         </div>
       </Board>
 
@@ -405,16 +468,27 @@ export default function WheelGame() {
       <Say tone={msg.tone}>{msg.text}</Say>
 
       <div className="flex flex-wrap gap-2">
-        <GButton variant="primary" onClick={() => setRunning(!running)} className="min-h-[52px]! min-w-[8rem] text-lg">{running ? "■ 멈추기" : "▶ 굴리기"}</GButton>
+        <GButton variant={running ? "primary" : "soft"} onClick={() => { setRunning(!running); setTouched(true); }} className={BIG}>{running ? "■ 멈추기" : "▶ 저절로 굴러가기"}</GButton>
         <GButton onClick={restart} className={BIG}>↻ 다시 하기</GButton>
         <GButton variant="soft" onClick={giveHint} className={BIG}>💡 힌트 보기</GButton>
-        <GButton pressed={more} onClick={() => setMore(!more)} className={BIG}>{more ? "길 바꾸기 닫기" : "더 어려운 도전"}</GButton>
+        <GButton pressed={more} onClick={() => setMore(!more)} className={BIG}>{more ? "어려운 도전 닫기" : "더 어려운 도전"}</GButton>
       </div>
+
+      {more && (
+        <Board className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="길 모양 고르기">
+            <span className="font-semibold">길 모양</span>
+            <GButton variant={road === "flat" ? "soft" : "ghost"} pressed={road === "flat"} onClick={() => pickRoad("flat")} className={BIG}>평평한 길</GButton>
+            <GButton variant={road === "bumpy" ? "soft" : "ghost"} pressed={road === "bumpy"} onClick={() => pickRoad("bumpy")} className={BIG}>물결 길</GButton>
+          </div>
+          <Slider label="저절로 굴러가는 속도" value={speed} min={1} max={10} onChange={setSpeed} show={(v) => `${v}단계`} />
+        </Board>
+      )}
 
       <Board>
         <h3 className="mb-2 text-base font-bold">바퀴마다 얼마나 덜컹거릴까? (평평한 길)</h3>
         <ul className="space-y-1.5">
-          {bars.map((k) => {
+          {shapes.map((k) => {
             const v = wiggle(k, "flat");
             return (
               <li key={k} className="flex items-center gap-2 text-base">

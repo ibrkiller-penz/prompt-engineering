@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Board, GButton, Say, Stat } from "./kit";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Board, GButton, Say, Stat, cheer, oops, tick } from "./kit";
 
 // ==PURE-START==
 export type Parsed = { names: string[]; cells: number[][]; adj: boolean[][] };
@@ -161,18 +161,23 @@ function buildGeometry(rows: string[]) {
 
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
 const BIG = "min-h-[48px]! text-base";
+const GOAL = 5;
+const EASY = [0, 1];
 
 export default function MapColorGame() {
-  const [mi, setMi] = useState(0);
+  const [fixed, setFixed] = useState<number | null>(null);
+  const [round, setRound] = useState(1);
   const [ncol, setNcol] = useState(4);
-  const [tool, setTool] = useState(0); // 0..4 = 색, -1 = 지우개
+  const [brush, setBrush] = useState<number | null>(null); // null = 톡 누르면 색이 바뀜, -1 = 지우개
   const [colors, setColors] = useState<(number | null)[]>([]);
   const [showHint, setShowHint] = useState(false);
   const [more, setMore] = useState(false);
   const [hintR, setHintR] = useState<number | null>(null);
   const [wins, setWins] = useState(0);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "색을 고르고 나라를 눌러요. 붙어 있는 나라는 다른 색으로 칠해요!" });
+  const [touched, setTouched] = useState(false);
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "나라를 톡 누를 때마다 색이 바뀌어요. 붙은 나라는 다른 색으로!" });
 
+  const mi = fixed ?? EASY[(round - 1) % EASY.length];
   const defs = MAPS[mi];
   const geo = useMemo(() => buildGeometry(defs.rows), [defs]);
   const { p, W, H } = geo;
@@ -182,57 +187,127 @@ export default function MapColorGame() {
   const painted = cur.filter((c) => c !== null).length;
   const usedColors = new Set(cur.filter((c) => c !== null)).size;
   const full = painted === n;
-  const shown = more ? MAPS : MAPS.slice(0, 2);
 
-  const evaluate = (next: (number | null)[]) => {
-    const cf = conflicts(p.adj, next);
+  // 끌면서 칠할 때 최신 값을 쓰기 위한 참조
+  const live = useRef({ cur, n, p, geo, ncol, brush, round, fixed, wins });
+  live.current = { cur, n, p, geo, ncol, brush, round, fixed, wins };
+  const colorsRef = useRef<(number | null)[]>(cur);
+  colorsRef.current = cur;
+  const lock = useRef(false);
+  const timer = useRef(0);
+  const drag = useRef<{ last: number | null; start: number | null; moved: boolean } | null>(null);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const apply = (next: (number | null)[]) => {
+    const L = live.current;
+    const before = conflicts(L.p.adj, colorsRef.current).size;
+    colorsRef.current = next;
+    setColors(next);
+    setHintR(null);
+    setTouched(true);
+    const cf = conflicts(L.p.adj, next);
     const pc = next.filter((c) => c !== null).length;
-    if (pc < n) {
-      setMsg(cf.size ? { tone: "bad", text: "앗, 붙어 있는 나라가 같은 색이에요. 빨간 테두리를 다른 색으로 바꿔 봐요." } : { tone: "info", text: `좋아요! ${pc}/${n}개 칠했어요.` });
+    if (cf.size > before) oops();
+    else tick();
+    if (pc < L.n) {
+      setMsg(cf.size ? { tone: "bad", text: "앗, 붙어 있는 나라가 같은 색이에요. 빨간 테두리를 다른 색으로 바꿔 봐요." } : { tone: "info", text: `좋아요! ${pc}/${L.n}개 칠했어요.` });
       return;
     }
     if (cf.size === 0) {
       const k = new Set(next).size;
-      setWins((w) => w + 1);
-      setMsg({
-        tone: "ok",
-        text: k <= geo.chi ? `⭐ 대단해요! ${k}색으로 다 칠했어요. 이 지도는 ${geo.chi}색보다 적게는 안 돼요!` : `⭐ 성공! ${k}색으로 칠했어요. 이 지도는 ${geo.chi}색으로도 칠할 수 있어요. 더 적은 색으로 도전해 볼까요?`,
-      });
-    } else if (ncol < geo.chi) {
-      setMsg({ tone: "bad", text: `아깝다! 사실 이 지도는 ${ncol}색으로는 칠할 수 없어요. 색을 더 늘려 볼까요?` });
+      lock.current = true;
+      const w = L.wins + 1;
+      setWins(w);
+      cheer();
+      if (L.round >= GOAL) {
+        setMsg({ tone: "ok", text: `⭐ 별 ${GOAL}개 완성! 정말 대단해요!` });
+        return;
+      }
+      setMsg({ tone: "ok", text: k <= L.geo.chi ? `⭐ 대단해요! ${k}색으로 다 칠했어요! 곧 다음 지도가 나와요.` : `⭐ 성공! ${k}색으로 칠했어요. (이 지도는 ${L.geo.chi}색으로도 돼요) 곧 다음 지도가 나와요.` });
+      timer.current = window.setTimeout(() => {
+        lock.current = false;
+        colorsRef.current = [];
+        setColors([]);
+        setRound((r) => r + 1);
+        setMsg({ tone: "info", text: "새 지도예요! 나라를 톡 눌러 칠해 봐요." });
+      }, 2300);
+    } else if (L.ncol < L.geo.chi) {
+      setMsg({ tone: "bad", text: `아깝다! 사실 이 지도는 ${L.ncol}색으로는 칠할 수 없어요. ‘더 어려운 도전’에서 색을 늘려 봐요.` });
     } else {
-      setMsg({ tone: "bad", text: "아깝다! 같은 색이 붙은 곳이 있어요. 빨간 테두리를 고쳐 봐요." });
+      setMsg({ tone: "bad", text: "아깝다! 같은 색이 붙은 곳이 있어요. 빨간 테두리를 톡 눌러 색을 바꿔 봐요." });
     }
   };
 
-  const paint = (r: number) => {
-    const val = tool === -1 ? null : tool;
-    if (cur[r] === val) return;
-    const next = cur.slice();
+  const paint = (r: number, mode: "tap" | "brush") => {
+    if (lock.current) return;
+    const L = live.current;
+    const c = colorsRef.current.length === L.n ? colorsRef.current : Array<number | null>(L.n).fill(null);
+    let val: number | null;
+    if (mode === "tap" && L.brush === null) val = c[r] === null ? 0 : c[r]! + 1 >= L.ncol ? null : c[r]! + 1;
+    else val = L.brush === -1 ? null : (L.brush ?? 0);
+    if (c[r] === val) return;
+    const next = c.slice();
     next[r] = val;
-    setColors(next);
-    setHintR(null);
-    evaluate(next);
+    apply(next);
+  };
+
+  const regionAt = (e: React.PointerEvent): number | null => {
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-r]");
+    return el ? Number(el.getAttribute("data-r")) : null;
+  };
+  const onDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    const r = regionAt(e);
+    drag.current = { last: r, start: r, moved: false };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* 무시 */
+    }
+    if (r !== null && live.current.brush !== null) paint(r, "brush");
+  };
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const r = regionAt(e);
+    if (r === d.last) return;
+    d.moved = true;
+    d.last = r;
+    if (r !== null && live.current.brush !== null) paint(r, "brush");
+  };
+  const onUp = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (d && !d.moved && d.start !== null && live.current.brush === null) paint(d.start, "tap");
   };
 
   const reset = () => {
-    setColors(Array<number | null>(n).fill(null));
+    window.clearTimeout(timer.current);
+    lock.current = false;
+    colorsRef.current = [];
+    setColors([]);
     setHintR(null);
-    setMsg({ tone: "info", text: "새로 시작해요. 색을 고르고 나라를 눌러 보세요!" });
+    setMsg({ tone: "info", text: "새로 시작해요. 나라를 톡 눌러 보세요!" });
   };
 
-  const changeMap = (i: number) => {
-    setMi(i);
+  const pickMap = (i: number | null) => {
+    window.clearTimeout(timer.current);
+    lock.current = false;
+    setFixed(i);
+    setRound(1);
+    setWins(0);
+    colorsRef.current = [];
     setColors([]);
     setShowHint(false);
     setHintR(null);
-    setMsg({ tone: "info", text: "새 지도예요. 색을 고르고 나라를 눌러 보세요!" });
+    setMsg({ tone: "info", text: "새 지도예요. 나라를 톡 눌러 칠해 봐요!" });
   };
 
   const changeNcol = (k: number) => {
     setNcol(k);
-    if (tool >= k) setTool(0);
-    setColors(cur.map((c) => (c !== null && c >= k ? null : c)));
+    if (brush !== null && brush >= k) setBrush(null);
+    const next = cur.map((c) => (c !== null && c >= k ? null : c));
+    colorsRef.current = next;
+    setColors(next);
     setHintR(null);
     setMsg({ tone: "info", text: `이제 ${k}색으로 칠해요.` });
   };
@@ -241,12 +316,12 @@ export default function MapColorGame() {
     if (bad.size) {
       const r = [...bad][0];
       setHintR(r);
-      setMsg({ tone: "info", text: `나라 ${p.names[r]}가 이웃과 같은 색이에요. 지우개로 지우거나 다른 색으로 칠해 봐요.` });
+      setMsg({ tone: "info", text: `나라 ${p.names[r]}가 이웃과 같은 색이에요. 톡 눌러서 색을 바꿔 봐요.` });
       return;
     }
     const sol = solveFrom(p.adj, ncol, cur);
     if (!sol) {
-      setMsg({ tone: "info", text: ncol < geo.chi ? `이 지도는 ${ncol}색으로는 안 돼요. 색을 늘려 봐요.` : "지금 칠한 색 때문에 막힐 것 같아요. 몇 개를 지우개로 지우고 다시 해 봐요." });
+      setMsg({ tone: "info", text: ncol < geo.chi ? `이 지도는 ${ncol}색으로는 안 돼요. 색을 늘려 봐요.` : "지금 칠한 색 때문에 막힐 것 같아요. 몇 개를 지우고 다시 해 봐요." });
       return;
     }
     const r = cur.findIndex((c) => c === null);
@@ -261,36 +336,39 @@ export default function MapColorGame() {
       fn();
     }
   };
+  const [gx, gy] = geo.labels[0];
 
   return (
     <div className="space-y-3 text-base">
       <Board>
-        <p className="mb-2 rounded-card bg-accent-soft px-3 py-2 text-base font-bold">① 아래 색을 고르고 ② 나라를 눌러 칠해요. 붙은 나라는 다른 색!</p>
-        <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="지도 고르기">
-          {shown.map((m, i) => (
-            <GButton key={m.id} variant={i === mi ? "soft" : "ghost"} pressed={i === mi} onClick={() => changeMap(i)} className={BIG}>
-              {m.name}
-            </GButton>
-          ))}
-        </div>
+        <p className="mb-2 rounded-card bg-accent-soft px-3 py-2 text-base font-bold">
+          {brush === null ? "나라를 톡 누를 때마다 색이 바뀌어요. 붙은 나라는 다른 색!" : brush === -1 ? "지우개예요. 나라를 누르거나 쓱쓱 문질러 지워요." : "물감을 골랐어요. 나라를 누르거나 손가락으로 쓱쓱 문질러 칠해요!"}
+        </p>
 
-        <svg viewBox={`0 0 ${W * CELL} ${H * CELL}`} className="block h-auto w-full select-none rounded-card bg-bg" style={{ touchAction: "manipulation" }} role="group" aria-label={`${defs.name}. 나라 ${n}개`}>
+        <svg
+          viewBox={`0 0 ${W * CELL} ${H * CELL}`}
+          className="block h-auto w-full select-none rounded-card bg-bg"
+          style={{ touchAction: "none" }}
+          role="group"
+          aria-label={`${defs.name}. 나라 ${n}개`}
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={onUp}
+        >
           {Array.from({ length: n }, (_, r) => (
             <g
               key={r}
+              data-r={r}
               role="button"
               tabIndex={0}
               aria-label={`나라 ${p.names[r]}, ${cur[r] === null ? "칠하지 않음" : PALETTE[cur[r]!].name + "색"}${bad.has(r) ? ", 이웃과 색이 같아요" : ""}`}
-              onClick={() => paint(r)}
-              onKeyDown={keyAct(() => paint(r))}
-              onPointerEnter={(e) => {
-                if (e.pointerType === "mouse" && e.buttons === 1) paint(r);
-              }}
+              onKeyDown={keyAct(() => paint(r, "tap"))}
               style={{ cursor: "pointer", outline: "none" }}
             >
               {p.cells.map((row, y) =>
                 row.map((c, x) =>
-                  c === r ? <rect key={`${x}-${y}`} x={x * CELL} y={y * CELL} width={CELL} height={CELL} fill={cur[r] === null ? "#f1f5f9" : PALETTE[cur[r]!].fill} stroke={cur[r] === null ? "#f1f5f9" : PALETTE[cur[r]!].fill} strokeWidth="0.6" /> : null,
+                  c === r ? <rect key={`${x}-${y}`} data-r={r} x={x * CELL} y={y * CELL} width={CELL} height={CELL} fill={cur[r] === null ? "#f1f5f9" : PALETTE[cur[r]!].fill} stroke={cur[r] === null ? "#f1f5f9" : PALETTE[cur[r]!].fill} strokeWidth="0.6" /> : null,
                 ),
               )}
             </g>
@@ -310,33 +388,52 @@ export default function MapColorGame() {
               {p.names[r]}
             </text>
           ))}
+          {/* 처음 3초 손짓 */}
+          {!touched && painted === 0 && (
+            <g pointerEvents="none">
+              <circle cx={gx * CELL} cy={gy * CELL + 26} r="14" fill="none" stroke="#ea580c" strokeWidth="5">
+                <animate attributeName="r" values="10;30;10" dur="1.4s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite" />
+              </circle>
+              <text x={gx * CELL} y={gy * CELL + 70} textAnchor="middle" fontSize="22" fontWeight="800" fill="#c2410c" stroke="#fff" strokeWidth="4" paintOrder="stroke">
+                톡! 눌러 봐요
+              </text>
+            </g>
+          )}
         </svg>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="색 고르기">
-          {PALETTE.slice(0, ncol).map((c, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setTool(i)}
-              aria-label={`${c.name}색 고르기`}
-              aria-pressed={tool === i}
-              className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-base font-bold text-slate-800 ${tool === i ? "border-ink ring-2 ring-accent" : "border-line"}`}
-              style={{ background: c.fill, touchAction: "manipulation" }}
-            >
-              {i + 1}
-            </button>
-          ))}
-          <GButton variant="ghost" pressed={tool === -1} onClick={() => setTool(-1)} className={BIG}>
-            지우개
-          </GButton>
+        <div className="mt-3">
+          <p className="mb-1 text-sm text-muted">물감통 (고르면 쓱쓱 문질러 칠할 수 있어요. 한 번 더 누르면 풀려요)</p>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="물감 고르기">
+            {PALETTE.slice(0, ncol).map((c, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setBrush(brush === i ? null : i);
+                  tick();
+                }}
+                aria-label={`${c.name}색 물감`}
+                aria-pressed={brush === i}
+                className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-base font-bold text-slate-800 shadow-md ${brush === i ? "border-ink ring-4 ring-accent" : "border-line"}`}
+                style={{ background: c.fill, touchAction: "manipulation" }}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <GButton variant="ghost" pressed={brush === -1} onClick={() => setBrush(brush === -1 ? null : -1)} className={BIG}>
+              지우개
+            </GButton>
+          </div>
         </div>
       </Board>
 
       <div className="flex flex-wrap items-center gap-2">
+        <Stat label="판" value={`${fixed === null ? round : 1}/${fixed === null ? GOAL : 1}`} />
         <Stat label="칠한 나라" value={`${painted}/${n}`} tone={full && bad.size === 0 ? "ok" : "plain"} />
         <Stat label="쓴 색" value={usedColors} />
         <Stat label="같은 색이 붙은 곳" value={bad.size ? `${bad.size}곳` : "없음"} tone={bad.size ? "bad" : "plain"} />
-        <Stat label="⭐ 성공" value={wins} tone={wins ? "ok" : "plain"} />
+        <Stat label="⭐ 별" value={wins} tone={wins ? "ok" : "plain"} />
       </div>
       <Say tone={msg.tone}>{msg.text}</Say>
 
@@ -348,6 +445,15 @@ export default function MapColorGame() {
 
       {more && (
         <Board className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">지도 고르기</span>
+            <GButton variant={fixed === null ? "soft" : "ghost"} pressed={fixed === null} onClick={() => pickMap(null)} className={BIG}>차례대로</GButton>
+            {MAPS.map((m, i) => (
+              <GButton key={m.id} variant={fixed === i ? "soft" : "ghost"} pressed={fixed === i} onClick={() => pickMap(i)} className={BIG}>
+                {m.name}
+              </GButton>
+            ))}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold">쓸 수 있는 색 (적을수록 어려워요)</span>
             {[3, 4, 5].map((k) => (

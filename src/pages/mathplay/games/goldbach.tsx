@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Board, GButton, Say, Stat } from "./kit";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Board, GButton, Say, Stat, cheer, oops, tick } from "./kit";
 
 // <pure>
 function isPrime(n: number): boolean {
@@ -58,17 +58,19 @@ function PairBars({ n, pairs }: { n: number; pairs: [number, number][] }) {
 export default function GoldbachGame() {
   const [tab, setTab] = useState<Tab>("pair");
   const [hard, setHard] = useState(false);
+  const [more, setMore] = useState(false);
   const [n, setN] = useState(12);
   const [msg, setMsg] = useState<M>({ t: "info", s: "두 소수를 눌러서 합이 목표 수가 되게 해 보세요!" });
 
-  // 짝 찾기(소수 두 개 더하기)
+  // 풍선 놀이(소수 두 개 더하기)
   const [set1, setSet1] = useState(PAIR_SET);
   const [r1, setR1] = useState(0);
-  const [slots, setSlots] = useState<number[]>([]);
+  const [slots, setSlots] = useState<(number | null)[]>([null, null]);
   const [wrong1, setWrong1] = useState(0);
-  const [solved1, setSolved1] = useState(false);
+  const [phase1, setPhase1] = useState<"play" | "ok" | "bad">("play");
   const [star1, setStar1] = useState(0);
-  const [hint1, setHint1] = useState(false);
+  const [drag, setDrag] = useState<{ p: number; x: number; y: number } | null>(null);
+  const dragInfo = useRef<{ p: number; sx: number; sy: number; moved: boolean } | null>(null);
 
   // 모두 찾기
   const [set2, setSet2] = useState(ALL_SET);
@@ -84,50 +86,91 @@ export default function GoldbachGame() {
   const pairs2 = useMemo(() => goldbachPairs(q2), [q2]);
   const pairsN = useMemo(() => goldbachPairs(n), [n]);
 
-  const goTab = (t: Tab) => {
+  const goMode = (t: Tab) => {
     setTab(t);
-    if (t === "pair") setMsg({ t: "info", s: "두 소수를 눌러서 합이 목표 수가 되게 해 보세요!" });
+    if (t === "pair") setMsg({ t: "info", s: "풍선의 수를 소수 두 개의 합으로 만들어 줘요!" });
     if (t === "all") setMsg({ t: "info", s: "소수를 하나씩 눌러 보세요. 짝이 되는 수도 소수이면 찾은 거예요!" });
     if (t === "explore") setMsg({ t: "info", s: "짝수를 눌러 보면 두 소수의 합으로 나타내는 방법을 모두 보여 줘요." });
   };
 
-  // --- 짝 찾기 ---
-  const pickSlot = (p: number) => {
-    if (solved1 || r1 >= 5) return;
-    const cur = slots.length >= 2 ? [] : slots;
-    const nx = [...cur, p];
-    setSlots(nx);
-    if (nx.length === 2) {
-      const sum = nx[0] + nx[1];
+  // --- 풍선 놀이 ---
+  const place = (p: number, idx?: number) => {
+    if (phase1 !== "play" || r1 >= 5) return;
+    const cur = [...slots];
+    let at = idx !== undefined && cur[idx] === null ? idx : cur.indexOf(null);
+    if (at < 0) return;
+    cur[at] = p;
+    setSlots(cur);
+    tick();
+    if (cur[0] !== null && cur[1] !== null) {
+      const sum = cur[0] + cur[1];
       if (sum === q1) {
-        setSolved1(true);
+        setPhase1("ok");
+        cheer();
         if (wrong1 === 0) {
           setStar1((s) => s + 1);
-          setMsg({ t: "ok", s: `맞아요! ⭐ ${nx[0]} + ${nx[1]} = ${q1}. 둘 다 소수예요. 잘했어요!` });
-        } else setMsg({ t: "ok", s: `맞아요! ${nx[0]} + ${nx[1]} = ${q1}. 끝까지 해냈어요!` });
+          setMsg({ t: "ok", s: `팡! ⭐ ${cur[0]} + ${cur[1]} = ${q1}. 둘 다 소수예요. 잘했어요!` });
+        } else setMsg({ t: "ok", s: `팡! ${cur[0]} + ${cur[1]} = ${q1}. 끝까지 해냈어요!` });
       } else {
+        setPhase1("bad");
+        oops();
         setWrong1((w) => w + 1);
-        setMsg({ t: "bad", s: `${nx[0]} + ${nx[1]} = ${sum} 이에요. 목표는 ${q1} 이에요. 괜찮아요, 다시 해 봐요!` });
+        setMsg({ t: "bad", s: `${cur[0]} + ${cur[1]} = ${sum} 이에요. 목표는 ${q1} 이에요. 괜찮아요, 다시 해 봐요!` });
       }
-    } else setMsg({ t: "info", s: `${p} 을(를) 골랐어요. 하나 더 골라 보세요.` });
+    }
   };
-  const next1 = () => {
-    setR1((r) => r + 1);
-    setSlots([]);
-    setWrong1(0);
-    setSolved1(false);
-    setHint1(false);
-    setMsg(r1 + 1 >= 5 ? { t: "ok", s: `5문제 끝! 별 ${star1}개예요. 정말 잘했어요!` } : { t: "info", s: "다음 문제예요!" });
-  };
+  useEffect(() => {
+    if (phase1 === "bad") {
+      const id = setTimeout(() => {
+        setSlots([null, null]);
+        setPhase1("play");
+      }, 1100);
+      return () => clearTimeout(id);
+    }
+    if (phase1 === "ok") {
+      const id = setTimeout(() => {
+        const nr = r1 + 1;
+        setR1(nr);
+        setSlots([null, null]);
+        setWrong1(0);
+        setPhase1("play");
+        setMsg(nr >= 5 ? { t: "ok", s: "5개를 모두 터뜨렸어요! 정말 잘했어요!" } : { t: "info", s: "새 풍선이 떴어요!" });
+      }, 1500);
+      return () => clearTimeout(id);
+    }
+  }, [phase1, r1]);
   const restart1 = () => {
     setSet1(PAIR_SET());
     setR1(0);
     setStar1(0);
-    setSlots([]);
+    setSlots([null, null]);
     setWrong1(0);
-    setSolved1(false);
-    setHint1(false);
+    setPhase1("play");
     setMsg({ t: "info", s: "처음부터 다시 해요!" });
+  };
+  const chipDown = (e: React.PointerEvent<HTMLButtonElement>, p: number) => {
+    if (phase1 !== "play") return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragInfo.current = { p, sx: e.clientX, sy: e.clientY, moved: false };
+  };
+  const chipMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragInfo.current;
+    if (!d) return;
+    if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 8) d.moved = true;
+    if (d.moved) setDrag({ p: d.p, x: e.clientX, y: e.clientY });
+  };
+  const chipUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragInfo.current;
+    dragInfo.current = null;
+    setDrag(null);
+    if (!d) return;
+    if (!d.moved) {
+      place(d.p);
+      return;
+    }
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-slot]");
+    const idx = el ? Number(el.getAttribute("data-slot")) : undefined;
+    if (idx !== undefined) place(d.p, idx);
   };
 
   // --- 모두 찾기 ---
@@ -138,15 +181,20 @@ export default function GoldbachGame() {
       setMsg({ t: "info", s: `${Math.min(p, q)} + ${Math.max(p, q)} 는 이미 찾았어요.` });
       return;
     }
+    tick();
     if (isPrime(q)) {
       const nf = [...found, Math.min(p, q)];
       setFound(nf);
       if (nf.length === pairs2.length) {
         setSolved2(true);
+        cheer();
         setStar2((s) => s + 1);
         setMsg({ t: "ok", s: `⭐ 모두 찾았어요! ${q2} 은 ${pairs2.length}가지로 만들 수 있어요. 최고예요!` });
       } else setMsg({ t: "ok", s: `${Math.min(p, q)} + ${Math.max(p, q)} = ${q2} 찾았어요! (${nf.length} / ${pairs2.length}) 또 있을까요?` });
-    } else setMsg({ t: "bad", s: `${q2} − ${p} = ${q} 은 소수가 아니에요. 괜찮아요, 다른 소수를 눌러 봐요!` });
+    } else {
+      oops();
+      setMsg({ t: "bad", s: `${q2} − ${p} = ${q} 은 소수가 아니에요. 괜찮아요, 다른 소수를 눌러 봐요!` });
+    }
   };
   const giveUp = () => {
     setFound(pairs2.map(([p]) => p));
@@ -179,44 +227,77 @@ export default function GoldbachGame() {
   return (
     <div className="space-y-3 text-base">
       <Board>
-        <p className="font-bold">수 두 개를 더해서 짝수를 만들어요. 두 수는 모두 <span className="text-accent">소수</span>여야 해요!</p>
-        <p className="mt-1 rounded-card bg-bg p-2 text-base">소수는 1과 자기 자신으로만 나누어떨어지는 수예요. 2, 3, 5, 7, 11, 13, 17, 19, 23, 29… (1은 소수가 아니에요)</p>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="놀이 고르기">
-          <GButton className={BIG} pressed={tab === "pair"} onClick={() => goTab("pair")}>소수 두 개 더하기</GButton>
-          <GButton className={BIG} pressed={tab === "all"} onClick={() => goTab("all")}>모두 찾기</GButton>
-          <GButton className={BIG} pressed={tab === "explore"} onClick={() => goTab("explore")}>짝수 탐험</GButton>
-        </div>
+        <p className="font-bold">풍선의 수를 <span className="text-accent">소수</span> 두 개의 합으로 만들어요!</p>
+        <p className="mt-1 text-base text-muted">소수는 1과 자기 자신으로만 나누어떨어지는 수예요. (2, 3, 5, 7, 11, 13… / 1은 소수가 아니에요)</p>
       </Board>
 
       {tab === "pair" && (
         <Board>
           <div className="mb-2 flex flex-wrap gap-2">
-            <Stat label="문제" value={`${Math.min(r1 + 1, 5)} / 5`} />
+            <Stat label="풍선" value={`${Math.min(r1 + 1, 5)} / 5`} />
             <Stat label="별" value={stars(star1)} tone={star1 > 0 ? "ok" : "plain"} />
           </div>
           {r1 < 5 ? (
             <>
-              <p className="mb-1 font-semibold">👇 소수 두 개를 눌러서 합이 {q1} 이 되게 해 보세요</p>
-              <p className="my-2 text-center text-3xl font-extrabold tabular-nums">
-                {slots[0] ?? "□"} + {slots[1] ?? "□"} = {q1}
+              <p className="mb-2 text-center font-semibold">👆 아래 소수를 눌러요 (끌어서 □ 칸에 넣어도 돼요)</p>
+              <div className="flex justify-center">
+                <div
+                  className="flex h-32 w-32 items-center justify-center rounded-full text-5xl font-extrabold text-white shadow-lg transition-all duration-500"
+                  style={{ background: "radial-gradient(circle at 35% 30%, #fda4af, #e11d48)", transform: phase1 === "ok" ? "scale(1.6)" : phase1 === "bad" ? "translateX(8px) rotate(-6deg)" : "none", opacity: phase1 === "ok" ? 0 : 1 }}
+                  role="img"
+                  aria-label={`목표 풍선 ${q1}`}
+                >
+                  {q1}
+                </div>
+              </div>
+              <p className="my-2 flex items-center justify-center gap-2 text-3xl font-extrabold tabular-nums">
+                {[0, 1].map((i) => (
+                  <span key={i} className="contents">
+                    {i === 1 && <span>+</span>}
+                    <button
+                      type="button"
+                      data-slot={i}
+                      onClick={() => {
+                        if (phase1 === "play" && slots[i] !== null) {
+                          tick();
+                          setSlots((s) => s.map((v, k) => (k === i ? null : v)));
+                        }
+                      }}
+                      aria-label={slots[i] === null ? `${i + 1}번째 빈칸` : `${i + 1}번째 칸: ${slots[i]} (누르면 빼요)`}
+                      className={`flex h-16 w-20 items-center justify-center rounded-card border-2 border-dashed ${slots[i] === null ? "border-line bg-bg text-muted" : phase1 === "bad" ? "border-bad bg-bad-soft text-bad" : "border-accent bg-accent-soft text-accent"}`}
+                    >
+                      {slots[i] ?? "□"}
+                    </button>
+                  </span>
+                ))}
+                <span>= {q1}</span>
               </p>
-              <div className="flex flex-wrap gap-2" role="group" aria-label="소수 목록">
+              <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="소수 칩">
                 {primesBelow(q1 - 1).map((p) => (
-                  <button key={p} type="button" onClick={() => pickSlot(p)} disabled={solved1} className={`${chip} border-line bg-surface hover:bg-bg disabled:opacity-50`}>
+                  <button
+                    key={p}
+                    type="button"
+                    onPointerDown={(e) => chipDown(e, p)}
+                    onPointerMove={chipMove}
+                    onPointerUp={chipUp}
+                    onPointerCancel={() => { dragInfo.current = null; setDrag(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); place(p); } }}
+                    aria-label={`소수 ${p}`}
+                    className="min-h-[52px] min-w-[52px] select-none rounded-full border-2 border-line bg-surface px-3 text-xl font-extrabold tabular-nums hover:bg-bg"
+                    style={{ touchAction: "none" }}
+                  >
                     {p}
                   </button>
                 ))}
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {!solved1 && <GButton className={BIG} variant="soft" onClick={() => { setHint1(true); setMsg({ t: "info", s: `힌트: 소수 ${pairs1[0][0]} 를 하나로 써 보세요. 나머지 수도 소수예요!` }); }}>💡 힌트</GButton>}
-                {!solved1 && <GButton className={BIG} onClick={() => setSlots([])}>지우기</GButton>}
-                {solved1 && <GButton className={BIG} variant="primary" onClick={next1}>{r1 === 4 ? "결과 보기" : "다음 문제 ▶"}</GButton>}
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                <GButton className={BIG} variant="soft" onClick={() => setMsg({ t: "info", s: `힌트: 소수 ${pairs1[0][0]} 를 하나로 써 보세요. 나머지 수도 소수예요!` })}>💡 힌트</GButton>
+                <GButton className={BIG} onClick={() => { setSlots([null, null]); }}>비우기</GButton>
               </div>
-              {hint1 && <p className="sr-only">힌트를 봤어요</p>}
             </>
           ) : (
-            <div>
-              <p className="text-lg font-bold">모두 풀었어요! 별 {star1}개 {"⭐".repeat(star1)}</p>
+            <div className="text-center">
+              <p className="text-lg font-bold">풍선을 모두 터뜨렸어요! 별 {star1}개 {"⭐".repeat(star1)}</p>
               <GButton className={`${BIG} mt-2`} variant="primary" onClick={restart1}>다시 하기</GButton>
             </div>
           )}
@@ -224,6 +305,11 @@ export default function GoldbachGame() {
             <Say tone={msg.t}>{msg.s}</Say>
           </div>
         </Board>
+      )}
+      {drag && (
+        <div className="pointer-events-none fixed z-[90] flex h-14 w-14 items-center justify-center rounded-full border-2 border-accent bg-accent text-xl font-extrabold text-accent-ink shadow-lg" style={{ left: drag.x - 28, top: drag.y - 28 }}>
+          {drag.p}
+        </div>
       )}
 
       {tab === "all" && (
@@ -335,6 +421,16 @@ export default function GoldbachGame() {
           </Board>
         </>
       )}
+      <Board>
+        <GButton className={BIG} pressed={more} onClick={() => setMore((m) => !m)}>🔥 더 어려운 도전 {more ? "닫기" : "열기"}</GButton>
+        {more && (
+          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="다른 놀이">
+            <GButton className={BIG} pressed={tab === "pair"} onClick={() => goMode("pair")}>🎈 풍선 터뜨리기</GButton>
+            <GButton className={BIG} pressed={tab === "all"} onClick={() => goMode("all")}>모두 찾기</GButton>
+            <GButton className={BIG} pressed={tab === "explore"} onClick={() => goMode("explore")}>짝수 탐험 (4~200)</GButton>
+          </div>
+        )}
+      </Board>
     </div>
   );
 }

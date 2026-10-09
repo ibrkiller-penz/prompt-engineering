@@ -135,7 +135,7 @@ export default function MontyGame() {
     }
     return (
       <div key={i} className="relative h-40">
-        <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-t-2xl border-2 text-xl font-extrabold ${isCar ? "border-ok bg-ok-soft text-ok" : "border-bad/40 bg-bad-soft text-bad"}`}>
+        <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-t-2xl border-2 text-xl font-extrabold ${open ? (isCar ? "border-ok bg-ok-soft text-ok" : "border-bad/40 bg-bad-soft text-bad") : "border-line bg-bg"}`}>
           {open && (
             <>
               <span className="text-4xl">{isCar ? "🚗" : "🐐"}</span>
