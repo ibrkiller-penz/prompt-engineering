@@ -15,6 +15,7 @@ const PAGE_NAMES: Record<string, string> = {
   "/slides": "노트북LM 슬라이드 프롬프트",
   "/board": BOARD_NAME,
   "/aimath": "인공지능 수학",
+  "/mathplay": "온라인 수학 체험",
 };
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");

@@ -23,6 +23,9 @@ import BoardData from "./pages/board/MyData";
 import BoardShake from "./pages/board/Shake";
 import BoardHelp from "./pages/board/Help";
 import BoardBrief from "./pages/board/Brief";
+import MathplayHome from "./pages/mathplay/MathplayHome";
+import FloorPage from "./pages/mathplay/FloorPage";
+import PuzzlePage from "./pages/mathplay/PuzzlePage";
 import NotFound from "./pages/NotFound";
 import PromptLayout from "./components/PromptLayout";
 
@@ -69,6 +72,9 @@ export default function App() {
         <Route path="help" element={<BoardHelp />} />
         <Route path="brief" element={<BoardBrief />} />
       </Route>
+      <Route path="/mathplay" element={<MathplayHome />} />
+      <Route path="/mathplay/busan/:floor" element={<FloorPage />} />
+      <Route path="/mathplay/puzzle" element={<PuzzlePage />} />
       <Route
         path="/aimath/*"
         element={
