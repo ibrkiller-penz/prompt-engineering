@@ -167,6 +167,12 @@ export function oops() {
 }
 /** 성공! 색종이 + 진동 + 소리 */
 export function cheer() {
+  // 게임 창이 이 신호를 듣고 별을 기록한다
+  try {
+    window.dispatchEvent(new Event("gz:win"));
+  } catch {
+    /* 무시 */
+  }
   beep([523, 659, 784, 1047], 0.1);
   vibrate([30, 40, 30]);
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;

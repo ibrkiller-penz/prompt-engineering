@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useState, type ComponentType, type 
 import { getSound, setSound } from "./games/kit";
 import { GAMES, floorInfo, gameById } from "./games/registry";
 import Thumb from "./Thumb";
+import { recordPlay, recordWin, starsOf, useSave } from "./progress";
 import { useGameFont } from "./theme";
 
 const mods = import.meta.glob("./games/*.tsx") as Record<string, () => Promise<{ default: ComponentType }>>;
@@ -18,6 +19,8 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
   const [sound, setSoundState] = useState(getSound());
   const [started, setStarted] = useState(false);
   const [help, setHelp] = useState(false);
+  const [toast, setToast] = useState(0);
+  const save = useSave();
   const Game = useMemo(() => {
     const load = puzzleMods[id] ?? mods[`./games/${id}.tsx`];
     return load ? lazy(load) : null;
@@ -28,6 +31,23 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
     setStarted(false);
     setHelp(false);
   }, [id]);
+
+  // 게임이 성공(cheer)하면 별을 기록하고 ‘+⭐’를 띄운다
+  useEffect(() => {
+    if (!started) return;
+    let t = 0;
+    const h = () => {
+      recordWin(id);
+      setToast((n) => n + 1);
+      window.clearTimeout(t);
+      t = window.setTimeout(() => setToast(0), 1600);
+    };
+    window.addEventListener("gz:win", h);
+    return () => {
+      window.removeEventListener("gz:win", h);
+      window.clearTimeout(t);
+    };
+  }, [started, id]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -63,6 +83,10 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
           <div className="min-w-0 flex-1">
             <h2 className="font-game truncate text-xl leading-tight sm:text-2xl">{g.title}</h2>
             <p className="truncate text-xs font-semibold opacity-90">
+              <span className="mr-1 tracking-tight" aria-label={`별 ${starsOf(save.wins[g.id])}개`}>
+                {"★".repeat(starsOf(save.wins[g.id]))}
+                <span className="opacity-50">{"☆".repeat(3 - starsOf(save.wins[g.id]))}</span>
+              </span>
               {f.emoji} {f.label} {f.name}
               {g.level === "upper" ? " · 중·고 도전" : ""}
             </p>
@@ -89,6 +113,14 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
             ✕
           </button>
         </header>
+
+        {toast > 0 && (
+          <div className="pointer-events-none fixed left-1/2 top-20 z-[85] -translate-x-1/2" aria-live="polite">
+            <span key={toast} className="gz-pop font-game inline-block rounded-full bg-white px-5 py-2 text-2xl text-[#f59e0b] shadow-[0_6px_0_0_rgba(0,0,0,0.15)] ring-4 ring-[#ffd166]">
+              +⭐ 잘했어요!
+            </span>
+          </div>
+        )}
 
         {help && (
           <div className="gz-pop border-b-2 border-line bg-surface px-4 py-3 text-[0.98rem]">
@@ -121,7 +153,10 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
               </p>
               <button
                 type="button"
-                onClick={() => setStarted(true)}
+                onClick={() => {
+                  recordPlay(g.id);
+                  setStarted(true);
+                }}
                 className="font-game mt-6 min-h-[64px] w-full max-w-xs rounded-full bg-accent px-8 text-3xl text-white shadow-[0_6px_0_0_rgba(0,0,0,0.25)] transition hover:brightness-110 active:translate-y-[4px] active:shadow-[0_2px_0_0_rgba(0,0,0,0.25)]"
               >
                 ▶ 시작!
