@@ -24,10 +24,10 @@ var EXP={
   function amp(){return Math.abs(Math.cos(+ph.value*Math.PI/360))}
   function draw(){
    var s=Sci.fit(cv,.9),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,br=getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()||"#0076fb";
-   var p=+ph.value*Math.PI/180,T=3/F,rows=[h*.18,h*.47,h*.82],A=h*.095;
+   var p=+ph.value*Math.PI/180,T=3/F,rows=[h*.18,h*.47,h*.86],A=h*.095;
    c.clearRect(0,0,w,h);c.font="13px sans-serif";c.fillStyle=col;
    var names=["첫 번째 소리 (실선)","두 번째 소리 (점선), 위상차 "+ph.value+"°","합친 소리 (굵은 선)"];
-   rows.forEach(function(m,i){c.globalAlpha=.3;c.strokeStyle=col;c.lineWidth=1;c.beginPath();c.moveTo(0,m);c.lineTo(w,m);c.stroke();c.globalAlpha=1;c.fillText(names[i],6,i===2?h*.59:m-A-5)});
+   rows.forEach(function(m,i){c.globalAlpha=.3;c.strokeStyle=col;c.lineWidth=1;c.beginPath();c.moveTo(0,m);c.lineTo(w,m);c.stroke();c.globalAlpha=1;c.fillText(names[i],6,i===2?h*.645:m-A-5)});
    function line(m,fn,lw,color,dash){c.strokeStyle=color;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();for(var i=0;i<=w;i+=2){var t=i/w*T,y=m-fn(t)*A;i?c.lineTo(i,y):c.moveTo(0,y)}c.stroke();c.setLineDash([])}
    line(rows[0],function(t){return Math.sin(2*Math.PI*F*t)},2,col);
    line(rows[1],function(t){return Math.sin(2*Math.PI*F*t-p)},2,col,[6,5]);
