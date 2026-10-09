@@ -61,17 +61,9 @@
 - 링크 미리보기: 꼭지별 이름이 뜨도록 vite.config.ts 의 section-meta 플러그인이 빌드 때 /setup·/prompt·/slides·/board·/aimath 마다 meta 가 다른 index.html 을 만든다(하위 쪽 주소는 꼭지 이름까지만 나옴). /aibasic 은 패치에 og 태그 포함.
 - 변경(모바일 줄 줄이기): 헤더 '인공지능 기초'·'용어 사전' 한 줄, 단원 카드 이모지 옆에 단원명, 배지 4+3 두 줄, 첫 화면 제목·설명을 단어 단위로 줄바꿈. 패치: `scripts/aibasic-mobile.patch` → `cd public/aibasic && patch -p1 < ../../scripts/aibasic-mobile.patch` (style.css·app.js).
 
-## 다른 PC 에서 배포하는 법 (aibasic·HappyMpX 가 빠지지 않게)
-```
-git clone https://github.com/ibrkiller-penz/prompt-engineering && cd prompt-engineering
-git checkout ccr-f6979783-ajhov6        # (main 에 합친 뒤에는 main)
-npm ci
-node scripts/fetch-aibasic.mjs          # /aibasic 을 배포본에서 복원 (이미지 포함)
-(cd public/aibasic && patch -p1 < ../../scripts/aibasic-mobile.patch)   # 처음 한 번만(이미 적용했으면 건너뜀)
-mkdir -p public/happy && curl -L -o public/happy/HappyMpX.zip https://github.com/ibrkiller-penz/happymp3/releases/download/files-2026-10-08/HappyMpX.zip
-npx firebase-tools login:ci             # 처음 한 번, 나온 토큰을 FIREBASE_TOKEN 으로
-FIREBASE_TOKEN=<토큰> npm run deploy
-```
-- 패치를 이미 적용한 뒤 `--force` 로 다시 받으면 패치 전 상태로 돌아가니, 다시 받았다면 패치도 다시 적용한다.
-- 2026-10-09: /aibasic 레슨 하단에 정리·용어 게임·마무리 시험 제목을 처음부터 보이고, 안에는 "위 N계단을 모두 올라야 열려요" 잠금 안내(전에는 계단을 다 오르기 전까지 통째로 숨겨져 완료 방법이 안 보였음). 패치 `scripts/aibasic-lockhint.patch`(aibasic-mobile.patch 적용 뒤에): `git apply --directory=public/aibasic scripts/aibasic-lockhint.patch`
-- 2026-10-09: /aibasic 용어 카드 맞추기를 낱말 수에 맞춰 빈칸 없이(8개면 4×2, 모바일은 2열) 배치하고 설명 카드는 단어 단위로 줄바꿈. 패치 `scripts/aibasic-termgrid.patch`(lockhint 패치 적용 뒤에): `git apply --directory=public/aibasic scripts/aibasic-termgrid.patch`
+## 배포하는 법 (자동화됨 — 2026-10-09)
+- `npm run build` 앞에서 `scripts/prepare-aibasic.mjs` 가 자동으로 돈다: /aibasic 을 배포본에서 복원 → 패치 3개(`aibasic-mobile`·`aibasic-lockhint`·`aibasic-termgrid`) 적용(적용 기록은 `public/aibasic/.applied`) → HappyMpX.zip 받기. 여러 번 돌려도 안전하다.
+- 어느 PC 든 이렇게 하면 된다: `git pull` → `npm ci` → `npm run deploy` (처음 한 번 `npx firebase-tools login`; **페네두 구글 계정**으로. 프로젝트는 .firebaserc 의 firsttest-5db1f).
+- GitHub Actions(`.github/workflows/deploy.yml`): main 에 올라가면 자동 배포, 또는 Actions 탭에서 Run workflow. 저장소 Secrets 에 `FIREBASE_TOKEN` 이 있어야 한다.
+- /aibasic 을 더 고칠 때는 `scripts/aibasic-*.patch` 를 새로 만들어 PATCHES 목록(prepare-aibasic.mjs)에 더한다.
+- 주의: Windows 에서는 /aibasic 파일이 CRLF 가 될 수 있어 prepare 가 패치 전에 LF 로 통일한다.
