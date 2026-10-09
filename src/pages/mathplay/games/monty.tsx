@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Board, GButton, Say, Stat, rand } from "./kit";
+import { useEffect, useState } from "react";
+import { Board, GButton, Say, Stat, cheer, oops, rand, tick } from "./kit";
 
 // <pure>
 /** 한 판: n 개의 문, 선택한 문 pick. 진행자는 고른 문과 (자동차 문 또는 임의의 염소 문) 하나만 남기고 모두 연다. 남은 다른 문 번호를 돌려준다. */
@@ -52,13 +52,18 @@ export default function MontyGame() {
     });
 
   const pick = (i: number) => {
-    if (phase !== "pick") return;
-    const keep = keepDoor(n, round.car, i, Math.random);
-    setRound({ ...round, pick: i, keep });
-    setMsg({
-      t: "info",
-      s: n === 3 ? `${i + 1}번 문을 골랐어요. 진행자가 염소가 있는 문을 하나 열어 줬어요. 남은 문은 두 개예요. 문을 바꿀까요, 그대로 있을까요?` : `${i + 1}번 문을 골랐어요. 진행자가 염소 문 98개를 열어 줬어요. 남은 문은 ${i + 1}번과 ${(keep ?? 0) + 1}번이에요. 바꿀까요?`,
-    });
+    if (phase === "pick") {
+      tick();
+      const keep = keepDoor(n, round.car, i, Math.random);
+      setRound({ ...round, pick: i, keep });
+      setMsg({
+        t: "info",
+        s: n === 3 ? `${i + 1}번 문을 골랐어요. 진행자가 염소 문을 하나 열어 줬어요. 내 문을 다시 누르면 그대로, 다른 닫힌 문을 누르면 바꾸기예요!` : `${i + 1}번 문을 골랐어요. 진행자가 염소 문 98개를 열어 줬어요. 내 문(${i + 1}번)을 다시 누르면 그대로, 남은 ${(keep ?? 0) + 1}번 문을 누르면 바꾸기예요!`,
+      });
+    } else if (phase === "switch") {
+      if (i === round.pick) decide(false);
+      else if (i === round.keep) decide(true);
+    }
   };
   const decide = (swap: boolean) => {
     if (round.pick === null || round.keep === null) return;
@@ -67,10 +72,13 @@ export default function MontyGame() {
     const np = played + 1;
     setRound({ ...round, final });
     setPlayed(np);
-    if (win) setStars((s) => s + 1);
+    if (win) {
+      setStars((s) => s + 1);
+      cheer();
+    } else oops();
     addStat(swap ? "swap" : "stay", win ? 1 : 0, 1);
-    const tail = np >= 5 ? " 5판이 끝났어요! 이제 아래에서 ‘자동으로 100번’ 해 봐요." : "";
-    setMsg(win ? { t: "ok", s: `⭐ 자동차를 찾았어요! 잘했어요!${tail}` } : { t: "bad", s: `아쉬워요. 자동차는 ${round.car + 1}번 문에 있었어요. 괜찮아요, 다시 해 봐요!${tail}` });
+    const tail = np >= 5 ? " 5판이 끝났어요! 아래에서 컴퓨터가 100번 해 주는 것도 봐요." : "";
+    setMsg(win ? { t: "ok", s: `⭐ ${swap ? "바꿔서" : "그대로 둬서"} 자동차를 찾았어요! 잘했어요!${tail}` } : { t: "bad", s: `아쉬워요. 자동차는 ${round.car + 1}번 문에 있었어요. 괜찮아요, 다음 판에서 또 해 봐요!${tail}` });
   };
   const again = () => {
     if (played >= 5) {
@@ -101,34 +109,54 @@ export default function MontyGame() {
     } else setHard(true);
   };
 
+  useEffect(() => {
+    if (phase !== "result" || played >= 5) return;
+    const id = setTimeout(() => again(), 3000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, played, round.car]);
+
   const doorState = (i: number) => ({ open: phase === "result" || (round.keep !== null && i !== round.pick && i !== round.keep), isCar: i === round.car });
 
   const renderDoor = (i: number) => {
     const { open, isCar } = doorState(i);
     const picked = round.pick === i;
+    const keepIt = round.keep === i && phase === "switch";
     const small = n > 3;
-    const base = small ? "h-10 text-xs" : "h-36 text-xl";
-    const color = open ? (isCar ? "bg-ok-soft text-ok border-ok" : "bg-bad-soft text-bad border-bad/40") : "bg-accent-soft text-accent border-line hover:brightness-95";
+    const clickable = phase === "pick" || (phase === "switch" && (picked || keepIt));
+    const label = `${i + 1}번 문${picked ? " (내가 고른 문, 누르면 그대로)" : keepIt ? " (누르면 바꾸기)" : ""}${open ? (isCar ? " 자동차" : " 염소") : ""}`;
+    if (small) {
+      const color = open ? (isCar ? "bg-ok-soft text-ok border-ok" : "bg-bad-soft text-bad border-bad/40") : "bg-accent-soft text-accent border-line hover:brightness-95";
+      return (
+        <button key={i} type="button" disabled={!clickable} onClick={() => pick(i)} aria-label={label} className={`flex h-10 w-full items-center justify-center rounded-t-lg border-2 text-xs font-extrabold transition disabled:cursor-default ${color} ${picked ? "ring-4 ring-accent" : ""} ${keepIt ? "ring-4 ring-amber-400" : ""}`}>
+          {open ? (isCar ? "🚗" : "🐐") : i + 1}
+        </button>
+      );
+    }
     return (
-      <button
-        key={i}
-        type="button"
-        disabled={phase !== "pick"}
-        onClick={() => pick(i)}
-        aria-label={`${i + 1}번 문${picked ? " (내가 고른 문)" : ""}${open ? (isCar ? " 자동차" : " 염소") : ""}`}
-        className={`relative flex w-full flex-col items-center justify-center rounded-t-2xl border-2 font-extrabold transition disabled:cursor-default ${base} ${color} ${picked ? "ring-4 ring-accent" : ""}`}
-      >
-        {open ? (
-          <>
-            <span>{isCar ? "🚗 자동차" : "🐐 염소"}</span>
-            {!small && <span className="text-base font-semibold opacity-80">{isCar ? "당첨!" : "꽝"}</span>}
-          </>
-        ) : (
-          <span>{i + 1}</span>
-        )}
-        {picked && !small && <span className="absolute -top-3 rounded-full bg-accent px-2 text-sm text-accent-ink">내 선택</span>}
-        {!open && !small && <span className="absolute right-3 top-1/2 h-3 w-3 rounded-full bg-accent/60" aria-hidden />}
-      </button>
+      <div key={i} className="relative h-40">
+        <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-t-2xl border-2 text-xl font-extrabold ${isCar ? "border-ok bg-ok-soft text-ok" : "border-bad/40 bg-bad-soft text-bad"}`}>
+          {open && (
+            <>
+              <span className="text-4xl">{isCar ? "🚗" : "🐐"}</span>
+              <span className="text-base">{isCar ? "자동차 당첨!" : "염소 (꽝)"}</span>
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          disabled={!clickable}
+          onClick={() => pick(i)}
+          aria-label={label}
+          className={`absolute inset-0 flex flex-col items-center justify-center rounded-t-2xl border-2 border-line bg-accent-soft text-3xl font-extrabold text-accent disabled:cursor-default ${picked ? "ring-4 ring-accent" : ""} ${keepIt ? "ring-4 ring-amber-400" : ""}`}
+          style={{ transformOrigin: "left center", transform: open ? "perspective(600px) rotateY(-105deg)" : "none", transition: "transform 0.7s ease", backfaceVisibility: "hidden", pointerEvents: open ? "none" : undefined }}
+        >
+          {i + 1}
+          <span className="absolute right-3 top-1/2 h-3 w-3 rounded-full bg-accent/60" aria-hidden />
+        </button>
+        {picked && <span className="pointer-events-none absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-2 text-sm text-accent-ink">내 문 (그대로)</span>}
+        {keepIt && <span className="pointer-events-none absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-400 px-2 text-sm font-bold text-black">바꾸기</span>}
+      </div>
     );
   };
 
@@ -138,29 +166,21 @@ export default function MontyGame() {
   return (
     <div className="space-y-3 text-base">
       <Board>
-        <p className="mb-2 text-base font-bold">{phase === "pick" ? "👇 문 하나를 눌러 고르세요" : phase === "switch" ? "👇 바꿀지 정하세요" : "결과예요!"}</p>
+        <p className="mb-2 text-base font-bold">{phase === "pick" ? "👆 마음에 드는 문을 눌러요" : phase === "switch" ? "👆 내 문을 다시 누르면 ‘그대로’, 다른 닫힌 문을 누르면 ‘바꾸기’!" : "결과예요!"}</p>
         <div className="mb-2 flex flex-wrap gap-2">
           <Stat label="내 판" value={`${played} / 5`} />
           <Stat label="별" value={stars > 0 ? "⭐".repeat(stars) : "0"} tone={stars > 0 ? "ok" : "plain"} />
         </div>
-        <div role="group" aria-label="문들" className={n === 3 ? "grid grid-cols-3 gap-3 pt-3" : "grid grid-cols-10 gap-1 pt-3"}>
+        <div role="group" aria-label="문들" className={n === 3 ? "grid grid-cols-3 gap-3 pt-4" : "grid grid-cols-10 gap-1 pt-3"}>
           {Array.from({ length: n }, (_, i) => renderDoor(i))}
         </div>
         <div className="mt-3 [&_p]:!text-base">
           <Say tone={msg.t}>{msg.s}</Say>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {phase === "switch" && (
-            <>
-              <GButton variant="primary" className={BIG} onClick={() => decide(true)}>
-                {round.keep !== null ? `${round.keep + 1}번 문으로 바꾸기` : "바꾸기"}
-              </GButton>
-              <GButton className={BIG} onClick={() => decide(false)}>그대로 {round.pick !== null ? `${round.pick + 1}번` : ""}</GButton>
-            </>
-          )}
           {phase === "result" && (
             <GButton variant="primary" className={BIG} onClick={again}>
-              {played >= 5 ? "다시 5판 하기" : "다음 판"}
+              {played >= 5 ? "다시 5판 하기" : "바로 다음 판 ▶"}
             </GButton>
           )}
         </div>

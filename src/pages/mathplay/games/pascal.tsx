@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Board, GButton, Slider, Stat, rand } from "./kit";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
+import { Board, GButton, Slider, Stat, cheer, oops, rand, tick } from "./kit";
 import { choices, shallowDiagonal, triangle } from "./pascal.logic";
 
 const CW = 60;
@@ -9,19 +9,17 @@ const LM = 14;
 const RM_SUM = 64;
 const BIG = "min-h-[48px]! px-3 text-base";
 type Mode = "blank" | "sumq" | "parity" | "rowsum" | "basic" | "mod3" | "diag";
-const MAIN: { id: Mode; label: string }[] = [
+const MORE: { id: Mode; label: string }[] = [
   { id: "blank", label: "빈칸 채우기" },
   { id: "sumq", label: "줄 합 맞히기" },
   { id: "parity", label: "홀수 색칠" },
   { id: "rowsum", label: "줄 합 보기" },
-];
-const MORE: { id: Mode; label: string }[] = [
   { id: "basic", label: "그냥 보기" },
   { id: "mod3", label: "3의 배수 색칠" },
   { id: "diag", label: "비스듬히 더하기" },
 ];
 const GUIDE: Record<Mode, string> = {
-  blank: "노란 ? 칸에 들어갈 수를 골라요. 위의 두 수를 더하면 돼요.",
+  blank: "노란 두 수를 더하면 ? 가 돼요. 알맞은 풍선을 ? 칸으로 끌어다 놓아요.",
   sumq: "노란 줄의 수를 모두 더하면 얼마일까요?",
   parity: "홀수인 칸이 색칠돼요. 어떤 무늬가 보이나요? 칸을 눌러 봐요.",
   rowsum: "칸을 누르면 그 줄의 합이 나와요. 오른쪽에 모든 줄의 합이 있어요.",
