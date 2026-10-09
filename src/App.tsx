@@ -26,6 +26,7 @@ import BoardBrief from "./pages/board/Brief";
 import MathplayHome from "./pages/mathplay/MathplayHome";
 import FloorPage from "./pages/mathplay/FloorPage";
 import PuzzlePage from "./pages/mathplay/PuzzlePage";
+import GamePage from "./pages/mathplay/GamePage";
 import NotFound from "./pages/NotFound";
 import PromptLayout from "./components/PromptLayout";
 
@@ -75,6 +76,7 @@ export default function App() {
       <Route path="/mathplay" element={<MathplayHome />} />
       <Route path="/mathplay/busan/:floor" element={<FloorPage />} />
       <Route path="/mathplay/puzzle" element={<PuzzlePage />} />
+      <Route path="/mathplay/game/:id" element={<GamePage />} />
       <Route
         path="/aimath/*"
         element={

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import Shell from "./Shell";
 import { FLOOR2, FLOOR3, FLOOR4, type FloorData } from "./floorData";
+import { GAMES, gameForExp } from "./games/registry";
 
 const BASE = "https://home.pen.go.kr/bmcm/cm/cntnts/cntntsView.do";
 
@@ -38,9 +39,9 @@ export const FLOORS: Floor[] = [
   },
 ];
 
-const YT = (id: string) => `https://www.youtube.com/watch?v=${id}`;
+export const YT = (id: string) => `https://www.youtube.com/watch?v=${id}`;
 
-function VideoDialog({ name, id, onClose }: { name: string; id: string; onClose: () => void }) {
+export function VideoDialog({ name, id, onClose }: { name: string; id: string; onClose: () => void }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", h);
@@ -93,6 +94,7 @@ export default function FloorPage() {
   if (!f) return <Navigate to="/mathplay" replace />;
   const total = f.data.items.length;
   const withVideo = f.data.items.filter((x) => x.v).length;
+  const games = GAMES.filter((g) => g.floor === f.key).length;
 
   return (
     <Shell
@@ -102,7 +104,7 @@ export default function FloorPage() {
           <p>{f.desc}</p>
           <p className="mt-2 text-base">
             <span className="mr-2 inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">{f.who}</span>
-            체험 {total}가지 중 영상이 있는 것 {withVideo}가지
+            체험 {total}가지 · 영상 {withVideo}가지 · 게임 {games}가지
           </p>
         </>
       }
@@ -175,6 +177,14 @@ export default function FloorPage() {
                 {rows.map((x) => (
                   <li key={x.n} className="flex flex-col justify-between gap-2 rounded-card border border-line bg-surface p-4">
                     <span className="font-semibold leading-snug">{x.n}</span>
+                    {gameForExp(x.n) && (
+                      <Link
+                        to={`/mathplay/game/${gameForExp(x.n)!.id}`}
+                        className="inline-flex min-h-[44px] items-center justify-center rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110"
+                      >
+                        🎮 게임으로 해 보기
+                      </Link>
+                    )}
                     {x.v ? (
                       <span className="flex flex-wrap items-center gap-3">
                         <button
@@ -190,7 +200,7 @@ export default function FloorPage() {
                         </a>
                       </span>
                     ) : (
-                      <span className="text-sm text-muted">영상은 아직 없어요. 공식 안내에서 사진으로 볼 수 있어요.</span>
+                      !gameForExp(x.n) && <span className="text-sm text-muted">영상은 아직 없어요. 공식 안내에서 사진으로 볼 수 있어요.</span>
                     )}
                   </li>
                 ))}

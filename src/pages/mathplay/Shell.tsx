@@ -31,7 +31,7 @@ export default function Shell({ title, children, lead }: { title: string; lead?:
         {lead && <div className="mt-4 max-w-2xl text-lg text-muted">{lead}</div>}
         {children}
         <p className="mt-12 border-t border-line pt-4 text-xs text-muted">
-          부산수학문화관 층별 목록은 부산광역시교육청 창의융합교육원 분원 부산수학문화관 누리집의 ‘체험 미리보기’에서 이름과 영상 주소를 옮기고, 주제 묶음은 새로 나눈 것이에요. 영상은 부산수학문화관 유튜브에 올라 있는 것이며, 퍼즐 놀이터의 체험은 이 사이트에서 새로 만든 것이에요. 공식 누리집과 직접 관계는 없어요.
+          부산수학문화관 층별 목록은 부산광역시교육청 창의융합교육원 분원 부산수학문화관 누리집의 ‘체험 미리보기’에서 이름과 영상 주소를 옮기고, 주제 묶음은 새로 나눈 것이에요. 영상은 부산수학문화관 유튜브에 올라 있는 것이에요. 게임과 퍼즐은 체험 이름과 수학 내용을 바탕으로 이 사이트에서 새로 만든 것이라 실제 체험과 다를 수 있어요. 공식 누리집과 직접 관계는 없어요.
         </p>
       </main>
     </div>

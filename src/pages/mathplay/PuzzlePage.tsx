@@ -183,7 +183,7 @@ function Think({ items, note, pieces = true }: { items: string[]; note: string; 
       <div className="rounded-card bg-bg p-4 text-[0.95rem] text-muted">
         <h3 className="font-extrabold text-ink">알아 둘 것</h3>
         <p className="mt-2">{note}</p>
-        {pieces && <p className="mt-2">조작: 조각을 고르고 → 칸 위에 올리면(터치는 한 번 눌러 보고 같은 칸을 다시 눌러) 놓여요. 놓은 조각을 누르면 다시 집어 들어요. 키보드 R은 돌리기, F는 뒤집기예요.</p>}
+        {pieces && <p className="mt-2">조작: 조각을 마우스로 끌어다 놓아요. 끄는 중에 오른쪽 단추(또는 R)로 돌리고 F로 뒤집어요. 놓은 조각을 다시 끌면 옮길 수 있어요. 터치는 조각을 고르고 칸을 한 번 눌러 보고, 같은 칸을 다시 눌러 놓아요.</p>}
       </div>
     </div>
   );
