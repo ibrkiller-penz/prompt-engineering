@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, tick, svgPoint } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, tick } from "./kit";
 
 // ==PURE-START==
 export type LandId = "A" | "B" | "C" | "D";
@@ -112,21 +112,24 @@ export default function BridgesGame() {
   const [more, setMore] = useState(false);
   const [wins, setWins] = useState(0);
   const [stucks, setStucks] = useState(0);
-  const [pt, setPt] = useState<[number, number] | null>(null);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "섬이나 강둑에서 손가락을 끌어 다음 땅으로 가 봐요!" });
+  // 다리를 건널 때 ‘나’가 다리를 따라 걸어가는 애니메이션
+  const [walkAnim, setWalkAnim] = useState<{ d: string; rev: boolean; k: number } | null>(null);
+  const animTimer = useRef(0);
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "땅을 눌러 출발해요!" });
 
   const gRef = useRef(g);
   const mapRef = useRef(mapId);
   const winsRef = useRef(0);
   const timer = useRef(0);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const drag = useRef<{ touched: number | null } | null>(null);
 
   const clearTimer = () => {
     window.clearTimeout(timer.current);
     timer.current = 0;
   };
-  useEffect(() => clearTimer, []);
+  useEffect(() => () => {
+    clearTimer();
+    window.clearTimeout(animTimer.current);
+  }, []);
 
   const commit = (ng: G) => {
     gRef.current = ng;
@@ -165,6 +168,13 @@ export default function BridgesGame() {
     const to = other(b, at);
     commit({ start: cur.start, path: np });
     tick();
+    // 다리 그림은 한쪽 끝에서 다른 쪽 끝으로 그려져 있어서, 출발한 땅 쪽 끝이 어디인지 보고 걷는 방향을 정한다
+    const pts = samplePath(b.d);
+    const st = LAND[at].stand;
+    const rev = Math.hypot(pts[0][0] - st[0], pts[0][1] - st[1]) > Math.hypot(pts[pts.length - 1][0] - st[0], pts[pts.length - 1][1] - st[1]);
+    window.clearTimeout(animTimer.current);
+    setWalkAnim({ d: b.d, rev, k: Date.now() });
+    animTimer.current = window.setTimeout(() => setWalkAnim(null), 520);
     if (np.length === bs.length) {
       winsRef.current += 1;
       const w = winsRef.current;
@@ -173,7 +183,7 @@ export default function BridgesGame() {
       if (w >= GOAL) setMsg({ tone: "ok", text: `⭐ 별 ${GOAL}개 완성! 정말 대단해요!` });
       else {
         setMsg({ tone: "ok", text: `⭐ 대단해요! 다리를 모두 한 번씩 건넜어요! 곧 다음 지도가 나와요.` });
-        timer.current = window.setTimeout(() => resetRun("새 판이에요! 섬이나 강둑에서 손가락을 끌어 봐요!", mapRef.current === "minus" ? "plus" : mapRef.current === "plus" ? "minus" : mapRef.current), 2300);
+        timer.current = window.setTimeout(() => resetRun("새 판이에요! 땅을 눌러 출발해요!", mapRef.current === "minus" ? "plus" : mapRef.current === "plus" ? "minus" : mapRef.current), 2300);
       }
     } else if (!bs.some((x) => !np.includes(x.id) && touches(x, to))) {
       oops();
@@ -181,7 +191,7 @@ export default function BridgesGame() {
       setMsg({ tone: "bad", text: mapRef.current === "classic" ? `아깝다! ${to}에서 막혔어요. 이 지도는 어디서 시작해도 이렇게 된다고 알려져 있어요. 쉬운 지도로 바꿔 볼까요?` : `아깝다! ${to}에서 막혔어요. 잠시 뒤 다시 시작해요. (‘한 걸음 뒤로’로 바로 고칠 수도 있어요)` });
       if (mapRef.current !== "classic") timer.current = window.setTimeout(() => resetRun("다시 해 봐요! 이번엔 다른 길로 가 볼까요?"), 3000);
     } else {
-      setMsg({ tone: "info", text: `${at}에서 ${to}로 건넜어요! 계속 끌어 봐요. (${np.length}/${bs.length})` });
+      setMsg({ tone: "info", text: `${at}에서 ${to}로 건넜어요! 다음 땅을 눌러요. (${np.length}/${bs.length})` });
     }
     return true;
   };
@@ -198,80 +208,31 @@ export default function BridgesGame() {
   const pickLand = (l: LandId) => {
     const cur = gRef.current;
     const bs = bsOf();
-    if (!cur.start || (cur.path.length === 0 && l !== cur.start)) {
+    // 아직 출발 전이거나, 출발만 하고 이어지지 않은 땅을 누르면 출발점을 그 땅으로 바꾼다
+    const linkedFromStart = !!cur.start && bs.some((b) => touches(b, cur.start!) && other(b, cur.start!) === l);
+    if (!cur.start || (cur.path.length === 0 && l !== cur.start && !linkedFromStart)) {
       clearTimer();
       commit({ start: l, path: [] });
       tick();
-      setMsg({ tone: "info", text: `${l}에서 시작해요! ${l}에서 손가락을 끌거나, 반짝이는 다리를 눌러요.` });
+      setMsg({ tone: "info", text: `${l}에서 출발! 반짝이는 땅을 눌러 다리를 건너요.` });
       return;
     }
     const at = walk(bs, cur.start, cur.path);
+    if (cur.path.length === bs.length || !bs.some((x) => !cur.path.includes(x.id) && touches(x, at))) return;
+    if (l === at) {
+      setMsg({ tone: "info", text: `지금 ${at}에 있어요. 다리로 이어진 다른 땅을 눌러요.` });
+      return;
+    }
+    // 같은 두 땅을 잇는 다리는 어느 것을 건너도 똑같아서 아직 안 건넌 것 하나를 고른다
     const direct = bs.filter((b) => !cur.path.includes(b.id) && touches(b, at) && other(b, at) === l);
-    if (direct.length === 1) cross(direct[0]);
-    else if (direct.length > 1) setMsg({ tone: "info", text: `${at}와 ${l} 사이에 다리가 ${direct.length}개 있어요. 건널 다리를 눌러요.` });
-  };
-
-  const svgXY = (e: React.PointerEvent): [number, number] => svgPoint(svgRef.current!, e.clientX, e.clientY);
-
-  const onDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    const [x, y] = svgXY(e);
-    const L = landAt(x, y);
-    const cur = gRef.current;
-    const bs = bsOf();
-    if (!L) return;
-    const over = !!cur.start && (cur.path.length === bs.length || !bs.some((b) => !cur.path.includes(b.id) && touches(b, walk(bs, cur.start!, cur.path))));
-    if (over) return;
-    if (!cur.start || (cur.path.length === 0 && L !== cur.start)) {
-      clearTimer();
-      commit({ start: L, path: [] });
-      tick();
-      setMsg({ tone: "info", text: `${L}에서 시작! 손가락을 끌어 다음 땅으로 가 봐요.` });
-    } else if (L !== walk(bs, cur.start, cur.path)) return;
-    drag.current = { touched: null };
-    setPt([x, y]);
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      /* 무시 */
+    if (direct.length) cross(direct[0]);
+    else if (bs.some((b) => touches(b, at) && other(b, at) === l)) {
+      oops();
+      setMsg({ tone: "bad", text: `${at}와 ${l} 사이 다리는 이미 다 건넜어요. 반짝이는 땅으로 가요.` });
+    } else {
+      oops();
+      setMsg({ tone: "bad", text: `${at}에서 ${l}로 바로 가는 다리가 없어요. 반짝이는 땅을 눌러요.` });
     }
-  };
-
-  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!drag.current) return;
-    const [x, y] = svgXY(e);
-    setPt([x, y]);
-    const cur = gRef.current;
-    const bs = bsOf();
-    if (!cur.start) return;
-    const at = walk(bs, cur.start, cur.path);
-    let best: number | null = null;
-    let bd = 34;
-    for (const b of bs) {
-      if (!touches(b, at)) continue;
-      const d = distToPoints(x, y, samplePath(b.d));
-      if (d < bd) {
-        bd = d;
-        best = b.id;
-      }
-    }
-    if (best !== null) drag.current.touched = best;
-    const L = landAt(x, y);
-    if (!L || L === at) return;
-    const cand = bs.filter((b) => !cur.path.includes(b.id) && touches(b, at) && other(b, at) === L);
-    const last = cur.path.length ? bs.find((b) => b.id === cur.path[cur.path.length - 1])! : null;
-    if (cand.length) {
-      const pick = cand.find((b) => b.id === drag.current!.touched) ?? cand[0];
-      cross(pick);
-      drag.current.touched = null;
-    } else if (last && touches(last, at) && other(last, at) === L && drag.current.touched === last.id) {
-      undo();
-      drag.current.touched = null;
-    }
-  };
-
-  const onUp = () => {
-    drag.current = null;
-    setPt(null);
   };
 
   const bs = MAPS[mapId].bridges;
@@ -285,7 +246,8 @@ export default function BridgesGame() {
   const free = at ? bs.filter((b) => !used.has(b.id) && touches(b, at)) : [];
   const stuck = !!g.start && !done && free.length === 0;
   const over = done || stuck;
-  const guide = !g.start ? (bs.find((b) => good.includes(b.a)) ?? bs[0]) : null;
+  const nextLands = new Set<LandId>(free.map((b) => other(b, at!)));
+  const guideLand: LandId | null = !g.start ? (good[0] ?? "A") : null;
 
   const keyAct = (fn: () => void) => (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -299,21 +261,16 @@ export default function BridgesGame() {
     <div className="space-y-3 text-base">
       <Board>
         <p className="mb-2 rounded-card bg-accent-soft px-3 py-2 text-base font-bold">
-          {!g.start ? "땅에서 손가락을 끌어 다리를 건너요 (다리마다 한 번만!)" : over ? (done ? "성공! 별을 받았어요" : "막혔어요. 곧 다시 시작해요") : "‘나’를 끌어 다음 땅까지 가 봐요. 반짝이는 다리를 눌러도 돼요"}
+          {!g.start ? "① 출발할 땅을 눌러요 (다리는 한 번씩만!)" : over ? (done ? "성공! 별을 받았어요" : "막혔어요. 곧 다시 시작해요") : "② 반짝이는 땅을 누르면 다리를 건너요"}
         </p>
         <p className="mb-2 text-base text-muted">{map.note}</p>
 
         <svg
-          ref={svgRef}
           viewBox="0 0 700 380"
           className="block h-auto w-full select-none rounded-card"
-          style={{ touchAction: "none" }}
+          style={{ touchAction: "manipulation" }}
           role="group"
           aria-label={`다리 지도. 땅 4곳과 다리 ${bs.length}개`}
-          onPointerDown={onDown}
-          onPointerMove={onMove}
-          onPointerUp={onUp}
-          onPointerCancel={onUp}
         >
           <rect width="700" height="380" fill="#bae6fd" />
           {[60, 120, 255, 330].map((y, i) => (
@@ -353,7 +310,7 @@ export default function BridgesGame() {
 
           {LAND_IDS.map((l) => {
             const info = LAND[l];
-            const pickable = !g.start || (g.path.length === 0 && l !== g.start);
+            const pickable = !over && (!g.start || nextLands.has(l));
             const rec = hint && !g.start && good.includes(l);
             return (
               <g key={l} role="button" tabIndex={0} aria-label={`${LAND_NAME[l]}${at === l ? " (지금 여기)" : ""}, 다리 ${deg[l]}개`} onClick={() => pickLand(l)} onKeyDown={keyAct(() => pickLand(l))} style={{ cursor: "pointer", outline: "none" }}>
@@ -387,26 +344,33 @@ export default function BridgesGame() {
             );
           })}
 
-          {/* 처음 3초 손짓: 손가락이 다리를 따라 움직여요 */}
-          {guide && (
+          {/* 처음 손짓: 출발하기 좋은 땅 위에서 손가락이 콕콕 */}
+          {guideLand && (
             <g pointerEvents="none">
-              <circle r="20" fill="#fff" stroke="#ea580c" strokeWidth="5" opacity="0.95">
-                <animateMotion dur="1.8s" repeatCount="indefinite" path={guide.d} />
-              </circle>
-              <text x={samplePath(guide.d)[0][0] + 28} y={samplePath(guide.d)[0][1] - 14} fontSize="22" fontWeight="800" fill="#c2410c">
-                끌어 봐요!
+              <text x={LAND[guideLand].label[0] + 46} y={LAND[guideLand].label[1] + 12} fontSize="34">
+                👆
+                <animateTransform attributeName="transform" type="translate" values="0 0; 0 -10; 0 0" dur="0.9s" repeatCount="indefinite" />
+              </text>
+              <text x={LAND[guideLand].label[0] + 84} y={LAND[guideLand].label[1] + 2} fontSize="22" fontWeight="800" fill="#c2410c">
+                눌러요!
               </text>
             </g>
           )}
 
-          {pt && at && (
-            <line x1={LAND[at].stand[0]} y1={LAND[at].stand[1]} x2={pt[0]} y2={pt[1] - 34} stroke="#ea580c" strokeWidth="6" strokeDasharray="4 10" strokeLinecap="round" pointerEvents="none" />
-          )}
-          {at && (
-            <g pointerEvents="none" transform={pt ? `translate(${pt[0] - LAND[at].stand[0]}, ${pt[1] - 34 - LAND[at].stand[1]})` : undefined}>
+          {at && !walkAnim && (
+            <g pointerEvents="none">
               <circle cx={LAND[at].stand[0]} cy={LAND[at].stand[1] + 4} r="22" fill="rgba(0,0,0,0.25)" />
               <circle cx={LAND[at].stand[0]} cy={LAND[at].stand[1]} r="24" fill="#ea580c" stroke="#fff" strokeWidth="4" />
               <text x={LAND[at].stand[0]} y={LAND[at].stand[1] + 8} textAnchor="middle" fontSize="22" fontWeight="800" fill="#fff">
+                나
+              </text>
+            </g>
+          )}
+          {walkAnim && (
+            <g key={walkAnim.k} pointerEvents="none">
+              <animateMotion dur="0.5s" fill="freeze" path={walkAnim.d} keyPoints={walkAnim.rev ? "1;0" : "0;1"} keyTimes="0;1" calcMode="linear" />
+              <circle r="24" fill="#ea580c" stroke="#fff" strokeWidth="4" />
+              <text y="8" textAnchor="middle" fontSize="22" fontWeight="800" fill="#fff">
                 나
               </text>
             </g>
@@ -424,7 +388,7 @@ export default function BridgesGame() {
 
       <div className="flex flex-wrap gap-2">
         <GButton onClick={undo} disabled={g.path.length === 0} className={BIG}>↶ 한 걸음 뒤로</GButton>
-        <GButton variant="primary" onClick={() => resetRun("다시 시작해요! 섬이나 강둑에서 손가락을 끌어 봐요.")} disabled={!g.start} className={BIG}>↻ 다시 하기</GButton>
+        <GButton variant="primary" onClick={() => resetRun("다시 시작해요! 땅을 눌러 출발해요.")} disabled={!g.start} className={BIG}>↻ 다시 하기</GButton>
         <GButton variant="soft" pressed={hint} onClick={() => setHint(!hint)} className={BIG}>{hint ? "힌트 숨기기" : "💡 힌트 보기"}</GButton>
         <GButton pressed={more} onClick={() => setMore(!more)} className={BIG}>{more ? "어려운 도전 닫기" : "더 어려운 도전"}</GButton>
       </div>
@@ -433,7 +397,7 @@ export default function BridgesGame() {
         <Board className="flex flex-wrap items-center gap-2">
           <span className="font-semibold">지도 고르기</span>
           {(["minus", "plus", "classic"] as MapId[]).map((id) => (
-            <GButton key={id} variant={id === mapId ? "soft" : "ghost"} pressed={id === mapId} onClick={() => resetRun("새 지도예요. 섬이나 강둑에서 손가락을 끌어 봐요!", id)} className={BIG}>
+            <GButton key={id} variant={id === mapId ? "soft" : "ghost"} pressed={id === mapId} onClick={() => resetRun("새 지도예요. 땅을 눌러 출발해요!", id)} className={BIG}>
               {MAPS[id].name}
             </GButton>
           ))}
