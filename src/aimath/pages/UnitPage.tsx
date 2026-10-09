@@ -1,7 +1,7 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import RichMath from "../RichMath";
 import { lessonsOf, unitBySlug, unitContent } from "../load";
-import { progressOf, useQResults } from "../store";
+import { lessonStatus, progressOf, useQResults, useSectionsRead } from "../store";
 
 function Story({ title, paragraphs, kicker }: { title: string; paragraphs: string[]; kicker: string }) {
   return (
@@ -19,9 +19,13 @@ export default function UnitPage() {
   const { unit: slug } = useParams();
   const unit = unitBySlug(slug);
   const results = useQResults();
+  const readMap = useSectionsRead();
   if (!unit) return <Navigate to="/aimath" replace />;
   const uc = unitContent(unit.id);
   const lessons = lessonsOf(unit);
+  const statuses = lessons.map(({ data }) => (data ? lessonStatus(data, results, readMap) : null));
+  const doneCount = statuses.filter((s) => s?.complete).length;
+  const nextIdx = statuses.findIndex((s) => s && !s.complete);
   const testIds = uc?.test.map((q) => q.id) ?? [];
   const tp = progressOf(testIds, results);
 
@@ -59,24 +63,36 @@ export default function UnitPage() {
       )}
       {uc && <Story kicker="왜 배울까?" title={uc.why.title} paragraphs={uc.why.paragraphs} />}
 
-      <h2 className="mt-10 text-2xl font-extrabold">이 단원의 레슨</h2>
+      <div className="mt-10 flex flex-wrap items-end justify-between gap-2">
+        <h2 className="text-2xl font-extrabold">이 단원의 레슨</h2>
+        <p className="text-sm font-bold" style={{ color: unit.color }}>{doneCount}/{lessons.length} 레슨 완료</p>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-line" aria-hidden>
+        <div className="h-full rounded-full transition-all" style={{ width: `${lessons.length ? (doneCount / lessons.length) * 100 : 0}%`, background: unit.color }} />
+      </div>
       <ol className="mt-4 space-y-3">
         {lessons.map(({ meta, data }, i) => {
-          const p = progressOf(data?.practice.map((q) => q.id) ?? [], results);
+          const s = statuses[i];
+          const isNext = i === nextIdx;
+          const started = !!s && (s.basic.tried > 0 || s.sectionsRead > 0);
           return (
             <li key={meta.id}>
-              <Link to={`/aimath/${unit.slug}/${meta.id}`} className="flex gap-4 rounded-card border border-line bg-surface p-4 transition hover:border-accent hover:shadow-md">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-extrabold text-white" style={{ background: unit.color }}>{i + 1}</span>
+              <Link to={`/aimath/${unit.slug}/${meta.id}`} className={`flex gap-4 rounded-card border bg-surface p-4 transition hover:shadow-md ${s?.complete ? "border-ok/50" : isNext ? "border-2" : "border-line hover:border-accent"}`} style={isNext && !s?.complete ? { borderColor: unit.color } : undefined}>
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-extrabold text-white ${s?.complete ? "bg-ok" : ""}`} style={s?.complete ? undefined : { background: unit.color }}>{s?.complete ? "✓" : i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-lg font-extrabold leading-snug">{meta.title}</span>
                   <span className="mt-0.5 block text-muted">{data?.subtitle ?? meta.short}</span>
                   <span className="mt-2 block text-xs text-muted">
-                    {data ? `약 ${data.minutes}분 · 문제 ${data.practice.length}개 · 체험 도구 ${data.sections.flatMap((s) => s.blocks).filter((b) => b.t === "widget").length}개` : "준비 중"}
-                    {p.total ? ` · 맞힌 문제 ${p.done}/${p.total}` : ""}
+                    {data ? `약 ${data.minutes}분 · 기본 문제 ${s?.basic.total ?? 0}개(+더 풀기 ${data.practice.length - (s?.basic.total ?? 0)}개)` : "준비 중"}
                   </span>
-                  {p.total > 0 && (
+                  {s && (
+                    <span className={`mt-1.5 block text-xs font-bold ${s.complete ? "text-ok" : isNext ? "" : "text-muted"}`} style={isNext && !s.complete ? { color: unit.color } : undefined}>
+                      {s.complete ? `완료 · 기본 문제 ${s.basic.done}/${s.basic.total} 맞힘` : started ? `진행 중 · 개념 ${s.sectionsRead}/${s.sectionsTotal} 읽음 · 맞힌 문제 ${s.basic.done}/${s.basic.total}` : isNext ? "다음에 할 레슨 →" : ""}
+                    </span>
+                  )}
+                  {s && started && !s.complete && (
                     <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-line" aria-hidden>
-                      <span className="block h-full rounded-full" style={{ width: `${p.pct}%`, background: unit.color }} />
+                      <span className="block h-full rounded-full" style={{ width: `${Math.round(((s.sectionsRead / Math.max(1, s.sectionsTotal)) * 0.3 + (s.basic.done / Math.max(1, s.basic.total)) * 0.7) * 100)}%`, background: unit.color }} />
                     </span>
                   )}
                 </span>

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { getLesson, UNITS, allLessons } from "../load";
-import { loadLast, progressOf, useQResults } from "../store";
+import { lessonStatus, loadLast, progressOf, useQResults, useSectionsRead } from "../store";
 
 const CAST = [
   { name: "서하", role: "부장 · 질문 대마왕", text: "늘 “왜?”부터 묻는다. 서하의 질문에서 오늘의 이야기가 시작돼요.", cls: "bg-rose-100 text-rose-800" },
@@ -13,10 +13,12 @@ const CAST = [
 
 export default function Home() {
   const results = useQResults();
+  const readMap = useSectionsRead();
   const last = loadLast();
   const all = allLessons();
   const allIds = all.flatMap((l) => l.practice.map((q) => q.id));
   const total = progressOf(allIds, results);
+  const doneLessons = all.filter((l) => lessonStatus(l, results, readMap).complete).length;
 
   return (
     <>
@@ -33,8 +35,8 @@ export default function Home() {
               이어서 하기 · {last.title}
             </Link>
           )}
-          {total.total > 0 && (
-            <span className="text-sm text-muted">지금까지 맞힌 문제 <b className="text-ink">{total.done}</b> / {total.total}</span>
+          {(doneLessons > 0 || total.done > 0) && (
+            <span className="text-sm text-muted">완료한 레슨 <b className="text-ink">{doneLessons}</b> / {all.length} · 맞힌 문제 <b className="text-ink">{total.done}</b>개</span>
           )}
         </div>
       </section>
@@ -46,6 +48,7 @@ export default function Home() {
           const ids = ls.flatMap((l) => l!.practice.map((q) => q.id));
           const p = progressOf(ids, results);
           const ready = ls.length;
+          const doneHere = ls.filter((l) => lessonStatus(l!, results, readMap).complete).length;
           return (
             <li key={u.id}>
               <Link
@@ -68,11 +71,11 @@ export default function Home() {
                 </ol>
                 <div className="mt-auto pt-4">
                   <div className="h-2 overflow-hidden rounded-full bg-line" aria-hidden>
-                    <div className="h-full rounded-full" style={{ width: `${p.pct}%`, background: u.color }} />
+                    <div className="h-full rounded-full" style={{ width: `${ready ? (doneHere / ready) * 100 : 0}%`, background: u.color }} />
                   </div>
                   <p className="mt-1 text-xs text-muted">
                     {ready < u.lessons.length ? `레슨 ${ready}/${u.lessons.length}개 공개` : `레슨 ${u.lessons.length}개`}
-                    {p.total ? ` · 맞힌 문제 ${p.done}/${p.total}` : ""}
+                    {doneHere ? ` · ${doneHere}개 완료` : p.done ? ` · 맞힌 문제 ${p.done}개` : ""}
                   </p>
                 </div>
               </Link>

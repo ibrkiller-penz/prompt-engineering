@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { HUB_NAME } from "../site";
 import { UNITS } from "./load";
@@ -22,10 +22,36 @@ export default function Layout() {
     document.title = `인공지능 수학 · ${HUB_NAME}`;
   }, []);
 
+  // 폰에서 상단 고정 영역이 화면의 1/5을 차지하므로, 아래로 스크롤하면 사이트 헤더·단원 탭을 숨기고 위로 올리면 다시 보인다.
+  // 레슨의 섹션 탭은 CSS 변수 --hdr 로 헤더 높이를 받아 그 자리에 붙는다.
+  const [hidden, setHidden] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    let last = window.scrollY;
+    let ticking = false;
+    const apply = () => {
+      const y = window.scrollY;
+      const dy = y - last;
+      if (y < 80) setHidden(false);
+      else if (dy > 8) setHidden(true);
+      else if (dy < -8) setHidden(false);
+      last = y;
+      ticking = false;
+    };
+    const on = () => { if (!ticking) { ticking = true; requestAnimationFrame(apply); } };
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
+  useEffect(() => {
+    const h = headerRef.current?.getBoundingClientRect().height ?? 93;
+    document.documentElement.style.setProperty("--hdr", hidden ? "0px" : `${Math.round(h) - 1}px`);
+    return () => { document.documentElement.style.removeProperty("--hdr"); };
+  }, [hidden, unit]);
+
   return (
     <div className="aimath-root flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:p-3">본문으로 건너뛰기</a>
-      <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
+      <header ref={headerRef} className={`sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur transition-transform duration-200 ${hidden ? "-translate-y-full" : ""}`}>
         <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-1">
           <Link to="/aimath" className="flex min-h-[44px] min-w-0 items-center gap-2 font-extrabold tracking-tight">
             <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-ink">∑</span>

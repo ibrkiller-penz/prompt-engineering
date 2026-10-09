@@ -98,7 +98,7 @@ export function QuestionCard({
     else { setStatus("wrong"); setShake(true); setMsg("아쉬워요. 힌트를 보고 다시 해 봐요."); }
   };
   const showSolution = () => {
-    if (status !== "correct") setStatus("solution");
+    if (status !== "correct") { setStatus("solution"); setMsg(""); } // 풀이를 보면 '아쉬워요' 안내는 지운다
     finish(status === "correct");
   };
   const selfGrade = (ok: boolean) => { setStatus(ok ? "correct" : "solution"); finish(ok); };
@@ -302,7 +302,7 @@ function OpenReveal({ q, onGrade }: { q: Extract<Question, { type: "open" }>; on
 }
 
 /** 계단식: 한 번에 한 문제. 풀거나 풀이를 보면 다음 계단이 열린다. */
-export function StairRunner({ questions, results }: { questions: Question[]; results: Record<string, QResult> }) {
+export function StairRunner({ questions, results, finish }: { questions: Question[]; results: Record<string, QResult>; finish?: React.ReactNode }) {
   const first = questions.findIndex((q) => !results[q.id]);
   const [cur, setCur] = useState(first === -1 ? questions.length : first);
   const [open, setOpen] = useState<Record<string, number>>({}); // 다시 풀기용 key 증가
@@ -368,7 +368,7 @@ export function StairRunner({ questions, results }: { questions: Question[]; res
       {cur < questions.length ? (
         <p className="text-center text-sm text-muted">남은 문제 {questions.length - cur - 1}개 · 풀면 다음 문제가 열려요</p>
       ) : (
-        <Finish questions={questions} results={results} />
+        finish ?? <Finish questions={questions} results={results} />
       )}
     </div>
   );
