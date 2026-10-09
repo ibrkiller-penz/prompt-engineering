@@ -261,6 +261,7 @@ export default function MapColorGame() {
         lock.current = false;
         colorsRef.current = [];
         setColors([]);
+        setSplash(null);
         setRound((r) => r + 1);
         setMsg({ tone: "info", text: "새 지도예요! 나라를 톡 눌러 칠해 봐요." });
       }, 2300);
@@ -319,6 +320,7 @@ export default function MapColorGame() {
     lock.current = false;
     colorsRef.current = [];
     setColors([]);
+    setSplash(null);
     setHintR(null);
     setMsg({ tone: "info", text: "새로 시작해요. 나라를 톡 눌러 보세요!" });
   };
@@ -331,6 +333,7 @@ export default function MapColorGame() {
     setWins(0);
     colorsRef.current = [];
     setColors([]);
+    setSplash(null);
     setShowHint(false);
     setHintR(null);
     setMsg({ tone: "info", text: "새 지도예요. 나라를 톡 눌러 칠해 봐요!" });
@@ -429,7 +432,7 @@ export default function MapColorGame() {
             </g>
           ))}
           {/* 물감이 번지는 반짝임 */}
-          {splash && !REDUCE && (
+          {splash && !REDUCE && splash.r < n && geo.labels[splash.r] && (
             <circle key={splash.k} cx={geo.labels[splash.r][0] * CELL} cy={geo.labels[splash.r][1] * CELL} r="0" fill="#fff" pointerEvents="none">
               <animate attributeName="r" from="4" to="70" dur="0.5s" fill="freeze" />
               <animate attributeName="opacity" from="0.8" to="0" dur="0.5s" fill="freeze" />

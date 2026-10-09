@@ -261,7 +261,7 @@ export default function ArchPiGame() {
       </div>
       <p className="mt-2 text-center text-base">🥧 파이(원)의 둘레 ÷ 지름 = <strong className="font-game text-xl text-[#7c3aed]">3.14쯤</strong> 은 이 두 수 사이에 있어요!</p>
 
-      <svg viewBox="0 0 400 74" className="mt-2 w-full rounded-card" role="img" aria-label={`원주율은 ${f2(floor2(lo))} 과 ${f2(ceil2(hi))} 사이에 있어요`}>
+      <svg viewBox="0 0 400 74" className="mx-auto mt-2 w-full max-w-[460px] rounded-card" role="img" aria-label={`원주율은 ${f2(floor2(lo))} 과 ${f2(ceil2(hi))} 사이에 있어요`}>
         <defs>
           <linearGradient id="ap-bar" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0" stopColor="#93c5fd" />

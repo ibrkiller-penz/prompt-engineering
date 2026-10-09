@@ -272,7 +272,7 @@ export default function BrachistoGame() {
   };
   const bowlSvg = (() => {
     const od = outline.map(([x, h], i) => `${i ? "L" : "M"}${bx(x).toFixed(1)} ${by(h).toFixed(1)}`).join("");
-    const fillD = `${od} L${bx(outline[outline.length - 1][0]).toFixed(1)} 200 L${bx(outline[0][0]).toFixed(1)} 200 Z`;
+    const fillD = `${od} L${bx(outline[outline.length - 1][0]).toFixed(1)} 214 L${bx(outline[0][0]).toFixed(1)} 214 Z`;
     const ball = (tb: ReturnType<typeof buildTable>, h0: number, who: "A" | "B", sign: number, canDrag: boolean) => {
       const started = bphase !== "ready";
       const p = started ? posAt(tb, bclock) : tb.path(0);
@@ -291,19 +291,19 @@ export default function BrachistoGame() {
       );
     };
     return (
-      <svg ref={svgRef} viewBox="0 0 400 200" className="w-full select-none rounded-card" style={{ touchAction: "none", cursor: bphase === "ready" ? "grab" : "default" }}
+      <svg ref={svgRef} viewBox="0 0 400 214" className="mx-auto w-full max-w-[640px] select-none rounded-card" style={{ touchAction: "none", cursor: bphase === "ready" ? "grab" : "default" }}
         onPointerDown={onBowlDown} onPointerMove={onBowlMove} onPointerUp={() => (drag.current = null)} onPointerCancel={() => (drag.current = null)}
         role="img" aria-label={`${BOWL_KO[bowl]}. 공 A 는 ${Math.round(hA * 100)}센티미터, 공 B 는 ${Math.round(hB * 100)}센티미터 높이예요. 공을 끌어서 높이를 바꿔요`}>
         <SceneDefs />
-        <rect x={0} y={0} width={400} height={200} rx={18} fill="url(#br-sky)" />
+        <rect x={0} y={0} width={400} height={214} rx={18} fill="url(#br-sky)" />
         <g className="gz-float" style={{ transformBox: "fill-box" }}><Cloud x={330} y={30} s={0.8} /></g>
         <path d={fillD} fill="url(#br-wood)" />
         <path d={od} fill="none" stroke="#92400e" strokeWidth={6} strokeLinejoin="round" strokeLinecap="round" />
         <path d={od} fill="none" stroke="#fde68a" strokeWidth={2} strokeLinejoin="round" opacity={0.8} transform="translate(0 -3)" />
-        <g transform={`translate(${bx(0)} ${by(0) + 22})`}>
+        <g transform={`translate(${bx(0)} ${by(0) + 20})`}>
           <polygon points="0,-9 2.6,-3 9,-3 4,1.5 6,8 0,4 -6,8 -4,1.5 -9,-3 -2.6,-3" fill="#fde047" stroke="#b45309" strokeWidth={1.5} />
         </g>
-        <text x={bx(0)} y={by(0) + 33 + 10} fontSize={14} fill="#78350f" textAnchor="middle" style={JUA}>바닥</text>
+        <text x={bx(0)} y={by(0) + 44} fontSize={14} fill="#78350f" textAnchor="middle" style={JUA}>바닥</text>
         {ball(tA, hA, "A", 1, bphase === "ready")}
         {ball(tB, hB, "B", -1, bphase === "ready")}
         {bphase === "ready" && <text x={200} y={24} fontSize={16} fill="#6b21a8" textAnchor="middle" stroke="#fff" strokeWidth={4} paintOrder="stroke" style={JUA}>👆 공 친구를 위아래로 끌어 보세요</text>}

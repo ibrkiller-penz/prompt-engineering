@@ -134,6 +134,16 @@ export default function PascalGame() {
   const [drag, setDrag] = useState<null | { v: number; x: number; y: number }>(null);
   const dragStart = useRef({ x: 0, y: 0, moved: false });
   const svgRef = useRef<SVGSVGElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [cw, setCw] = useState(360);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setCw(el.clientWidth));
+    ro.observe(el);
+    setCw(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
   const [sel, setSel] = useState(init.sel);
   const [diagN, setDiagN] = useState(5);
   const [hidden, setHidden] = useState<Set<string>>(init.h);
@@ -314,6 +324,9 @@ export default function PascalGame() {
   const W = rows * CW;
   const vw = LM + W + (mode === "rowsum" ? RM_SUM : 0);
   const vh = (rows - 1) * RH + 2 * R + 8 + FLOOR;
+  // 넓은 화면에서는 배경을 옆으로 넓혀 판을 꽉 채운다
+  const VBW = Math.max(vw, cw / 1.15);
+  const EXT = (VBW - vw) / 2;
   const cx = (n: number, k: number) => LM + W / 2 + (k - n / 2) * CW;
   const cy = (n: number) => R + 4 + n * RH;
 
@@ -400,8 +413,8 @@ export default function PascalGame() {
 
       <p className="font-game mt-3 text-lg text-ink">{GUIDE[mode]}</p>
 
-      <div className="mt-2 overflow-hidden rounded-3xl border-4 border-white shadow-[0_6px_0_0_rgba(0,0,0,0.06),0_10px_24px_rgba(124,58,237,0.12)]">
-        <svg ref={svgRef} viewBox={`0 0 ${vw} ${vh}`} width="100%" style={{ maxWidth: vw * 1.05, margin: "0 auto", display: "block", touchAction: "manipulation" }} role="group" aria-label="파스칼 삼각형 블록 판">
+      <div ref={wrapRef} className="mt-2 overflow-hidden rounded-3xl border-4 border-white shadow-[0_6px_0_0_rgba(0,0,0,0.06),0_10px_24px_rgba(124,58,237,0.12)]">
+        <svg ref={svgRef} viewBox={`${-EXT} 0 ${VBW} ${vh}`} width="100%" style={{ display: "block", touchAction: "manipulation" }} role="group" aria-label="파스칼 삼각형 블록 판">
           <defs>
             <linearGradient id="pa-sky" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="#fdf4ff" />
@@ -425,10 +438,10 @@ export default function PascalGame() {
               <path d="M0 0 L10 5 L0 10 z" fill="#f59e0b" />
             </marker>
           </defs>
-          <rect width={vw} height={vh} fill="url(#pa-sky)" />
-          <rect width={vw} height={vh - FLOOR} fill="url(#pa-dots)" />
-          <rect y={vh - FLOOR} width={vw} height={FLOOR} fill="url(#pa-wood)" />
-          <rect y={vh - FLOOR} width={vw} height={4} fill="#b9773f" opacity={0.55} />
+          <rect x={-EXT} width={VBW} height={vh} fill="url(#pa-sky)" />
+          <rect x={-EXT} width={VBW} height={vh - FLOOR} fill="url(#pa-dots)" />
+          <rect x={-EXT} y={vh - FLOOR} width={VBW} height={FLOOR} fill="url(#pa-wood)" />
+          <rect x={-EXT} y={vh - FLOOR} width={VBW} height={4} fill="#b9773f" opacity={0.55} />
           <ellipse cx={LM + W / 2} cy={vh - FLOOR + 3} rx={W / 2 + 6} ry={6} fill="#000" opacity={0.08} />
           {sel.n >= 1 &&
             sel.n < rows &&

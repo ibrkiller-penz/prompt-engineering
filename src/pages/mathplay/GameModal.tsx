@@ -81,7 +81,7 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
             <Thumb id={g.id} />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="font-game truncate text-xl leading-tight sm:text-2xl">{g.title}</h2>
+            <h2 className="font-game line-clamp-2 text-lg leading-tight sm:text-2xl">{g.title}</h2>
             <p className="truncate text-xs font-semibold opacity-90">
               <span className="mr-1 tracking-tight" aria-label={`별 ${starsOf(save.wins[g.id])}개`}>
                 {"★".repeat(starsOf(save.wins[g.id]))}
