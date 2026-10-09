@@ -35,6 +35,32 @@ const ALL_SET = () => five(EASY.filter((n) => goldbachPairs(n).length >= 2));
 const BIG = "!min-h-[48px] !text-base";
 const stars = (n: number) => (n > 0 ? "⭐".repeat(n) : "0");
 
+const CANDY: [string, string, string][] = [
+  ["#fda4af", "#f43f5e", "#9f1239"],
+  ["#fdba74", "#f97316", "#9a3412"],
+  ["#fde68a", "#eab308", "#854d0e"],
+  ["#86efac", "#22c55e", "#166534"],
+  ["#7dd3fc", "#0ea5e9", "#075985"],
+  ["#c4b5fd", "#8b5cf6", "#5b21b6"],
+  ["#f9a8d4", "#ec4899", "#9d174d"],
+];
+const candy = (p: number, bad = false) => {
+  const [l, b, d] = bad ? ["#fecaca", "#ef4444", "#991b1b"] : CANDY[PRIMES_200.indexOf(p) % CANDY.length];
+  return { background: `radial-gradient(circle at 35% 30%, ${l}, ${b})`, borderColor: d, color: "#fff", textShadow: `0 2px 0 ${d}`, boxShadow: `0 4px 0 ${d}` };
+};
+const PRIMES_200 = Array.from({ length: 200 }, (_, i) => i).filter(isPrime);
+const BALLOONS: [string, string, string][] = [
+  ["#fda4af", "#e11d48", "#9f1239"],
+  ["#93c5fd", "#2563eb", "#1e3a8a"],
+  ["#fde68a", "#f59e0b", "#92400e"],
+  ["#86efac", "#16a34a", "#14532d"],
+  ["#d8b4fe", "#9333ea", "#581c87"],
+];
+const SPARK: [number, number, string][] = Array.from({ length: 12 }, (_, k) => {
+  const a = (k / 12) * Math.PI * 2;
+  return [Math.round(Math.cos(a) * 80) - 8, Math.round(Math.sin(a) * 62) - 14, ["#f43f5e", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899"][k % 6]];
+});
+
 type Tab = "pair" | "all" | "explore";
 type M = { t: "info" | "ok" | "bad"; s: string };
 
@@ -82,6 +108,7 @@ export default function GoldbachGame() {
 
   const q1 = set1[Math.min(r1, 4)];
   const q2 = set2[Math.min(r2, 4)];
+  const bal = BALLOONS[r1 % BALLOONS.length];
   const pairs1 = useMemo(() => goldbachPairs(q1), [q1]);
   const pairs2 = useMemo(() => goldbachPairs(q2), [q2]);
   const pairsN = useMemo(() => goldbachPairs(n), [n]);
@@ -239,21 +266,48 @@ export default function GoldbachGame() {
           </div>
           {r1 < 5 ? (
             <>
-              <p className="mb-2 text-center font-semibold">👆 아래 소수를 눌러요 (끌어서 □ 칸에 넣어도 돼요)</p>
-              <div className="flex justify-center">
-                <div
-                  className="flex h-32 w-32 items-center justify-center rounded-full text-5xl font-extrabold text-white shadow-lg transition-all duration-500"
-                  style={{ background: "radial-gradient(circle at 35% 30%, #fda4af, #e11d48)", transform: phase1 === "ok" ? "scale(1.6)" : phase1 === "bad" ? "translateX(8px) rotate(-6deg)" : "none", opacity: phase1 === "ok" ? 0 : 1 }}
-                  role="img"
-                  aria-label={`목표 풍선 ${q1}`}
-                >
-                  {q1}
+              <p className="font-game mb-2 text-center text-xl">👆 사탕(소수)을 눌러요 · 끌어서 □ 칸에 넣어도 돼요</p>
+              <div className="relative mx-auto h-56 max-w-md overflow-hidden rounded-card border-4 border-sky-300" style={{ background: "linear-gradient(180deg, #bae6fd 0%, #e0f2fe 55%, #fbcfe8 100%)" }}>
+                <div className="gz-float pointer-events-none absolute left-4 top-6 h-8 w-20 rounded-full bg-white/90" aria-hidden />
+                <div className="gz-float pointer-events-none absolute left-9 top-3 h-9 w-10 rounded-full bg-white/90" aria-hidden />
+                <div className="gz-float pointer-events-none absolute right-5 top-14 h-7 w-16 rounded-full bg-white/80" style={{ animationDelay: "1.2s" }} aria-hidden />
+                <div className="pointer-events-none absolute -left-6 -right-6 bottom-[-40px] h-20 rounded-[50%] border-t-4 border-green-600" style={{ background: "linear-gradient(180deg, #86efac, #22c55e)" }} aria-hidden />
+                <div className="absolute left-1/2 top-2 -translate-x-1/2">
+                  <div key={`${r1}-${wrong1}`} className={phase1 === "bad" ? "am-shake" : "gz-float"}>
+                    <div style={{ transition: "transform 0.35s ease, opacity 0.35s ease", transform: phase1 === "ok" ? "scale(1.5)" : "none", opacity: phase1 === "ok" ? 0 : 1 }}>
+                      <svg viewBox="0 0 120 176" width="124" role="img" aria-label={`목표 풍선 ${q1}`}>
+                        <defs>
+                          <radialGradient id="gb-bal" cx="0.35" cy="0.3" r="0.85">
+                            <stop offset="0" stopColor={bal[0]} />
+                            <stop offset="1" stopColor={bal[1]} />
+                          </radialGradient>
+                        </defs>
+                        <path d="M60 128 q -12 14 0 24 t 0 24" stroke="#6b6280" strokeWidth="2.5" fill="none" />
+                        <ellipse cx="60" cy="64" rx="50" ry="58" fill="url(#gb-bal)" stroke={bal[2]} strokeWidth="4" />
+                        <path d="M53 120 L67 120 L60 131 Z" fill={bal[1]} stroke={bal[2]} strokeWidth="3" strokeLinejoin="round" />
+                        <ellipse cx="38" cy="38" rx="9" ry="16" fill="#fff" opacity="0.55" transform="rotate(-25 38 38)" />
+                        <text x="60" y="80" textAnchor="middle" fontSize="46" fill="#fff" stroke={bal[2]} strokeWidth="6" paintOrder="stroke" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+                          {q1}
+                        </text>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
+                {phase1 === "ok" && (
+                  <div className="pointer-events-none absolute left-1/2 top-[70px]" aria-hidden>
+                    {SPARK.map(([dx, dy, c], k) => (
+                      <span key={k} className="gz-pop absolute text-2xl" style={{ left: dx, top: dy, color: c, animationDelay: `${k * 25}ms` }}>
+                        ✦
+                      </span>
+                    ))}
+                    <span className="font-game gz-pop absolute -left-8 -top-4 text-4xl text-white" style={{ WebkitTextStroke: `2px ${bal[2]}` }}>팡!</span>
+                  </div>
+                )}
               </div>
-              <p className="my-2 flex items-center justify-center gap-2 text-3xl font-extrabold tabular-nums">
+              <div className="my-3 flex items-center justify-center gap-2 text-3xl tabular-nums">
                 {[0, 1].map((i) => (
                   <span key={i} className="contents">
-                    {i === 1 && <span>+</span>}
+                    {i === 1 && <span className="font-game text-accent">+</span>}
                     <button
                       type="button"
                       data-slot={i}
@@ -264,15 +318,16 @@ export default function GoldbachGame() {
                         }
                       }}
                       aria-label={slots[i] === null ? `${i + 1}번째 빈칸` : `${i + 1}번째 칸: ${slots[i]} (누르면 빼요)`}
-                      className={`flex h-16 w-20 items-center justify-center rounded-card border-2 border-dashed ${slots[i] === null ? "border-line bg-bg text-muted" : phase1 === "bad" ? "border-bad bg-bad-soft text-bad" : "border-accent bg-accent-soft text-accent"}`}
+                      className={`font-game flex h-16 w-20 items-center justify-center rounded-2xl border-4 ${slots[i] === null ? "border-dashed border-accent/40 bg-white text-accent/40" : phase1 === "bad" ? "am-shake" : "gz-pop"}`}
+                      style={slots[i] === null ? undefined : candy(slots[i]!, phase1 === "bad")}
                     >
-                      {slots[i] ?? "□"}
+                      {slots[i] ?? "?"}
                     </button>
                   </span>
                 ))}
-                <span>= {q1}</span>
-              </p>
-              <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="소수 칩">
+                <span className="font-game text-accent">= {q1}</span>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2.5" role="group" aria-label="소수 칩">
                 {primesBelow(q1 - 1).map((p) => (
                   <button
                     key={p}
@@ -283,10 +338,11 @@ export default function GoldbachGame() {
                     onPointerCancel={() => { dragInfo.current = null; setDrag(null); }}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); place(p); } }}
                     aria-label={`소수 ${p}`}
-                    className="min-h-[52px] min-w-[52px] select-none rounded-full border-2 border-line bg-surface px-3 text-xl font-extrabold tabular-nums hover:bg-bg"
-                    style={{ touchAction: "none" }}
+                    className="font-game relative min-h-[54px] min-w-[54px] select-none rounded-full border-[3px] px-3 text-2xl tabular-nums transition active:translate-y-1"
+                    style={{ ...candy(p), touchAction: "none" }}
                   >
-                    {p}
+                    <span className="pointer-events-none absolute left-2.5 top-1.5 h-2.5 w-4 rotate-[-25deg] rounded-full bg-white/70" aria-hidden />
+                    <span className="relative">{p}</span>
                   </button>
                 ))}
               </div>
@@ -307,7 +363,7 @@ export default function GoldbachGame() {
         </Board>
       )}
       {drag && (
-        <div className="pointer-events-none fixed z-[90] flex h-14 w-14 items-center justify-center rounded-full border-2 border-accent bg-accent text-xl font-extrabold text-accent-ink shadow-lg" style={{ left: drag.x - 28, top: drag.y - 28 }}>
+        <div className="font-game pointer-events-none fixed z-[90] flex h-16 w-16 items-center justify-center rounded-full border-[3px] text-2xl" style={{ ...candy(drag.p), left: drag.x - 32, top: drag.y - 32, transform: "scale(1.1)" }}>
           {drag.p}
         </div>
       )}

@@ -23,11 +23,37 @@ function makePath(rows: number, rnd: () => number): number[] {
 type Ball = { path: number[]; s: number; pred: number | null; x0: number };
 
 const BALL_R = 5;
+const BALL_COLORS = ["#f472b6", "#60a5fa", "#facc15", "#34d399", "#a78bfa", "#fb923c"];
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+/** 반짝이는 구슬 하나 */
+function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
+  const g = ctx.createRadialGradient(x - r / 3, y - r / 3, r * 0.1, x, y, r);
+  g.addColorStop(0, "#ffffff");
+  g.addColorStop(0.35, color);
+  g.addColorStop(1, color);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, 7);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(30,27,75,0.45)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
 
 function layout(w: number, rows: number) {
   const dx = Math.min(60, (w - 16) / (rows + 1));
   const dy = Math.min(34, dx * 0.85);
-  const top = 48;
+  const top = 52;
   const binTop = top + rows * dy - dy * 0.3;
   const h = Math.round(top + rows * dy + 140);
   return { dx, dy, top, binTop, h, cx: w / 2 };
@@ -68,6 +94,13 @@ export default function GaltonGame() {
   const total = counts.current.reduce((a, b) => a + b, 0);
   const lay = layout(width, rows);
 
+  const flash = (cls: string) => {
+    const el = wrap.current;
+    if (!el) return;
+    el.classList.remove("am-pop", "am-shake");
+    void el.offsetWidth;
+    el.classList.add(cls);
+  };
   const land = (b: Ball) => {
     const bin = b.path[rows];
     counts.current[bin]++;
@@ -78,6 +111,7 @@ export default function GaltonGame() {
       setScore({ hit: sc.hit + (hit ? 1 : 0), tries });
       if (hit) cheer();
       else oops();
+      flash(hit ? "am-pop" : "am-shake");
       const tail = tries >= 5 ? ` 5번 끝! 별 ${sc.hit + (hit ? 1 : 0)}개예요. 이제 ‘구슬 100개’를 떨어뜨려 봐요.` : "";
       setMsg(hit ? { t: "ok", s: `맞았어요! ⭐ 구슬이 ${bin + 1}번 칸에 들어갔어요. 잘했어요!${tail}` } : { t: "bad", s: `아쉬워요! 구슬은 ${bin + 1}번 칸에 들어갔어요. 괜찮아요, 다시 해 봐요!${tail}` });
     }
@@ -99,94 +133,141 @@ export default function GaltonGame() {
     }
     const ctx = fitCanvas(c, width, L.h);
     ctx.clearRect(0, 0, width, L.h);
-    const bot = L.h - 22;
+    const bot = L.h - 24;
     const cs = counts.current;
     const tot = cs.reduce((a, b) => a + b, 0);
     const left = L.cx - ((rows + 1) * L.dx) / 2;
+    const right = left + (rows + 1) * L.dx;
     const binH = bot - L.binTop;
-    // 통 칸막이
-    ctx.strokeStyle = "#94a3b8";
-    ctx.lineWidth = 1.5;
-    for (let b = 0; b <= rows + 1; b++) {
+    // 나무 틀 + 핀볼 유리판
+    const wood = ctx.createLinearGradient(0, 0, 0, L.h);
+    wood.addColorStop(0, "#fbbf24");
+    wood.addColorStop(1, "#b45309");
+    ctx.fillStyle = wood;
+    roundRect(ctx, 0, 0, width, L.h, 18);
+    ctx.fill();
+    const glass = ctx.createLinearGradient(0, 0, 0, L.h);
+    glass.addColorStop(0, "#5b21b6");
+    glass.addColorStop(1, "#1e1b4b");
+    ctx.fillStyle = glass;
+    roundRect(ctx, 7, 7, width - 14, L.h - 14, 13);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    for (let i = 0; i < 40; i++) {
       ctx.beginPath();
-      ctx.moveTo(left + b * L.dx, L.binTop);
-      ctx.lineTo(left + b * L.dx, bot);
-      ctx.stroke();
-    }
-    ctx.beginPath();
-    ctx.moveTo(left, bot);
-    ctx.lineTo(left + (rows + 1) * L.dx, bot);
-    ctx.stroke();
-    // 막대
-    const expMax = tot ? Math.max(...cs.map((_, k) => tot * binomPmf(rows, k))) : 0;
-    const maxV = Math.max(8, ...cs, theory ? expMax : 0);
-    const unit = (binH - 22) / maxV;
-    ctx.font = "13px sans-serif";
-    ctx.textAlign = "center";
-    for (let b = 0; b <= rows; b++) {
-      const x = left + b * L.dx;
-      if (pred === b) {
-        ctx.fillStyle = "rgba(245,158,11,0.18)";
-        ctx.fillRect(x + 1, L.binTop, L.dx - 2, binH);
-        ctx.fillStyle = "#b45309";
-        ctx.font = "bold 15px sans-serif";
-        ctx.fillText("🚩 여기!", x + L.dx / 2, L.binTop + 18);
-        ctx.font = "13px sans-serif";
-      }
-      const hgt = cs[b] * unit;
-      ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(x + 3, bot - hgt, L.dx - 6, hgt);
-      if (cs[b] > 0) {
-        ctx.fillStyle = "#0369a1";
-        ctx.fillText(String(cs[b]), x + L.dx / 2, Math.max(L.binTop + 34, bot - hgt - 4));
-      }
-      ctx.fillStyle = "#64748b";
-      ctx.fillText(String(b + 1), x + L.dx / 2, L.h - 6);
-    }
-    // 이론 곡선
-    if (theory && tot > 0) {
-      ctx.strokeStyle = "#f59e0b";
-      ctx.fillStyle = "#f59e0b";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      for (let b = 0; b <= rows; b++) {
-        const x = left + b * L.dx + L.dx / 2;
-        const y = bot - tot * binomPmf(rows, b) * unit;
-        if (b === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-      for (let b = 0; b <= rows; b++) {
-        ctx.beginPath();
-        ctx.arc(left + b * L.dx + L.dx / 2, bot - tot * binomPmf(rows, b) * unit, 3.5, 0, 7);
-        ctx.fill();
-      }
+      ctx.arc(12 + ((i * 97) % (width - 24)), 12 + ((i * 53) % Math.max(20, L.binTop - 20)), i % 5 === 0 ? 1.8 : 1, 0, 7);
+      ctx.fill();
     }
     // 깔때기
-    ctx.strokeStyle = "#94a3b8";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#fcd34d";
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(left, 4);
-    ctx.lineTo(L.cx - 10, L.top - 14);
-    ctx.moveTo(left + (rows + 1) * L.dx, 4);
-    ctx.lineTo(L.cx + 10, L.top - 14);
+    ctx.moveTo(left + 4, 12);
+    ctx.lineTo(L.cx - 12, L.top - 14);
+    ctx.moveTo(right - 4, 12);
+    ctx.lineTo(L.cx + 12, L.top - 14);
     ctx.stroke();
-    // 못
-    ctx.fillStyle = "#64748b";
-    for (let k = 0; k < rows; k++) {
-      for (let j = 0; j <= k; j++) {
-        ctx.beginPath();
-        ctx.arc(L.cx + (j - k / 2) * L.dx, L.top + k * L.dy, 2.8, 0, 7);
-        ctx.fill();
+    // 통(칸)
+    for (let b = 0; b <= rows; b++) {
+      if (pred === b) {
+        ctx.fillStyle = "rgba(250,204,21,0.28)";
+        ctx.fillRect(left + b * L.dx + 2, L.binTop, L.dx - 4, binH);
       }
     }
-    // 구슬
-    ctx.fillStyle = "#0ea5e9";
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1;
+    ctx.fillStyle = "#fcd34d";
+    for (let b = 0; b <= rows + 1; b++) {
+      roundRect(ctx, left + b * L.dx - 2.5, L.binTop, 5, binH, 2.5);
+      ctx.fill();
+    }
+    roundRect(ctx, left - 3, bot, right - left + 6, 5, 2.5);
+    ctx.fill();
+    // 쌓인 구슬 (다 들어가면 구슬로, 넘치면 사탕 막대로)
+    const diam = Math.max(6, Math.min(L.dx - 8, 13));
+    const per = Math.max(1, Math.floor((L.dx - 8) / diam));
+    const maxC = Math.max(0, ...cs.slice(0, rows + 1));
+    const ballMode = Math.ceil(maxC / per) * diam <= binH - 36;
+    const expMax = tot ? Math.max(...cs.map((_, k) => tot * binomPmf(rows, k))) : 0;
+    const maxV = Math.max(8, maxC, theory ? expMax : 0);
+    const unit = ballMode ? diam / per : (binH - 36) / maxV;
+    for (let b = 0; b <= rows; b++) {
+      const x = left + b * L.dx;
+      const n = cs[b];
+      if (ballMode) {
+        const off = (L.dx - per * diam) / 2;
+        for (let j = 0; j < n; j++) {
+          const col = j % per;
+          const row = Math.floor(j / per);
+          drawBall(ctx, x + off + diam / 2 + col * diam, bot - diam / 2 - row * diam, diam / 2 - 0.4, BALL_COLORS[(b * 3 + j) % BALL_COLORS.length]);
+        }
+      } else if (n > 0) {
+        const hgt = n * unit;
+        const g = ctx.createLinearGradient(x, 0, x + L.dx, 0);
+        g.addColorStop(0, "#f472b6");
+        g.addColorStop(0.5, "#fbcfe8");
+        g.addColorStop(1, "#ec4899");
+        ctx.fillStyle = g;
+        roundRect(ctx, x + 4, bot - hgt, L.dx - 8, hgt, 5);
+        ctx.fill();
+      }
+      const top = ballMode ? bot - Math.ceil(n / per) * diam : bot - n * unit;
+      ctx.textAlign = "center";
+      ctx.lineJoin = "round";
+      if (n > 0) {
+        ctx.font = "15px Jua, sans-serif";
+        ctx.strokeStyle = "#1e1b4b";
+        ctx.lineWidth = 4;
+        ctx.strokeText(String(n), x + L.dx / 2, Math.max(L.binTop + 36, top - 5));
+        ctx.fillStyle = "#fff";
+        ctx.fillText(String(n), x + L.dx / 2, Math.max(L.binTop + 36, top - 5));
+      }
+      if (pred === b) {
+        ctx.font = "16px Jua, sans-serif";
+        ctx.strokeStyle = "#1e1b4b";
+        ctx.lineWidth = 4;
+        ctx.strokeText("🚩여기!", x + L.dx / 2, L.binTop + 18);
+        ctx.fillStyle = "#fde047";
+        ctx.fillText("🚩여기!", x + L.dx / 2, L.binTop + 18);
+      }
+      ctx.font = "15px Jua, sans-serif";
+      ctx.fillStyle = "#fff7d6";
+      ctx.fillText(String(b + 1), x + L.dx / 2, L.h - 9);
+    }
+    // 수학으로 계산한 모양
+    if (theory && tot > 0) {
+      const ys = Array.from({ length: rows + 1 }, (_, b) => Math.max(L.binTop + 4, bot - tot * binomPmf(rows, b) * unit));
+      for (const [w, col] of [
+        [6, "#1e1b4b"],
+        [3, "#fde047"],
+      ] as const) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ys.forEach((y, b) => (b ? ctx.lineTo(left + b * L.dx + L.dx / 2, y) : ctx.moveTo(left + L.dx / 2, y)));
+        ctx.stroke();
+      }
+    }
+    // 금색 못
+    for (let k = 0; k < rows; k++) {
+      for (let j = 0; j <= k; j++) {
+        const x = L.cx + (j - k / 2) * L.dx;
+        const y = L.top + k * L.dy;
+        const g = ctx.createRadialGradient(x - 1.5, y - 1.5, 0.5, x, y, 5);
+        g.addColorStop(0, "#fffbeb");
+        g.addColorStop(1, "#f59e0b");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, 4.5, 0, 7);
+        ctx.fill();
+        ctx.strokeStyle = "#92400e";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+    // 떨어지는 구슬
     for (const b of balls.current) {
       const P = (k: number): [number, number] =>
-        k < 0 ? [b.x0, 8] : [L.cx + (b.path[k] - k / 2) * L.dx, k >= rows ? L.binTop + 8 : L.top + k * L.dy - 7];
+        k < 0 ? [b.x0, 12] : [L.cx + (b.path[k] - k / 2) * L.dx, k >= rows ? L.binTop + 8 : L.top + k * L.dy - 8];
       const k = Math.floor(b.s);
       const f = b.s - k;
       const [x0, y0] = P(k);
@@ -194,22 +275,20 @@ export default function GaltonGame() {
       const e = f * f * (3 - 2 * f);
       const x = x0 + (x1 - x0) * e;
       const y = y0 + (y1 - y0) * f * f - Math.sin(Math.PI * f) * L.dy * 0.2;
-      ctx.beginPath();
-      ctx.arc(x, y, BALL_R, 0, 7);
-      ctx.fill();
-      ctx.stroke();
+      drawBall(ctx, x, y, BALL_R + 1, b.pred !== null ? "#facc15" : "#f472b6");
     }
     // 처음 안내
     if (tot === 0 && balls.current.length === 0) {
       ctx.textAlign = "center";
-      ctx.font = "bold 17px sans-serif";
-      const hy = L.top + rows * L.dy * 0.4;
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.fillRect(L.cx - 130, hy - 24, 260, 50);
-      ctx.fillStyle = "#0369a1";
-      ctx.fillText("👆 위쪽을 눌러 구슬을 떨어뜨려요!", L.cx, hy - 2);
-      ctx.font = "14px sans-serif";
-      ctx.fillStyle = "#64748b";
+      const hy = L.top + rows * L.dy * 0.42;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      roundRect(ctx, L.cx - 135, hy - 26, 270, 54, 27);
+      ctx.fill();
+      ctx.font = "18px Jua, sans-serif";
+      ctx.fillStyle = "#6d28d9";
+      ctx.fillText("👆 위쪽을 눌러 구슬을 떨어뜨려요!", L.cx, hy - 3);
+      ctx.font = "14px Jua, sans-serif";
+      ctx.fillStyle = "#6b6280";
       ctx.fillText("꾹 누르면 계속 떨어져요", L.cx, hy + 18);
     }
   }, [width, rows, theory, pred]);
@@ -312,7 +391,7 @@ export default function GaltonGame() {
   return (
     <div className="space-y-3 text-base">
       <Board>
-        <p className="mb-2 text-base font-bold">
+        <p className="font-game mb-2 text-xl">
           {roundsLeft ? "👆 위쪽을 눌러 구슬을 떨어뜨려요. 아래 칸을 누르면 🚩 예측!" : "🚩 예측 5번이 끝났어요. 구슬을 마음껏 떨어뜨려 봐요!"}
         </p>
         <div className="mb-2 flex flex-wrap gap-2">
@@ -320,7 +399,7 @@ export default function GaltonGame() {
           <Stat label="별" value={score.hit > 0 ? "⭐".repeat(score.hit) : "0"} tone={score.hit > 0 ? "ok" : "plain"} />
           <Stat label="떨어진 구슬" value={total} />
         </div>
-        <div ref={wrap} className="w-full overflow-hidden rounded-card bg-bg">
+        <div ref={wrap} className="w-full overflow-hidden rounded-[18px] shadow-[0_6px_0_rgba(120,53,15,0.35)]">
           <canvas
             ref={cv}
             role="button"

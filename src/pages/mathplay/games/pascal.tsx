@@ -28,13 +28,36 @@ const GUIDE: Record<Mode, string> = {
   diag: "초록색 칸을 모두 더해 봐요. 아래 막대로 줄을 바꿀 수 있어요.",
 };
 const key = (n: number, k: number) => `${n},${k}`;
+type Pal = { top: string; base: string; edge: string; ink: string };
+const ROWPAL: Pal[] = [
+  { top: "#ffe0ef", base: "#f9a8d4", edge: "#db2777", ink: "#831843" },
+  { top: "#ffe8cc", base: "#fdba74", edge: "#ea580c", ink: "#7c2d12" },
+  { top: "#fff7b8", base: "#fde047", edge: "#ca8a04", ink: "#713f12" },
+  { top: "#dcfce7", base: "#86efac", edge: "#16a34a", ink: "#14532d" },
+  { top: "#d5f7fd", base: "#67e8f9", edge: "#0891b2", ink: "#164e63" },
+  { top: "#e3e7ff", base: "#a5b4fc", edge: "#4f46e5", ink: "#312e81" },
+  { top: "#efe7ff", base: "#c4b5fd", edge: "#7c3aed", ink: "#4c1d95" },
+];
+const PAL: Record<string, Pal> = {
+  cream: { top: "#fffdf7", base: "#fbeedb", edge: "#d9b98a", ink: "#8a6a45" },
+  purple: { top: "#c4b5fd", base: "#8b5cf6", edge: "#5b21b6", ink: "#ffffff" },
+  orange: { top: "#fed7aa", base: "#fb923c", edge: "#c2410c", ink: "#431407" },
+  gold: { top: "#fff7ae", base: "#facc15", edge: "#a16207", ink: "#422006" },
+  green: { top: "#bbf7d0", base: "#34d399", edge: "#047857", ink: "#052e16" },
+};
+const ALLPAL: [string, Pal][] = [...ROWPAL.map((p, i) => [`r${i}`, p] as [string, Pal]), ...Object.entries(PAL)];
+const BALLOON = ["#f43f5e", "#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4"];
+const FONT = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const BW = CW - 6;
+const BH = RH - 6;
+const FLOOR = 30;
 const SEL = { n: -1, k: -1 };
 type Msg = { t: "info" | "ok" | "bad"; s: ReactNode };
 
 function Tip({ tone = "info", children }: { tone?: Msg["t"]; children: ReactNode }) {
-  const c = tone === "ok" ? "bg-ok-soft text-ok" : tone === "bad" ? "bg-bad-soft text-bad" : "bg-accent-soft/70 text-ink";
+  const c = tone === "ok" ? "bg-ok-soft text-ok border-ok/30" : tone === "bad" ? "bg-bad-soft text-bad border-bad/30 pa-shake" : "bg-accent-soft text-ink border-accent/20";
   return (
-    <p className={`rounded-card px-3 py-2.5 text-base font-semibold leading-relaxed ${c}`} role="status" aria-live="polite">
+    <p key={tone + String(children).length} className={`rounded-2xl border-2 px-4 py-3 text-lg leading-relaxed shadow-[0_3px_0_0_rgba(0,0,0,0.06)] font-game ${c}`} role="status" aria-live="polite">
       {children}
     </p>
   );
@@ -44,11 +67,41 @@ const CSS = `
 @keyframes pa-flow{to{stroke-dashoffset:-14}}
 @keyframes pa-pop{0%{transform:scale(.6)}55%{transform:scale(1.35)}100%{transform:scale(1)}}
 @keyframes pa-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes pa-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px) rotate(-4deg)}40%{transform:translateX(6px) rotate(4deg)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes pa-spark{0%{opacity:0;transform:scale(.2)}40%{opacity:1;transform:scale(1.2)}100%{opacity:0;transform:scale(.8) translateY(-14px)}}
+@keyframes pa-wob{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@keyframes pa-sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.pa-shake{animation:pa-shake .45s ease-in-out;transform-box:fill-box;transform-origin:center}
+.pa-spark{animation:pa-spark 1s ease-out both;transform-box:fill-box;transform-origin:center}
+.pa-wob{animation:pa-wob 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.pa-sway{animation:pa-sway 2.2s ease-in-out infinite;transform-origin:50% 100%}
 .pa-flow{animation:pa-flow .7s linear infinite}
 .pa-pop{animation:pa-pop .5s ease-out;transform-box:fill-box;transform-origin:center}
 .pa-bob{display:inline-block;animation:pa-bob 1s ease-in-out infinite}
-@media (prefers-reduced-motion:reduce){.pa-flow,.pa-pop,.pa-bob{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.pa-flow,.pa-pop,.pa-bob,.pa-shake,.pa-spark,.pa-wob,.pa-sway{animation:none!important}}
 `;
+
+/** 진짜 풍선 모양: 반사광, 매듭, 줄 */
+function Balloon({ v, color }: { v: number; color: string }) {
+  return (
+    <>
+      <span
+        className="font-game relative flex h-[68px] w-[60px] items-center justify-center rounded-[50%] text-[1.7rem] text-white"
+        style={{
+          background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,.85) 0 9%, transparent 10%), radial-gradient(circle at 40% 35%, color-mix(in srgb, ${color} 55%, white), ${color} 60%, color-mix(in srgb, ${color} 75%, black))`,
+          boxShadow: `inset -4px -6px 0 rgba(0,0,0,.12), 0 4px 0 color-mix(in srgb, ${color} 60%, black)`,
+          textShadow: "0 2px 0 rgba(0,0,0,.3)",
+        }}
+      >
+        {v}
+      </span>
+      <span className="-mt-[2px] h-0 w-0 border-x-[6px] border-b-[8px] border-x-transparent" style={{ borderBottomColor: color }} />
+      <svg width="12" height="20" viewBox="0 0 12 20" aria-hidden>
+        <path d="M6 0 C 1 5, 11 10, 6 20" stroke="#94a3b8" strokeWidth="1.6" fill="none" />
+      </svg>
+    </>
+  );
+}
 
 function pickHidden(rows: number, count = 2): Set<string> {
   for (let tries = 0; tries < 200; tries++) {
@@ -77,6 +130,7 @@ export default function PascalGame() {
   const [mode, setMode] = useState<Mode>("blank");
   const [more, setMore] = useState(false);
   const [popCell, setPopCell] = useState("");
+  const [shake, setShake] = useState({ k: "", n: 0 });
   const [drag, setDrag] = useState<null | { v: number; x: number; y: number }>(null);
   const dragStart = useRef({ x: 0, y: 0, moved: false });
   const svgRef = useRef<SVGSVGElement>(null);
@@ -157,6 +211,7 @@ export default function PascalGame() {
         blankOpts(n, k);
         setWrong([]);
         oops();
+        setShake((x) => ({ k: key(n, k), n: x.n + 1 }));
         setMsg({ t: "bad", s: `괜찮아요! 이 칸은 ${T[n - 1][k - 1]} + ${T[n - 1][k]} 예요. 다른 풍선을 놓아 봐요.` });
         return;
       }
@@ -180,6 +235,7 @@ export default function PascalGame() {
       } else {
         setWrong((w) => [...w, v]);
         oops();
+        setShake((x) => ({ k: key(n, k), n: x.n + 1 }));
         setMsg({ t: "bad", s: `괜찮아요, 다시 해 봐요! 노란 두 칸은 ${T[n - 1][k - 1]} 와(과) ${T[n - 1][k]} 예요. 두 수를 더해요.` });
       }
     } else if (mode === "sumq") {
@@ -257,7 +313,7 @@ export default function PascalGame() {
 
   const W = rows * CW;
   const vw = LM + W + (mode === "rowsum" ? RM_SUM : 0);
-  const vh = (rows - 1) * RH + 2 * R + 8;
+  const vh = (rows - 1) * RH + 2 * R + 8 + FLOOR;
   const cx = (n: number, k: number) => LM + W / 2 + (k - n / 2) * CW;
   const cy = (n: number) => R + 4 + n * RH;
 
@@ -266,34 +322,15 @@ export default function PascalGame() {
   const inDiag = (n: number, k: number) => diagCells.some(([a, b]) => a === n && b === k);
   const inSumRow = (n: number) => (mode === "sumq" ? n === sumRow : mode === "rowsum" ? n === sel.n : false);
 
-  const cellStyle = (n: number, k: number, v: number) => {
-    let fill = "var(--surface)";
-    let stroke = "var(--line)";
-    let text = "var(--ink)";
-    if (mode === "basic" || quest) fill = "var(--accent-soft)";
-    if (mode === "parity" && v % 2 === 1) {
-      fill = "var(--accent)";
-      text = "var(--accent-ink)";
-      stroke = "var(--accent)";
-    }
-    if (mode === "mod3" && v % 3 === 0) {
-      fill = "#f59e0b";
-      stroke = "#b45309";
-      text = "#1c1917";
-    }
-    if (inSumRow(n) || (isParent(n, k) && mode !== "sumq")) {
-      fill = "#fde68a";
-      stroke = "#b45309";
-      text = "#1c1917";
-    }
-    if (mode === "diag" && inDiag(n, k)) {
-      fill = "#34d399";
-      stroke = "#047857";
-      text = "#052e16";
-    }
-    if (isSel(n, k)) stroke = "#dc2626";
-    return { fill, stroke, text };
+  const cellPal = (n: number, k: number, v: number): string => {
+    if (mode === "diag" && inDiag(n, k)) return "green";
+    if (inSumRow(n) || (isParent(n, k) && mode !== "sumq")) return "gold";
+    if (mode === "parity") return v % 2 === 1 ? "purple" : "cream";
+    if (mode === "mod3") return v % 3 === 0 ? "orange" : "cream";
+    if (mode === "diag") return "cream";
+    return `r${n % ROWPAL.length}`;
   };
+  const palOf = (id: string): Pal => (id.startsWith("r") ? ROWPAL[+id.slice(1)] : PAL[id]);
 
   const info = ((): Msg => {
     if (msg) return msg;
@@ -361,23 +398,55 @@ export default function PascalGame() {
         </div>
       )}
 
-      <p className="mt-3 text-base font-semibold">{GUIDE[mode]}</p>
+      <p className="font-game mt-3 text-lg text-ink">{GUIDE[mode]}</p>
 
-      <div className="mt-2 overflow-hidden rounded-card bg-bg p-1">
-        <svg ref={svgRef} viewBox={`0 0 ${vw} ${vh}`} width="100%" style={{ maxWidth: vw * 1.05, margin: "0 auto", display: "block", touchAction: "manipulation" }} role="group" aria-label="파스칼 삼각형 판">
+      <div className="mt-2 overflow-hidden rounded-3xl border-4 border-white shadow-[0_6px_0_0_rgba(0,0,0,0.06),0_10px_24px_rgba(124,58,237,0.12)]">
+        <svg ref={svgRef} viewBox={`0 0 ${vw} ${vh}`} width="100%" style={{ maxWidth: vw * 1.05, margin: "0 auto", display: "block", touchAction: "manipulation" }} role="group" aria-label="파스칼 삼각형 블록 판">
+          <defs>
+            <linearGradient id="pa-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fdf4ff" />
+              <stop offset="1" stopColor="#ede9fe" />
+            </linearGradient>
+            <linearGradient id="pa-wood" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f6c48a" />
+              <stop offset="1" stopColor="#d9955a" />
+            </linearGradient>
+            <pattern id="pa-dots" width="28" height="28" patternUnits="userSpaceOnUse">
+              <circle cx="6" cy="6" r="2.4" fill="#e9d5ff" />
+              <circle cx="20" cy="20" r="2" fill="#fbcfe8" />
+            </pattern>
+            {ALLPAL.map(([id, p]) => (
+              <linearGradient key={id} id={`pa-${id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor={p.top} />
+                <stop offset="1" stopColor={p.base} />
+              </linearGradient>
+            ))}
+            <marker id="pa-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="#f59e0b" />
+            </marker>
+          </defs>
+          <rect width={vw} height={vh} fill="url(#pa-sky)" />
+          <rect width={vw} height={vh - FLOOR} fill="url(#pa-dots)" />
+          <rect y={vh - FLOOR} width={vw} height={FLOOR} fill="url(#pa-wood)" />
+          <rect y={vh - FLOOR} width={vw} height={4} fill="#b9773f" opacity={0.55} />
+          <ellipse cx={LM + W / 2} cy={vh - FLOOR + 3} rx={W / 2 + 6} ry={6} fill="#000" opacity={0.08} />
           {sel.n >= 1 &&
             sel.n < rows &&
             [sel.k - 1, sel.k]
               .filter((k) => k >= 0 && k <= sel.n - 1)
-              .map((k) => <line key={k} x1={cx(sel.n - 1, k)} y1={cy(sel.n - 1) + R - 3} x2={cx(sel.n, sel.k)} y2={cy(sel.n) - R + 3} stroke="#b45309" strokeWidth={3} strokeDasharray="8 6" className="pa-flow" />)}
+              .map((k) => <line key={k} x1={cx(sel.n - 1, k)} y1={cy(sel.n - 1) + BH / 2 - 4} x2={cx(sel.n, sel.k) + (k === sel.k ? 8 : -8)} y2={cy(sel.n) - BH / 2 + 2} stroke="#f59e0b" strokeWidth={4} strokeLinecap="round" strokeDasharray="7 7" className="pa-flow" markerEnd="url(#pa-arrow)" />)}
           {T.map((row, n) => (
             <g key={n}>
-              <text x={LM - 4} y={cy(n)} textAnchor="end" dominantBaseline="central" fontSize={10} fill="var(--muted)">{n}</text>
+              <text x={LM - 4} y={cy(n)} textAnchor="end" dominantBaseline="central" fontSize={10} fill="#a78bfa" style={FONT}>{n}</text>
               {row.map((v, k) => {
                 const hid = mode === "blank" && hidden.has(key(n, k));
-                const st = cellStyle(n, k, v);
+                const pid = cellPal(n, k, v);
+                const pl = palOf(pid);
                 const label = hid ? "?" : String(v);
-                const fs = hid ? 26 : label.length <= 2 ? 24 : label.length === 3 ? 19 : 15;
+                const fs = hid ? 30 : label.length <= 2 ? 27 : label.length === 3 ? 21 : 16;
+                const selected = isSel(n, k);
+                const popped = popCell === key(n, k) && !hid;
+                const shaking = hid && shake.k === key(n, k);
                 return (
                   <g
                     key={k}
@@ -394,13 +463,35 @@ export default function PascalGame() {
                       }
                     }}
                   >
-                    <g className={popCell === key(n, k) && !hid ? "pa-pop" : undefined}>{hid ? <circle r={R} fill="#fef3c7" stroke={isSel(n, k) ? "#dc2626" : "#b45309"} strokeWidth={isSel(n, k) ? 3.5 : 2.4} strokeDasharray="5 3" /> : <circle r={R} fill={st.fill} stroke={st.stroke} strokeWidth={isSel(n, k) ? 3.5 : 1.6} />}
-                    <text textAnchor="middle" dominantBaseline="central" fontSize={fs} fontWeight={800} fill={hid ? "#92400e" : st.text}>{label}</text>
-                  </g></g>
+                    <g key={shaking ? `s${shake.n}` : "n"} className={popped ? "pa-pop" : shaking ? "pa-shake" : undefined}>
+                      {hid ? (
+                        <>
+                          <rect x={-BW / 2} y={-BH / 2 + 4} width={BW} height={BH} rx={13} fill="#000" opacity={0.08} />
+                          <rect x={-BW / 2} y={-BH / 2} width={BW} height={BH} rx={13} fill="#ffffff" stroke={selected ? "#f59e0b" : "#c4b5fd"} strokeWidth={selected ? 4 : 3} strokeDasharray="7 5" />
+                          <text textAnchor="middle" dominantBaseline="central" fontSize={fs} fill="#7c3aed" className="pa-wob" style={FONT}>?</text>
+                        </>
+                      ) : (
+                        <>
+                          <rect x={-BW / 2} y={-BH / 2 + 4} width={BW} height={BH} rx={13} fill={pl.edge} />
+                          <rect x={-BW / 2} y={-BH / 2} width={BW} height={BH} rx={13} fill={`url(#pa-${pid})`} stroke={pl.edge} strokeWidth={2.2} />
+                          <rect x={-BW / 2 + 7} y={-BH / 2 + 5} width={BW - 22} height={6} rx={3} fill="#fff" opacity={0.6} />
+                          {selected && <rect x={-BW / 2 - 4} y={-BH / 2 - 4} width={BW + 8} height={BH + 12} rx={16} fill="none" stroke="#fbbf24" strokeWidth={3.5} />}
+                          <text textAnchor="middle" dominantBaseline="central" y={1} fontSize={fs} fill={pl.ink} style={FONT}>{label}</text>
+                        </>
+                      )}
+                    </g>
+                    {popped && (
+                      <g style={{ pointerEvents: "none" }}>
+                        {[[-30, -26], [30, -22], [0, -36]].map(([dx, dy], i) => (
+                          <text key={i} x={dx} y={dy} fontSize={16} textAnchor="middle" className="pa-spark" style={{ animationDelay: `${i * 0.12}s` }}>✨</text>
+                        ))}
+                      </g>
+                    )}
+                  </g>
                 );
               })}
               {mode === "rowsum" && (
-                <text x={LM + W + 8} y={cy(n)} dominantBaseline="central" fontSize={18} fontWeight={800} fill="var(--accent)">
+                <text x={LM + W + 8} y={cy(n)} dominantBaseline="central" fontSize={20} fill="#7c3aed" style={FONT}>
                   ={2 ** n}
                 </text>
               )}
@@ -412,11 +503,11 @@ export default function PascalGame() {
       <div className="mt-3 space-y-3">
         {showOpts && mode === "blank" && (
           <div>
-            <p className="mb-1 text-base font-semibold">
+            <p className="font-game mb-1 text-lg text-ink">
               <span className="pa-bob" aria-hidden>👆</span> 풍선을 ? 칸에 끌어다 놓아요 (톡 눌러도 돼요)
             </p>
-            <div className="flex flex-wrap gap-3">
-              {opts.map((o) => (
+            <div className="flex flex-wrap items-start gap-4 rounded-2xl bg-gradient-to-b from-sky-100 to-sky-50 px-3 pb-2 pt-3">
+              {opts.map((o, i) => (
                 <button
                   key={o}
                   type="button"
@@ -426,10 +517,10 @@ export default function PascalGame() {
                   onPointerMove={balloonMove}
                   onPointerUp={balloonUp}
                   onPointerCancel={() => setDrag(null)}
-                  className="h-16 w-16 select-none rounded-full border-2 border-accent bg-accent-soft text-2xl font-extrabold text-accent shadow disabled:opacity-30"
-                  style={{ touchAction: "none", opacity: drag?.v === o ? 0.35 : undefined }}
+                  className="pa-sway relative flex h-[92px] w-16 select-none flex-col items-center disabled:opacity-25"
+                  style={{ touchAction: "none", opacity: drag?.v === o ? 0.3 : undefined, animationDelay: `${i * 0.3}s` }}
                 >
-                  {o}
+                  <Balloon v={o} color={BALLOON[i % BALLOON.length]} />
                 </button>
               ))}
             </div>
@@ -462,8 +553,8 @@ export default function PascalGame() {
         </div>
       )}
       {drag && (
-        <div className="pointer-events-none fixed z-[70] flex h-16 w-16 items-center justify-center rounded-full border-2 border-accent bg-accent-soft text-2xl font-extrabold text-accent shadow-xl" style={{ left: drag.x - 32, top: drag.y - 56 }}>
-          {drag.v}
+        <div className="pointer-events-none fixed z-[70] flex w-16 flex-col items-center drop-shadow-xl" style={{ left: drag.x - 32, top: drag.y - 56 }}>
+          <Balloon v={drag.v} color={BALLOON[Math.max(0, opts.indexOf(drag.v)) % BALLOON.length]} />
         </div>
       )}
     </Board>

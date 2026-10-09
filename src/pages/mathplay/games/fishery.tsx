@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Board, GButton, cheer, oops, tick, useFrame } from "./kit";
 import { BIG, Pill, Stars, Talk } from "./easykit";
+import { BOAT, FISH_CSS, Fish, NetKnob, NetRing, SEA_H, SEA_W, SeaBack, SeaDefs, fishPos } from "./fishery.art";
 import { COLLAPSE, K, MSY, START, bestScore, simulate, stepYear } from "./fishery.logic";
 
 type Msg = { t: string; tone: "info" | "ok" | "bad" };
@@ -8,38 +9,47 @@ const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(pre
 const MAXH = 300;
 const STEP = 25;
 
-/** 수조: 그림 한 마리 = 10마리. 그물이 잡을 물고기는 주황 테두리로 보여 줘요 */
-function Tank({ n, h, t }: { n: number; h: number; t: number }) {
+type Anim = { k: number; caught: { x: number; y: number; dir: number; i: number }[]; bornFrom: number; bornTo: number };
+
+/** 바닷속: 그림 한 마리 = 10마리. 그물이 잡을 물고기는 그물 동그라미가 씌워져요 */
+function Tank({ n, h, t, anim, mood }: { n: number; h: number; t: number; anim: Anim | null; mood: "" | "party" | "shake" }) {
   const fish = Math.round(n / 10);
   const catching = Math.min(fish, Math.round(h / 10));
-  const list = Array.from({ length: fish }, (_, i) => {
-    const bx = (i * 0.618034 * 7919) % 1;
-    const by = (i * 0.754877 * 104729) % 1;
-    const dir = i % 2 ? 1 : -1;
-    const x = 22 + bx * 256 + Math.sin(t * 0.8 + i) * 6;
-    const y = 20 + by * 190 + Math.cos(t * 0.6 + i * 1.7) * 3;
-    return { i, x, y, dir, c: ["#f59e0b", "#fb7185", "#38bdf8", "#34d399"][i % 4], caught: i >= fish - catching };
-  });
   return (
-    <svg viewBox="0 0 300 240" className="h-full w-full rounded-card" role="img" aria-label={`바다. 물고기 약 ${Math.round(n)}마리 (그림 한 마리가 10마리). 그물로 ${h}마리를 잡을 거예요`}>
-      <defs>
-        <linearGradient id="fw" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#bae6fd" />
-          <stop offset="1" stopColor="#0284c7" />
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="300" height="240" fill="url(#fw)" />
-      <rect x="0" y="226" width="300" height="14" fill="#a8a29e" opacity="0.6" />
-      {list.map((f) => (
-        <g key={f.i} transform={`translate(${f.x} ${f.y}) scale(${f.dir} 1)`}>
-          {f.caught && <ellipse cx="-1" cy="0" rx="15" ry="10" fill="none" stroke="#fff" strokeWidth="2.5" strokeDasharray="3 2" />}
-          <ellipse cx="0" cy="0" rx="9" ry="5.5" fill={f.c} stroke={f.caught ? "#ea580c" : "none"} strokeWidth="2" />
-          <polygon points="-8,0 -15,-5 -15,5" fill={f.c} />
-          <circle cx="4" cy="-1.2" r="1.3" fill="#0f172a" />
+    <div className={`w-full ${mood === "shake" ? "sea-shake" : ""}`}>
+      <svg viewBox={`0 0 ${SEA_W} ${SEA_H}`} className="block w-full rounded-[18px] border-[3px] border-[#0c4a6e] shadow-[0_4px_0_0_#0c4a6e]" role="img" aria-label={`바닷속. 물고기 약 ${Math.round(n)}마리 (그림 한 마리가 10마리). 그물로 ${h}마리를 잡을 거예요`}>
+        <SeaDefs />
+        <SeaBack />
+        <g className={mood === "party" ? "fish-party" : ""}>
+          {Array.from({ length: fish }, (_, i) => {
+            const p = fishPos(i, t);
+            const born = !!anim && i >= anim.bornFrom && i < anim.bornTo;
+            return (
+              <g key={born ? `b${anim!.k}-${i}` : i} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
+                <g className={born ? "fish-born" : ""}>
+                  {i >= fish - catching && <NetRing />}
+                  <g transform={`scale(${p.dir} 1)`}>
+                    <Fish k={i} />
+                  </g>
+                  {born && <path className="sea-spark" d="M12 -12 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5 -4 -4 -1.5 4 -1.5z" fill="#fef08a" stroke="#ca8a04" strokeWidth={0.6} />}
+                </g>
+              </g>
+            );
+          })}
         </g>
-      ))}
-      {fish === 0 && <text x="150" y="120" textAnchor="middle" fontSize="20" fill="#fff">텅 비었어요…</text>}
-    </svg>
+        {anim?.caught.map((c) => (
+          <g key={`c${anim.k}-${c.i}`} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`}>
+            <g className="fish-catch" style={{ ["--dx" as string]: `${BOAT.x - c.x}px`, ["--dy" as string]: `${BOAT.y - c.y}px` }}>
+              <NetRing />
+              <g transform={`scale(${c.dir} 1)`}>
+                <Fish k={c.i} />
+              </g>
+            </g>
+          </g>
+        ))}
+        {fish === 0 && <text x={150} y={130} textAnchor="middle" fontSize={20} fill="#fff" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>텅 비었어요…</text>}
+      </svg>
+    </div>
   );
 }
 
@@ -74,7 +84,7 @@ function NetSlider({ value, onChange, disabled, hint }: { value: number; onChang
   };
   return (
     <div className="flex w-20 shrink-0 flex-col items-center">
-      <span className="mb-1 text-sm font-bold text-muted">많이 ↑</span>
+      <span className="font-game mb-1 text-base text-accent">많이 ↑</span>
       <div
         ref={ref}
         role="slider"
@@ -91,16 +101,13 @@ function NetSlider({ value, onChange, disabled, hint }: { value: number; onChang
         onPointerCancel={() => (drag.current = false)}
         onKeyDown={key}
         style={{ touchAction: "none" }}
-        className={`relative w-16 flex-1 select-none rounded-full bg-accent-soft ${disabled ? "opacity-50" : "cursor-grab"}`}
+        className={`relative w-16 flex-1 select-none rounded-full border-[3px] border-[#0c4a6e] bg-gradient-to-b from-[#0369a1] via-[#0ea5e9] to-[#bae6fd] shadow-[0_4px_0_0_#0c4a6e] ${disabled ? "opacity-50" : "cursor-grab"}`}
       >
         {Array.from({ length: MAXH / STEP + 1 }, (_, k) => (
-          <span key={k} className="pointer-events-none absolute left-1/2 h-0.5 w-5 -translate-x-1/2 rounded bg-line" style={{ top: `calc(28px + (100% - 56px) * ${1 - k / (MAXH / STEP)} - 1px)` }} />
+          <span key={k} className="pointer-events-none absolute left-1/2 h-0.5 w-5 -translate-x-1/2 rounded bg-white/70" style={{ top: `calc(28px + (100% - 56px) * ${1 - k / (MAXH / STEP)} - 1px)` }} />
         ))}
-        <span
-          className="pointer-events-none absolute left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full border-2 border-accent bg-surface text-3xl shadow-md"
-          style={{ top: `calc((100% - 56px) * ${1 - value / MAXH})` }}
-        >
-          🥅
+        <span className="pointer-events-none absolute left-1/2 h-14 w-14 -translate-x-1/2" style={{ top: `calc((100% - 56px) * ${1 - value / MAXH})` }}>
+          <NetKnob />
         </span>
         {hint && (
           <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 animate-bounce text-3xl" style={{ top: `calc((100% - 56px) * ${1 - value / MAXH} + 52px)` }} aria-hidden="true">
@@ -108,7 +115,7 @@ function NetSlider({ value, onChange, disabled, hint }: { value: number; onChang
           </span>
         )}
       </div>
-      <span className="mt-1 text-sm font-bold text-muted">조금 ↓</span>
+      <span className="font-game mt-1 text-base text-muted">조금 ↓</span>
     </div>
   );
 }
@@ -133,9 +140,16 @@ function Chart({ stock, years }: { stock: number[]; years: number }) {
       ))}
       <line x1={L} x2={W - Rr} y1={py(COLLAPSE)} y2={py(COLLAPSE)} stroke="#ef4444" strokeDasharray="4 3" />
       <text x={W - Rr} y={py(COLLAPSE) - 3} textAnchor="end" fontSize={11} fill="#ef4444">너무 적어요</text>
-      <polyline points={stock.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(" ")} fill="none" stroke="#0ea5e9" strokeWidth={3} strokeLinejoin="round" />
+      <defs>
+        <linearGradient id="fish-area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#38bdf8" stopOpacity={0.5} />
+          <stop offset="1" stopColor="#38bdf8" stopOpacity={0.05} />
+        </linearGradient>
+      </defs>
+      <polygon points={`${px(0)},${py(0)} ${stock.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(" ")} ${px(stock.length - 1)},${py(0)}`} fill="url(#fish-area)" />
+      <polyline points={stock.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(" ")} fill="none" stroke="#0284c7" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
       {stock.map((v, i) => (
-        <circle key={i} cx={px(i)} cy={py(v)} r={3.5} fill="#0ea5e9" />
+        <circle key={i} cx={px(i)} cy={py(v)} r={4} fill="#fff" stroke="#0284c7" strokeWidth={2.2} />
       ))}
       {tick.map((y) => (
         <text key={y} x={px(y)} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--muted)">{y}년</text>
@@ -154,8 +168,9 @@ export default function FisheryGame() {
   const [stars, setStars] = useState(0);
   const [auto, setAuto] = useState(false);
   const [wins, setWins] = useState(0);
-  const [msg, setMsg] = useState<Msg>({ t: `🎯 ${years}년 동안 물고기가 남게 하며 많이 잡아요. 🥅 그물을 위아래로 끌어 올해 잡을 마릿수를 정해요!`, tone: "info" });
+  const [msg, setMsg] = useState<Msg>({ t: `🎯 ${years}년 동안 물고기가 남게 하며 많이 잡아요. 그물을 위아래로 끌어 올해 잡을 마릿수를 정해요!`, tone: "info" });
   const [t, setT] = useState(0);
+  const [anim, setAnim] = useState<Anim | null>(null);
   const [acc, setAcc] = useState(0);
 
   const best = useMemo(() => bestScore(years), [years]);
@@ -173,6 +188,18 @@ export default function FisheryGame() {
     const tot = total + r.catchAmt;
     setCatches(c);
     setStock(s);
+    const fOld = Math.round(n / 10);
+    const cIcons = Math.min(fOld, Math.round(r.catchAmt / 10));
+    const fNew = Math.round(r.next / 10);
+    setAnim({
+      k: c.length,
+      caught: Array.from({ length: cIcons }, (_, j) => {
+        const i = fOld - cIcons + j;
+        return { ...fishPos(i, t), i };
+      }),
+      bornFrom: fOld - cIcons,
+      bornTo: fNew,
+    });
     if (r.collapsed) {
       oops();
       setDone("collapse");
@@ -209,6 +236,7 @@ export default function FisheryGame() {
   }, true);
 
   const reset = (y = years) => {
+    setAnim(null);
     setYears(y);
     setStock([START]);
     setCatches([]);
@@ -220,6 +248,7 @@ export default function FisheryGame() {
 
   return (
     <div className="space-y-3">
+      <style>{FISH_CSS}</style>
       <Board className="space-y-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <Pill label="해" value={`${year}/${years}`} />
@@ -227,15 +256,15 @@ export default function FisheryGame() {
           <Pill label="🪣" value={`${Math.round(total)}마리`} />
           {wins > 0 && <Pill label="성공" value={`${wins}번`} tone="ok" />}
         </div>
-        {done && <p className="text-center text-4xl"><Stars n={stars} /></p>}
+        {done && <p className="gz-pop text-center text-4xl"><Stars n={stars} /></p>}
         <Talk tone={msg.tone}>{msg.t}</Talk>
-        <div className="flex h-[250px] gap-2 sm:h-[340px]">
+        <div className="mx-auto flex max-w-[560px] gap-2">
           <div className="min-w-0 flex-1">
-            <Tank n={n} h={done ? 0 : h} t={t} />
+            <Tank n={n} h={done ? 0 : h} t={t} anim={anim} mood={done === "end" ? "party" : done === "collapse" ? "shake" : ""} />
           </div>
           <NetSlider value={h} onChange={(v) => { setH(v); setTouched(true); }} disabled={!!done} hint={!touched && !done} />
         </div>
-        <p className="text-center text-2xl font-extrabold tabular-nums">올해 <span className="text-accent">{h}</span>마리 잡기 <span className="text-sm font-normal text-muted">(🐟 하나 = 10마리)</span></p>
+        <p className="font-game text-center text-3xl tabular-nums">올해 <span className="text-accent">{h}</span>마리 잡기 <span className="text-sm font-normal text-muted">(🐟 하나 = 10마리)</span></p>
         <div className="flex gap-2">
           <GButton variant="primary" className="min-h-[60px]! flex-1 text-2xl" onClick={nextYear} disabled={!!done}>한 해 지나기 ▶</GButton>
           <GButton className={`${BIG} min-h-[60px]!`} onClick={() => reset()}>다시 하기</GButton>
@@ -266,7 +295,7 @@ export default function FisheryGame() {
       )}
 
       <Board>
-        <p className="mb-1 text-base font-bold">바다의 물고기는 몇 마리일까요?</p>
+        <p className="font-game mb-1 text-lg">🐟 바다의 물고기는 몇 마리일까요?</p>
         <Chart stock={stock} years={years} />
         <p className="text-sm text-muted">파란 선이 빨간 점선 아래로 내려가면 물고기가 너무 적은 거예요.</p>
       </Board>

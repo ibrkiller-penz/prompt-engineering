@@ -25,6 +25,44 @@ export function countWays(n: number): number {
 // ==PURE-END==
 
 const MAXN = 8;
+const REDUCE = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+// 계단 색: [윗면, 몸통, 테두리]
+const STEP_COLORS: [string, string, string][] = [
+  ["#fecaca", "#f87171", "#b91c1c"],
+  ["#fed7aa", "#fb923c", "#c2410c"],
+  ["#fef08a", "#facc15", "#a16207"],
+  ["#bbf7d0", "#4ade80", "#15803d"],
+  ["#bae6fd", "#38bdf8", "#0369a1"],
+  ["#c7d2fe", "#818cf8", "#4338ca"],
+  ["#f5d0fe", "#e879f9", "#a21caf"],
+  ["#fbcfe8", "#f472b6", "#be185d"],
+];
+
+/** 토끼 (발 아래 가운데가 0,0) */
+function Bunny({ happy }: { happy: boolean }) {
+  return (
+    <g>
+      <ellipse cx="0" cy="1" rx="16" ry="4" fill="rgba(0,0,0,0.2)" />
+      <ellipse cx="-7" cy="-56" rx="6" ry="16" fill="#fff" stroke="#9f1239" strokeWidth="2.5" transform="rotate(-10 -7 -56)" />
+      <ellipse cx="7" cy="-56" rx="6" ry="16" fill="#fff" stroke="#9f1239" strokeWidth="2.5" transform="rotate(10 7 -56)" />
+      <ellipse cx="-7" cy="-55" rx="2.8" ry="11" fill="#fda4af" transform="rotate(-10 -7 -55)" />
+      <ellipse cx="7" cy="-55" rx="2.8" ry="11" fill="#fda4af" transform="rotate(10 7 -55)" />
+      <ellipse cx="0" cy="-14" rx="14" ry="14" fill="#fff" stroke="#9f1239" strokeWidth="2.5" />
+      <ellipse cx="-8" cy="-2" rx="6" ry="3.5" fill="#fff" stroke="#9f1239" strokeWidth="2" />
+      <ellipse cx="8" cy="-2" rx="6" ry="3.5" fill="#fff" stroke="#9f1239" strokeWidth="2" />
+      <circle cx="0" cy="-33" r="14" fill="#fff" stroke="#9f1239" strokeWidth="2.5" />
+      <circle cx="-5" cy="-35" r="2.6" fill="#1c1917" />
+      <circle cx="5" cy="-35" r="2.6" fill="#1c1917" />
+      <circle cx="-4.2" cy="-36" r="0.9" fill="#fff" />
+      <circle cx="5.8" cy="-36" r="0.9" fill="#fff" />
+      <circle cx="-9" cy="-29" r="3" fill="#fb7185" opacity="0.6" />
+      <circle cx="9" cy="-29" r="3" fill="#fb7185" opacity="0.6" />
+      <ellipse cx="0" cy="-30" rx="2" ry="1.5" fill="#f43f5e" />
+      <path d={happy ? "M -5 -27 Q 0 -21 5 -27" : "M -3 -26 Q 0 -24 3 -26"} fill={happy ? "#be123c" : "none"} stroke="#1c1917" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="13" cy="-12" r="5" fill="#fff" stroke="#9f1239" strokeWidth="2" />
+    </g>
+  );
+}
 const AUTO_MAX = 5;
 const BIG = "min-h-[48px]! text-base";
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
@@ -142,47 +180,85 @@ export default function FibStairsGame() {
     <div className="space-y-3 text-base" onKeyDown={onKey}>
       <p className="rounded-card bg-accent-soft px-3 py-2 font-bold">깜빡이는 계단을 눌러 깃발까지 올라가요. 방법을 모두 찾아봐요!</p>
       <Board>
-        <svg viewBox={`0 0 ${VW} ${VH}`} className="block h-auto w-full select-none rounded-card bg-bg" style={{ touchAction: "manipulation" }} role="group" aria-label={`${n}칸 계단. 지금 ${pos}칸째. 계단을 눌러 올라가요`}>
-          <line x1="0" y1={base} x2={VW} y2={base} stroke="#94a3b8" strokeWidth="4" />
-          <text x={X0 - 36} y={base + 22} textAnchor="middle" fontSize="16" fontWeight="700" fill="#64748b">출발</text>
+        <style>{`
+          @keyframes fs-hop{0%{transform:translateY(0) scale(1,1)}20%{transform:translateY(2px) scale(1.15,.85)}55%{transform:translateY(-26px) scale(.92,1.1)}85%{transform:translateY(0) scale(1.1,.9)}100%{transform:translateY(0) scale(1,1)}}
+          @keyframes fs-cheer{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-16px) rotate(-8deg)}50%{transform:translateY(0) rotate(0)}75%{transform:translateY(-16px) rotate(8deg)}}
+          @keyframes fs-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+          .fs-hop{animation:fs-hop .42s ease-out;transform-box:fill-box;transform-origin:50% 100%}
+          .fs-cheer{animation:fs-cheer .9s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+          .fs-shake{animation:fs-shake .3s ease-in-out 2}
+          @media (prefers-reduced-motion: reduce){.fs-hop,.fs-cheer,.fs-shake{animation:none}}
+        `}</style>
+        <svg viewBox={`0 0 ${VW} ${VH}`} className="block h-auto w-full select-none rounded-card" style={{ touchAction: "manipulation", fontFamily: "Jua, Pretendard Variable, sans-serif" }} role="group" aria-label={`${n}칸 계단. 지금 ${pos}칸째. 계단을 눌러 올라가요`}>
+          <defs>
+            <linearGradient id="fs-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#7dd3fc" />
+              <stop offset="1" stopColor="#e0f2fe" />
+            </linearGradient>
+            <linearGradient id="fs-grass" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#86efac" />
+              <stop offset="1" stopColor="#22c55e" />
+            </linearGradient>
+          </defs>
+          <rect width={VW} height={VH} fill="url(#fs-sky)" />
+          <circle cx="34" cy="30" r="18" fill="#fde047" stroke="#f59e0b" strokeWidth="3" />
+          {[[VW * 0.35, 34, 1], [VW * 0.7, 22, 0.8]].map(([x, y, sc], i) => (
+            <g key={i} transform={`translate(${x} ${y}) scale(${sc})`} opacity="0.95">
+              <ellipse cx="0" cy="0" rx="30" ry="13" fill="#fff" />
+              <circle cx="-12" cy="-7" r="12" fill="#fff" />
+              <circle cx="10" cy="-9" r="15" fill="#fff" />
+              {!REDUCE && <animateTransform attributeName="transform" type="translate" additive="sum" values="0 0; 14 0; 0 0" dur={`${7 + i * 3}s`} repeatCount="indefinite" />}
+            </g>
+          ))}
+          <rect x="0" y={base} width={VW} height={VH - base} fill="url(#fs-grass)" />
+          <path d={`M 0 ${base} ${Array.from({ length: Math.ceil(VW / 16) }, (_, i) => `L ${i * 16 + 8} ${base - 6} L ${i * 16 + 16} ${base}`).join(" ")}`} fill="#4ade80" />
+          <rect x={X0 - 64} y={base - 2} width="56" height="12" rx="6" fill="#fbbf24" stroke="#b45309" strokeWidth="2" />
+          <text x={X0 - 36} y={base + 26} textAnchor="middle" fontSize="18" fill="#14532d" stroke="#fff" strokeWidth="3" paintOrder="stroke">출발</text>
           {Array.from({ length: n }, (_, i) => {
             const k = i + 1;
             const d = k - pos;
             const hot = !busy && (d === 1 || d === 2);
             const x = X0 + i * SW;
             const top = base - k * SH;
+            const [c1, c2, c3] = STEP_COLORS[i % STEP_COLORS.length];
             return (
               <g key={k} role="button" tabIndex={0} aria-label={`${k}번 계단${hot ? `, 눌러서 ${d}칸 올라가기` : ""}`} onClick={() => tapStep(k)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), tapStep(k))} style={{ cursor: "pointer", outline: "none" }}>
-                <rect x={x} y={top} width={SW} height={k * SH} fill={k === pos ? "#fde68a" : "#e2e8f0"} stroke="#64748b" strokeWidth="2.5" />
-                <rect x={x} y={top} width={SW} height="9" fill={hot ? (d === 1 ? "#3b82f6" : "#f97316") : "#cbd5e1"} />
+                <rect x={x + 4} y={top + 6} width={SW} height={k * SH} rx="6" fill="rgba(0,0,0,0.15)" />
+                <rect x={x} y={top} width={SW} height={k * SH} rx="6" fill={c2} stroke={c3} strokeWidth="3" />
+                <rect x={x + 1.5} y={top + 1.5} width={SW - 3} height="11" rx="5" fill={c1} />
                 {hot && (
                   <g className="animate-pulse">
-                    <rect x={x + 2} y={top + 2} width={SW - 4} height={k * SH - 4} fill={d === 1 ? "#3b82f6" : "#f97316"} opacity="0.3" />
-                    <text x={x + SW / 2} y={top + 34} textAnchor="middle" fontSize="22" fontWeight="800" fill={d === 1 ? "#1d4ed8" : "#c2410c"}>
-                      {d === 1 ? "한 칸" : "두 칸"}
-                    </text>
+                    <rect x={x + 3} y={top + 3} width={SW - 6} height={k * SH - 6} rx="5" fill="#fff" opacity="0.45" />
+                    <rect x={x - 3} y={top - 3} width={SW + 6} height={k * SH + 6} rx="8" fill="none" stroke={d === 1 ? "#2563eb" : "#ea580c"} strokeWidth="5" />
                   </g>
                 )}
-                {!hot && (
-                  <text x={x + SW / 2} y={top + 32} textAnchor="middle" fontSize="20" fontWeight="700" fill="#475569">
+                {hot ? (
+                  <text x={x + SW / 2} y={top + 36} textAnchor="middle" fontSize="23" fill={d === 1 ? "#1d4ed8" : "#c2410c"} stroke="#fff" strokeWidth="5" paintOrder="stroke">
+                    {d === 1 ? "한 칸" : "두 칸"}
+                  </text>
+                ) : (
+                  <text x={x + SW / 2} y={top + 34} textAnchor="middle" fontSize="22" fill="#fff" stroke={c3} strokeWidth="4" paintOrder="stroke">
                     {k}
                   </text>
                 )}
               </g>
             );
           })}
-          <g pointerEvents="none" transform={`translate(${X0 + n * SW - 8}, ${base - n * SH - 46})`}>
-            <line x1="0" y1="0" x2="0" y2="46" stroke="#475569" strokeWidth="4" />
-            <path d="M 0 0 L 30 9 L 0 18 Z" fill="#ef4444" />
+          <g pointerEvents="none" transform={`translate(${X0 + n * SW - 10}, ${base - n * SH - 52})`}>
+            <line x1="0" y1="0" x2="0" y2="52" stroke="#78350f" strokeWidth="5" strokeLinecap="round" />
+            <circle cx="0" cy="-2" r="5" fill="#fde047" stroke="#b45309" strokeWidth="2" />
+            <path d="M 2 3 Q 18 -2 34 8 Q 18 18 2 20 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2">
+              {!REDUCE && <animate attributeName="d" values="M 2 3 Q 18 -2 34 8 Q 18 18 2 20 Z; M 2 3 Q 18 6 34 10 Q 18 22 2 20 Z; M 2 3 Q 18 -2 34 8 Q 18 18 2 20 Z" dur="1.2s" repeatCount="indefinite" />}
+            </path>
           </g>
-          <g pointerEvents="none" style={{ transform: `translate(${px}px, ${py}px)`, transition: "transform 0.28s cubic-bezier(.3,1.6,.5,1)" }}>
-            <ellipse cx="0" cy="2" rx="14" ry="4" fill="rgba(0,0,0,0.2)" />
-            <circle cx="0" cy="-34" r="13" fill="#f97316" stroke="#fff" strokeWidth="3" />
-            <rect x="-11" y="-22" width="22" height="22" rx="7" fill="#2563eb" />
+          <g pointerEvents="none" style={{ transform: `translate(${px}px, ${py}px)`, transition: "transform 0.3s cubic-bezier(.3,1.6,.5,1)" }}>
+            <g key={`${pos}-${steps.length}`} className={complete && busy ? "fs-cheer" : "fs-hop"}>
+              <Bunny happy={busy} />
+            </g>
           </g>
           {firstEver && (
-            <text x={X0 + SW / 2} y={base - SH - 50} textAnchor="middle" fontSize="22" fontWeight="800" fill="#c2410c" stroke="#fff" strokeWidth="4" paintOrder="stroke" pointerEvents="none">
-              ↓ 여기를 눌러요!
+            <text x={X0 + SW / 2} y={base - SH - 50} textAnchor="middle" fontSize="24" fill="#c2410c" stroke="#fff" strokeWidth="5" paintOrder="stroke" pointerEvents="none">
+              👇 여기를 눌러요!
             </text>
           )}
         </svg>

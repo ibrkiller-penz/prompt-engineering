@@ -49,84 +49,199 @@ const GRAPH_H = 124;
 const H_LO = 0.42;
 const H_HI = 1.1;
 
+const R_FRAC = 0.25; // 바퀴 반지름 = 장면 높이 × R_FRAC
+const FONT = "Jua, Pretendard Variable, sans-serif";
+
 function sceneH(W: number) {
-  return clamp(W * 0.4, 150, 230);
+  return clamp(W * 0.45, 170, 250);
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function cloud(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, 30 * s, 12 * s, 0, 0, Math.PI * 2);
+  ctx.arc(x - 12 * s, y - 7 * s, 12 * s, 0, Math.PI * 2);
+  ctx.arc(x + 10 * s, y - 9 * s, 15 * s, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: number) {
   const Hs = sceneH(W);
   const H = Hs + GRAPH_H;
   const ctx = fitCanvas(c, W, H);
-  const R = Hs * 0.3;
-  const groundY = Hs - 18;
+  const R = Hs * R_FRAC;
+  const groundY = Hs - 24;
   const cx0 = W * 0.36;
   const toX = (X: number) => cx0 + (X - x) * R;
   const fromSx = (sx: number) => x + (sx - cx0) / R;
+  const wrap = (v: number, m: number) => ((v % m) + m) % m;
 
-  // 하늘
+  // 하늘·해·구름·언덕 (멀리 있는 것은 천천히 움직여요)
   const g = ctx.createLinearGradient(0, 0, 0, Hs);
-  g.addColorStop(0, "#e0f2fe");
-  g.addColorStop(1, "#f0f9ff");
+  g.addColorStop(0, "#7dd3fc");
+  g.addColorStop(1, "#e0f2fe");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, Hs);
+  ctx.fillStyle = "#fde047";
+  ctx.strokeStyle = "#f59e0b";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(W - 38, 34, 17, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  for (let k = 0; k < 3; k++) cloud(ctx, wrap(k * 260 + 80 - x * R * 0.25, W + 160) - 80, 28 + (k % 2) * 22, 0.8 + (k % 2) * 0.25);
+  ctx.fillStyle = "#86efac";
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  for (let sx = 0; sx <= W + 4; sx += 4) ctx.lineTo(sx, groundY - R * 1.15 - Math.sin((sx + x * R * 0.5) / 70) * R * 0.25 - Math.sin((sx + x * R * 0.5) / 31) * R * 0.08);
+  ctx.lineTo(W, groundY);
+  ctx.closePath();
+  ctx.fill();
 
-  // 길
+  // 길: 흙 + 풀
+  const roadAt = (sx: number) => groundY - roadY(n, road, fromSx(sx)) * R;
+  const soil = ctx.createLinearGradient(0, groundY - R * 0.5, 0, Hs);
+  soil.addColorStop(0, "#f59e0b");
+  soil.addColorStop(1, "#92400e");
   ctx.beginPath();
   ctx.moveTo(0, Hs);
-  for (let sx = 0; sx <= W + 2; sx += 2) ctx.lineTo(sx, groundY - roadY(n, road, fromSx(sx)) * R);
+  for (let sx = 0; sx <= W + 2; sx += 2) ctx.lineTo(sx, roadAt(sx));
   ctx.lineTo(W, Hs);
   ctx.closePath();
-  ctx.fillStyle = "#a8a29e";
+  ctx.fillStyle = soil;
   ctx.fill();
-  ctx.beginPath();
-  for (let sx = 0; sx <= W + 2; sx += 2) {
-    const yy = groundY - roadY(n, road, fromSx(sx)) * R;
-    if (sx === 0) ctx.moveTo(sx, yy);
-    else ctx.lineTo(sx, yy);
-  }
-  ctx.strokeStyle = "#57534e";
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  // 길이 움직이는 것이 보이도록 눈금
-  ctx.strokeStyle = "rgba(68,64,60,0.35)";
-  ctx.lineWidth = 2;
+  // 길이 움직이는 것이 보이도록 흙 속 조약돌
   const step = 0.5;
   for (let X = Math.floor(fromSx(0) / step) * step; toX(X) < W + 4; X += step) {
     const sx = toX(X);
     const yy = groundY - roadY(n, road, X) * R;
+    ctx.fillStyle = Math.round(X / step) % 2 ? "#fde68a" : "#b45309";
     ctx.beginPath();
-    ctx.moveTo(sx, yy + 6);
-    ctx.lineTo(sx, yy + 14);
-    ctx.stroke();
+    ctx.ellipse(sx, yy + 12 + (Math.round(X / step) % 3) * 3, 3.5, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
+  ctx.beginPath();
+  for (let sx = 0; sx <= W + 2; sx += 2) {
+    if (sx === 0) ctx.moveTo(sx, roadAt(sx));
+    else ctx.lineTo(sx, roadAt(sx));
+  }
+  ctx.strokeStyle = "#15803d";
+  ctx.lineWidth = 7;
+  ctx.lineJoin = "round";
+  ctx.stroke();
+  ctx.strokeStyle = "#4ade80";
+  ctx.lineWidth = 3;
+  ctx.stroke();
   // 평평한 길에서 꼭짓점이 땅에 닿는 자리 표시
   if (road === "flat" && n > 0) {
     const s = sideLen(n);
-    ctx.fillStyle = "#b45309";
+    ctx.fillStyle = "#ea580c";
     for (let k = Math.floor(fromSx(0) / s); toX(k * s) < W + 4; k++) {
       ctx.beginPath();
-      ctx.arc(toX(k * s), groundY, 3, 0, Math.PI * 2);
+      ctx.arc(toX(k * s), groundY, 3.5, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
-  // 바퀴
+  // 가장 높을 때 기준선
   const { h, rot } = pose(n, road, x);
   const cy = groundY - h * R;
-  // 가장 높을 때 기준선
-  ctx.setLineDash([5, 5]);
+  ctx.setLineDash([6, 6]);
   ctx.strokeStyle = "#ef4444";
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, groundY - R);
   ctx.lineTo(W, groundY - R);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = "#ef4444";
-  ctx.font = "700 13px sans-serif";
+  ctx.font = `15px ${FONT}`;
   ctx.textAlign = "left";
-  ctx.fillText("가장 높을 때", 6, groundY - R - 5);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#fff";
+  ctx.strokeText("가장 높을 때", 6, groundY - R - 6);
+  ctx.fillStyle = "#dc2626";
+  ctx.fillText("가장 높을 때", 6, groundY - R - 6);
 
+  // 수레: 바퀴 가운데에 붙어서 같이 오르내리고, 길이 기울면 같이 기울어요
+  const wg = wiggle(n, road);
+  const tilt = clamp(((pose(n, road, x + 0.04).h - pose(n, road, x - 0.04).h) / 0.08) * -0.35, -0.3, 0.3);
+  ctx.save();
+  ctx.translate(cx0, cy);
+  ctx.rotate(tilt);
+  const cartB = -R - 8;
+  ctx.strokeStyle = "#6d28d9";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-3, 0);
+  ctx.lineTo(-R * 0.4, cartB);
+  ctx.moveTo(3, 0);
+  ctx.lineTo(R * 0.4, cartB);
+  ctx.stroke();
+  // 운전사 병아리
+  const hr = R * 0.32;
+  const hy = cartB - R * 0.45 - hr * 0.55;
+  ctx.fillStyle = "#fde047";
+  ctx.strokeStyle = "#a16207";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, hy, hr, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-2, hy - hr);
+  ctx.quadraticCurveTo(-6, hy - hr - 10, 2, hy - hr - 8);
+  ctx.stroke();
+  ctx.fillStyle = "#1c1917";
+  ctx.beginPath();
+  ctx.arc(-hr * 0.38, hy - hr * 0.12, 2.6, 0, Math.PI * 2);
+  ctx.arc(hr * 0.38, hy - hr * 0.12, 2.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(251,113,133,0.6)";
+  ctx.beginPath();
+  ctx.arc(-hr * 0.62, hy + hr * 0.22, 3, 0, Math.PI * 2);
+  ctx.arc(hr * 0.62, hy + hr * 0.22, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#f97316";
+  ctx.beginPath();
+  if (wg > 0.2) ctx.ellipse(0, hy + hr * 0.3, 3.5, 4.5, 0, 0, Math.PI * 2);
+  else {
+    ctx.moveTo(-5, hy + hr * 0.12);
+    ctx.lineTo(5, hy + hr * 0.12);
+    ctx.lineTo(0, hy + hr * 0.42);
+    ctx.closePath();
+  }
+  ctx.fill();
+  // 수레 몸통
+  const body = ctx.createLinearGradient(0, cartB - R * 0.45, 0, cartB);
+  body.addColorStop(0, "#fb7185");
+  body.addColorStop(1, "#e11d48");
+  roundRect(ctx, -R * 0.95, cartB - R * 0.45, R * 1.9, R * 0.45, 8);
+  ctx.fillStyle = body;
+  ctx.fill();
+  ctx.strokeStyle = "#9f1239";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  roundRect(ctx, -R * 0.8, cartB - R * 0.38, R * 1.6, 4, 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 바퀴
+  const wf = ctx.createRadialGradient(cx0 - R * 0.3, cy - R * 0.3, R * 0.1, cx0, cy, R);
+  wf.addColorStop(0, "#fef3c7");
+  wf.addColorStop(0.6, "#fbbf24");
+  wf.addColorStop(1, "#f59e0b");
   ctx.beginPath();
   if (n === 0) ctx.arc(cx0, cy, R, 0, Math.PI * 2);
   else
@@ -138,37 +253,46 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
       else ctx.lineTo(px, py);
     }
   if (n !== 0) ctx.closePath();
-  ctx.fillStyle = "rgba(251,191,36,0.85)";
+  ctx.fillStyle = wf;
   ctx.fill();
   ctx.strokeStyle = "#b45309";
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 4;
   ctx.lineJoin = "round";
   ctx.stroke();
-  // 돌아가는 것이 보이는 바퀴살
+  // 바퀴살
+  const spokes = n === 0 ? 6 : n;
+  ctx.strokeStyle = "#c2410c";
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.moveTo(cx0, cy);
-  ctx.lineTo(cx0 + R * 0.95 * Math.cos(rot), cy - R * 0.95 * Math.sin(rot));
-  ctx.strokeStyle = "#92400e";
-  ctx.lineWidth = 2;
+  for (let k = 0; k < spokes; k++) {
+    const al = rot + (k * 2 * Math.PI) / spokes;
+    const rr = n === 0 ? R * 0.9 : R * 0.92;
+    ctx.moveTo(cx0, cy);
+    ctx.lineTo(cx0 + rr * Math.cos(al), cy - rr * Math.sin(al));
+  }
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(cx0, cy, 5, 0, Math.PI * 2);
-  ctx.fillStyle = "#1f2937";
+  ctx.arc(cx0, cy, 7, 0, Math.PI * 2);
+  ctx.fillStyle = "#7c2d12";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx0 - 2, cy - 2, 2.2, 0, Math.PI * 2);
+  ctx.fillStyle = "#fde68a";
   ctx.fill();
 
   // 그래프
   const gy0 = Hs;
-  ctx.fillStyle = "#f8fafc";
+  ctx.fillStyle = "#fff7ed";
   ctx.fillRect(0, gy0, W, GRAPH_H);
-  ctx.strokeStyle = "#cbd5e1";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0.5, gy0 + 0.5, W - 1, GRAPH_H - 1);
-  const top = gy0 + 26;
+  ctx.strokeStyle = "#fdba74";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, gy0 + 1, W - 2, GRAPH_H - 2);
+  const top = gy0 + 28;
   const bot = gy0 + GRAPH_H - 12;
   const gyOf = (hh: number) => bot - ((hh - H_LO) / (H_HI - H_LO)) * (bot - top);
   const lowH = n === 0 || road === "bumpy" ? 1 : apothem(n);
-  ctx.font = "700 12px sans-serif";
   ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1.5;
   ctx.strokeStyle = "#ef4444";
   ctx.beginPath();
   ctx.moveTo(0, gyOf(1));
@@ -182,18 +306,18 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
     ctx.stroke();
   }
   ctx.setLineDash([]);
-  ctx.fillStyle = "#ef4444";
+  ctx.font = `14px ${FONT}`;
+  ctx.fillStyle = "#dc2626";
   ctx.textAlign = "right";
-  ctx.fillText("높음", W - 6, gyOf(1) - 3);
+  ctx.fillText("높음", W - 6, gyOf(1) - 4);
   if (lowH < 1) {
     ctx.fillStyle = "#2563eb";
-    ctx.fillText("낮음", W - 6, gyOf(lowH) + 14);
+    ctx.fillText("낮음", W - 6, gyOf(lowH) + 15);
   }
-  ctx.fillStyle = "#334155";
+  ctx.fillStyle = "#7c2d12";
   ctx.textAlign = "left";
-  ctx.font = "700 14px sans-serif";
-  const wg = wiggle(n, road);
-  ctx.fillText(`바퀴 가운데 점의 높이 (덜컹거림: ${bumpWord(wg)})`, 8, gy0 + 18);
+  ctx.font = `16px ${FONT}`;
+  ctx.fillText(`바퀴 가운데 점의 높이 (덜컹거림: ${bumpWord(wg)})`, 10, gy0 + 20);
   // 자취: 지나온 곳은 굵게, 앞으로 갈 곳은 연하게
   const draw = (from: number, to: number, color: string, lw: number) => {
     ctx.beginPath();
@@ -208,24 +332,28 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
     }
     ctx.strokeStyle = color;
     ctx.lineWidth = lw;
+    ctx.lineCap = "round";
     ctx.stroke();
   };
   const sx0 = toX(0);
-  draw(0, sx0, "#cbd5e1", 2);
-  draw(sx0, cx0, "#2563eb", 3.5);
-  draw(cx0, W, "#cbd5e1", 2);
+  draw(0, sx0, "#c4b5fd", 2.5);
+  draw(sx0, cx0, "#2563eb", 4);
+  draw(cx0, W, "#c4b5fd", 2.5);
   ctx.setLineDash([2, 4]);
-  ctx.strokeStyle = "#94a3b8";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#a78bfa";
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(cx0, cy + R + 2 > Hs ? Hs : cy + R + 2);
+  ctx.moveTo(cx0, Math.min(Hs, cy + R + 2));
   ctx.lineTo(cx0, gyOf(h));
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.beginPath();
-  ctx.arc(cx0, gyOf(h), 5, 0, Math.PI * 2);
+  ctx.arc(cx0, gyOf(h), 6, 0, Math.PI * 2);
   ctx.fillStyle = "#1d4ed8";
   ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
 
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
@@ -238,7 +366,16 @@ function Icon({ n }: { n: number }) {
   }).join(" ");
   return (
     <svg viewBox="0 0 44 44" width="40" height="40" aria-hidden="true">
-      {n === 0 ? <circle cx="22" cy="22" r={r} fill="#fbbf24" stroke="#b45309" strokeWidth="3" /> : <polygon points={pts} fill="#fbbf24" stroke="#b45309" strokeWidth="3" strokeLinejoin="round" />}
+      <defs>
+        <radialGradient id="wh-ic" cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#fef3c7" />
+          <stop offset="0.6" stopColor="#fbbf24" />
+          <stop offset="1" stopColor="#f59e0b" />
+        </radialGradient>
+      </defs>
+      {n === 0 ? <circle cx="22" cy="23" r={r} fill="#b45309" opacity="0.3" /> : null}
+      {n === 0 ? <circle cx="22" cy="22" r={r} fill="url(#wh-ic)" stroke="#b45309" strokeWidth="3" /> : <polygon points={pts} fill="url(#wh-ic)" stroke="#b45309" strokeWidth="3" strokeLinejoin="round" />}
+      <circle cx="22" cy="22" r="3.5" fill="#7c2d12" />
     </svg>
   );
 }
@@ -388,7 +525,7 @@ export default function WheelGame() {
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
-    const R = sceneH(W) * 0.3;
+    const R = sceneH(W) * R_FRAC;
     const now = performance.now();
     const dX = (e.clientX - d.px) / R;
     const dtS = Math.max(0.008, (now - d.t) / 1000);

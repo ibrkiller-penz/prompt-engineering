@@ -7,6 +7,13 @@ const CHAIN = [6, 12, 24, 48, 96];
 const BIG = "!min-h-[48px] !text-base";
 const f2 = (v: number) => v.toFixed(2);
 const AUTO_MS = 3000;
+const JUA = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+/** 반지름 22인 통통한 별 */
+const STAR = Array.from({ length: 10 }, (_, k) => {
+  const a = -Math.PI / 2 + (k * Math.PI) / 5;
+  const r = k % 2 ? 11 : 24;
+  return `${k ? "L" : "M"}${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}`;
+}).join("") + "Z";
 
 const RD = 188; // 손잡이가 도는 고리 반지름
 const R = 104; // 단위원 반지름(그림에서)
@@ -36,7 +43,7 @@ export default function ArchPiGame() {
   const [stars, setStars] = useState(0);
   const [ok, setOk] = useState(false);
   const [hint, setHint] = useState(false);
-  const [msg, setMsg] = useState<Msg>({ t: "info", s: "빨간 손잡이 ●를 잡고 고리를 따라 돌려 보세요. 도형의 변이 늘어나요!" });
+  const [msg, setMsg] = useState<Msg>({ t: "info", s: "반짝이는 별 손잡이 ⭐을 잡고 고리를 따라 돌려 보세요. 도형의 변이 늘어나요!" });
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
 
@@ -93,7 +100,7 @@ export default function ArchPiGame() {
   }
   const reset = () => {
     setMi(0); setStars(0); setOk(false); setHint(false); setN(6);
-    setMsg({ t: "info", s: "처음부터 다시 해요. 손잡이 ●를 고리를 따라 돌려 보세요!" });
+    setMsg({ t: "info", s: "처음부터 다시 해요. 별 손잡이 ⭐을 고리를 따라 돌려 보세요!" });
   };
 
   const fromPointer = (e: React.PointerEvent) => {
@@ -128,7 +135,7 @@ export default function ArchPiGame() {
 
   return (
     <Board>
-      <p className="text-base font-bold">🎯 미션 {mi + 1}/{MISSIONS.length} · {missionText(mi)}</p>
+      <p className="font-game text-xl">🎯 미션 {mi + 1}/{MISSIONS.length} · {missionText(mi)}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         <Stat label="별" value={"⭐".repeat(stars) || "0"} tone={stars ? "ok" : "plain"} />
         <Stat label="변" value={`${n}개`} />
@@ -137,7 +144,7 @@ export default function ArchPiGame() {
       <svg
         ref={svgRef}
         viewBox={`${-HALF} ${-HALF} ${2 * HALF} ${2 * HALF}`}
-        className="mx-auto mt-2 w-full max-w-[460px] select-none rounded-card bg-bg"
+        className="mx-auto mt-2 w-full max-w-[460px] select-none rounded-card"
         style={{ touchAction: "none", cursor: "grab" }}
         onPointerDown={onDown}
         onPointerMove={(e) => dragging.current && fromPointer(e)}
@@ -146,26 +153,76 @@ export default function ArchPiGame() {
         role="group"
         aria-label={`원 안팎의 ${n}각형. 바깥 고리의 손잡이를 돌려 변의 수를 바꿔요`}
       >
+        <defs>
+          <linearGradient id="ap-table" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fde7c4" />
+            <stop offset="1" stopColor="#f6c48a" />
+          </linearGradient>
+          <radialGradient id="ap-pie" cx="0.45" cy="0.4" r="0.7">
+            <stop offset="0" stopColor="#fff7d6" />
+            <stop offset="0.6" stopColor="#fde68a" />
+            <stop offset="1" stopColor="#f59e0b" />
+          </radialGradient>
+          <radialGradient id="ap-star" cx="0.4" cy="0.35" r="0.75">
+            <stop offset="0" stopColor="#fffbeb" />
+            <stop offset="0.5" stopColor="#fde047" />
+            <stop offset="1" stopColor="#f59e0b" />
+          </radialGradient>
+          <linearGradient id="ap-track" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#c084fc" />
+            <stop offset="1" stopColor="#7c3aed" />
+          </linearGradient>
+          <style>{`
+            .ap-pop { animation: ap-pop .6s cubic-bezier(.2,1.6,.4,1) both; transform-box: fill-box; transform-origin: center; }
+            @keyframes ap-pop { 0% { transform: scale(.9); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+            .ap-tw { animation: ap-tw 1.2s ease-in-out infinite; }
+            @keyframes ap-tw { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+            @media (prefers-reduced-motion: reduce) { .ap-pop, .ap-tw { animation: none; } }
+          `}</style>
+        </defs>
+        {/* 부엌 테이블 */}
+        <rect x={-HALF} y={-HALF} width={2 * HALF} height={2 * HALF} rx={26} fill="url(#ap-table)" />
+        {[-150, -75, 0, 75, 150].map((y) => <line key={y} x1={-HALF} x2={HALF} y1={y} y2={y} stroke="#e7a964" strokeWidth={2} opacity={0.5} />)}
+        <circle cx={0} cy={6} r={RD - 22} fill="#000" opacity={0.08} />
+        <circle cx={0} cy={0} r={RD - 24} fill="#ffffff" stroke="#ede9fe" strokeWidth={8} />
         {/* 고리 */}
-        <path d={arc(0, 1, RD)} fill="none" stroke="var(--line)" strokeWidth={14} strokeLinecap="round" />
-        <path d={arc(0, Math.max(f, 0.0001), RD)} fill="none" stroke="var(--accent)" strokeWidth={14} strokeLinecap="round" opacity={0.5} />
+        <path d={arc(0, 1, RD)} fill="none" stroke="#6b21a8" strokeWidth={22} strokeLinecap="round" />
+        <path d={arc(0, 1, RD)} fill="none" stroke="#ede9fe" strokeWidth={16} strokeLinecap="round" />
+        <path d={arc(0, Math.max(f, 0.0001), RD)} fill="none" stroke="url(#ap-track)" strokeWidth={16} strokeLinecap="round" />
         {CHAIN.map((c, i) => {
           const [x, y] = polar(i / 4, RD);
-          const [tx, ty] = polar(i / 4, RD - 36);
+          const [tx, ty] = polar(i / 4, RD - 40);
+          const on = n >= c;
           return (
             <g key={c}>
               <circle cx={x} cy={y} r={30} fill="transparent" onClick={() => apply(c)} style={{ cursor: "pointer" }} />
-              <circle cx={x} cy={y} r={7} fill={n >= c ? "var(--accent)" : "var(--surface)"} stroke="var(--accent)" strokeWidth={2.5} pointerEvents="none" />
-              <text x={tx} y={ty + 6} fontSize={18} fontWeight={800} fill="var(--muted)" textAnchor="middle" pointerEvents="none">{c}</text>
+              <circle cx={x} cy={y} r={9} fill={on ? "#f472b6" : "#ffffff"} stroke="#6b21a8" strokeWidth={3} pointerEvents="none" />
+              <text x={tx} y={ty + 8} fontSize={24} fill={n === c ? "#7c3aed" : "#6b21a8"} textAnchor="middle" stroke="#fff" strokeWidth={5} paintOrder="stroke" pointerEvents="none" style={JUA}>{c}</text>
             </g>
           );
         })}
-        {/* 도형 */}
-        <polygon points={poly(ptsOut)} fill="#f59e0b22" stroke="#d97706" strokeWidth={2} strokeLinejoin="round" pointerEvents="none" />
-        <circle cx={0} cy={0} r={R} fill="none" stroke="var(--ink)" strokeWidth={2} pointerEvents="none" />
-        <polygon points={poly(ptsIn)} fill="#2563eb22" stroke="#2563eb" strokeWidth={2} strokeLinejoin="round" pointerEvents="none" />
-        <text x={0} y={6} fontSize={26} fontWeight={800} fill="var(--ink)" textAnchor="middle" stroke="var(--surface)" strokeWidth={5} paintOrder="stroke" pointerEvents="none">{n}각형</text>
-        {/* 손잡이 */}
+        {/* 파이와 쿠키 틀 */}
+        <g key={stars} className={stars ? "ap-pop" : ""} pointerEvents="none">
+          <circle cx={0} cy={0} r={R} fill="url(#ap-pie)" />
+          {Array.from({ length: 16 }, (_, k) => {
+            const a = (2 * Math.PI * k) / 16;
+            return <circle key={k} cx={(R - 2) * Math.cos(a)} cy={(R - 2) * Math.sin(a)} r={6} fill="#f59e0b" opacity={0.55} />;
+          })}
+          <circle cx={0} cy={0} r={R} fill="none" stroke="#92400e" strokeWidth={4} />
+          <polygon points={poly(ptsOut)} fill="#ec489926" stroke="#9d174d" strokeWidth={7} strokeLinejoin="round" />
+          <polygon points={poly(ptsOut)} fill="none" stroke="#f472b6" strokeWidth={3.5} strokeLinejoin="round" />
+          <polygon points={poly(ptsIn)} fill="#3b82f633" stroke="#1e3a8a" strokeWidth={7} strokeLinejoin="round" />
+          <polygon points={poly(ptsIn)} fill="none" stroke="#60a5fa" strokeWidth={3.5} strokeLinejoin="round" />
+          <text x={0} y={10} fontSize={34} fill="#4c1d95" textAnchor="middle" stroke="#fff" strokeWidth={7} paintOrder="stroke" style={JUA}>{n}각형</text>
+        </g>
+        {ok && (
+          <g className="ap-tw" pointerEvents="none">
+            {[[-130, -150, 1], [140, -140, 0.8], [-150, 140, 0.7], [150, 150, 0.9]].map(([x, y, k], i) => (
+              <path key={i} transform={`translate(${x} ${y}) scale(${k})`} d="M0 -14 L3.5 -3.5 L14 0 L3.5 3.5 L0 14 L-3.5 3.5 L-14 0 L-3.5 -3.5 Z" fill="#fde047" stroke="#f59e0b" strokeWidth={2} />
+            ))}
+          </g>
+        )}
+        {/* 손잡이: 반짝이는 별 */}
         <g
           role="slider"
           tabIndex={0}
@@ -180,34 +237,46 @@ export default function ArchPiGame() {
           }}
         >
           <circle cx={hx} cy={hy} r={34} fill="transparent" />
-          {n === 6 && !ok && <circle cx={hx} cy={hy} r={30} fill="#e11d48" opacity={0.25} className="animate-pulse" pointerEvents="none" />}
-          <circle cx={hx} cy={hy} r={20} fill="#e11d48" stroke="var(--surface)" strokeWidth={4} pointerEvents="none" />
-          <text x={hx} y={hy + 6} fontSize={16} fontWeight={800} fill="#fff" textAnchor="middle" pointerEvents="none">↻</text>
+          {n === 6 && !ok && <circle cx={hx} cy={hy} r={32} fill="#fde047" opacity={0.45} className="animate-pulse" pointerEvents="none" />}
+          <g transform={`translate(${hx} ${hy})`} pointerEvents="none">
+            <ellipse cx={0} cy={22} rx={16} ry={4} fill="#000" opacity={0.15} />
+            <path d={STAR} fill="url(#ap-star)" stroke="#b45309" strokeWidth={3} strokeLinejoin="round" />
+            <circle cx={-6} cy={-3} r={2.4} fill="#4c1d95" />
+            <circle cx={6} cy={-3} r={2.4} fill="#4c1d95" />
+            <path d="M-4 4 Q0 8 4 4" fill="none" stroke="#4c1d95" strokeWidth={2} strokeLinecap="round" />
+          </g>
         </g>
       </svg>
 
       {/* 큰 값 두 개 */}
       <div className="mt-3 grid grid-cols-2 gap-2 text-center" aria-label="도형의 둘레 ÷ 지름">
-        <div className="rounded-card bg-bg py-2">
-          <div className="text-sm font-semibold text-[#2563eb]">안쪽(파랑) 둘레 ÷ 지름</div>
-          <div className="text-3xl font-extrabold tabular-nums text-[#2563eb]">{f2(floor2(lo))}</div>
+        <div className="rounded-card border-2 border-[#93c5fd] bg-[#eff6ff] py-2 shadow-[0_4px_0_#93c5fd]">
+          <div className="text-sm font-semibold text-[#1d4ed8]">🔷 안쪽(파랑) 둘레 ÷ 지름</div>
+          <div className="font-game text-4xl tabular-nums text-[#1d4ed8]">{f2(floor2(lo))}</div>
         </div>
-        <div className="rounded-card bg-bg py-2">
-          <div className="text-sm font-semibold text-[#d97706]">바깥(주황) 둘레 ÷ 지름</div>
-          <div className="text-3xl font-extrabold tabular-nums text-[#d97706]">{f2(ceil2(hi))}</div>
+        <div className="rounded-card border-2 border-[#f9a8d4] bg-[#fdf2f8] py-2 shadow-[0_4px_0_#f9a8d4]">
+          <div className="text-sm font-semibold text-[#be185d]">🩷 바깥(분홍) 둘레 ÷ 지름</div>
+          <div className="font-game text-4xl tabular-nums text-[#be185d]">{f2(ceil2(hi))}</div>
         </div>
       </div>
-      <p className="mt-2 text-center text-base">원의 둘레 ÷ 지름 = <strong className="text-[#e11d48]">3.14쯤</strong> 은 이 두 수 사이에 있어요!</p>
+      <p className="mt-2 text-center text-base">🥧 파이(원)의 둘레 ÷ 지름 = <strong className="font-game text-xl text-[#7c3aed]">3.14쯤</strong> 은 이 두 수 사이에 있어요!</p>
 
-      <svg viewBox="0 0 400 70" className="mt-2 w-full rounded-card bg-bg" role="img" aria-label={`원주율은 ${f2(floor2(lo))} 과 ${f2(ceil2(hi))} 사이에 있어요`}>
-        <line x1={20} x2={380} y1={34} y2={34} stroke="var(--line)" strokeWidth={2} />
-        <rect x={bx(lo)} y={22} width={Math.max(3, bx(hi) - bx(lo))} height={24} rx={4} fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth={2} />
-        <line x1={bx(Math.PI)} x2={bx(Math.PI)} y1={12} y2={58} stroke="#e11d48" strokeWidth={3} />
-        <text x={bx(Math.PI)} y={10} fontSize={13} fontWeight={800} fill="#e11d48" textAnchor="middle">3.14쯤</text>
+      <svg viewBox="0 0 400 74" className="mt-2 w-full rounded-card" role="img" aria-label={`원주율은 ${f2(floor2(lo))} 과 ${f2(ceil2(hi))} 사이에 있어요`}>
+        <defs>
+          <linearGradient id="ap-bar" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#93c5fd" />
+            <stop offset="1" stopColor="#f9a8d4" />
+          </linearGradient>
+        </defs>
+        <rect x={0} y={0} width={400} height={74} rx={16} fill="#faf5ff" />
+        <line x1={20} x2={380} y1={44} y2={44} stroke="#ddd6fe" strokeWidth={6} strokeLinecap="round" />
+        <rect x={bx(lo)} y={31} width={Math.max(4, bx(hi) - bx(lo))} height={26} rx={13} fill="url(#ap-bar)" stroke="#6b21a8" strokeWidth={2.5} />
+        <line x1={bx(Math.PI)} x2={bx(Math.PI)} y1={22} y2={66} stroke="#7c3aed" strokeWidth={4} strokeLinecap="round" />
+        <text x={bx(Math.PI)} y={18} fontSize={15} fill="#7c3aed" textAnchor="middle" style={JUA}>3.14쯤</text>
       </svg>
 
       <div className="mt-3"><Say tone={msg.t}>{msg.s}</Say></div>
-      {hint && <p className="mt-2 rounded-card bg-bg px-3 py-2 text-base">💡 변이 많아질수록 도형이 원을 꼭 닮아서, 파랑 값은 커지고 주황 값은 작아져요. 둘이 3.14 근처로 모여요!</p>}
+      {hint && <p className="mt-2 rounded-card bg-bg px-3 py-2 text-base">💡 변이 많아질수록 도형이 원을 꼭 닮아서, 파랑 값은 커지고 분홍 값은 작아져요. 둘이 3.14 근처로 모여요!</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <GButton className={BIG} onClick={() => step(-1)} disabled={n <= 6}>◀ 줄이기</GButton>

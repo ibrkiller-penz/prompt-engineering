@@ -63,7 +63,56 @@ const OX = 200;
 const OY = 205;
 const MLEN = 175;
 const HANDLE = 160; // 돌리는 손잡이가 있는 거리
-const SHAPE: V[] = [[0, 11], [8, -8], [0, -3], [-8, -8]]; // 화살 모양(뒤집힘이 보이도록 비대칭)
+const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const CSS = `
+@keyframes mr-hop { 0%,100% { transform: translateY(0) scale(1); } 35% { transform: translateY(-10px) scale(1.08); } 70% { transform: translateY(0) scale(.98); } }
+@keyframes mr-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 50% { transform: translateX(7px); } 75% { transform: translateX(-4px); } }
+.mr-hop { animation: mr-hop .7s ease-out; }
+.mr-shake { animation: mr-shake .45s ease-in-out; }
+@media (prefers-reduced-motion: reduce) { .mr-hop, .mr-shake { animation: none; } }
+`;
+/** 반사 순서(seq)를 합친 2×2 행렬(수학 좌표) */
+function seqMatrix(seq: (0 | 1)[], theta: number): [number, number, number, number] {
+  let m: [number, number, number, number] = [1, 0, 0, 1]; // [m11, m12, m21, m22]
+  for (const k of seq) {
+    const a = k === 0 ? A0 : A0 + theta;
+    const c = Math.cos(2 * a);
+    const s2 = Math.sin(2 * a);
+    // R·m
+    m = [c * m[0] + s2 * m[2], c * m[1] + s2 * m[3], s2 * m[0] - c * m[2], s2 * m[1] - c * m[3]];
+  }
+  return m;
+}
+/** 화면 좌표에서 쓰는 SVG matrix(): O를 중심으로 같은 반사를 적용 */
+function svgMatrix(seq: (0 | 1)[], theta: number) {
+  const [m11, m12, m21, m22] = seqMatrix(seq, theta);
+  const a = m11;
+  const b = -m21;
+  const c = -m12;
+  const d = m22;
+  const e = OX - (a * OX + c * OY);
+  const f = OY - (b * OX + d * OY);
+  return `matrix(${a} ${b} ${c} ${d} ${e} ${f})`;
+}
+/** 장난감 곰(왼쪽 귀에 리본, 오른손에 별: 거울에 비치면 좌우가 바뀌어 보여요) */
+function Teddy({ x, y, ghost }: { x: number; y: number; ghost?: boolean }) {
+  return (
+    <g transform={`translate(${x} ${y})`} opacity={ghost ? 0.82 : 1}>
+      <ellipse cx="0" cy="19" rx="11" ry="3" fill="rgba(0,0,0,0.15)" />
+      <circle cx="0" cy="8" r="10.5" fill="#d08b52" stroke="#7c3f12" strokeWidth="2" />
+      <ellipse cx="0" cy="10" rx="5.5" ry="5" fill="#f6d3a8" />
+      <circle cx="-7.5" cy="-12" r="4.5" fill="#d08b52" stroke="#7c3f12" strokeWidth="2" />
+      <circle cx="7.5" cy="-12" r="4.5" fill="#d08b52" stroke="#7c3f12" strokeWidth="2" />
+      <circle cx="0" cy="-5" r="9.5" fill="#d08b52" stroke="#7c3f12" strokeWidth="2" />
+      <ellipse cx="0" cy="-2" rx="4.5" ry="3.4" fill="#f6d3a8" />
+      <circle cx="0" cy="-3.2" r="1.5" fill="#3b1d0a" />
+      <circle cx="-3.4" cy="-7.5" r="1.4" fill="#3b1d0a" />
+      <circle cx="3.4" cy="-7.5" r="1.4" fill="#3b1d0a" />
+      <path d="M -12 -17 L -7 -14 L -12 -11 Z M -2 -17 L -7 -14 L -2 -11 Z" fill="#ec4899" stroke="#9d174d" strokeWidth="1" />
+      <path d="M 13 -1 L 14.6 2.6 L 18.5 3 L 15.5 5.5 L 16.4 9.4 L 13 7.3 L 9.6 9.4 L 10.5 5.5 L 7.5 3 L 11.4 2.6 Z" fill="#facc15" stroke="#b45309" strokeWidth="1.2" strokeLinejoin="round" />
+    </g>
+  );
+}
 const rad = (d: number) => (d * Math.PI) / 180;
 const toS = (p: V): V => [OX + p[0], OY - p[1]];
 const A0 = 0; // 거울 A는 오른쪽으로 고정, 거울 B를 끌어 돌려요
@@ -113,6 +162,7 @@ export default function MirrorGame() {
   const [over, setOver] = useState(false);
   const [touched, setTouched] = useState(false);
   const [objRaw, setObj] = useState<V>(() => defaultObj(180));
+  const [react, setReact] = useState<{ kind: "" | "ok" | "bad"; n: number }>({ kind: "", n: 0 });
   const quiz = mode === "quiz";
   const deg = quiz ? goals[round] : userDeg;
   const theta = rad(deg);
@@ -226,10 +276,12 @@ export default function MirrorGame() {
       setSolved(true);
       setScore((v) => v + 1);
       cheer();
+      setReact((r) => ({ kind: "ok", n: r.n + 1 }));
       setMsg({ tone: "ok", text: `와, ${goal}개로 보여요! 잘했어요! ⭐` });
       afterRoundSafe(true);
     } else {
       oops();
+      setReact((r) => ({ kind: "bad", n: r.n + 1 }));
       setMsg({ tone: "bad", text: `지금은 ${n}개로 보여요. 괜찮아요! ${n < goal ? "거울 사이를 더 좁혀 봐요. 가까울수록 더 많이 보여요." : "거울 사이를 더 벌려 봐요. 벌릴수록 적게 보여요."}` });
     }
   };
@@ -248,8 +300,6 @@ export default function MirrorGame() {
   const mB = toS([MLEN * Math.cos(theta), MLEN * Math.sin(theta)]);
   const mA = toS([MLEN, 0]);
   const hnd = toS([HANDLE * Math.cos(theta), HANDLE * Math.sin(theta)]);
-  const shapePts = (center: V, seq: (0 | 1)[]) =>
-    SHAPE.map((s) => toS(applySeq([center[0] + s[0], center[1] + s[1]], seq, A0, theta))).map((q) => q.join(",")).join(" ");
   const formula = `360 ÷ ${deg} = ${360 / deg}. 물체 1개 + 비친 모습 ${imgs.length}개 = 모두 ${total}개`;
   const wedge = `M ${OX} ${OY} L ${mA[0]} ${mA[1]} A ${MLEN} ${MLEN} 0 0 0 ${mB[0]} ${mB[1]} Z`;
 
@@ -262,16 +312,21 @@ export default function MirrorGame() {
       </div>
 
       <Board>
-        <p className="mb-1 text-center text-xl font-extrabold">
+        <style>{CSS}</style>
+        <p className="font-game mb-1 text-center text-2xl">
           {mode === "match" && <>물체가 <span className="text-accent">{goal}개</span>로 보이게 해요!</>}
           {mode === "free" && <>거울을 돌려 보세요!</>}
           {mode === "quiz" && <>물체가 모두 몇 개로 보일까요?</>}
         </p>
-        {!quiz && <p className="mb-2 text-center text-lg font-bold">지금 <span className="text-accent tabular-nums">{total}개</span>로 보여요</p>}
+        {!quiz && (
+          <p key={react.n} className={`font-game mb-2 text-center text-xl ${react.kind === "ok" ? "mr-hop" : react.kind === "bad" ? "mr-shake" : ""}`}>
+            지금 <span className="text-3xl text-accent tabular-nums">{total}개</span>로 보여요
+          </p>
+        )}
         <svg
           ref={svgRef}
           viewBox="0 0 400 380"
-          className="mx-auto block w-full max-w-[520px] touch-none select-none rounded-card bg-bg"
+          className="mx-auto block w-full max-w-[520px] touch-none select-none overflow-hidden rounded-card"
           style={{ touchAction: "none" }}
           role="img"
           aria-label={`점 O에서 ${deg}도로 만나는 두 거울과 그 사이의 물체${showImgs ? `, 비친 모습 ${imgs.length}개` : ""}`}
@@ -280,56 +335,80 @@ export default function MirrorGame() {
           onPointerUp={up}
           onPointerCancel={() => (grab.current = "none")}
         >
-          <path d={wedge} fill="rgba(99,102,241,0.08)" />
+          <defs>
+            <radialGradient id="mr-bg" cx="0.5" cy="0.55" r="0.75">
+              <stop offset="0" stopColor="#fdf4ff" />
+              <stop offset="1" stopColor="#e9d5ff" />
+            </radialGradient>
+            <radialGradient id="mr-gem" cx="0.35" cy="0.3" r="0.8">
+              <stop offset="0" stopColor="#ffd5c7" />
+              <stop offset="1" stopColor="#e8552f" />
+            </radialGradient>
+          </defs>
+          <rect x="0" y="0" width="400" height="380" fill="url(#mr-bg)" />
+          {[[30, 40], [370, 34], [24, 350], [376, 356], [200, 370]].map(([x, y], i) => (
+            <text key={i} x={x} y={y} fontSize="16" textAnchor="middle" opacity="0.7">✨</text>
+          ))}
+          <path d={wedge} fill="#fff7d6" stroke="#fcd34d" strokeWidth="2" strokeDasharray="6 6" />
           {showImgs &&
             imgs.map((im, i) => (
               <g key={i}>
-                <polygon points={shapePts(obj, im.seq)} fill="#f59e0b" fillOpacity="0.6" stroke="#b45309" strokeWidth="1.2" strokeLinejoin="round" />
+                <g transform={svgMatrix(im.seq, theta)}>
+                  <Teddy x={toS(obj)[0]} y={toS(obj)[1]} ghost />
+                </g>
                 {nums && (
-                  <text x={toS(im.pt)[0]} y={toS(im.pt)[1] - 13} fontSize="17" fontWeight="800" textAnchor="middle" fill="#92400e" stroke="#fff" strokeWidth="4" paintOrder="stroke">
+                  <text x={toS(im.pt)[0]} y={toS(im.pt)[1] - 24} fontSize="17" textAnchor="middle" fill="#7c2d92" stroke="#fff" strokeWidth="4" paintOrder="stroke" style={GF}>
                     {i + 2}
                   </text>
                 )}
               </g>
             ))}
-          <line x1={OX} y1={OY} x2={mA[0]} y2={mA[1]} stroke="#0ea5e9" strokeWidth="6" strokeLinecap="round" />
-          <line x1={OX} y1={OY} x2={mB[0]} y2={mB[1]} stroke="#0ea5e9" strokeWidth="6" strokeLinecap="round" />
-          <line x1={OX} y1={OY} x2={mA[0]} y2={mA[1]} stroke="#e0f2fe" strokeWidth="2" strokeLinecap="round" />
-          <line x1={OX} y1={OY} x2={mB[0]} y2={mB[1]} stroke="#e0f2fe" strokeWidth="2" strokeLinecap="round" />
-          <circle cx={OX} cy={OY} r="5" fill="#1f2937" />
+          {/* 거울: 분홍 장식 테두리 + 하늘색 유리 */}
+          {[mA, mB].map((m, i) => (
+            <g key={i}>
+              <line x1={OX} y1={OY} x2={m[0]} y2={m[1]} stroke="#be185d" strokeWidth="14" strokeLinecap="round" />
+              <line x1={OX} y1={OY} x2={m[0]} y2={m[1]} stroke="#f9a8d4" strokeWidth="10" strokeLinecap="round" />
+              <line x1={OX} y1={OY} x2={m[0]} y2={m[1]} stroke="#7dd3fc" strokeWidth="5" strokeLinecap="round" />
+              <line x1={OX} y1={OY} x2={m[0]} y2={m[1]} stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeDasharray="10 14" />
+              <circle cx={m[0]} cy={m[1]} r="6" fill="#facc15" stroke="#b45309" strokeWidth="2" />
+            </g>
+          ))}
           <path
             d={`M ${toS([34, 0]).join(" ")} A 34 34 0 0 0 ${toS([34 * Math.cos(theta), 34 * Math.sin(theta)]).join(" ")}`}
             fill="none"
-            stroke="#4f46e5"
-            strokeWidth="2"
+            stroke="#7c3aed"
+            strokeWidth="3"
+            strokeLinecap="round"
           />
-          {/* 거울을 돌리는 손잡이 */}
+          <circle cx={OX} cy={OY} r="7" fill="#facc15" stroke="#b45309" strokeWidth="2.5" />
+          {/* 거울을 돌리는 보석 손잡이 */}
           {!quiz && (
             <g aria-hidden="true" style={{ cursor: "grab" }}>
-              <circle cx={hnd[0]} cy={hnd[1]} r="17" fill="#fff" stroke="#0284c7" strokeWidth="3" />
-              <text x={hnd[0]} y={hnd[1] + 7} fontSize="20" textAnchor="middle" fill="#0284c7">⟳</text>
+              <circle cx={hnd[0]} cy={hnd[1] + 3} r="19" fill="rgba(0,0,0,0.15)" />
+              <circle cx={hnd[0]} cy={hnd[1]} r="19" fill="url(#mr-gem)" stroke="#9a2d14" strokeWidth="3" />
+              <text x={hnd[0]} y={hnd[1] + 7} fontSize="21" textAnchor="middle" fill="#fff" style={GF}>⟳</text>
               {!touched && (
-                <circle cx={hnd[0]} cy={hnd[1]} r="17" fill="none" stroke="#ef4444" strokeWidth="3">
-                  <animate attributeName="r" values="17;32;17" dur="1.6s" repeatCount="indefinite" />
+                <circle cx={hnd[0]} cy={hnd[1]} r="19" fill="none" stroke="#e8552f" strokeWidth="3">
+                  <animate attributeName="r" values="19;34;19" dur="1.6s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="1;0;1" dur="1.6s" repeatCount="indefinite" />
                 </circle>
               )}
             </g>
           )}
-          {/* 물체 */}
+          {/* 진짜 곰 */}
           <g style={{ cursor: quiz ? "default" : "grab" }}>
-            <circle cx={toS(obj)[0]} cy={toS(obj)[1]} r="26" fill="transparent" />
-            <polygon points={shapePts(obj, [])} fill="#ef4444" stroke="#991b1b" strokeWidth="1.5" strokeLinejoin="round" />
+            <circle cx={toS(obj)[0]} cy={toS(obj)[1]} r="28" fill="transparent" />
+            <Teddy x={toS(obj)[0]} y={toS(obj)[1]} />
             {nums && showImgs && (
-              <text x={toS(obj)[0]} y={toS(obj)[1] - 15} fontSize="17" fontWeight="800" textAnchor="middle" fill="#991b1b" stroke="#fff" strokeWidth="4" paintOrder="stroke">
+              <text x={toS(obj)[0]} y={toS(obj)[1] - 24} fontSize="17" textAnchor="middle" fill="#9a2d14" stroke="#fff" strokeWidth="4" paintOrder="stroke" style={GF}>
                 1
               </text>
             )}
           </g>
-          {!quiz && !touched && <text x={hnd[0] + (hnd[0] > 300 ? -4 : 4)} y={hnd[1] - 28} fontSize="14" fontWeight="700" textAnchor="middle" fill="#0369a1">돌려 보세요</text>}
+          {!quiz && !touched && <text x={hnd[0] + (hnd[0] > 300 ? -4 : 4)} y={hnd[1] - 30} fontSize="15" textAnchor="middle" fill="#9a2d14" style={GF}>돌려 보세요</text>}
         </svg>
         <p className="mt-1 text-center text-base text-muted">
-          {quiz ? "빨간 것이 진짜 물체, 주황색은 거울에 비친 모습이에요." : "⟳ 손잡이를 끌어 거울을 돌려요. 빨간 물체도 끌 수 있어요. 가까울수록 더 많이 보여요!"}
+          {quiz ? "진한 곰이 진짜, 흐린 곰은 거울에 비친 모습이에요." : "⟳ 보석 손잡이를 끌어 거울을 돌려요. 곰도 끌 수 있어요. 가까울수록 더 많이 보여요!"}
         </p>
       </Board>
 

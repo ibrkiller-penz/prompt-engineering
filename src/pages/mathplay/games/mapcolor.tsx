@@ -112,12 +112,40 @@ const MAPS: MapDef[] = [
 ];
 
 const PALETTE = [
-  { fill: "#fde047", name: "노랑" },
-  { fill: "#60a5fa", name: "파랑" },
-  { fill: "#4ade80", name: "초록" },
-  { fill: "#fb923c", name: "주황" },
-  { fill: "#c084fc", name: "보라" },
+  { fill: "#fde047", dark: "#ca8a04", name: "노랑" },
+  { fill: "#60a5fa", dark: "#1d4ed8", name: "파랑" },
+  { fill: "#4ade80", dark: "#15803d", name: "초록" },
+  { fill: "#fb923c", dark: "#c2410c", name: "주황" },
+  { fill: "#c084fc", dark: "#7e22ce", name: "보라" },
 ];
+const REDUCE = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const JUA = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+
+/** 나라마다 붙는 작은 그림 (집 또는 나무), 가운데가 0,0 */
+function Icon({ kind }: { kind: number }) {
+  if (kind % 3 === 0)
+    return (
+      <g>
+        <rect x="-9" y="-4" width="18" height="13" rx="2" fill="#fff7ed" stroke="#7c2d12" strokeWidth="2" />
+        <path d="M -12 -3 L 0 -13 L 12 -3 Z" fill="#ef4444" stroke="#7f1d1d" strokeWidth="2" strokeLinejoin="round" />
+        <rect x="-3" y="2" width="6" height="7" fill="#92400e" />
+      </g>
+    );
+  if (kind % 3 === 1)
+    return (
+      <g>
+        <rect x="-2.5" y="2" width="5" height="9" rx="1.5" fill="#92400e" />
+        <circle cx="0" cy="-3" r="9" fill="#22c55e" stroke="#14532d" strokeWidth="2" />
+        <circle cx="-3" cy="-6" r="3" fill="#86efac" />
+      </g>
+    );
+  return (
+    <g>
+      <path d="M -11 9 L -3 -8 L 2 1 L 5 -4 L 12 9 Z" fill="#a8a29e" stroke="#44403c" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M -5 -4 L -3 -8 L -1 -4 Z" fill="#fff" />
+    </g>
+  );
+}
 const CELL = 40;
 
 type Edge = { x1: number; y1: number; x2: number; y2: number; a: number; b: number };
@@ -175,6 +203,8 @@ export default function MapColorGame() {
   const [hintR, setHintR] = useState<number | null>(null);
   const [wins, setWins] = useState(0);
   const [touched, setTouched] = useState(false);
+  const [splash, setSplash] = useState<{ r: number; c: number; k: number } | null>(null);
+  const [shake, setShake] = useState(false);
   const [msg, setMsg] = useState<Msg>({ tone: "info", text: "나라를 톡 누를 때마다 색이 바뀌어요. 붙은 나라는 다른 색으로!" });
 
   const mi = fixed ?? EASY[(round - 1) % EASY.length];
@@ -207,8 +237,11 @@ export default function MapColorGame() {
     setTouched(true);
     const cf = conflicts(L.p.adj, next);
     const pc = next.filter((c) => c !== null).length;
-    if (cf.size > before) oops();
-    else tick();
+    if (cf.size > before) {
+      oops();
+      setShake(true);
+      window.setTimeout(() => setShake(false), 450);
+    } else tick();
     if (pc < L.n) {
       setMsg(cf.size ? { tone: "bad", text: "앗, 붙어 있는 나라가 같은 색이에요. 빨간 테두리를 다른 색으로 바꿔 봐요." } : { tone: "info", text: `좋아요! ${pc}/${L.n}개 칠했어요.` });
       return;
@@ -248,6 +281,7 @@ export default function MapColorGame() {
     if (c[r] === val) return;
     const next = c.slice();
     next[r] = val;
+    if (val !== null) setSplash({ r, c: val, k: Date.now() });
     apply(next);
   };
 
@@ -345,10 +379,16 @@ export default function MapColorGame() {
           {brush === null ? "나라를 톡 누를 때마다 색이 바뀌어요. 붙은 나라는 다른 색!" : brush === -1 ? "지우개예요. 나라를 누르거나 쓱쓱 문질러 지워요." : "물감을 골랐어요. 나라를 누르거나 손가락으로 쓱쓱 문질러 칠해요!"}
         </p>
 
+        <style>{`
+          @keyframes mc-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+          .mc-shake{animation:mc-shake .4s ease-in-out}
+          @media (prefers-reduced-motion: reduce){.mc-shake{animation:none}}
+        `}</style>
+        <div className={shake ? "mc-shake" : ""}>
         <svg
-          viewBox={`0 0 ${W * CELL} ${H * CELL}`}
-          className="block h-auto w-full select-none rounded-card bg-bg"
-          style={{ touchAction: "none" }}
+          viewBox={`-12 -12 ${W * CELL + 24} ${H * CELL + 24}`}
+          className="block h-auto w-full select-none"
+          style={{ touchAction: "none", ...JUA }}
           role="group"
           aria-label={`${defs.name}. 나라 ${n}개`}
           onPointerDown={onDown}
@@ -356,6 +396,21 @@ export default function MapColorGame() {
           onPointerUp={onUp}
           onPointerCancel={onUp}
         >
+          <defs>
+            <pattern id="mc-paper" width="12" height="12" patternUnits="userSpaceOnUse">
+              <rect width="12" height="12" fill="#fff7e0" />
+              <circle cx="3" cy="3" r="1.3" fill="#f5deb3" />
+              <circle cx="9" cy="9" r="1.3" fill="#f5deb3" />
+            </pattern>
+            <radialGradient id="mc-shine" cx="0.3" cy="0.2" r="0.9">
+              <stop offset="0" stopColor="#fff" stopOpacity="0.45" />
+              <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
+              <stop offset="1" stopColor="#7c2d12" stopOpacity="0.12" />
+            </radialGradient>
+          </defs>
+          {/* 나무 액자 */}
+          <rect x="-9" y="-6" width={W * CELL + 18} height={H * CELL + 18} rx="16" fill="#92400e" opacity="0.35" />
+          <rect x="-10" y="-10" width={W * CELL + 20} height={H * CELL + 20} rx="16" fill="#d97706" stroke="#7c2d12" strokeWidth="3" />
           {Array.from({ length: n }, (_, r) => (
             <g
               key={r}
@@ -368,39 +423,63 @@ export default function MapColorGame() {
             >
               {p.cells.map((row, y) =>
                 row.map((c, x) =>
-                  c === r ? <rect key={`${x}-${y}`} data-r={r} x={x * CELL} y={y * CELL} width={CELL} height={CELL} fill={cur[r] === null ? "#f1f5f9" : PALETTE[cur[r]!].fill} stroke={cur[r] === null ? "#f1f5f9" : PALETTE[cur[r]!].fill} strokeWidth="0.6" /> : null,
+                  c === r ? <rect key={`${x}-${y}`} data-r={r} x={x * CELL} y={y * CELL} width={CELL} height={CELL} fill={cur[r] === null ? "url(#mc-paper)" : PALETTE[cur[r]!].fill} stroke={cur[r] === null ? "#fff7e0" : PALETTE[cur[r]!].fill} strokeWidth="0.6" /> : null,
                 ),
               )}
             </g>
           ))}
+          {/* 물감이 번지는 반짝임 */}
+          {splash && !REDUCE && (
+            <circle key={splash.k} cx={geo.labels[splash.r][0] * CELL} cy={geo.labels[splash.r][1] * CELL} r="0" fill="#fff" pointerEvents="none">
+              <animate attributeName="r" from="4" to="70" dur="0.5s" fill="freeze" />
+              <animate attributeName="opacity" from="0.8" to="0" dur="0.5s" fill="freeze" />
+            </circle>
+          )}
+          <rect x="0" y="0" width={W * CELL} height={H * CELL} fill="url(#mc-shine)" pointerEvents="none" />
           {geo.edges.map((e, i) => (
-            <line key={i} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#334155" strokeWidth="2.5" strokeLinecap="round" pointerEvents="none" />
+            <line key={i} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#7c2d12" strokeWidth="3" strokeLinecap="round" pointerEvents="none" />
           ))}
           {geo.edges.map((e, i) =>
-            bad.has(e.a) || bad.has(e.b) ? <line key={`r${i}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#dc2626" strokeWidth="5" strokeLinecap="round" pointerEvents="none" /> : null,
+            bad.has(e.a) || bad.has(e.b) ? <line key={`r${i}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#dc2626" strokeWidth="6" strokeLinecap="round" pointerEvents="none" /> : null,
           )}
           {hintR !== null &&
             geo.edges.map((e, i) =>
-              e.a === hintR || e.b === hintR ? <line key={`h${i}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#7c3aed" strokeWidth="5" strokeDasharray="8 6" strokeLinecap="round" pointerEvents="none" /> : null,
+              e.a === hintR || e.b === hintR ? <line key={`h${i}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#7c3aed" strokeWidth="6" strokeDasharray="8 6" strokeLinecap="round" pointerEvents="none" /> : null,
             )}
           {geo.labels.map(([x, y], r) => (
-            <text key={r} x={x * CELL} y={y * CELL + 7} textAnchor="middle" fontSize="22" fontWeight="800" fill="#1e293b" stroke="#ffffff" strokeWidth="3" paintOrder="stroke" pointerEvents="none">
-              {p.names[r]}
-            </text>
+            <g key={r} pointerEvents="none" transform={`translate(${x * CELL} ${y * CELL})`}>
+              <g transform="translate(0 -12)">
+                <Icon kind={r} />
+              </g>
+              <circle cx="0" cy="17" r="12" fill="#fff" stroke={bad.has(r) ? "#dc2626" : "#7c2d12"} strokeWidth="2.5" />
+              <text x="0" y="24" textAnchor="middle" fontSize="19" fill={bad.has(r) ? "#b91c1c" : "#422006"}>
+                {p.names[r]}
+              </text>
+              {bad.has(r) && (
+                <text x="15" y="-14" fontSize="18" fill="#dc2626" stroke="#fff" strokeWidth="3" paintOrder="stroke">
+                  !
+                </text>
+              )}
+            </g>
           ))}
           {/* 처음 3초 손짓 */}
           {!touched && painted === 0 && (
             <g pointerEvents="none">
-              <circle cx={gx * CELL} cy={gy * CELL + 26} r="14" fill="none" stroke="#ea580c" strokeWidth="5">
-                <animate attributeName="r" values="10;30;10" dur="1.4s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite" />
+              <circle cx={gx * CELL} cy={gy * CELL} r="14" fill="none" stroke="#ea580c" strokeWidth="5">
+                {!REDUCE && <animate attributeName="r" values="12;34;12" dur="1.4s" repeatCount="indefinite" />}
+                {!REDUCE && <animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite" />}
               </circle>
-              <text x={gx * CELL} y={gy * CELL + 70} textAnchor="middle" fontSize="22" fontWeight="800" fill="#c2410c" stroke="#fff" strokeWidth="4" paintOrder="stroke">
+              <text x={gx * CELL + 14} y={gy * CELL + 48} fontSize="32">
+                👆
+                {!REDUCE && <animateTransform attributeName="transform" type="translate" values="0 0; 0 -8; 0 0" dur="0.9s" repeatCount="indefinite" />}
+              </text>
+              <text x={gx * CELL} y={gy * CELL + 74} textAnchor="middle" fontSize="22" fill="#c2410c" stroke="#fff" strokeWidth="4" paintOrder="stroke">
                 톡! 눌러 봐요
               </text>
             </g>
           )}
         </svg>
+        </div>
 
         <div className="mt-3">
           <p className="mb-1 text-sm text-muted">물감통 (고르면 쓱쓱 문질러 칠할 수 있어요. 한 번 더 누르면 풀려요)</p>
@@ -415,8 +494,8 @@ export default function MapColorGame() {
                 }}
                 aria-label={`${c.name}색 물감`}
                 aria-pressed={brush === i}
-                className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-base font-bold text-slate-800 shadow-md ${brush === i ? "border-ink ring-4 ring-accent" : "border-line"}`}
-                style={{ background: c.fill, touchAction: "manipulation" }}
+                className={`font-game flex h-12 w-12 items-center justify-center rounded-full border-[3px] text-lg text-slate-900 shadow-[0_4px_0_rgba(0,0,0,0.25)] transition-transform ${brush === i ? "-translate-y-1 scale-110 ring-4 ring-accent" : ""}`}
+                style={{ background: `radial-gradient(circle at 35% 30%, #ffffffcc 0 16%, ${c.fill} 42%, ${c.dark} 120%)`, borderColor: c.dark, touchAction: "manipulation" }}
               >
                 {i + 1}
               </button>

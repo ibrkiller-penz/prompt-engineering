@@ -6,7 +6,11 @@ type Msg = { t: "info" | "ok" | "bad"; s: string };
 type Phase = "ready" | "run" | "done";
 
 const IDS: RaceId[] = ["line", "cyc", "arc", "dip"];
-const COLORS: Record<RaceId, string> = { line: "#6b7280", cyc: "#e11d48", arc: "#2563eb", dip: "#16a34a" };
+const COLORS: Record<RaceId, string> = { line: "#f59e0b", cyc: "#ef4444", arc: "#3b82f6", dip: "#22c55e" };
+const LIGHT: Record<RaceId, string> = { line: "#fde68a", cyc: "#fecaca", arc: "#bfdbfe", dip: "#bbf7d0" };
+const DARK: Record<RaceId, string> = { line: "#b45309", cyc: "#b91c1c", arc: "#1d4ed8", dip: "#15803d" };
+const PAL: Record<RaceId, string> = { line: "주황이", cyc: "빨강이", arc: "파랑이", dip: "초록이" };
+const JUA = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
 const NAMES: Record<RaceId, string> = { line: "곧은 길", cyc: "처음에 확 내려가는 길", arc: "둥근 길", dip: "푹 꺼졌다 올라오는 길" };
 const THETAS = [2.2, 2.6, Math.PI, 3.4];
 const BOWL_KO: Record<BowlId, string> = { cyc: "특별한 곡선 그릇", arc: "둥근 그릇", line: "곧은 경사 그릇" };
@@ -153,46 +157,93 @@ export default function BrachistoGame() {
     else setMsg({ t: "info", s: "공을 위아래로 끌어 높이를 정하고, 같이 닿을지 골라요." });
   };
 
-  // ───── 경주 그림 ─────
+  // ───── 경주 그림: 놀이터 미끄럼틀 ─────
   const raceSvg = (() => {
     const samples = IDS.map((id) => Array.from({ length: 101 }, (_, i) => race.paths[id](i / 100)));
     const maxD = Math.max(...samples.flat().map((p) => p.d));
     const maxX = Math.max(...samples.flat().map((p) => p.x));
-    const s = Math.min(330 / maxX, 220 / maxD);
-    const ox = 34, oy = 36;
+    const s = Math.min(320 / maxX, 210 / maxD);
+    const ox = 44, oy = 56;
     const X = (x: number) => ox + x * s;
     const Y = (d: number) => oy + d * s;
-    const H = Math.round(oy + maxD * s + 26);
+    const H = Math.round(oy + maxD * s + 44);
+    const bxp = X(race.xb), byp = Y(race.yb);
+    const rank = Object.fromEntries(order.map((id, i) => [id, i])) as Record<RaceId, number>;
+    const win = order[0];
     return (
-      <svg viewBox={`0 0 400 ${H}`} className="w-full select-none rounded-card bg-bg" style={{ touchAction: "manipulation" }} role="group" aria-label="출발점에서 도착점까지 가는 네 가지 길과 구슬 네 개">
+      <svg viewBox={`0 0 400 ${H}`} className="w-full select-none rounded-card" style={{ touchAction: "manipulation" }} role="group" aria-label="놀이터 미끄럼틀. 출발점에서 도착점까지 가는 네 가지 길과 공 친구 네 명">
+        <SceneDefs />
+        <rect x={0} y={0} width={400} height={H} rx={18} fill="url(#br-sky)" />
+        <circle cx={360} cy={34} r={20} fill="#fde047" stroke="#f59e0b" strokeWidth={3} />
+        <g className="gz-float" style={{ transformBox: "fill-box" }}><Cloud x={150} y={30} /></g>
+        <g className="gz-float" style={{ transformBox: "fill-box", animationDelay: "1.5s" }}><Cloud x={260} y={52} s={0.8} /></g>
+        <path d={`M0 ${H - 26} Q100 ${H - 40} 200 ${H - 28} T400 ${H - 30} V${H} H0 Z`} fill="url(#br-grass)" stroke="#16a34a" strokeWidth={2.5} />
+        {/* 사다리 탑 */}
+        <g>
+          <rect x={ox - 26} y={oy + 4} width={8} height={H - oy - 30} rx={3} fill="#f97316" stroke="#c2410c" strokeWidth={2} />
+          <rect x={ox - 4} y={oy + 4} width={8} height={H - oy - 30} rx={3} fill="#f97316" stroke="#c2410c" strokeWidth={2} />
+          {Array.from({ length: Math.floor((H - oy - 40) / 20) }, (_, i) => (
+            <rect key={i} x={ox - 20} y={oy + 18 + i * 20} width={18} height={5} rx={2.5} fill="#fdba74" stroke="#c2410c" strokeWidth={1.5} />
+          ))}
+          <rect x={ox - 32} y={oy - 6} width={44} height={12} rx={6} fill="#a855f7" stroke="#6b21a8" strokeWidth={2.5} />
+        </g>
+        {/* 결승 깃발 */}
+        <g>
+          <rect x={bxp - 90} y={byp + 9} width={104} height={10} rx={5} fill="#c4b5fd" stroke="#6d28d9" strokeWidth={2} />
+          <line x1={bxp + 10} x2={bxp + 10} y1={byp + 10} y2={byp - 52} stroke="#6d28d9" strokeWidth={4} strokeLinecap="round" />
+          <g>
+            {Array.from({ length: 8 }, (_, i) => (
+              <rect key={i} x={bxp + 10 - 32 + (i % 4) * 8} y={byp - 52 + Math.floor(i / 4) * 9} width={8} height={9} fill={(i + Math.floor(i / 4)) % 2 ? "#ffffff" : "#1f1630"} />
+            ))}
+            <rect x={bxp - 22} y={byp - 52} width={32} height={18} fill="none" stroke="#1f1630" strokeWidth={1.5} />
+          </g>
+        </g>
+        {/* 레일 */}
         {IDS.map((id, k) => {
           const d = samples[k].map((p, i) => `${i ? "L" : "M"}${X(p.x).toFixed(1)} ${Y(p.d).toFixed(1)}`).join("");
-          const sel = pred === id;
-          return <path key={id} d={d} fill="none" stroke={COLORS[id]} strokeWidth={sel ? 6 : 3.5} strokeLinecap="round" opacity={pred && !sel ? 0.4 : 1} />;
+          const dim = pred && pred !== id ? 0.55 : 1;
+          return (
+            <g key={id} opacity={dim}>
+              <path d={d} fill="none" stroke={DARK[id]} strokeWidth={pred === id ? 13 : 11} strokeLinecap="round" />
+              <path d={d} fill="none" stroke={COLORS[id]} strokeWidth={pred === id ? 9 : 7} strokeLinecap="round" />
+              <path d={d} fill="none" stroke="#ffffff" strokeWidth={2} strokeLinecap="round" opacity={0.6} transform="translate(0 -2)" />
+            </g>
+          );
         })}
-        <circle cx={X(0)} cy={Y(0)} r={7} fill="var(--ink)" />
-        <text x={X(0) + 12} y={Y(0) - 8} fontSize={16} fontWeight={800} fill="var(--ink)">출발</text>
-        <circle cx={X(race.xb)} cy={Y(race.yb)} r={7} fill="var(--ink)" />
-        <text x={X(race.xb)} y={Y(race.yb) + 24} fontSize={16} fontWeight={800} fill="var(--ink)" textAnchor="end" stroke="var(--surface)" strokeWidth={4} paintOrder="stroke">도착</text>
-        {/* 고르는 구슬: 길 위에 서 있는 구슬을 톡 누르면 바로 출발 */}
+        <text x={ox - 10} y={oy - 14} fontSize={17} fill="#6b21a8" stroke="#fff" strokeWidth={4} paintOrder="stroke" style={JUA}>출발!</text>
+        <text x={bxp - 30} y={byp + 38} fontSize={17} fill="#6b21a8" textAnchor="middle" stroke="#fff" strokeWidth={4} paintOrder="stroke" style={JUA}>도착</text>
+        {/* 고르는 공 친구: 길 위에 서 있는 친구를 톡 누르면 바로 출발 */}
         {phase === "ready" &&
           IDS.map((id) => {
             const p = race.paths[id](0.5);
             const cx = X(p.x), cy = Y(p.d);
             return (
-              <g key={id} role="button" tabIndex={0} aria-label={`${NAMES[id]} 구슬이 이길 거라고 고르기`} style={{ cursor: "pointer" }}
+              <g key={id} role="button" tabIndex={0} aria-label={`${PAL[id]}(${NAMES[id]})가 이길 거라고 고르기`} style={{ cursor: "pointer" }}
                 onClick={() => pickRace(id)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), pickRace(id))}>
                 <circle cx={cx} cy={cy} r={34} fill="transparent" />
-                <circle cx={cx} cy={cy} r={20} fill={COLORS[id]} opacity={0.25} className="animate-pulse" />
-                <circle cx={cx} cy={cy} r={13} fill={COLORS[id]} stroke="var(--surface)" strokeWidth={3} />
+                <circle cx={cx} cy={cy} r={23} fill={COLORS[id]} opacity={0.3} className="animate-pulse" />
+                <Face x={cx} y={cy} r={15} id={id} mood="happy" tag={PAL[id]} />
               </g>
             );
           })}
-        {phase !== "ready" && IDS.map((id) => {
-          const p = posAt(tabs[id], clock);
-          return <circle key={id} cx={X(p.x)} cy={Y(p.d)} r={id === pred ? 11 : 9} fill={COLORS[id]} stroke={id === pred ? "var(--ink)" : "var(--surface)"} strokeWidth={id === pred ? 3 : 2.5} />;
-        })}
-        {phase === "done" && <text x={X(race.xb) - 4} y={Y(race.yb) - 14} fontSize={22} textAnchor="middle">🏆</text>}
+        {phase !== "ready" &&
+          [...IDS].sort((a, b) => (a === pred ? 1 : 0) - (b === pred ? 1 : 0)).map((id) => {
+            const arrived = clock >= tabs[id].T;
+            const p = posAt(tabs[id], clock);
+            const x = arrived ? bxp - rank[id] * 24 : X(p.x);
+            const y = arrived ? byp - 4 : Y(p.d);
+            const done = phase === "done";
+            const mood = done ? (id === win ? "happy" : id === pred ? "sad" : "happy") : "wow";
+            const cls = done && id === win ? "br-bounce" : done && id === pred && pred !== win ? "br-shake" : "";
+            return <Face key={id} x={x} y={y} r={id === pred ? 13 : 11} id={id} mood={mood} crown={done && id === win} tag={id === pred ? "내 공!" : undefined} cls={cls} />;
+          })}
+        {phase === "done" && (
+          <g className="br-sparkle">
+            <Sparkle x={bxp - 30} y={byp - 40} />
+            <Sparkle x={bxp + 26} y={byp - 64} s={0.7} />
+            <Sparkle x={bxp - 64} y={byp - 22} s={0.6} />
+          </g>
+        )}
       </svg>
     );
   })();
@@ -221,29 +272,41 @@ export default function BrachistoGame() {
   };
   const bowlSvg = (() => {
     const od = outline.map(([x, h], i) => `${i ? "L" : "M"}${bx(x).toFixed(1)} ${by(h).toFixed(1)}`).join("");
-    const ball = (tb: ReturnType<typeof buildTable>, h0: number, color: string, label: string, sign: number, canDrag: boolean) => {
+    const fillD = `${od} L${bx(outline[outline.length - 1][0]).toFixed(1)} 200 L${bx(outline[0][0]).toFixed(1)} 200 Z`;
+    const ball = (tb: ReturnType<typeof buildTable>, h0: number, who: "A" | "B", sign: number, canDrag: boolean) => {
       const started = bphase !== "ready";
       const p = started ? posAt(tb, bclock) : tb.path(0);
       const h = h0 * BOWL_H - p.d;
       const arrived = started && bclock >= tb.T;
-      const x = bx(sign * p.x) + (arrived ? sign * -12 : 0);
+      const x = bx(sign * p.x) + (arrived ? sign * -14 : 0);
+      const y = by(h) - 12;
+      const id: RaceId = who === "A" ? "cyc" : "arc";
+      const done = bphase === "done";
+      const okNow = done && msg.t === "ok";
       return (
         <g>
-          {canDrag && <circle cx={x} cy={by(h) - 10} r={22} fill={color} opacity={0.2} className="animate-pulse" />}
-          <circle cx={x} cy={by(h) - 10} r={12} fill={color} stroke="var(--surface)" strokeWidth={2.5} />
-          <text x={x} y={by(h) - 5.5} fontSize={13} fontWeight={800} fill="#fff" textAnchor="middle">{label}</text>
+          {canDrag && <circle cx={x} cy={y} r={24} fill={COLORS[id]} opacity={0.25} className="animate-pulse" />}
+          <Face x={x} y={y} r={13} id={id} mood={started && !done ? "wow" : done && !okNow ? "sad" : "happy"} tag={who} cls={done ? (okNow ? "br-bounce" : "br-shake") : ""} />
         </g>
       );
     };
     return (
-      <svg ref={svgRef} viewBox="0 0 400 200" className="w-full select-none rounded-card bg-bg" style={{ touchAction: "none", cursor: bphase === "ready" ? "grab" : "default" }}
+      <svg ref={svgRef} viewBox="0 0 400 200" className="w-full select-none rounded-card" style={{ touchAction: "none", cursor: bphase === "ready" ? "grab" : "default" }}
         onPointerDown={onBowlDown} onPointerMove={onBowlMove} onPointerUp={() => (drag.current = null)} onPointerCancel={() => (drag.current = null)}
         role="img" aria-label={`${BOWL_KO[bowl]}. 공 A 는 ${Math.round(hA * 100)}센티미터, 공 B 는 ${Math.round(hB * 100)}센티미터 높이예요. 공을 끌어서 높이를 바꿔요`}>
-        <path d={od} fill="none" stroke="var(--ink)" strokeWidth={3.5} strokeLinejoin="round" />
-        <text x={bx(0)} y={by(0) + 30} fontSize={14} fill="var(--muted)" textAnchor="middle">바닥</text>
-        {ball(tA, hA, "#e11d48", "A", 1, bphase === "ready")}
-        {ball(tB, hB, "#2563eb", "B", -1, bphase === "ready")}
-        {bphase === "ready" && <text x={200} y={22} fontSize={15} fontWeight={700} fill="var(--muted)" textAnchor="middle">👆 공을 위아래로 끌어 보세요</text>}
+        <SceneDefs />
+        <rect x={0} y={0} width={400} height={200} rx={18} fill="url(#br-sky)" />
+        <g className="gz-float" style={{ transformBox: "fill-box" }}><Cloud x={330} y={30} s={0.8} /></g>
+        <path d={fillD} fill="url(#br-wood)" />
+        <path d={od} fill="none" stroke="#92400e" strokeWidth={6} strokeLinejoin="round" strokeLinecap="round" />
+        <path d={od} fill="none" stroke="#fde68a" strokeWidth={2} strokeLinejoin="round" opacity={0.8} transform="translate(0 -3)" />
+        <g transform={`translate(${bx(0)} ${by(0) + 22})`}>
+          <polygon points="0,-9 2.6,-3 9,-3 4,1.5 6,8 0,4 -6,8 -4,1.5 -9,-3 -2.6,-3" fill="#fde047" stroke="#b45309" strokeWidth={1.5} />
+        </g>
+        <text x={bx(0)} y={by(0) + 33 + 10} fontSize={14} fill="#78350f" textAnchor="middle" style={JUA}>바닥</text>
+        {ball(tA, hA, "A", 1, bphase === "ready")}
+        {ball(tB, hB, "B", -1, bphase === "ready")}
+        {bphase === "ready" && <text x={200} y={24} fontSize={16} fill="#6b21a8" textAnchor="middle" stroke="#fff" strokeWidth={4} paintOrder="stroke" style={JUA}>👆 공 친구를 위아래로 끌어 보세요</text>}
       </svg>
     );
   })();
@@ -256,25 +319,25 @@ export default function BrachistoGame() {
     <Board>
       {view === "race" ? (
         <>
-          <h3 className="text-lg font-extrabold">🛝 미끄럼틀 달리기 경주</h3>
+          <h3 className="font-game text-2xl">🛝 미끄럼틀 달리기 경주</h3>
           <div className="mt-2 flex flex-wrap gap-2">
             <Stat label="판" value={`${round}/${ROUNDS}`} />
             <Stat label="별" value={stars(star)} tone={star ? "ok" : "plain"} />
           </div>
-          <p className="mt-2 text-base font-bold">{phase === "ready" ? "👆 가장 빨리 도착할 것 같은 구슬을 톡 눌러요!" : phase === "run" ? "🏁 달려요! 내 구슬(굵은 테두리)을 응원해요" : "🏁 도착!"}</p>
+          <p className="mt-2 text-base font-bold">{phase === "ready" ? "👆 가장 빨리 도착할 것 같은 공 친구를 톡 눌러요!" : phase === "run" ? "🏁 달려요! ‘내 공!’ 친구를 응원해요" : "🏁 도착!"}</p>
           <div className="mt-1">{raceSvg}</div>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-hidden>
             {IDS.map((id) => (
-              <span key={id} className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLORS[id] }} />{NAMES[id]}</span>
+              <span key={id} className="inline-flex items-center gap-1.5"><span className="inline-block h-4 w-4 rounded-full border-2" style={{ background: COLORS[id], borderColor: DARK[id] }} /><b className="font-game">{PAL[id]}</b> {NAMES[id]}</span>
             ))}
           </div>
           {phase === "done" && (
             <ol className="mt-3 space-y-1 rounded-card bg-bg p-3 text-base" aria-label="도착 순서">
               {order.map((id, i) => (
                 <li key={id} className="flex items-center gap-2">
-                  <span className="w-14 font-extrabold">{i + 1}등{i === 0 ? " 🏆" : ""}</span>
-                  <span className="inline-block h-3.5 w-3.5 rounded-full" style={{ background: COLORS[id] }} aria-hidden />
-                  <span className="flex-1">{NAMES[id]}</span>
+                  <span className="font-game w-16 text-lg">{i + 1}등{i === 0 ? " 👑" : ""}</span>
+                  <span className="inline-block h-4 w-4 rounded-full border-2" style={{ background: COLORS[id], borderColor: DARK[id] }} aria-hidden />
+                  <span className="flex-1"><b className="font-game">{PAL[id]}</b> · {NAMES[id]}</span>
                   <span className="tabular-nums">{tabs[id].T.toFixed(2)}초</span>
                 </li>
               ))}
@@ -294,7 +357,7 @@ export default function BrachistoGame() {
         </>
       ) : (
         <>
-          <h3 className="text-lg font-extrabold">🔥 더 어려운 도전: 높이가 달라도 같이 닿을까?</h3>
+          <h3 className="font-game text-2xl">🔥 더 어려운 도전: 높이가 달라도 같이 닿을까?</h3>
           <div className="mt-2 flex flex-wrap gap-2">
             <Stat label="문제" value={`${bround}/${ROUNDS}`} />
             <Stat label="별" value={stars(bstar)} tone={bstar ? "ok" : "plain"} />
@@ -324,5 +387,88 @@ export default function BrachistoGame() {
         </>
       )}
     </Board>
+  );
+}
+
+// ───── 그림 부품 ─────
+function SceneDefs() {
+  return (
+    <defs>
+      <linearGradient id="br-sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#bae6fd" />
+        <stop offset="0.7" stopColor="#e0f2fe" />
+        <stop offset="1" stopColor="#fef9c3" />
+      </linearGradient>
+      <linearGradient id="br-grass" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#86efac" />
+        <stop offset="1" stopColor="#4ade80" />
+      </linearGradient>
+      <linearGradient id="br-wood" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#fef3c7" />
+        <stop offset="1" stopColor="#fbbf24" />
+      </linearGradient>
+      {IDS.map((id) => (
+        <radialGradient key={id} id={`br-ball-${id}`} cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor={LIGHT[id]} />
+          <stop offset="0.55" stopColor={COLORS[id]} />
+          <stop offset="1" stopColor={DARK[id]} />
+        </radialGradient>
+      ))}
+      <style>{`
+        .br-bounce { animation: br-bounce .5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center bottom; }
+        @keyframes br-bounce { from { transform: translateY(0) scale(1); } to { transform: translateY(-7px) scale(1.1); } }
+        .br-shake { animation: br-shake .45s ease-in-out 3; transform-box: fill-box; transform-origin: center; }
+        @keyframes br-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px) rotate(-8deg); } 75% { transform: translateX(4px) rotate(8deg); } }
+        .br-sparkle { animation: br-tw 1.1s ease-in-out infinite; }
+        @keyframes br-tw { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .br-bounce, .br-shake, .br-sparkle { animation: none; } }
+      `}</style>
+    </defs>
+  );
+}
+
+function Cloud({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} fill="#ffffff" stroke="#bae6fd" strokeWidth={2}>
+      <ellipse cx={0} cy={6} rx={30} ry={11} />
+      <circle cx={-10} cy={0} r={12} />
+      <circle cx={8} cy={-4} r={15} />
+    </g>
+  );
+}
+
+function Sparkle({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return <path transform={`translate(${x} ${y}) scale(${s})`} d="M0 -12 L3 -3 L12 0 L3 3 L0 12 L-3 3 L-12 0 L-3 -3 Z" fill="#fde047" stroke="#f59e0b" strokeWidth={1.5} />;
+}
+
+/** 얼굴 있는 공 친구 */
+function Face({ x, y, r, id, mood, crown, tag, cls = "" }: { x: number; y: number; r: number; id: RaceId; mood: "happy" | "wow" | "sad"; crown?: boolean; tag?: string; cls?: string }) {
+  const ink = "#1f1630";
+  return (
+    <g transform={`translate(${x} ${y})`} pointerEvents="none">
+      <g className={cls}>
+        <ellipse cx={0} cy={r * 0.98} rx={r * 0.8} ry={r * 0.22} fill="#000" opacity={0.15} />
+        <circle r={r} fill={`url(#br-ball-${id})`} stroke={DARK[id]} strokeWidth={2.5} />
+        <ellipse cx={-r * 0.38} cy={-r * 0.5} rx={r * 0.28} ry={r * 0.16} fill="#fff" opacity={0.6} transform={`rotate(-30 ${-r * 0.38} ${-r * 0.5})`} />
+        <ellipse cx={-r * 0.33} cy={-r * 0.08} rx={r * 0.12} ry={r * 0.17} fill={ink} />
+        <ellipse cx={r * 0.33} cy={-r * 0.08} rx={r * 0.12} ry={r * 0.17} fill={ink} />
+        <circle cx={-r * 0.29} cy={-r * 0.15} r={r * 0.05} fill="#fff" />
+        <circle cx={r * 0.37} cy={-r * 0.15} r={r * 0.05} fill="#fff" />
+        <ellipse cx={-r * 0.6} cy={r * 0.22} rx={r * 0.15} ry={r * 0.09} fill="#fb7185" opacity={0.7} />
+        <ellipse cx={r * 0.6} cy={r * 0.22} rx={r * 0.15} ry={r * 0.09} fill="#fb7185" opacity={0.7} />
+        {mood === "happy" && <path d={`M${-r * 0.28} ${r * 0.2} Q0 ${r * 0.55} ${r * 0.28} ${r * 0.2}`} fill="none" stroke={ink} strokeWidth={2} strokeLinecap="round" />}
+        {mood === "wow" && <ellipse cx={0} cy={r * 0.33} rx={r * 0.13} ry={r * 0.17} fill={ink} />}
+        {mood === "sad" && <path d={`M${-r * 0.25} ${r * 0.42} Q0 ${r * 0.18} ${r * 0.25} ${r * 0.42}`} fill="none" stroke={ink} strokeWidth={2} strokeLinecap="round" />}
+        {crown && (
+          <path d={`M${-r * 0.7} ${-r * 0.8} L${-r * 0.75} ${-r * 1.55} L${-r * 0.35} ${-r * 1.15} L0 ${-r * 1.7} L${r * 0.35} ${-r * 1.15} L${r * 0.75} ${-r * 1.55} L${r * 0.7} ${-r * 0.8} Z`} fill="#fbbf24" stroke="#b45309" strokeWidth={2} strokeLinejoin="round" />
+        )}
+      </g>
+      {tag && (
+        <g transform={`translate(0 ${-r - (crown ? r * 0.9 : 0) - 14})`}>
+          <rect x={-tag.length * 7 - 6} y={-11} width={tag.length * 14 + 12} height={20} rx={10} fill="#ffffff" stroke={DARK[id]} strokeWidth={2} />
+          <text y={4} fontSize={13} fill={DARK[id]} textAnchor="middle" style={JUA}>{tag}</text>
+        </g>
+      )}
+    </g>
   );
 }

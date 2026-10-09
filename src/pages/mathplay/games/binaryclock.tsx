@@ -66,9 +66,46 @@ function Bulbs({ bits, onToggle, label, size = "lg", guide }: { bits: boolean[];
       onPointerCancel={() => (sweep.current = null)}
     >
       {bits.map((on, i) => {
-        const cls = `aspect-square min-h-[48px] min-w-[48px] w-full rounded-full border-2 text-xl font-extrabold transition ${
-          on ? "border-amber-500 bg-amber-300 text-amber-950 shadow-[0_0_18px_4px_rgba(251,191,36,0.55)]" : "border-line bg-bg text-muted shadow-md"
-        }`;
+        const cls = "relative block w-full min-h-[48px] min-w-[44px] rounded-2xl bg-transparent";
+        const art = (
+          <svg key={on ? "on" : "off"} viewBox="0 0 60 84" className="gz-pop pointer-events-none block w-full" style={{ filter: on ? "drop-shadow(0 0 10px rgba(251,191,36,0.9))" : "drop-shadow(0 3px 0 rgba(67,56,202,0.25))" }} aria-hidden="true">
+            <defs>
+              <radialGradient id="bc-on" cx="0.45" cy="0.4" r="0.6">
+                <stop offset="0" stopColor="#fffbeb" />
+                <stop offset="0.55" stopColor="#fde047" />
+                <stop offset="1" stopColor="#f59e0b" />
+              </radialGradient>
+              <radialGradient id="bc-off" cx="0.4" cy="0.35" r="0.7">
+                <stop offset="0" stopColor="#f5f3ff" />
+                <stop offset="1" stopColor="#c7d2fe" />
+              </radialGradient>
+              <linearGradient id="bc-brass" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="#b45309" />
+                <stop offset="0.45" stopColor="#fde68a" />
+                <stop offset="1" stopColor="#b45309" />
+              </linearGradient>
+            </defs>
+            {on && (
+              <g stroke="#f59e0b" strokeWidth="3" strokeLinecap="round">
+                <line x1="30" y1="1" x2="30" y2="5" />
+                <line x1="6" y1="10" x2="9" y2="13" />
+                <line x1="54" y1="10" x2="51" y2="13" />
+                <line x1="1" y1="30" x2="5" y2="30" />
+                <line x1="59" y1="30" x2="55" y2="30" />
+              </g>
+            )}
+            <path d="M 30 7 C 15 7 8 18 8 29 C 8 39 15 44 19 52 L 41 52 C 45 44 52 39 52 29 C 52 18 45 7 30 7 Z" fill={on ? "url(#bc-on)" : "url(#bc-off)"} stroke={on ? "#d97706" : "#6366f1"} strokeWidth="3" strokeLinejoin="round" />
+            <ellipse cx="21" cy="20" rx="5" ry="8" fill="#fff" opacity="0.7" transform="rotate(25 21 20)" />
+            <path d="M 24 52 L 24 44 Q 27 38 30 44 Q 33 38 36 44 L 36 52" fill="none" stroke={on ? "#ea580c" : "#818cf8"} strokeWidth="2" />
+            <rect x="18" y="52" width="24" height="16" rx="4" fill="url(#bc-brass)" stroke="#92400e" strokeWidth="2" />
+            <line x1="19" y1="57" x2="41" y2="57" stroke="#92400e" strokeWidth="1.5" />
+            <line x1="19" y1="62" x2="41" y2="62" stroke="#92400e" strokeWidth="1.5" />
+            <path d="M 24 68 L 36 68 L 33 74 L 27 74 Z" fill="#78350f" />
+            <text x="30" y="36" textAnchor="middle" fontSize={w[i] >= 10 ? 17 : 20} fill={on ? "#78350f" : "#4338ca"} stroke={on ? "#fffbeb" : "#fff"} strokeWidth="3" paintOrder="stroke" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+              {w[i]}
+            </text>
+          </svg>
+        );
         return (
           <div key={i} className="relative flex flex-1 flex-col items-center gap-1" style={{ maxWidth: maxW }}>
             {guide === i && <span className="pointer-events-none absolute left-0 right-0 top-0 aspect-square animate-ping rounded-full border-4 border-orange-500" />}
@@ -86,14 +123,14 @@ function Bulbs({ bits, onToggle, label, size = "lg", guide }: { bits: boolean[];
                 }}
                 className={cls}
               >
-                {on ? 1 : 0}
+                {art}
               </button>
             ) : (
-              <div role="img" aria-label={`${w[i]}의 불 ${on ? "켜짐" : "꺼짐"}`} className={`${cls} flex items-center justify-center`}>
-                {on ? 1 : 0}
+              <div role="img" aria-label={`${w[i]}의 불 ${on ? "켜짐" : "꺼짐"}`} className={cls}>
+                {art}
               </div>
             )}
-            <span className="text-base font-bold tabular-nums text-muted">{w[i]}</span>
+            <span className={`font-game rounded-full px-2.5 text-lg leading-7 tabular-nums ${on ? "bg-amber-300 text-amber-950" : "bg-indigo-100 text-indigo-700"}`}>{on ? 1 : 0}</span>
           </div>
         );
       })}
@@ -101,16 +138,39 @@ function Bulbs({ bits, onToggle, label, size = "lg", guide }: { bits: boolean[];
   );
 }
 
-function Balloon({ n, ok }: { n: number; ok: boolean }) {
+function Balloon({ n, ok, sad }: { n: number; ok: boolean; sad: boolean }) {
+  const c = ok ? ["#bbf7d0", "#22c55e", "#15803d"] : ["#fecdd3", "#f43f5e", "#9f1239"];
   return (
-    <div className="flex flex-col items-center" aria-live="polite">
-      <style>{`@keyframes bc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}`}</style>
-      <div style={{ animation: "bc-bob 2.4s ease-in-out infinite" }} className="flex flex-col items-center">
-        <div className={`flex h-24 w-20 items-center justify-center rounded-[50%_50%_46%_46%] text-5xl font-extrabold tabular-nums text-white shadow-lg ${ok ? "bg-ok" : "bg-rose-500"}`}>{n}</div>
-        <div className={`-mt-1 h-0 w-0 border-x-[7px] border-b-[10px] border-x-transparent ${ok ? "border-b-ok" : "border-b-rose-500"}`} />
-        <div className="h-5 w-px bg-slate-400" />
+    <div className="flex flex-col items-center" aria-live="polite" data-target={n}>
+      <style>{`
+        @keyframes bc-shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}75%{transform:rotate(7deg)}}
+        @keyframes bc-yay{0%,100%{transform:translateY(0) scale(1)}40%{transform:translateY(-14px) scale(1.12)}}
+        .bc-shake{animation:bc-shake .35s ease-in-out 2;transform-origin:50% 100%}
+        .bc-yay{animation:bc-yay .6s ease-in-out infinite}
+        @media (prefers-reduced-motion: reduce){.bc-shake,.bc-yay{animation:none}}
+      `}</style>
+      <div className="gz-float">
+        <div key={`${n}-${ok}-${sad}`} className={ok ? "bc-yay" : sad ? "bc-shake" : "gz-pop"}>
+          <svg viewBox="0 0 100 150" width="104" height="156" role="img" aria-label={`풍선 숫자 ${n}`} style={{ fontFamily: "Jua, Pretendard Variable, sans-serif", overflow: "visible" }}>
+            <defs>
+              <radialGradient id={`bc-bal-${ok ? "ok" : "no"}`} cx="0.35" cy="0.3" r="0.75">
+                <stop offset="0" stopColor={c[0]} />
+                <stop offset="0.5" stopColor={c[1]} />
+                <stop offset="1" stopColor={c[2]} />
+              </radialGradient>
+            </defs>
+            <path d="M 50 104 C 46 114 56 120 50 130 C 44 140 54 144 50 150" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" />
+            <ellipse cx="54" cy="57" rx="40" ry="47" fill="rgba(0,0,0,0.12)" />
+            <path d="M 50 104 C 18 92 8 70 8 50 C 8 24 27 6 50 6 C 73 6 92 24 92 50 C 92 70 82 92 50 104 Z" fill={`url(#bc-bal-${ok ? "ok" : "no"})`} stroke={c[2]} strokeWidth="3" />
+            <path d="M 44 104 L 56 104 L 52 98 L 48 98 Z" fill={c[2]} />
+            <ellipse cx="32" cy="30" rx="8" ry="14" fill="#fff" opacity="0.6" transform="rotate(25 32 30)" />
+            <text x="50" y="66" textAnchor="middle" fontSize={n >= 10 ? 44 : 52} fill="#fff" stroke={c[2]} strokeWidth="5" paintOrder="stroke">
+              {n}
+            </text>
+          </svg>
+        </div>
       </div>
-      <p className="text-base text-muted">이 수를 만들어요!</p>
+      <p className="font-game text-lg text-muted">이 수를 만들어요!</p>
     </div>
   );
 }
@@ -250,11 +310,11 @@ export default function BinaryClockGame() {
 
         {mode !== "clock" && (
           <div className="space-y-3">
-            {mode === "quiz" && <Balloon n={target} ok={solved} />}
+            {mode === "quiz" && <Balloon n={target} ok={solved} sad={!solved && value > target} />}
             <Bulbs bits={bits} onToggle={toggle} guide={needFirst} label={`불 ${len}개: ${weights(len).join(", ")}`} />
             <div className="text-center">
               <p className="text-muted">지금 내가 만든 수</p>
-              <p className={`text-5xl font-extrabold tabular-nums ${mode === "quiz" && solved ? "text-ok" : "text-ink"}`}>{value}</p>
+              <p className={`font-game text-5xl tabular-nums ${mode === "quiz" && solved ? "text-ok" : "text-ink"}`}>{value}</p>
               <p className="tabular-nums text-muted">{sumText(bits)}</p>
             </div>
           </div>
@@ -272,7 +332,7 @@ export default function BinaryClockGame() {
             </div>
             <div className="text-center">
               <p className="text-muted">지금 시각</p>
-              <p className="text-4xl font-extrabold tabular-nums">{hideDigits && !peek ? "--시 --분" : `${pad(hh)}시 ${pad(mm)}분`}</p>
+              <p className="font-game text-4xl tabular-nums">{hideDigits && !peek ? "--시 --분" : `${pad(hh)}시 ${pad(mm)}분`}</p>
               <p className="tabular-nums text-muted">{hideDigits && !peek ? "불을 읽어서 시각을 맞혀 봐요" : `시: ${sumText(toBits(hh, 5))} / 분: ${sumText(toBits(mm, 6))}`}</p>
             </div>
           </div>

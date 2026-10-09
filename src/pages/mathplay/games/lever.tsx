@@ -57,6 +57,63 @@ const SLOTS = [-3, -2, -1, 1, 2, 3];
 const SHELF_X: Record<number, number> = { 1: 110, 2: 220, 3: 330 };
 const SHELF_Y = 322; // 선반 위 추의 바닥
 const blockH = (w: number) => 22 + w * 8;
+const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const CSS = `
+@keyframes lv-hop { 0%,100% { transform: translateY(0); } 35% { transform: translateY(-14px); } 65% { transform: translateY(0); } 82% { transform: translateY(-5px); } }
+@keyframes lv-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
+.lv-hop { animation: lv-hop .8s ease-out; transform-box: fill-box; transform-origin: center bottom; }
+.lv-shake { animation: lv-shake .4s ease-in-out; }
+@media (prefers-reduced-motion: reduce) { .lv-hop, .lv-shake { animation: none; } }
+`;
+const LOOK: Record<number, { body: string; line: string }> = {
+  1: { body: "#f9a8d4", line: "#be185d" }, // 토끼
+  2: { body: "#fde047", line: "#a16207" }, // 병아리
+  3: { body: "#fdba74", line: "#c2410c" }, // 곰
+};
+/** 무게가 몸에 적힌 동물 친구(바닥 가운데 cx, 바닥 높이 bottom) */
+function Critter({ cx, bottom, w, team, mood }: { cx: number; bottom: number; w: number; team?: boolean; mood: "happy" | "calm" }) {
+  const h = blockH(w);
+  const rx = 15 + w * 3;
+  const cy = bottom - h / 2;
+  const c = team ? { body: "#93c5fd", line: "#1d4ed8" } : LOOK[w];
+  const ex = rx * 0.38;
+  const ey = cy - h * 0.16;
+  return (
+    <g pointerEvents="none">
+      <ellipse cx={cx} cy={bottom + 1} rx={rx * 0.9} ry="3" fill="rgba(0,0,0,0.18)" />
+      {w === 1 && (
+        <g fill={c.body} stroke={c.line} strokeWidth="2.5">
+          <ellipse cx={cx - 7} cy={cy - h / 2 - 7} rx="4.5" ry="10" />
+          <ellipse cx={cx + 7} cy={cy - h / 2 - 7} rx="4.5" ry="10" />
+        </g>
+      )}
+      {w === 3 && (
+        <g fill={c.body} stroke={c.line} strokeWidth="2.5">
+          <circle cx={cx - rx * 0.62} cy={cy - h / 2 + 4} r="7" />
+          <circle cx={cx + rx * 0.62} cy={cy - h / 2 + 4} r="7" />
+        </g>
+      )}
+      {w === 2 && <path d={`M ${cx - 4} ${cy - h / 2 + 2} Q ${cx} ${cy - h / 2 - 10} ${cx + 4} ${cy - h / 2 + 2}`} fill={c.body} stroke={c.line} strokeWidth="2.5" />}
+      <ellipse cx={cx} cy={cy} rx={rx} ry={h / 2} fill={c.body} stroke={c.line} strokeWidth="3" />
+      <ellipse cx={cx - rx * 0.35} cy={cy - h * 0.25} rx={rx * 0.32} ry={h * 0.13} fill="#fff" opacity="0.45" />
+      <circle cx={cx - ex} cy={ey} r="2.8" fill="#1e1b4b" />
+      <circle cx={cx + ex} cy={ey} r="2.8" fill="#1e1b4b" />
+      <circle cx={cx - ex - 4} cy={ey + 6} r="2.6" fill="#fb7185" opacity="0.7" />
+      <circle cx={cx + ex + 4} cy={ey + 6} r="2.6" fill="#fb7185" opacity="0.7" />
+      {w === 2 ? (
+        <path d={`M ${cx - 4} ${ey + 4} L ${cx + 4} ${ey + 4} L ${cx} ${ey + 9} Z`} fill="#fb923c" stroke="#c2410c" strokeWidth="1" />
+      ) : mood === "happy" ? (
+        <path d={`M ${cx - 5} ${ey + 4} Q ${cx} ${ey + 11} ${cx + 5} ${ey + 4}`} fill="#be123c" stroke="#1e1b4b" strokeWidth="1.5" />
+      ) : (
+        <path d={`M ${cx - 3.5} ${ey + 6} Q ${cx} ${ey + 8.5} ${cx + 3.5} ${ey + 6}`} fill="none" stroke="#1e1b4b" strokeWidth="1.8" strokeLinecap="round" />
+      )}
+      <rect x={cx - 16} y={cy + h / 2 - 17} width="32" height="14" rx="7" fill="#fff" stroke={c.line} strokeWidth="1.5" />
+      <text x={cx} y={cy + h / 2 - 6} fontSize="12" textAnchor="middle" fill="#1e1b4b" style={GF}>
+        {w}kg
+      </text>
+    </g>
+  );
+}
 const rad = (d: number) => (d * Math.PI) / 180;
 
 type Mode = "problem" | "free";
@@ -78,6 +135,7 @@ export default function LeverGame() {
   const [peeked, setPeeked] = useState(false);
   const [touched, setTouched] = useState(false);
   const [ang, setAng] = useState(0);
+  const [hopKey, setHopKey] = useState(0);
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -130,11 +188,15 @@ export default function LeverGame() {
     if (mode === "problem" && !done && netTorque([...prob.fixed, ...list]) === 0 && list.length > 0) {
       setDone(true);
       cheer();
+      setHopKey((k) => k + 1);
       if (!peeked) setSolved((v) => v + 1);
       if (round < ROUNDS) {
         timer.current = window.setTimeout(() => newProblem(hard, true), 2200);
       }
-    } else if (mode === "free" && netTorque(list) === 0 && list.some((x) => x.slot < 0) && list.some((x) => x.slot > 0)) cheer();
+    } else if (mode === "free" && netTorque(list) === 0 && list.some((x) => x.slot < 0) && list.some((x) => x.slot > 0)) {
+      cheer();
+      setHopKey((k) => k + 1);
+    }
   };
 
   const newProblem = (h = hard, advance = false) => {
@@ -243,15 +305,6 @@ export default function LeverGame() {
     return part.length ? part.map((x) => `${x.w}×${Math.abs(x.slot)}`).join(" + ") : "0";
   };
 
-  const block = (cx: number, bottom: number, w: number, color: string, stroke: string, key?: string, lift = false) => (
-    <g key={key} transform={lift ? `rotate(0)` : undefined}>
-      <rect x={cx - 21} y={bottom - blockH(w)} width="42" height={blockH(w)} rx="5" fill={color} stroke={stroke} strokeWidth="1.5" />
-      <text x={cx} y={bottom - blockH(w) / 2 + 5} fontSize="15" fontWeight="800" textAnchor="middle" fill="#fff" pointerEvents="none">
-        {w}kg
-      </text>
-    </g>
-  );
-
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -261,13 +314,14 @@ export default function LeverGame() {
       </div>
 
       <Board>
-        <p className="mb-2 text-center text-base font-semibold">
+        <style>{CSS}</style>
+        <p className="font-game mb-2 text-center text-xl">
           {mode === "problem" ? "아래 추를 끌어다 오른쪽 칸에 놓아 수평을 만들어요!" : "추를 끌어다 칸에 놓아서 막대를 수평으로 만들어 봐요!"}
         </p>
         <svg
           ref={svgRef}
           viewBox="0 0 440 345"
-          className="mx-auto block w-full max-w-[640px] touch-none select-none rounded-card bg-bg"
+          className="mx-auto block w-full max-w-[640px] touch-none select-none overflow-hidden rounded-card"
           style={{ touchAction: "none" }}
           role="group"
           aria-label={`막대 저울. 지금 ${net === 0 ? "수평" : net > 0 ? "오른쪽이 무거워요" : "왼쪽이 무거워요"}. 선반의 추를 끌어서 칸에 놓아요.`}
@@ -276,56 +330,104 @@ export default function LeverGame() {
           onPointerUp={up}
           onPointerCancel={() => setDrag(null)}
         >
-          <polygon points={`${CX},${CY} ${CX - 26},${CY + 62} ${CX + 26},${CY + 62}`} fill="#9ca3af" stroke="#6b7280" />
-          <rect x={CX - 70} y={CY + 62} width="140" height="10" rx="3" fill="#6b7280" />
+          <defs>
+            <linearGradient id="lv-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#7dd3fc" />
+              <stop offset="1" stopColor="#e0f2fe" />
+            </linearGradient>
+            <linearGradient id="lv-grass" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#86efac" />
+              <stop offset="1" stopColor="#22c55e" />
+            </linearGradient>
+            <linearGradient id="lv-wood" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fcd34d" />
+              <stop offset="1" stopColor="#d97706" />
+            </linearGradient>
+            <linearGradient id="lv-stand" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#fb7185" />
+              <stop offset="1" stopColor="#e11d48" />
+            </linearGradient>
+          </defs>
+          {/* 놀이터: 하늘·해·구름·잔디 */}
+          <rect x="0" y="0" width="440" height="345" fill="url(#lv-sky)" />
+          <circle cx="398" cy="38" r="22" fill="#fde047" stroke="#f59e0b" strokeWidth="3" />
+          <g fill="#fff" opacity="0.9">
+            <ellipse cx="70" cy="40" rx="30" ry="12" />
+            <ellipse cx="92" cy="32" rx="18" ry="12" />
+            <ellipse cx="290" cy="28" rx="24" ry="9" />
+            <ellipse cx="308" cy="22" rx="14" ry="9" />
+          </g>
+          <path d="M 0 205 Q 110 188 220 200 T 440 196 L 440 345 L 0 345 Z" fill="url(#lv-grass)" />
+          {[40, 95, 150, 300, 350, 410].map((x, i) => (
+            <path key={x} d={`M ${x} ${232 + (i % 3) * 8} l 3 -9 l 3 9`} fill="none" stroke="#15803d" strokeWidth="2" strokeLinecap="round" />
+          ))}
+
+          {/* 받침 */}
+          <path d={`M ${CX} ${CY - 4} L ${CX - 30} ${CY + 62} Q ${CX} ${CY + 70} ${CX + 30} ${CY + 62} Z`} fill="url(#lv-stand)" stroke="#9f1239" strokeWidth="3" strokeLinejoin="round" />
+          <ellipse cx={CX} cy={CY + 66} rx="60" ry="8" fill="rgba(0,0,0,0.15)" />
 
           <g transform={`rotate(${ang} ${CX} ${CY})`}>
-            <rect x={CX - 215} y={CY - 6} width="430" height="12" rx="4" fill={balanced ? "#86efac" : "#d6b27a"} stroke={balanced ? "#15803d" : "#92400e"} />
+            {/* 시소 판 */}
+            <rect x={CX - 215} y={CY - 7} width="430" height="14" rx="7" fill="url(#lv-wood)" stroke="#92400e" strokeWidth="3" />
+            {[-1, 1].map((d) => (
+              <g key={d}>
+                <rect x={CX + d * 200 - 4} y={CY - 26} width="8" height="20" rx="3" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
+                <rect x={CX + d * 200 - 9} y={CY - 30} width="18" height="7" rx="3.5" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
+              </g>
+            ))}
             {Array.from({ length: 7 }, (_, i) => i - 3).map((s) => (
               <g key={s}>
-                <line x1={CX + s * GAP} y1={CY - 6} x2={CX + s * GAP} y2={CY + 6} stroke="#92400e" strokeWidth={s === 0 ? 2.5 : 1.2} />
-                <text x={CX + s * GAP} y={CY + 26} fontSize="16" fontWeight="700" textAnchor="middle" fill="#6b4a1f">
+                <line x1={CX + s * GAP} y1={CY - 5} x2={CX + s * GAP} y2={CY + 5} stroke="#92400e" strokeWidth={s === 0 ? 3 : 2} strokeLinecap="round" />
+                <circle cx={CX + s * GAP} cy={CY + 22} r="11" fill="#fff" stroke="#d97706" strokeWidth="2" />
+                <text x={CX + s * GAP} y={CY + 28} fontSize="16" textAnchor="middle" fill="#92400e" style={GF}>
                   {Math.abs(s)}
                 </text>
               </g>
             ))}
+            <g key={`crew${hopKey}`} className={balanced ? "lv-hop" : ""}>
+              {SLOTS.map((s) => {
+                const w = all.find((q) => q.slot === s);
+                if (!w) return null;
+                return <Critter key={s} cx={CX + s * GAP} bottom={CY - 7} w={w.w} team={!mine.some((q) => q.slot === s)} mood={balanced ? "happy" : "calm"} />;
+              })}
+            </g>
             {SLOTS.map((s) => {
               const x = CX + s * GAP;
               const w = all.find((q) => q.slot === s);
-              const isMine = mine.some((q) => q.slot === s);
               const open = slotOpen(s);
               const hov = hoverSlot === s;
+              if (w || !open) return null;
               return (
-                <g key={s}>
-                  {w && (
-                    <g>
-                      <rect x={x - 21} y={CY - 6 - blockH(w.w)} width="42" height={blockH(w.w)} rx="5" fill={isMine ? "#f59e0b" : "#3b82f6"} stroke={isMine ? "#b45309" : "#1d4ed8"} strokeWidth="1.5" style={{ cursor: isMine ? "grab" : "default" }} />
-                      <text x={x} y={CY - 6 - blockH(w.w) / 2 + 5} fontSize="15" fontWeight="800" textAnchor="middle" fill="#fff" pointerEvents="none">
-                        {w.w}kg
-                      </text>
-                    </g>
-                  )}
-                  {!w && open && (
-                    <g aria-hidden="true">
-                      <circle cx={x} cy={CY - 30} r={hov ? 24 : 18} fill={hov ? "rgba(34,197,94,0.3)" : "rgba(99,102,241,0.12)"} stroke={hov ? "#16a34a" : "#6366f1"} strokeWidth="2" strokeDasharray={hov ? "0" : "4 3"} />
-                      <text x={x} y={CY - 22} fontSize="24" fontWeight="700" textAnchor="middle" fill={hov ? "#15803d" : "#6366f1"}>+</text>
-                    </g>
-                  )}
+                <g key={s} aria-hidden="true">
+                  <circle cx={x} cy={CY - 30} r={hov ? 24 : 18} fill={hov ? "rgba(34,197,94,0.45)" : "rgba(255,255,255,0.75)"} stroke={hov ? "#15803d" : "#e8552f"} strokeWidth="2.5" strokeDasharray={hov ? "0" : "5 3"} />
+                  <text x={x} y={CY - 21} fontSize="26" textAnchor="middle" fill={hov ? "#15803d" : "#e8552f"} style={GF}>+</text>
                 </g>
               );
             })}
+            {balanced && (
+              <g aria-hidden="true">
+                {[-200, 200].map((d) => (
+                  <text key={d} x={CX + d} y={CY - 44} fontSize="20" textAnchor="middle">✨</text>
+                ))}
+              </g>
+            )}
           </g>
-          <circle cx={CX} cy={CY} r="5" fill="#1f2937" />
-          <text x={CX - 205} y={CY + 84} fontSize="14" fill="#6b7280">왼쪽</text>
-          <text x={CX + 165} y={CY + 84} fontSize="14" fill="#6b7280">오른쪽</text>
+          <circle cx={CX} cy={CY} r="6" fill="#fde047" stroke="#92400e" strokeWidth="2.5" />
+          <text x={CX - 205} y={CY + 84} fontSize="15" fill="#14532d" style={GF}>왼쪽</text>
+          <text x={CX + 160} y={CY + 84} fontSize="15" fill="#14532d" style={GF}>오른쪽</text>
 
-          {/* 선반 */}
-          <rect x="20" y={SHELF_Y + 4} width="400" height="14" rx="4" fill="#a8a29e" />
-          <text x="220" y={SHELF_Y - 62} fontSize="13" textAnchor="middle" fill="#78716c" aria-hidden="true">추 선반 (끌어서 올려요)</text>
+          {/* 대기석 벤치 */}
+          <rect x="34" y={SHELF_Y + 10} width="10" height="16" rx="3" fill="#92400e" />
+          <rect x="396" y={SHELF_Y + 10} width="10" height="16" rx="3" fill="#92400e" />
+          <rect x="20" y={SHELF_Y + 3} width="400" height="12" rx="6" fill="url(#lv-wood)" stroke="#92400e" strokeWidth="2.5" />
+          <g aria-hidden="true">
+            <rect x="140" y={SHELF_Y - 76} width="160" height="24" rx="12" fill="#fff" stroke="#16a34a" strokeWidth="2" />
+            <text x="220" y={SHELF_Y - 59} fontSize="14" textAnchor="middle" fill="#166534" style={GF}>대기석 · 끌어서 태워요</text>
+          </g>
           {[1, 2, 3].map((w) => (
-            <g key={w} opacity={drag && drag.from === "shelf" && drag.w === w ? 0.45 : 1} style={{ cursor: "grab" }}>
-              {block(SHELF_X[w], SHELF_Y + 4, w, "#f59e0b", "#b45309")}
-              {pick === w && !drag && <rect x={SHELF_X[w] - 26} y={SHELF_Y + 4 - blockH(w) - 5} width="52" height={blockH(w) + 10} rx="8" fill="none" stroke="#6366f1" strokeWidth="2.5" />}
+            <g key={w} opacity={drag && drag.from === "shelf" && drag.w === w ? 0.4 : 1} style={{ cursor: "grab" }}>
+              <Critter cx={SHELF_X[w]} bottom={SHELF_Y + 3} w={w} mood="calm" />
+              {pick === w && !drag && <rect x={SHELF_X[w] - 30} y={SHELF_Y + 3 - blockH(w) - 16} width="60" height={blockH(w) + 22} rx="12" fill="none" stroke="#e8552f" strokeWidth="3" />}
             </g>
           ))}
           {!touched && !done && (
@@ -336,12 +438,8 @@ export default function LeverGame() {
             </text>
           )}
 
-          {/* 끌고 있는 추: 손가락 위로 띄워서 가려지지 않게 */}
-          {drag && (
-            <g pointerEvents="none">
-              {block(drag.x, drag.y - 34 + blockH(drag.w) / 2, drag.w, "#f59e0b", "#b45309")}
-            </g>
-          )}
+          {/* 끌고 있는 동물: 손가락 위로 띄워서 가려지지 않게 */}
+          {drag && <Critter cx={drag.x} bottom={drag.y - 34 + blockH(drag.w) / 2} w={drag.w} mood="happy" />}
         </svg>
 
         {hint && (

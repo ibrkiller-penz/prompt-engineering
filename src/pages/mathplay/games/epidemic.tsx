@@ -1,13 +1,13 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Board, GButton, Slider, cheer, oops, svgPoint, tick, useFrame } from "./kit";
 import { BIG, Pill, Stars, Talk } from "./easykit";
+import { EPI_CSS, EpiDefs, MiniFace, Tile, VillageFrame, VirusPop } from "./epidemic.art";
 import { DEFAULT_P, DURATION, I, LEVELS, R, S, V, build, count, idx, shuffled, starsFor, stepSim, type Level, type Sim } from "./epidemic.logic";
 
 type Phase = "ready" | "run" | "pause" | "done";
 type Msg = { t: string; tone: "info" | "ok" | "bad" };
-const COLOR: Record<number, string> = { [S]: "#cbd5e1", [I]: "#ef4444", [R]: "#22c55e", [V]: "#3b82f6" };
-const FACE: Record<number, string> = { [S]: "🙂", [I]: "🤒", [R]: "😄", [V]: "💉" };
 const CELL = 40;
+const PAD = 14;
 
 function newVillage(level: Level) {
   const { size, starts: n } = LEVELS[level];
@@ -36,6 +36,7 @@ export default function EpidemicGame() {
   const [left, setLeft] = useState(0);
   const [msg, setMsg] = useState<Msg>({ t: "빨간 얼굴이 아픈 친구예요. 둘레를 쓱쓱 문질러 백신을 놓아 막아요!", tone: "info" });
   const [cursor, setCursor] = useState(0);
+  const [fresh, setFresh] = useState<{ k: number; list: number[] }>({ k: 0, list: [] });
   const acc = useRef(0);
   const painting = useRef<"add" | "erase" | null>(null);
   const live = useRef<{ cells: Uint8Array; manual: Uint8Array; age: Uint8Array }>({ cells: new Uint8Array(0), manual: new Uint8Array(0), age: new Uint8Array(0) });
@@ -75,6 +76,9 @@ export default function EpidemicGame() {
   const doStep = () => {
     const ns = stepSim(sim, size, p, DURATION, Math.random);
     const h = [...hist, count(ns.cells, I)];
+    const list: number[] = [];
+    for (let i = 0; i < ns.cells.length; i++) if (sim.cells[i] === S && ns.cells[i] === I) list.push(i);
+    setFresh({ k: h.length, list });
     setSim(ns);
     setHist(h);
     if (h[h.length - 1] === 0 || h.length > 300) finish(ns.cells, h);
@@ -104,6 +108,7 @@ export default function EpidemicGame() {
     setManual(v.manual);
     setSim(build(LEVELS[lv].size, v.starts, v.order, pct / 100, v.manual));
     setHist([v.starts.length]);
+    setFresh({ k: 0, list: [] });
     setPhase("ready");
     setResult(null);
     setLeft(0);
@@ -214,26 +219,27 @@ export default function EpidemicGame() {
 
   return (
     <div className="space-y-3">
+      <style>{EPI_CSS}</style>
       <Board className="space-y-3">
         {phase === "done" && result ? (
           <div className="space-y-1 rounded-card bg-bg p-3 text-center">
-            <p className="text-4xl"><Stars n={result.stars} /></p>
+            <p className="gz-pop text-4xl"><Stars n={result.stars} /></p>
             <p className="text-base">아팠던 친구는 <strong>{(result.ratio * 100).toFixed(0)}%</strong> · 가장 많이 아팠을 때 <strong>{result.peak}명</strong></p>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-3">
             <div className="rounded-card bg-accent-soft px-4 py-2 text-center">
-              <div className="text-sm font-bold">💉 남은 백신</div>
-              <div className="text-4xl font-extrabold tabular-nums" aria-live="polite">{Math.max(0, budget - mUsed)}</div>
+              <div className="text-sm font-bold">🛡️ 남은 백신</div>
+              <div className="font-game text-5xl tabular-nums text-accent" aria-live="polite">{Math.max(0, budget - mUsed)}</div>
             </div>
-            <div className="flex-1 text-base font-bold leading-snug">🎯 아픈 친구를 <span className="text-bad">20%보다 적게</span> 막아요!</div>
+            <div className="font-game flex-1 text-xl leading-snug">🎯 아픈 친구를 <span className="text-bad">20%보다 적게</span> 막아요!</div>
           </div>
         )}
         <Talk tone={msg.tone}>{msg.t}</Talk>
-        <div className="mx-auto w-full max-w-[440px]">
+        <div className={`mx-auto w-full max-w-[460px] ${phase === "done" && result ? (won ? "epi-party" : "epi-shake") : ""}`}>
           <svg
-            viewBox={`0 0 ${size * CELL} ${size * CELL}`}
-            className="w-full touch-none select-none rounded-card bg-bg"
+            viewBox={`${-PAD} ${-PAD} ${size * CELL + PAD * 2} ${size * CELL + PAD * 2}`}
+            className="w-full touch-none select-none drop-shadow-[0_4px_0_rgba(22,101,52,0.25)]"
             style={{ touchAction: "none" }}
             role="application"
             aria-label={`${size} 곱하기 ${size} 친구들 마을. 칸을 누르거나 쓸어서 백신을 놓아요. 화살표 키와 스페이스로도 할 수 있어요`}
@@ -244,17 +250,15 @@ export default function EpidemicGame() {
             onPointerCancel={onUp}
             onKeyDown={onKey}
           >
-            {Array.from(cells, (s, i) => {
-              const r = Math.floor(i / size),
-                c = i % size;
-              return (
-                <g key={i}>
-                  <rect x={c * CELL + 2} y={r * CELL + 2} width={CELL - 4} height={CELL - 4} rx={8} fill={COLOR[s]} stroke={manual[i] ? "#1e3a8a" : "none"} strokeWidth={3} />
-                  <text x={c * CELL + CELL / 2} y={r * CELL + CELL / 2 + 8} textAnchor="middle" fontSize={22} pointerEvents="none">{FACE[s]}</text>
-                </g>
-              );
-            })}
-            <rect x={(cursor % size) * CELL + 2} y={Math.floor(cursor / size) * CELL + 2} width={CELL - 4} height={CELL - 4} rx={8} fill="none" stroke="var(--ink)" strokeWidth={2} pointerEvents="none" />
+            <EpiDefs />
+            <VillageFrame w={size * CELL} pad={PAD} />
+            {Array.from(cells, (s, i) => (
+              <Tile key={i} s={s} x={(i % size) * CELL} y={Math.floor(i / size) * CELL} size={CELL} manual={!!manual[i]} />
+            ))}
+            {fresh.list.map((i) => (
+              <VirusPop key={`${fresh.k}-${i}`} cx={(i % size) * CELL + CELL / 2} cy={Math.floor(i / size) * CELL + CELL / 2} />
+            ))}
+            <rect x={(cursor % size) * CELL + 1} y={Math.floor(cursor / size) * CELL + 1} width={CELL - 2} height={CELL - 2} rx={11} fill="none" stroke="var(--accent)" strokeWidth={2.5} strokeDasharray="5 3" pointerEvents="none" />
             {showHint && (
               <text x={hc * CELL + CELL / 2} y={hintY} textAnchor="middle" fontSize={34} pointerEvents="none">
                 👆
@@ -263,9 +267,9 @@ export default function EpidemicGame() {
             )}
           </svg>
         </div>
-        <ul className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm" aria-label="색 설명">
+        <ul className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm font-semibold" aria-label="그림 설명">
           {[[S, "건강한 친구"], [I, "아픈 친구(빨강)"], [R, "다 나은 친구(초록)"], [V, "백신 맞은 친구(파랑)"]].map(([k, l]) => (
-            <li key={k as number} className="flex items-center gap-1.5"><span className="inline-block h-4 w-4 rounded" style={{ background: COLOR[k as number] }} />{l}</li>
+            <li key={k as number} className="flex items-center gap-1"><MiniFace s={k as number} />{l}</li>
           ))}
         </ul>
         {phase !== "done" ? (
@@ -287,14 +291,22 @@ export default function EpidemicGame() {
       </Board>
 
       <Board>
-        <p className="mb-1 text-base font-bold">아픈 친구는 몇 명이었을까요?</p>
+        <p className="font-game mb-1 text-lg">🤒 아픈 친구는 몇 명이었을까요?</p>
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`아픈 친구 수 그래프. 지금 ${nI}명, 가장 많았을 때 ${peak}명`}>
           <line x1={30} y1={H - 18} x2={W - 10} y2={H - 18} stroke="var(--line)" />
           <line x1={30} y1={8} x2={30} y2={H - 18} stroke="var(--line)" />
           <text x={26} y={16} textAnchor="end" fontSize={11} fill="var(--muted)">{yMax}명</text>
           <text x={26} y={H - 16} textAnchor="end" fontSize={11} fill="var(--muted)">0</text>
           <text x={W - 10} y={H - 4} textAnchor="end" fontSize={11} fill="var(--muted)">시간 →</text>
-          <polyline points={pts} fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinejoin="round" />
+          <defs>
+            <linearGradient id="epi-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fb7185" stopOpacity={0.55} />
+              <stop offset="1" stopColor="#fb7185" stopOpacity={0.05} />
+            </linearGradient>
+          </defs>
+          <polygon points={`30,${H - 18} ${pts} ${(30 + ((hist.length - 1) / xMax) * (W - 40)).toFixed(1)},${H - 18}`} fill="url(#epi-area)" />
+          <polyline points={pts} fill="none" stroke="#e11d48" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
+          <circle cx={30 + ((hist.length - 1) / xMax) * (W - 40)} cy={H - 18 - (hist[hist.length - 1] / yMax) * (H - 30)} r={4} fill="#fff" stroke="#e11d48" strokeWidth={2.5} />
         </svg>
       </Board>
 

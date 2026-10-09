@@ -100,6 +100,31 @@ const LAND: Record<LandId, { kind: "island" | "bank"; label: [number, number]; s
 };
 const LAND_NAME: Record<LandId, string> = { A: "큰 섬 A", B: "작은 섬 B", C: "윗 강둑 C", D: "아랫 강둑 D" };
 
+const REDUCE = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/** 주인공 곰돌이 (가운데가 0,0) */
+function Bear({ mood }: { mood: "ok" | "happy" | "sad" }) {
+  return (
+    <g>
+      <ellipse cx="0" cy="26" rx="20" ry="5" fill="rgba(0,0,0,0.25)" />
+      <circle cx="-17" cy="-17" r="9" fill="url(#br-bear)" stroke="#7c2d12" strokeWidth="2.5" />
+      <circle cx="17" cy="-17" r="9" fill="url(#br-bear)" stroke="#7c2d12" strokeWidth="2.5" />
+      <circle cx="-17" cy="-17" r="4" fill="#fecdd3" />
+      <circle cx="17" cy="-17" r="4" fill="#fecdd3" />
+      <circle cx="0" cy="0" r="24" fill="url(#br-bear)" stroke="#7c2d12" strokeWidth="3" />
+      <ellipse cx="0" cy="8" rx="11" ry="8" fill="#ffedd5" />
+      <circle cx="-8" cy="-4" r="3.5" fill="#1c1917" />
+      <circle cx="8" cy="-4" r="3.5" fill="#1c1917" />
+      <circle cx="-7" cy="-5" r="1.2" fill="#fff" />
+      <circle cx="9" cy="-5" r="1.2" fill="#fff" />
+      <circle cx="-15" cy="5" r="3.5" fill="#fb7185" opacity="0.6" />
+      <circle cx="15" cy="5" r="3.5" fill="#fb7185" opacity="0.6" />
+      <ellipse cx="0" cy="4" rx="3.5" ry="2.5" fill="#1c1917" />
+      <path d={mood === "sad" ? "M -5 13 Q 0 9 5 13" : mood === "happy" ? "M -6 9 Q 0 17 6 9" : "M -4 10 Q 0 14 4 10"} fill={mood === "happy" ? "#be123c" : "none"} stroke="#1c1917" strokeWidth="2" strokeLinecap="round" />
+    </g>
+  );
+}
+
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
 type G = { start: LandId | null; path: number[] };
 const BIG = "min-h-[48px]! text-base";
@@ -265,16 +290,54 @@ export default function BridgesGame() {
         </p>
         <p className="mb-2 text-base text-muted">{map.note}</p>
 
+        <style>{`
+          @keyframes br-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+          @keyframes br-jump{0%,100%{transform:translateY(0) scale(1)}30%{transform:translateY(-22px) scale(1.1)}60%{transform:translateY(0) scale(.95)}}
+          @keyframes br-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+          @keyframes br-twinkle{0%,100%{opacity:.2;transform:scale(.6)}50%{opacity:1;transform:scale(1.1)}}
+          .br-bob{animation:br-bob 1.6s ease-in-out infinite}
+          .br-jump{animation:br-jump .7s ease-in-out infinite}
+          .br-shake{animation:br-shake .45s ease-in-out 2}
+          .br-twinkle{animation:br-twinkle 1.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+          @media (prefers-reduced-motion: reduce){.br-bob,.br-jump,.br-shake,.br-twinkle{animation:none}}
+        `}</style>
         <svg
           viewBox="0 0 700 380"
           className="block h-auto w-full select-none rounded-card"
-          style={{ touchAction: "manipulation" }}
+          style={{ touchAction: "manipulation", fontFamily: "Jua, Pretendard Variable, sans-serif" }}
           role="group"
           aria-label={`다리 지도. 땅 4곳과 다리 ${bs.length}개`}
         >
-          <rect width="700" height="380" fill="#bae6fd" />
-          {[60, 120, 255, 330].map((y, i) => (
-            <path key={i} d={`M ${20 + i * 40} ${y} q 12 -8 24 0 t 24 0`} fill="none" stroke="#7dd3fc" strokeWidth="2" opacity="0.8" />
+          <defs>
+            <linearGradient id="br-water" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#38bdf8" />
+              <stop offset="0.5" stopColor="#0ea5e9" />
+              <stop offset="1" stopColor="#38bdf8" />
+            </linearGradient>
+            <linearGradient id="br-grass" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#a3e635" />
+              <stop offset="1" stopColor="#4ade80" />
+            </linearGradient>
+            <radialGradient id="br-isle" cx="0.4" cy="0.35" r="0.7">
+              <stop offset="0" stopColor="#bef264" />
+              <stop offset="1" stopColor="#4ade80" />
+            </radialGradient>
+            <radialGradient id="br-here" cx="0.4" cy="0.35" r="0.7">
+              <stop offset="0" stopColor="#fef08a" />
+              <stop offset="1" stopColor="#86efac" />
+            </radialGradient>
+            <radialGradient id="br-bear" cx="0.4" cy="0.35" r="0.7">
+              <stop offset="0" stopColor="#fdba74" />
+              <stop offset="1" stopColor="#c2410c" />
+            </radialGradient>
+          </defs>
+
+          {/* 강물과 물결 */}
+          <rect width="700" height="380" fill="url(#br-water)" />
+          {[95, 130, 250, 285].map((y, i) => (
+            <path key={i} d={`M ${-60 + (i % 2) * 30} ${y} q 15 -9 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0 t 30 0`} fill="none" stroke="#e0f2fe" strokeWidth="3" strokeLinecap="round" opacity="0.55">
+              {!REDUCE && <animateTransform attributeName="transform" type="translate" values="0 0; 60 0" dur={`${3 + i}s`} repeatCount="indefinite" />}
+            </path>
           ))}
 
           {bs.map((b) => {
@@ -291,15 +354,20 @@ export default function BridgesGame() {
                 onKeyDown={keyAct(() => cross(b))}
                 style={{ cursor: "pointer", outline: "none" }}
               >
-                {ok && <path d={b.d} fill="none" stroke="#f59e0b" strokeWidth="30" strokeLinecap="round" opacity="0.65" className="animate-pulse" />}
-                <path d={b.d} fill="none" stroke={isUsed ? "#166534" : "#78350f"} strokeWidth="20" strokeLinecap="butt" />
-                <path d={b.d} fill="none" stroke={isUsed ? "#86efac" : "#e9c78a"} strokeWidth="13" strokeLinecap="butt" />
-                <path d={b.d} fill="none" stroke={isUsed ? "#166534" : "#a16207"} strokeWidth="13" strokeDasharray="2 8" strokeLinecap="butt" opacity="0.6" />
+                {ok && <path d={b.d} fill="none" stroke="#fde047" strokeWidth="34" strokeLinecap="round" opacity="0.8" className="animate-pulse" />}
+                {/* 그림자 */}
+                <path d={b.d} fill="none" stroke="rgba(3,105,161,0.45)" strokeWidth="26" strokeLinecap="round" transform="translate(4 6)" />
+                {/* 난간 겸 테두리 */}
+                <path d={b.d} fill="none" stroke={isUsed ? "#15803d" : "#7c2d12"} strokeWidth="26" strokeLinecap="round" />
+                {/* 널빤지 */}
+                <path d={b.d} fill="none" stroke={isUsed ? "#bbf7d0" : "#fbbf24"} strokeWidth="18" strokeLinecap="butt" />
+                <path d={b.d} fill="none" stroke={isUsed ? "#4ade80" : "#b45309"} strokeWidth="18" strokeDasharray="3 9" strokeLinecap="butt" />
                 <path d={b.d} fill="none" stroke="transparent" strokeWidth="64" pointerEvents="stroke" />
                 {isUsed && (
                   <g>
-                    <circle cx={b.mid[0]} cy={b.mid[1]} r="16" fill="#166534" />
-                    <text x={b.mid[0]} y={b.mid[1] + 7} textAnchor="middle" fontSize="20" fontWeight="800" fill="#fff">
+                    <path className="br-twinkle" d={`M ${b.mid[0] + 22} ${b.mid[1] - 22} l 4 9 l 9 4 l -9 4 l -4 9 l -4 -9 l -9 -4 l 9 -4 Z`} fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
+                    <circle cx={b.mid[0]} cy={b.mid[1]} r="16" fill="#16a34a" stroke="#fff" strokeWidth="3" />
+                    <text x={b.mid[0]} y={b.mid[1] + 7} textAnchor="middle" fontSize="20" fill="#fff">
                       {order}
                     </text>
                   </g>
@@ -312,30 +380,54 @@ export default function BridgesGame() {
             const info = LAND[l];
             const pickable = !over && (!g.start || nextLands.has(l));
             const rec = hint && !g.start && good.includes(l);
+            const ring = rec ? "#7c3aed" : pickable ? "#fde047" : "#15803d";
+            const fill = at === l ? "url(#br-here)" : info.kind === "island" ? "url(#br-isle)" : "url(#br-grass)";
             return (
               <g key={l} role="button" tabIndex={0} aria-label={`${LAND_NAME[l]}${at === l ? " (지금 여기)" : ""}, 다리 ${deg[l]}개`} onClick={() => pickLand(l)} onKeyDown={keyAct(() => pickLand(l))} style={{ cursor: "pointer", outline: "none" }}>
                 {info.kind === "island" ? (
-                  <ellipse cx={l === "A" ? 180 : 460} cy="190" rx={l === "A" ? 80 : 70} ry={l === "A" ? 55 : 50} fill={at === l ? "#bbf7d0" : "#d9f99d"} stroke={rec ? "#7c3aed" : pickable ? "#f59e0b" : "#4d7c0f"} strokeWidth={pickable || rec ? 6 : 3} className={pickable ? "animate-pulse" : ""} />
+                  <g>
+                    {/* 모래사장 + 섬 */}
+                    <ellipse cx={l === "A" ? 183 : 463} cy="197" rx={l === "A" ? 92 : 82} ry={l === "A" ? 64 : 59} fill="rgba(3,105,161,0.35)" />
+                    <ellipse cx={l === "A" ? 180 : 460} cy="190" rx={l === "A" ? 92 : 82} ry={l === "A" ? 64 : 59} fill="#fde68a" stroke="#d97706" strokeWidth="3" />
+                    <ellipse cx={l === "A" ? 180 : 460} cy="186" rx={l === "A" ? 80 : 70} ry={l === "A" ? 52 : 47} fill={fill} stroke={ring} strokeWidth={pickable || rec ? 6 : 3} className={pickable ? "animate-pulse" : ""} />
+                  </g>
                 ) : (
-                  <rect x="-4" y={l === "C" ? -4 : 310} width="708" height="74" rx="10" fill={at === l ? "#bbf7d0" : "#d9f99d"} stroke={rec ? "#7c3aed" : pickable ? "#f59e0b" : "#4d7c0f"} strokeWidth={pickable || rec ? 6 : 3} className={pickable ? "animate-pulse" : ""} />
+                  <g>
+                    <rect x="-4" y={l === "C" ? -4 : 304} width="708" height="80" fill="#fde68a" stroke="#d97706" strokeWidth="3" />
+                    <path d={l === "C" ? "M -4 -4 H 704 V 58 Q 640 70 580 60 T 460 62 T 340 58 T 220 62 T 100 58 T -4 62 Z" : "M -4 384 H 704 V 322 Q 640 310 580 320 T 460 318 T 340 322 T 220 318 T 100 322 T -4 318 Z"} fill={fill} stroke={ring} strokeWidth={pickable || rec ? 6 : 3} className={pickable ? "animate-pulse" : ""} />
+                  </g>
                 )}
-                <text x={info.label[0]} y={info.label[1] + 8} textAnchor="middle" fontSize="30" fontWeight="800" fill="#365314">
+                {/* 나무와 꽃 장식 */}
+                {(l === "C" ? [[300, 26], [395, 34], [560, 24], [665, 32]] : l === "D" ? [[290, 352], [400, 344], [555, 354], [668, 348]] : l === "A" ? [[118, 190]] : [[512, 192]]).map(([x, y], i) => (
+                  <g key={i} pointerEvents="none">
+                    <rect x={x - 3} y={y} width="6" height="12" rx="2" fill="#92400e" />
+                    <circle cx={x} cy={y - 4} r="12" fill="#16a34a" stroke="#14532d" strokeWidth="2" />
+                    <circle cx={x - 4} cy={y - 8} r="4" fill="#4ade80" />
+                  </g>
+                ))}
+                {(l === "C" ? [[250, 44], [610, 46]] : l === "D" ? [[240, 338], [610, 336]] : []).map(([x, y], i) => (
+                  <g key={`f${i}`} pointerEvents="none">
+                    <circle cx={x} cy={y} r="5" fill="#f472b6" />
+                    <circle cx={x} cy={y} r="2" fill="#fef08a" />
+                  </g>
+                ))}
+                <text x={info.label[0]} y={info.label[1] + 10} textAnchor="middle" fontSize="34" fill="#14532d" stroke="#fff" strokeWidth="5" paintOrder="stroke">
                   {l}
                 </text>
                 {g.start === l && (
-                  <text x={info.label[0]} y={info.label[1] + 34} textAnchor="middle" fontSize="20" fontWeight="700" fill="#365314">
-                    시작
+                  <text x={info.label[0]} y={info.label[1] + 36} textAnchor="middle" fontSize="20" fill="#7c2d12" stroke="#fff" strokeWidth="4" paintOrder="stroke">
+                    출발
                   </text>
                 )}
                 {rec && (
-                  <text x={info.label[0] + (info.kind === "bank" ? 120 : 0)} y={info.label[1] + (info.kind === "bank" ? 8 : 54)} textAnchor="middle" fontSize="20" fontWeight="800" fill="#6d28d9">
+                  <text x={info.label[0] + (info.kind === "bank" ? 120 : 0)} y={info.label[1] + (info.kind === "bank" ? 8 : 58)} textAnchor="middle" fontSize="22" fill="#6d28d9" stroke="#fff" strokeWidth="4" paintOrder="stroke">
                     여기서 시작!
                   </text>
                 )}
                 {hint && (
                   <g>
                     <circle cx={info.badge[0]} cy={info.badge[1] - 4} r="21" fill={deg[l] % 2 ? "#fecaca" : "#e0e7ff"} stroke={deg[l] % 2 ? "#b91c1c" : "#4338ca"} strokeWidth="3" />
-                    <text x={info.badge[0]} y={info.badge[1] + 5} textAnchor="middle" fontSize="26" fontWeight="800" fill={deg[l] % 2 ? "#b91c1c" : "#3730a3"}>
+                    <text x={info.badge[0]} y={info.badge[1] + 5} textAnchor="middle" fontSize="26" fill={deg[l] % 2 ? "#b91c1c" : "#3730a3"}>
                       {deg[l]}
                     </text>
                   </g>
@@ -349,30 +441,28 @@ export default function BridgesGame() {
             <g pointerEvents="none">
               <text x={LAND[guideLand].label[0] + 46} y={LAND[guideLand].label[1] + 12} fontSize="34">
                 👆
-                <animateTransform attributeName="transform" type="translate" values="0 0; 0 -10; 0 0" dur="0.9s" repeatCount="indefinite" />
+                {!REDUCE && <animateTransform attributeName="transform" type="translate" values="0 0; 0 -10; 0 0" dur="0.9s" repeatCount="indefinite" />}
               </text>
-              <text x={LAND[guideLand].label[0] + 84} y={LAND[guideLand].label[1] + 2} fontSize="22" fontWeight="800" fill="#c2410c">
+              <text x={LAND[guideLand].label[0] + 84} y={LAND[guideLand].label[1] + 2} fontSize="24" fill="#c2410c" stroke="#fff" strokeWidth="4" paintOrder="stroke">
                 눌러요!
               </text>
             </g>
           )}
 
           {at && !walkAnim && (
-            <g pointerEvents="none">
-              <circle cx={LAND[at].stand[0]} cy={LAND[at].stand[1] + 4} r="22" fill="rgba(0,0,0,0.25)" />
-              <circle cx={LAND[at].stand[0]} cy={LAND[at].stand[1]} r="24" fill="#ea580c" stroke="#fff" strokeWidth="4" />
-              <text x={LAND[at].stand[0]} y={LAND[at].stand[1] + 8} textAnchor="middle" fontSize="22" fontWeight="800" fill="#fff">
-                나
-              </text>
+            <g pointerEvents="none" transform={`translate(${LAND[at].stand[0]} ${LAND[at].stand[1]})`}>
+              <g key={`${done}-${stuck}`} className={done ? "br-jump" : stuck ? "br-shake" : "br-bob"}>
+                <Bear mood={done ? "happy" : stuck ? "sad" : "ok"} />
+              </g>
             </g>
           )}
           {walkAnim && (
             <g key={walkAnim.k} pointerEvents="none">
               <animateMotion dur="0.5s" fill="freeze" path={walkAnim.d} keyPoints={walkAnim.rev ? "1;0" : "0;1"} keyTimes="0;1" calcMode="linear" />
-              <circle r="24" fill="#ea580c" stroke="#fff" strokeWidth="4" />
-              <text y="8" textAnchor="middle" fontSize="22" fontWeight="800" fill="#fff">
-                나
-              </text>
+              <g>
+                {!REDUCE && <animateTransform attributeName="transform" type="translate" values="0 0; 0 -8; 0 0" dur="0.25s" repeatCount="indefinite" />}
+                <Bear mood="ok" />
+              </g>
             </g>
           )}
         </svg>
