@@ -79,17 +79,17 @@ export default function CalendarPuzzle() {
             min="2000-01-01"
             max="2099-12-31"
             onChange={(e) => e.target.value && setValue(e.target.value)}
-            className="mt-1 min-h-[44px] rounded-card border border-line bg-surface px-3 outline-none focus:border-accent"
+            className="mt-1 min-h-[48px] rounded-2xl border-2 border-line bg-surface px-3 text-lg outline-none focus:border-accent"
           />
         </label>
         <button
           type="button"
           onClick={() => setValue(today)}
-          className="min-h-[44px] rounded-card border border-line bg-surface px-4 font-semibold hover:bg-bg"
+          className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px]"
         >
           오늘 날짜
         </button>
-        <p className="min-h-[44px] flex-1 basis-48 self-center text-lg font-extrabold">
+        <p className="font-game min-h-[44px] flex-1 basis-48 self-center text-2xl text-accent">
           {month + 1}월 {day}일 {WEEK[week]}요일
           <span className="block text-sm font-normal text-muted">이 세 칸만 남기고 나머지를 10조각으로 덮어요.</span>
         </p>

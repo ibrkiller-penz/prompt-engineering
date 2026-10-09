@@ -282,7 +282,7 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
         aria-hidden
       >
         {shape.map(([a, b]) => (
-          <rect key={key(a, b)} x={b * px + 1} y={a * px + 1} width={px - 2} height={px - 2} rx={5} fill={def.color} />
+          <rect key={key(a, b)} x={b * px + 2} y={a * px + 2} width={px - 4} height={px - 4} rx={8} style={{ fill: def.color, stroke: `color-mix(in srgb, ${def.color} 65%, black)` }} strokeWidth={2.5} />
         ))}
       </svg>
     );
@@ -303,6 +303,12 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
             onPointerDown={(e) => (lastPointer.current = e.pointerType)}
             onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
           >
+            {/* 나무 받침 */}
+            {kinds.map((row, r) =>
+              row.map((k, c) =>
+                k === "void" ? null : <rect key={`bg${key(r, c)}`} x={pad + c * S - 3} y={pad + r * S - 3} width={S + 6} height={S + 6} rx={9} fill="#f3cf9c" pointerEvents="none" />,
+              ),
+            )}
             {kinds.map((row, r) =>
               row.map((k, c) => {
                 if (k === "void") return null;
@@ -311,7 +317,8 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
                 const label = labels?.[r]?.[c];
                 const x = pad + c * S;
                 const y = pad + r * S;
-                const fill = id ? colorOf(id) : g ? (ghost!.ok ? colorOf(sel) : "#fca5a5") : k === "target" ? "#fef3c7" : "#fff";
+                const fill = id ? colorOf(id) : g ? (ghost!.ok ? colorOf(sel) : "#fca5a5") : k === "target" ? "#fff1b8" : "#fffaf0";
+                const edge = id ? `color-mix(in srgb, ${colorOf(id)} 65%, black)` : k === "target" ? "#f59e0b" : "#ecd2ab";
                 return (
                   <g
                     key={key(r, c)}
@@ -323,17 +330,17 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
                     style={{ cursor: drag ? "grabbing" : id ? "grab" : k === "open" ? "pointer" : "default" }}
                   >
                     <rect
-                      x={x + 1}
-                      y={y + 1}
-                      width={S - 2}
-                      height={S - 2}
-                      rx={5}
-                      fill={fill}
-                      fillOpacity={g && !id ? 0.55 : 1}
-                      stroke={k === "target" ? "#d97706" : id ? "rgba(0,0,0,.25)" : "#cbd5e1"}
-                      strokeWidth={k === "target" ? 2.5 : 1}
-                      strokeDasharray={k === "target" && !id ? "4 3" : undefined}
+                      x={x + 2}
+                      y={y + 2}
+                      width={S - 4}
+                      height={S - 4}
+                      rx={8}
+                      style={{ fill, stroke: edge }}
+                      fillOpacity={g && !id ? 0.6 : 1}
+                      strokeWidth={id ? 2.5 : k === "target" ? 3 : 1.5}
+                      strokeDasharray={k === "target" && !id ? "5 4" : undefined}
                     />
+                    {id && <rect x={x + 6} y={y + 5} width={S - 12} height={(S - 10) * 0.35} rx={5} fill="#fff" fillOpacity={0.3} pointerEvents="none" />}
                     {label !== undefined && (
                       <text
                         x={x + S / 2}
@@ -342,7 +349,8 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
                         dominantBaseline="middle"
                         fontSize={label.length > 2 ? S * 0.3 : S * 0.38}
                         fontWeight={k === "target" ? 800 : 600}
-                        fill={id ? "rgba(0,0,0,.55)" : k === "target" ? "#92400e" : "#475569"}
+                        style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}
+                        fill={id ? "rgba(255,255,255,.92)" : k === "target" ? "#b45309" : "#8a6a4a"}
                         pointerEvents="none"
                       >
                         {label}
@@ -356,7 +364,7 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
         </div>
 
         <div className="lg:w-64 lg:shrink-0">
-          <p className="text-sm font-semibold text-muted">조각 고르기</p>
+          <p className="font-game text-lg text-ink">🧩 조각 고르기</p>
           <ul className="mt-2 flex flex-wrap gap-2" aria-label="조각 목록">
             {pieces.map((p) => {
               const isPlaced = !!shown[p.id];
@@ -387,13 +395,13 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
                     onPointerDown={(e) => startDrag(e, p.id)}
                     aria-pressed={sel === p.id}
                     aria-label={`${p.name.toUpperCase()} 조각${isPlaced ? ", 놓음(누르면 집어 들어요)" : ""}`}
-                    className={`flex h-[62px] min-w-[62px] touch-none items-center justify-center rounded-card border-2 bg-surface p-1.5 transition ${
+                    className={`flex h-[62px] min-w-[62px] touch-none items-center justify-center rounded-2xl border-2 bg-surface p-1.5 shadow-[0_4px_0_0_rgba(0,0,0,0.08)] transition active:translate-y-[2px] ${
                       sel === p.id && !peek ? "border-accent shadow" : "border-line hover:border-accent/60"
                     } ${isPlaced ? "opacity-40" : ""}`}
                   >
                     <svg width={pc * u} height={pr * u} viewBox={`0 0 ${pc * u} ${pr * u}`} aria-hidden>
                       {cells.map(([a, b]) => (
-                        <rect key={key(a, b)} x={b * u + 0.5} y={a * u + 0.5} width={u - 1} height={u - 1} rx={2} fill={p.color} />
+                        <rect key={key(a, b)} x={b * u + 0.5} y={a * u + 0.5} width={u - 1} height={u - 1} rx={3} style={{ fill: p.color, stroke: `color-mix(in srgb, ${p.color} 65%, black)` }} strokeWidth={1} />
                       ))}
                     </svg>
                   </button>
@@ -403,19 +411,19 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
           </ul>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={rotate} disabled={!!peek} className="min-h-[44px] rounded-card border border-line bg-surface px-3 font-semibold hover:bg-bg disabled:opacity-40">
+            <button type="button" onClick={rotate} disabled={!!peek} className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px] active:shadow-none disabled:opacity-40">
               ↻ 돌리기 <span className="text-xs text-muted">(R)</span>
             </button>
-            <button type="button" onClick={mirror} disabled={!!peek} className="min-h-[44px] rounded-card border border-line bg-surface px-3 font-semibold hover:bg-bg disabled:opacity-40">
+            <button type="button" onClick={mirror} disabled={!!peek} className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px] active:shadow-none disabled:opacity-40">
               ⇆ 뒤집기 <span className="text-xs text-muted">(F)</span>
             </button>
           </div>
 
           {def && !peek && (
-            <div className="mt-3 rounded-card bg-bg p-2 text-center" aria-label="지금 놓을 모양">
+            <div className="mt-3 rounded-2xl border-2 border-line bg-surface p-2 text-center" aria-label="지금 놓을 모양">
               <svg width={(Math.max(...shape.map((x) => x[1])) + 1) * 16} height={(Math.max(...shape.map((x) => x[0])) + 1) * 16} aria-hidden className="mx-auto">
                 {shape.map(([a, b]) => (
-                  <rect key={key(a, b)} x={b * 16 + 1} y={a * 16 + 1} width={14} height={14} rx={3} fill={def.color} />
+                  <rect key={key(a, b)} x={b * 16 + 1} y={a * 16 + 1} width={14} height={14} rx={4} style={{ fill: def.color, stroke: `color-mix(in srgb, ${def.color} 65%, black)` }} strokeWidth={1.5} />
                 ))}
               </svg>
               <p className="mt-1 text-xs text-muted">지금 놓을 모양</p>
@@ -430,16 +438,16 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
                 setPeek(null);
                 setNoSolution(false);
               }}
-              className="min-h-[44px] rounded-card border border-line bg-surface px-3 font-semibold hover:bg-bg"
+              className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px] active:shadow-none"
             >
               다시 시작
             </button>
             {peek ? (
-              <button type="button" onClick={() => setPeek(null)} className="min-h-[44px] rounded-card bg-accent px-3 font-semibold text-accent-ink hover:brightness-110">
+              <button type="button" onClick={() => setPeek(null)} className="font-game min-h-[48px] rounded-2xl bg-accent px-4 text-[1.05rem] text-accent-ink shadow-[0_4px_0_0_rgba(0,0,0,0.2)] hover:brightness-110">
                 내 풀이로 돌아가기
               </button>
             ) : (
-              <button type="button" onClick={showAnswer} className="min-h-[44px] rounded-card border border-line bg-surface px-3 font-semibold hover:bg-bg">
+              <button type="button" onClick={showAnswer} className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px] active:shadow-none">
                 답 하나 보기
               </button>
             )}
@@ -455,10 +463,10 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
         {noSolution && <span className="ml-2 font-semibold text-bad">이 문제는 답을 찾지 못했어요.</span>}
       </p>
       {done && (
-        <div className="mt-2 flex flex-wrap items-center gap-3 rounded-card bg-ok-soft p-3 font-semibold text-ok" role="status">
+        <div className="gz-pop mt-2 flex flex-wrap items-center gap-3 rounded-2xl border-2 border-ok/40 bg-ok-soft p-3 text-lg font-semibold text-ok" role="status">
           <span className="min-w-0 flex-1">🎉 {doneText}</span>
           {nextBtn && (
-            <button type="button" onClick={nextBtn.onClick} className="min-h-[48px] rounded-card bg-accent px-5 font-extrabold text-accent-ink hover:brightness-110">
+            <button type="button" onClick={nextBtn.onClick} className="font-game min-h-[52px] rounded-full bg-accent px-6 text-xl text-accent-ink shadow-[0_5px_0_0_rgba(0,0,0,0.2)] hover:brightness-110 active:translate-y-[3px]">
               {nextBtn.label}
             </button>
           )}

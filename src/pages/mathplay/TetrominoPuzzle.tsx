@@ -23,7 +23,7 @@ export default function TetrominoPuzzle() {
         <button
           type="button"
           onClick={() => setSeed((s) => s + 1)}
-          className="min-h-[44px] rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110"
+          className="font-game min-h-[48px] rounded-2xl bg-accent px-5 text-[1.05rem] text-accent-ink shadow-[0_4px_0_0_rgba(0,0,0,0.2)] hover:brightness-110 active:translate-y-[2px]"
         >
           새 문제
         </button>

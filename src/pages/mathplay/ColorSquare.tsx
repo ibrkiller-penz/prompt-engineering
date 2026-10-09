@@ -84,19 +84,19 @@ export default function ColorSquare() {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-muted">판 크기</span>
+        <span className="font-game text-lg text-ink">판 크기</span>
         {([4, 5] as const).map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => start(k)}
             aria-pressed={n === k}
-            className={`min-h-[44px] rounded-card border px-4 font-semibold ${n === k ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface hover:bg-bg"}`}
+            className={`font-game min-h-[48px] rounded-2xl border-2 px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] active:translate-y-[2px] ${n === k ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface hover:bg-bg"}`}
           >
             {k}×{k} <span className="text-xs font-normal">({k}색)</span>
           </button>
         ))}
-        <button type="button" onClick={() => start(n)} className="min-h-[44px] rounded-card border border-line bg-surface px-4 font-semibold hover:bg-bg">
+        <button type="button" onClick={() => start(n)} className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px]">
           새 문제
         </button>
       </div>
@@ -105,13 +105,20 @@ export default function ColorSquare() {
         <svg
           viewBox={`0 0 ${n * S + 8} ${n * S + 8}`}
           className="mx-auto block w-full shrink-0 sm:mx-0"
-          style={{ maxWidth: n * S + 8 }}
+          style={{ maxWidth: n * S * 1.5 + 8 }}
           role="grid"
           aria-label={`${n}×${n} 색동 마방진 판`}
         >
           {/* 두 대각선 안내선 */}
-          <line x1={4} y1={4} x2={n * S + 4} y2={n * S + 4} stroke="#94a3b8" strokeWidth="2" strokeDasharray="5 5" />
-          <line x1={n * S + 4} y1={4} x2={4} y2={n * S + 4} stroke="#94a3b8" strokeWidth="2" strokeDasharray="5 5" />
+          <defs>
+            <radialGradient id="cs-shine" cx="35%" cy="30%" r="70%">
+              <stop offset="0" stopColor="#fff" stopOpacity="0.55" />
+              <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <rect x={0} y={0} width={n * S + 8} height={n * S + 8} rx={16} fill="#f3cf9c" />
+          <line x1={4} y1={4} x2={n * S + 4} y2={n * S + 4} stroke="#d4a373" strokeWidth="3" strokeDasharray="6 6" />
+          <line x1={n * S + 4} y1={4} x2={4} y2={n * S + 4} stroke="#d4a373" strokeWidth="3" strokeDasharray="6 6" />
           {shown.map((row, r) =>
             row.map((v, c) => {
               const given = puzzle.given[r][c];
@@ -119,13 +126,15 @@ export default function ColorSquare() {
               const y = 4 + r * S;
               return (
                 <g key={`${r}-${c}`} onClick={() => onCell(r, c)} role="gridcell" style={{ cursor: given || peek ? "default" : "pointer" }}>
-                  <rect x={x + 3} y={y + 3} width={S - 6} height={S - 6} rx={9} fill={v ? CHIP[v] : "#fffdf7"} fillOpacity={v ? 1 : 0.85} stroke={bad[r][c] ? "#dc2626" : v ? "rgba(0,0,0,.25)" : "#cbd5e1"} strokeWidth={bad[r][c] ? 4 : 1.5} />
+                  <rect x={x + 4} y={y + 4} width={S - 8} height={S - 8} rx={v ? (S - 8) / 2 : 12} style={{ fill: v ? CHIP[v] : "#fffaf0", stroke: bad[r][c] ? "#dc2626" : v ? `color-mix(in srgb, ${CHIP[v]} 60%, black)` : "#ecd2ab" }} strokeWidth={bad[r][c] ? 4.5 : v ? 3 : 1.5} fillOpacity={v ? 1 : 0.9} />
+                  {v > 0 && <rect x={x + 4} y={y + 4} width={S - 8} height={S - 8} rx={(S - 8) / 2} fill="url(#cs-shine)" pointerEvents="none" />}
                   {v > 0 && (
-                    <text x={x + S / 2} y={y + S / 2 + 1} textAnchor="middle" dominantBaseline="middle" fontSize={S * 0.42} fontWeight={800} fill="#fff" pointerEvents="none">
+                    <text x={x + S / 2} y={y + S / 2 + 1} textAnchor="middle" dominantBaseline="middle" fontSize={S * 0.42} fontWeight={800} fill="#fff" pointerEvents="none" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
                       {v}
                     </text>
                   )}
-                  {given && <rect x={x + 3} y={y + 3} width={S - 6} height={S - 6} rx={9} fill="none" stroke="#111827" strokeOpacity={0.55} strokeWidth="2.5" strokeDasharray="1 5" strokeLinecap="round" pointerEvents="none" />}
+                  {given && <circle cx={x + S - 12} cy={y + 12} r={7} fill="#fff" stroke="#b45309" strokeWidth="2" pointerEvents="none" />}
+                  {given && <text x={x + S - 12} y={y + 15.5} textAnchor="middle" fontSize="10" pointerEvents="none">📌</text>}
                 </g>
               );
             }),
@@ -133,7 +142,7 @@ export default function ColorSquare() {
         </svg>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-muted">칸을 누를 때마다 색이 바뀌어요. 색 칩을 고르면 그 색으로 칠해요(칩을 한 번 더 누르면 해제).</p>
+          <p className="text-base font-semibold text-ink">👆 칸을 누를 때마다 색이 바뀌어요. 색 칩을 고르면 그 색으로 칠해요(칩을 한 번 더 누르면 해제).</p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {[...Array(n)].map((_, i) => {
               const v = i + 1;
@@ -145,7 +154,7 @@ export default function ColorSquare() {
                     disabled={peek}
                     aria-pressed={pick === v}
                     aria-label={`${v}번 칩, 지금 ${counts[v]}개 놓음`}
-                    className={`flex h-14 w-14 flex-col items-center justify-center rounded-card text-xl font-extrabold text-white transition ${pick === v && !peek ? "ring-4 ring-accent/60" : ""} disabled:opacity-50`}
+                    className={`font-game flex h-16 w-16 flex-col items-center justify-center rounded-full text-2xl text-white shadow-[0_4px_0_0_rgba(0,0,0,0.25)] transition active:translate-y-[2px] ${pick === v && !peek ? "scale-110 ring-4 ring-white outline-4 outline-accent" : ""} disabled:opacity-50`}
                     style={{ background: CHIP[v] }}
                   >
                     {v}
@@ -156,7 +165,7 @@ export default function ColorSquare() {
             })}
           </ul>
           <p className="mt-3 text-sm text-muted">
-            점선 테두리 칩은 처음부터 놓인 칩이에요. 가로줄·세로줄·<strong className="text-ink">두 대각선</strong> 어디에도 같은 색이 겹치면 빨간 테두리가 떠요.
+            📌 핀이 꽂힌 칩은 처음부터 놓인 칩이에요. 가로줄·세로줄·<strong className="text-ink">두 대각선</strong> 어디에도 같은 색이 겹치면 빨간 테두리가 떠요.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -165,16 +174,16 @@ export default function ColorSquare() {
                 setGrid(puzzle.given.map((row, r) => row.map((g, c) => (g ? puzzle.solution[r][c] : 0))));
                 setPeek(false);
               }}
-              className="min-h-[44px] rounded-card border border-line bg-surface px-3 font-semibold hover:bg-bg"
+              className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px]"
             >
               다시 시작
             </button>
             {peek ? (
-              <button type="button" onClick={() => setPeek(false)} className="min-h-[44px] rounded-card bg-accent px-3 font-semibold text-accent-ink hover:brightness-110">
+              <button type="button" onClick={() => setPeek(false)} className="font-game min-h-[48px] rounded-2xl bg-accent px-4 text-[1.05rem] text-accent-ink shadow-[0_4px_0_0_rgba(0,0,0,0.2)] hover:brightness-110">
                 내 풀이로 돌아가기
               </button>
             ) : (
-              <button type="button" onClick={() => setPeek(true)} className="min-h-[44px] rounded-card border border-line bg-surface px-3 font-semibold hover:bg-bg">
+              <button type="button" onClick={() => setPeek(true)} className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px]">
                 답 보기
               </button>
             )}
@@ -189,9 +198,9 @@ export default function ColorSquare() {
             )}
           </p>
           {done && (
-            <p className="mt-2 rounded-card bg-ok-soft p-3 font-semibold text-ok" role="status">
+            <p className="gz-pop mt-2 rounded-2xl border-2 border-ok/40 bg-ok-soft p-3 text-lg font-semibold text-ok" role="status">
               🎉 모든 줄과 두 대각선에 색이 하나씩! 완성했어요.
-              <button type="button" onClick={() => start(n)} className="ml-3 min-h-[48px] rounded-card bg-accent px-4 font-extrabold text-accent-ink hover:brightness-110">
+              <button type="button" onClick={() => start(n)} className="font-game ml-3 min-h-[52px] rounded-full bg-accent px-6 text-xl text-accent-ink shadow-[0_5px_0_0_rgba(0,0,0,0.2)] hover:brightness-110">
                 새 문제 →
               </button>
             </p>
