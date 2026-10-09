@@ -120,10 +120,11 @@ export function mineChain(contents: string[], zeros: number): Block[] {
 export function hashLevel(lv: number) {
   const L = Math.max(1, Math.min(10, lv));
   const blocks = L <= 2 ? 4 : L <= 5 ? 5 : 6;
-  const zeros = L <= 4 ? 1 : 2;
+  // 레벨 9·10은 앞자리 0이 3개(채굴 한 번에 평균 4096번 시도)
+  const zeros = L <= 4 ? 1 : L <= 8 ? 2 : 3;
   const allButton = L <= 3;
-  // 고칠 블록(0부터): 낮은 레벨은 뒤쪽, 높은 레벨은 앞쪽
+  // 고칠 블록(0부터): 낮은 레벨은 뒤쪽, 높은 레벨은 앞쪽(레벨 8·10은 맨 앞 블록이라 모두 다시 채굴)
   const lo = L <= 3 ? blocks - 2 : L <= 6 ? 1 : 0;
-  const hi = L <= 3 ? blocks - 2 : L <= 6 ? blocks - 3 : 1;
+  const hi = L <= 3 ? blocks - 2 : L <= 6 ? blocks - 3 : L === 8 || L === 10 ? 0 : 1;
   return { blocks, zeros, allButton, lo, hi };
 }

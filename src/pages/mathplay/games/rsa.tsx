@@ -8,10 +8,10 @@ const PR = PRIMES_SHOWN.filter(isPrime);
 const numsLine = (a: number[]) => a.join(" · ");
 const lettersOf = (a: number[]) => a.map(numToLetter).join("");
 
-function newFriend() {
-  const p = PR[rand(PR.length)];
-  let q = PR[rand(PR.length)];
-  while (q === p) q = PR[rand(PR.length)];
+function newFriend(pool: number[] = PR) {
+  const p = pool[rand(pool.length)];
+  let q = pool[rand(pool.length)];
+  while (q === p) q = pool[rand(pool.length)];
   const es = eCandidates((p - 1) * (q - 1), 6);
   return { n: p * q, e: es[rand(es.length)], p, q };
 }
@@ -21,7 +21,7 @@ export default function RsaGame() {
   const lvl = rsaLevel(stage);
   const words = WORDS_BY_LEN[lvl.len];
   const [round, setRound] = useState(1);
-  const [stranger, setStranger] = useState(newFriend);
+  const [stranger, setStranger] = useState(() => newFriend(lvl.primes));
   const [p, setP] = useState<number | null>(11);
   const [q, setQ] = useState<number | null>(13);
   const [slot, setSlot] = useState<"p" | "q">("p");
@@ -32,7 +32,7 @@ export default function RsaGame() {
   const [labMsg, setLabMsg] = useState<Msg | null>(null);
 
   // 퀘스트
-  const [friend, setFriend] = useState(newFriend);
+  const [friend, setFriend] = useState(() => newFriend());
   const [qi, setQi] = useState(0);
   const [sendText, setSendText] = useState("");
   const [sent, setSent] = useState(false);
@@ -79,7 +79,7 @@ export default function RsaGame() {
   function newQuest(count = true) {
     if (count) setQMsg({ t: "새 문제예요. 친구의 열쇠가 바뀌었어요.", tone: "info" });
     setFriend(newFriend());
-    setStranger(newFriend());
+    setStranger(newFriend(lvl.primes));
     setQi((x) => x + 1);
     setSendText("");
     setSent(false);

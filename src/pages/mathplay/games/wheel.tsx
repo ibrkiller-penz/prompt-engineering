@@ -455,6 +455,7 @@ export default function WheelGame() {
   const cfg = useRef({ n, road, mi, won });
   cfg.current = { n, road, mi, won };
   const timer = useRef(0);
+  const warned = useRef(false);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   useEffect(() => {
@@ -481,7 +482,15 @@ export default function WheelGame() {
     setProg((old) => (Math.floor(p * 20) !== Math.floor(old * 20) ? p : old));
     if (distRef.current < NEED) return;
     const { n: cn, road: cr, mi: i, won: done } = cfg.current;
-    if (done || !missionOk(missions[i], cn, cr)) return;
+    if (done) return;
+    if (!missionOk(missions[i], cn, cr)) {
+      // 다 굴렸는데 미션과 안 맞으면 한 번만 알려 줘요
+      if (!warned.current) {
+        warned.current = true;
+        setMsg({ tone: "bad", text: `아깝다! ${NAMES[cn]} 바퀴${cr === "bumpy" ? "(물결 길)" : ""}로는 이번 미션이 아니에요. ${missions[i].kind === "wave" ? "다른 바퀴나 길을" : "다른 바퀴를"} 골라 봐요. (💡 힌트도 있어요)` });
+      }
+      return;
+    }
     setWon(true);
     cfg.current.won = true;
     cheer();
@@ -496,6 +505,7 @@ export default function WheelGame() {
       timer.current = window.setTimeout(() => {
         setMi(i + 1);
         setWon(false);
+        warned.current = false;
         distRef.current = 0;
         setProg(0);
         setMsg({ tone: "info", text: `다음 미션: ${missionText(missions[i + 1])}` });
@@ -522,6 +532,7 @@ export default function WheelGame() {
   });
 
   const resetDist = () => {
+    warned.current = false;
     distRef.current = 0;
     setProg(0);
   };

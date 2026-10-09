@@ -196,7 +196,7 @@ function Chain() {
         <h3 className="font-extrabold">2. 블록 체인 이어 보기</h3>
         <span className="font-game rounded-full bg-accent px-4 py-1 text-lg text-white">레벨 {stage} · 라운드 {round}/3</span>
       </div>
-      <p className="text-sm text-muted">각 블록은 ‘앞 블록의 해시’를 품고 있어요. 해시가 <strong>{"0".repeat(zeros)}</strong>로 시작하면 유효해요. 맞는 숫자(nonce)를 찾는 일이 ‘채굴’이에요. 레벨이 오를수록 블록이 늘고, 0이 두 개여야 하고, 앞쪽 블록을 고쳐야 해요.</p>
+      <p className="text-sm text-muted">각 블록은 ‘앞 블록의 해시’를 품고 있어요. 해시가 <strong>{"0".repeat(zeros)}</strong>로 시작하면 유효해요. 맞는 숫자(nonce)를 찾는 일이 ‘채굴’이에요. 레벨이 오를수록 블록이 늘고, 앞자리 0이 늘어나고, 앞쪽 블록을 고쳐야 해요.</p>
       <div className="flex flex-wrap items-center gap-2">
         <Stat label="고칠 블록" value={`${target + 1}번`} tone="bad" />
         <Stat label="규칙" value={`0 ${zeros}개`} />

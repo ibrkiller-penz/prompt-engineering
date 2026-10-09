@@ -49,8 +49,10 @@ export const lineAt = (ya: number, yb: number, x: number) => ya + ((yb - ya) * (
 export const lsAt = (ls: { a: number; b: number }, x: number) => ls.a + ls.b * (x - X0);
 export const sse = (pts: Pt[], f: (x: number) => number) => pts.reduce((s, p) => s + (p.y - f(p.x)) ** 2, 0);
 
-/** 레벨 1~10: 잡음 크기와 성공 기준(최소제곱선 오차의 몇 배 이내) */
+/** 레벨 1~10: 잡음 크기와 성공 기준(최소제곱선 오차의 몇 배 이내).
+ *  기준은 ‘최소제곱선 오차의 몇 배’라서 잡음이 크면 오히려 쉬워져요. 그래서 잡음은 조금만 키우고,
+ *  허용 배수를 1.30 → 1.08 로 줄여 허용되는 ‘덤 오차’가 레벨 1의 약 1/3 이 되게 했어요. */
 export const regLevel = (lv: number) => {
   const L = Math.max(1, Math.min(10, lv));
-  return { noise: Math.round((0.2 + 0.02 * (L - 1)) * 100) / 100, tol: Math.round((1.25 - 0.02 * (L - 1)) * 100) / 100 };
+  return { noise: Math.round((0.24 + 0.005 * (L - 1)) * 1000) / 1000, tol: Math.round((1.3 - 0.0245 * (L - 1)) * 100) / 100 };
 };

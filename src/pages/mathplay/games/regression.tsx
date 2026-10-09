@@ -41,7 +41,8 @@ export default function RegressionGame() {
   const sseMine = sse(pts, mine);
   const sseLs = sse(pts, (x) => lsAt(ls, x));
   const ratio = sseMine / sseLs;
-  const ok = ratio <= cfg.tol;
+  // 이상한 점을 넣으면 최소제곱선 오차가 커져서 기준이 느슨해지므로, 성공 판정은 이상한 점이 없을 때만 해요
+  const ok = !outlier && ratio <= cfg.tol;
 
   useEffect(() => {
     if (ok && !solved) {
@@ -54,7 +55,7 @@ export default function RegressionGame() {
   // 성공하면 잠시 뒤 다음 라운드(예측을 열어 보고 있으면 기다려요)
   useEffect(() => {
     if (!solved || predict) return;
-    const id = window.setTimeout(advance, round >= 3 ? 1500 : 3000);
+    const id = window.setTimeout(advance, round >= 3 ? 1200 : 3000);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [solved, predict, round]);
@@ -209,7 +210,11 @@ export default function RegressionGame() {
         <Say tone={ok ? "ok" : moves ? "bad" : "info"}>
           {ok
             ? `성공! 오차가 최소제곱선의 ${ratio.toFixed(2)}배예요(${cfg.tol}배 이내). ${round >= 3 ? "레벨 클리어!" : "곧 다음 라운드!"}`
-            : moves
+            : outlier
+              ? solved
+                ? "이상한 점 실험 중이에요. 이번 라운드는 이미 성공했어요!"
+                : "이상한 점이 있는 동안은 실험만 해요. ‘⚡ 이상한 점 추가’를 다시 눌러 끄면 성공 판정을 해요."
+              : moves
               ? `아직 최소제곱선의 ${ratio.toFixed(2)}배예요. ${cfg.tol}배 이내로 줄여 봐요. 두 손잡이를 위아래로 끌어요(키보드는 ↑↓, Shift는 크게).`
               : "주황 손잡이 두 개를 끌어서 파란 점들 한가운데를 지나는 직선을 만들어 봐요. 목표: 오차를 최소제곱선의 " + cfg.tol + "배 이내로!"}
         </Say>
