@@ -56,17 +56,25 @@ function pickHidden(rows: number, count = 2): Set<string> {
   return new Set([key(rows - 1, 1)]);
 }
 
+function initial() {
+  const t = triangle(6);
+  const h = pickHidden(6);
+  const f = [...h][0].split(",").map(Number);
+  return { h, sel: { n: f[0], k: f[1] }, opts: choices(t[f[0]][f[1]], [t[f[0] - 1][f[1] - 1], t[f[0] - 1][f[1]]]) };
+}
+
 export default function PascalGame() {
+  const [init] = useState(initial);
   const [rows, setRows] = useState(6);
   const [mode, setMode] = useState<Mode>("blank");
   const [more, setMore] = useState(false);
-  const [sel, setSel] = useState(SEL);
+  const [sel, setSel] = useState(init.sel);
   const [diagN, setDiagN] = useState(5);
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [hidden, setHidden] = useState<Set<string>>(init.h);
   const [round, setRound] = useState(0);
   const [stars, setStars] = useState(0);
   const [wrong, setWrong] = useState<number[]>([]);
-  const [opts, setOpts] = useState<number[]>([]);
+  const [opts, setOpts] = useState<number[]>(init.opts);
   const [sumRow, setSumRow] = useState(3);
   const [sumDone, setSumDone] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(null);
