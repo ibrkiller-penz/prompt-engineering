@@ -191,7 +191,7 @@ export default function SlideRuleGame() {
         </defs>
         <text x={X0} y={20} fontSize={13} fill="var(--muted)">위 자 (고정)</text>
         <Scale y={TOP_Y} up />
-        <text x={X0} y={BOT_Y - 6} fontSize={13} fill="var(--muted)">아래 자 (끌어서 옮겨요)</text>
+        <text x={X0 + W} y={BOT_Y - 6} textAnchor="end" fontSize={13} fill="var(--muted)">아래 자 (끌어서 옮겨요)</text>
         <g
           tabIndex={0}
           role="slider"

@@ -171,8 +171,8 @@ export default function LeverGame() {
                 </text>
               </g>
             ))}
-            <text x={CX - 195} y={CY - 12} fontSize="10" fill="#6b7280">왼쪽</text>
-            <text x={CX + 170} y={CY - 12} fontSize="10" fill="#6b7280">오른쪽</text>
+            <text x={CX - 200} y={CY + 36} fontSize="10" fill="#6b7280">왼쪽</text>
+            <text x={CX + 168} y={CY + 36} fontSize="10" fill="#6b7280">오른쪽</text>
 
             {/* 눌러서 놓는 칸 */}
             {SLOTS.map((s) => {
