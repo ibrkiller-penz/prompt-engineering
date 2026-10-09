@@ -1,0 +1,16 @@
+--- a/style.css
++++ b/style.css
+@@ -307,3 +307,13 @@
+ @keyframes okfade{0%{opacity:0;transform:scale(.7)}15%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:scale(1.08)}}
+ .okc{position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#16a34a;background:rgba(255,255,255,.35);animation:okfade 1s ease-out forwards}
+ .okc circle{stroke-dasharray:100;animation:okdraw .45s ease-out forwards}
++
++/* aibasic-phone: 폰(≤400px) 화면 보정 — 머리글 한 줄, 계단 레일 5칸, 배지 글자, 별·완료 표시 대비 */
++@media(max-width:400px){
++  .pill{padding:0 8px}
++  .pill.xp .xpn{display:none}
++  .rail a{min-width:58px;font-size:.78rem}
++}
++.bdg small{white-space:normal}
++.stars{color:#b8860b}
++:root[data-theme="dark"] .lcard.done .no,:root[data-theme="dark"] .step.pass>header .lv{color:#0f1115}

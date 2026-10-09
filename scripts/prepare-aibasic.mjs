@@ -13,7 +13,8 @@ const PATCHES = [
   ["aibasic-termgrid", "app.js", "'--tgc'"],
   ["aibasic-circle", "app.js", "okCircle"],
   ["aibasic-ogimage", "index.html", "og:image:width"],
-  ["aibasic-content", "lessons.js", "검토 패치 aibasic-content"], // 1~4단원 내용 검토(정답 근거·사실·용어 풀이) — lessons.js 본문 수정
+  ["aibasic-content", "lessons.js", "검토 패치 aibasic-content"],
+  ["aibasic-phone", "style.css", "aibasic-phone"], // 폰 360px: 머리글 🌓 밀림, 계단 레일 잘림, 배지 글자 겹침, 별·다크 완료 표시 대비 // 1~4단원 내용 검토(정답 근거·사실·용어 풀이) — lessons.js 본문 수정
 ];
 const HAPPY = "public/happy/HappyMpX.zip";
 const HAPPY_URL = "https://github.com/ibrkiller-penz/happymp3/releases/download/files-2026-10-08/HappyMpX.zip";
