@@ -26,7 +26,7 @@ export default function TetrominoPuzzle() {
           onClick={() => setSeed((s) => s + 1)}
           className="font-game min-h-[48px] rounded-2xl bg-accent px-5 text-[1.05rem] text-accent-ink shadow-[0_4px_0_0_rgba(0,0,0,0.2)] hover:brightness-110 active:translate-y-[2px]"
         >
-          새 문제
+          다른 모양
         </button>
         <p className="text-sm text-muted">흰 칸 20개를 5종 조각으로 빈틈없이 덮어요. 조각은 한 번씩만 써요. 답이 둘 이상일 수도 있어요.</p>
       </div>

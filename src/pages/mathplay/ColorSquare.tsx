@@ -94,20 +94,11 @@ export default function ColorSquare() {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-game text-lg text-ink">판 크기</span>
-        {([4, 5] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => start(k)}
-            aria-pressed={n === k}
-            className={`font-game min-h-[48px] rounded-2xl border-2 px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] active:translate-y-[2px] ${n === k ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface hover:bg-bg"}`}
-          >
-            {k}×{k} <span className="text-xs font-normal">({k}색)</span>
-          </button>
-        ))}
+        <span className="font-game rounded-full bg-accent-soft px-4 py-2 text-lg text-accent">
+          레벨 {stage} · {n}×{n} 판 ({n}색)
+        </span>
         <button type="button" onClick={() => start(n)} className="font-game min-h-[48px] rounded-2xl border-2 border-line bg-surface px-4 text-[1.05rem] shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg active:translate-y-[2px]">
-          새 문제
+          다른 문제
         </button>
       </div>
 
