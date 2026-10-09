@@ -1,0 +1,581 @@
+{
+ "galleries": [
+  {
+   "id": "see",
+   "name": "보기"
+  },
+  {
+   "id": "hear",
+   "name": "듣기"
+  },
+  {
+   "id": "move",
+   "name": "움직임"
+  },
+  {
+   "id": "us",
+   "name": "우리"
+  },
+  {
+   "id": "life",
+   "name": "생명"
+  },
+  {
+   "id": "look",
+   "name": "관찰"
+  },
+  {
+   "id": "make",
+   "name": "손으로 생각하기"
+  }
+ ],
+ "experiences": [
+  {
+   "id": "A1",
+   "gallery": "see",
+   "title": "선 길이가 달라 보여요",
+   "question": "두 선의 길이는 정말 다를까?",
+   "topics": [
+    "빛",
+    "착시"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "done"
+  },
+  {
+   "id": "A2",
+   "gallery": "see",
+   "title": "색을 섞어 보자",
+   "question": "빛과 물감은 섞으면 왜 반대로 될까?",
+   "topics": [
+    "빛",
+    "색"
+   ],
+   "level": 1,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "A3",
+   "gallery": "see",
+   "title": "사라진 그림이 나타나요",
+   "question": "흰 화면에 왜 그림이 떠오를까?",
+   "topics": [
+    "빛",
+    "착시"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "A4",
+   "gallery": "see",
+   "title": "같은 회색, 다른 회색?",
+   "question": "배경이 바뀌면 회색도 바뀔까?",
+   "topics": [
+    "빛",
+    "착시"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "A5",
+   "gallery": "see",
+   "title": "그림자가 색을 가졌어요",
+   "question": "색 램프를 켜면 그림자는 무슨 색일까?",
+   "topics": [
+    "빛",
+    "색"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "A6",
+   "gallery": "see",
+   "title": "거꾸로 도는 바퀴",
+   "question": "앞으로 도는 바퀴가 왜 뒤로 돌까?",
+   "topics": [
+    "빛",
+    "착시"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "A7",
+   "gallery": "see",
+   "title": "맹점 찾기",
+   "question": "눈 속에 안 보이는 곳이 있다고?",
+   "topics": [
+    "빛",
+    "몸"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "B1",
+   "gallery": "hear",
+   "title": "소리를 만들어 보자",
+   "question": "높은 소리와 낮은 소리는 뭐가 다를까?",
+   "topics": [
+    "소리",
+    "파동"
+   ],
+   "level": 1,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "B2",
+   "gallery": "hear",
+   "title": "울렁울렁 맥놀이",
+   "question": "비슷한 두 소리를 겹치면 왜 울렁일까?",
+   "topics": [
+    "소리",
+    "파동"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "B3",
+   "gallery": "hear",
+   "title": "내 목소리 보기",
+   "question": "'아', '이', '우'는 모양이 어떻게 다를까?",
+   "topics": [
+    "소리",
+    "파동"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": true,
+   "status": "planned"
+  },
+  {
+   "id": "B4",
+   "gallery": "hear",
+   "title": "지나가는 구급차",
+   "question": "구급차 소리는 왜 지나갈 때 변할까?",
+   "topics": [
+    "소리",
+    "파동"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "B5",
+   "gallery": "hear",
+   "title": "관이 노래해요",
+   "question": "관이 길면 소리는 어떻게 될까?",
+   "topics": [
+    "소리",
+    "공명"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "B6",
+   "gallery": "hear",
+   "title": "소리를 없애는 소리",
+   "question": "소리 두 개가 만나 조용해질 수 있을까?",
+   "topics": [
+    "소리",
+    "파동"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "C1",
+   "gallery": "move",
+   "title": "진자 실험실",
+   "question": "무거우면 더 빨리 흔들릴까?",
+   "topics": [
+    "힘",
+    "운동"
+   ],
+   "level": 1,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "C2",
+   "gallery": "move",
+   "title": "달에서 던지면?",
+   "question": "달에서 던진 공은 얼마나 멀리 갈까?",
+   "topics": [
+    "힘",
+    "운동"
+   ],
+   "level": 1,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "C3",
+   "gallery": "move",
+   "title": "쾅! 충돌 실험",
+   "question": "부딪히기 전과 후에 변하지 않는 것은?",
+   "topics": [
+    "힘",
+    "운동"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "C4",
+   "gallery": "move",
+   "title": "팔을 모으면 빨라져요",
+   "question": "팔을 모으면 왜 더 빨리 돌까?",
+   "topics": [
+    "힘",
+    "운동"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "C5",
+   "gallery": "move",
+   "title": "휘어지는 공",
+   "question": "회전하는 공은 왜 휘어질까?",
+   "topics": [
+    "힘",
+    "운동"
+   ],
+   "level": 3,
+   "minutes": 6,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "C6",
+   "gallery": "move",
+   "title": "물결이 만나면",
+   "question": "물결 두 개가 만나면 어떤 무늬가 될까?",
+   "topics": [
+    "파동",
+    "간섭"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "C7",
+   "gallery": "move",
+   "title": "예측할 수 없는 진자",
+   "question": "시작이 거의 같은데 왜 완전히 달라질까?",
+   "topics": [
+    "힘",
+    "운동",
+    "카오스"
+   ],
+   "level": 3,
+   "minutes": 6,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "D1",
+   "gallery": "us",
+   "title": "내 반응속도는?",
+   "question": "내 반응은 얼마나 빠를까?",
+   "topics": [
+    "몸",
+    "인지"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "D2",
+   "gallery": "us",
+   "title": "글자와 색이 싸워요",
+   "question": "글자와 색이 다르면 왜 느려질까?",
+   "topics": [
+    "몸",
+    "인지"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "D3",
+   "gallery": "us",
+   "title": "보고도 못 본 것",
+   "question": "집중하면 눈앞의 것도 놓칠까?",
+   "topics": [
+    "몸",
+    "인지"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "D4",
+   "gallery": "us",
+   "title": "기억은 몇 칸?",
+   "question": "한 번에 몇 개까지 기억할 수 있을까?",
+   "topics": [
+    "몸",
+    "인지"
+   ],
+   "level": 1,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "D5",
+   "gallery": "us",
+   "title": "거울 속에서 그리기",
+   "question": "거울 속 손은 왜 말을 안 들을까?",
+   "topics": [
+    "몸",
+    "인지"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "E1",
+   "gallery": "life",
+   "title": "토끼와 여우",
+   "question": "여우가 늘면 토끼는 어떻게 될까?",
+   "topics": [
+    "생명",
+    "생태"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "E2",
+   "gallery": "life",
+   "title": "씨앗을 키워 보자",
+   "question": "싹이 잘 크는 조건은 무엇일까?",
+   "topics": [
+    "생명",
+    "탐구"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "E3",
+   "gallery": "life",
+   "title": "완두콩 교배",
+   "question": "자손은 어떤 비율로 태어날까?",
+   "topics": [
+    "생명",
+    "유전"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "E4",
+   "gallery": "life",
+   "title": "운동하면 맥박이 변해요",
+   "question": "운동하면 맥박은 얼마나 달라질까?",
+   "topics": [
+    "생명",
+    "몸"
+   ],
+   "level": 1,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "E5",
+   "gallery": "life",
+   "title": "누가 살아남을까",
+   "question": "눈에 띄는 벌레는 어떻게 될까?",
+   "topics": [
+    "생명",
+    "진화"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "F1",
+   "gallery": "look",
+   "title": "그림자 시계",
+   "question": "그림자는 언제 가장 짧을까?",
+   "topics": [
+    "지구·우주",
+    "태양"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "F2",
+   "gallery": "look",
+   "title": "달은 왜 모양이 변할까",
+   "question": "달은 정말 모양이 변하는 걸까?",
+   "topics": [
+    "지구·우주",
+    "달"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "F3",
+   "gallery": "look",
+   "title": "땅이 흔들리면",
+   "question": "지진파의 도착 시간으로 거리를 알 수 있을까?",
+   "topics": [
+    "지구·우주",
+    "파동"
+   ],
+   "level": 3,
+   "minutes": 6,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "F4",
+   "gallery": "look",
+   "title": "계절은 왜 바뀔까",
+   "question": "여름은 지구가 태양에 가까워서일까?",
+   "topics": [
+    "지구·우주",
+    "태양"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "G1",
+   "gallery": "make",
+   "title": "어디가 균형일까",
+   "question": "막대는 어디를 받쳐야 균형이 잡힐까?",
+   "topics": [
+    "힘",
+    "구조"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "G2",
+   "gallery": "make",
+   "title": "다리를 튼튼하게",
+   "question": "어떻게 만들어야 다리가 무너지지 않을까?",
+   "topics": [
+    "힘",
+    "구조"
+   ],
+   "level": 3,
+   "minutes": 10,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "G3",
+   "gallery": "make",
+   "title": "지레와 도르래",
+   "question": "힘을 줄이면 무엇이 늘어날까?",
+   "topics": [
+    "힘",
+    "도구"
+   ],
+   "level": 2,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "G4",
+   "gallery": "make",
+   "title": "전구에 불을 켜자",
+   "question": "전구를 연결하는 방법에 따라 밝기가 달라질까?",
+   "topics": [
+    "전기",
+    "회로"
+   ],
+   "level": 2,
+   "minutes": 6,
+   "needsMic": false,
+   "status": "planned"
+  },
+  {
+   "id": "G5",
+   "gallery": "make",
+   "title": "톱니바퀴 돌리기",
+   "question": "작은 톱니바퀴는 더 빨리 돌까?",
+   "topics": [
+    "힘",
+    "기계"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "planned"
+  }
+ ]
+}

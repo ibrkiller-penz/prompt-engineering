@@ -97,6 +97,15 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     ],
   },
   {
+    path: "/science/",
+    external: true,
+    title: "온라인 과학 체험관",
+    tag: "예측 → 조작 → 관찰 · 시뮬레이션",
+    desc: "먼저 예측하고, 직접 만져 보고, 이유를 확인해요. 착시·소리·힘·생명·지구 체험 39개를 차례로 열어요.",
+    more: "읽는 사이트가 아니라 조작하는 사이트예요. 체험마다 예측 → 조작 → 관찰 → 쉬운/자세한 설명 순서로 진행하고, 수업 투사용 보기(?present=1)가 있어요. 로그인·서버 저장 없이 브라우저 안에서만 동작해요.",
+    cta: "체험하러 가기 →",
+  },
+  {
     path: "/aimath",
     title: "인공지능 수학",
     tag: "고등 진로선택 · 단원별 학습",
