@@ -242,6 +242,38 @@ function Stepper({ n, setN, disabled, list }: { n: number; setN: (n: number) => 
   );
 }
 
+/** 분수 막대: 가로 막대가 조각 수만큼 나뉘고 먹은 칸이 색칠돼요. 보여주기용(끌기·탭 없음) */
+function FractionBars({ items, guide = true }: { items: { n: number; k: number; label: string }[]; guide?: boolean }) {
+  const W = 340;
+  const X0 = 10;
+  const rowH = 44;
+  const H = items.length * rowH + 10;
+  const palette: [string, string][] = [["#fb923c", "#c2410c"], ["#38bdf8", "#0369a1"], ["#a78bfa", "#6d28d9"]];
+  const first = items[0];
+  return (
+    <svg viewBox={`0 0 360 ${H + 22}`} className="mx-auto block w-full max-w-[460px] select-none" role="img" aria-label={`분수 막대. ${items.map((x) => `${x.label} ${x.k}/${x.n}`).join(", ")}`}>
+      {items.map((it, r) => {
+        const [fill, line] = palette[r % palette.length];
+        const y = 18 + r * rowH;
+        const cw = W / it.n;
+        return (
+          <g key={r}>
+            <text x={X0} y={y - 4} fontSize="13" fill="#7c2d12" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+              {it.label} {it.k}/{it.n}
+            </text>
+            {Array.from({ length: it.n }, (_, i) => (
+              <rect key={i} x={X0 + i * cw + 0.5} y={y} width={cw - 1} height="24" rx={Math.min(6, cw / 4)} fill={i < it.k ? fill : "#fff7ed"} stroke={i < it.k ? line : "#fdba74"} strokeWidth="2" />
+            ))}
+          </g>
+        );
+      })}
+      {guide && items.length > 1 && first.k > 0 && (
+        <line x1={X0 + (first.k / first.n) * W} y1="10" x2={X0 + (first.k / first.n) * W} y2={H + 8} stroke="#e11d48" strokeWidth="2.5" strokeDasharray="5 4" />
+      )}
+    </svg>
+  );
+}
+
 const countOf = (sel: boolean[]) => sel.filter(Boolean).length;
 const blank = (n: number) => Array.from({ length: n }, () => false);
 const toggleAt = (sel: boolean[], i: number) => sel.map((x, j) => (j === i ? !x : x));
@@ -265,6 +297,9 @@ function FreeMode() {
           {k > 0 && r.n !== n && <span className="ml-2 text-lg text-muted">= {frText(r)}</span>}
         </p>
         <p className="text-center text-base text-muted tabular-nums">{n}조각 중 {k}조각을 먹었어요</p>
+        <div className="mt-2">
+          <FractionBars items={[{ n, k, label: "분수 막대" }]} guide={false} />
+        </div>
       </Board>
       <GButton onClick={() => setSel(blank(n))} className={BIG}>다시 하기 (모두 지우기)</GButton>
       <Say>조각 수를 바꿔도 같은 양을 만들 수 있을까요? 1/2을 여러 가지로 만들어 봐요!</Say>
@@ -283,6 +318,7 @@ function MakeMode({ level, onResult }: { level: number; onResult: (ok: boolean) 
   const [sB, setSB] = useState<boolean[]>(blank(start[1]));
   const [hint, setHint] = useState(false);
   const [solved, setSolved] = useState(false);
+  const [bars, setBars] = useState(level < 8);
 
   const fA = { k: countOf(sA), n: nA };
   const fB = { k: countOf(sB), n: nB };
@@ -331,6 +367,12 @@ function MakeMode({ level, onResult }: { level: number; onResult: (ok: boolean) 
             </div>
           ))}
         </div>
+        {bars && (
+          <div className="mt-3 rounded-card bg-[#fff7ed] p-2">
+            <p className="font-game text-center text-lg">분수 막대 · 길이가 같으면 같은 양이에요</p>
+            <FractionBars items={[{ n: nA, k: fA.k, label: "왼쪽" }, { n: nB, k: fB.k, label: "오른쪽" }]} />
+          </div>
+        )}
       </Board>
       <Say tone={say.tone}>{say.text}</Say>
       {hint && (
@@ -338,9 +380,14 @@ function MakeMode({ level, onResult }: { level: number; onResult: (ok: boolean) 
           같은 양은 이렇게 여러 가지로 쓸 수 있어요: {mults.map((m) => `${target.k * m}/${target.n * m}`).join(" = ")}. 조각을 2배로 잘게 나누면 먹을 조각도 2배가 돼요!
         </Say>
       )}
-      <GButton pressed={hint} onClick={() => setHint((h) => !h)} className={BIG}>
-        힌트 {hint ? "숨기기" : "보기"}
-      </GButton>
+      <div className="flex flex-wrap gap-2">
+        <GButton pressed={hint} onClick={() => setHint((h) => !h)} className={BIG}>
+          힌트 {hint ? "숨기기" : "보기"}
+        </GButton>
+        <GButton pressed={bars} onClick={() => setBars((b) => !b)} className={BIG}>
+          분수 막대 {bars ? "끄기" : "켜기"}
+        </GButton>
+      </div>
     </div>
   );
 }
@@ -349,6 +396,7 @@ function MakeMode({ level, onResult }: { level: number; onResult: (ok: boolean) 
 function CompareMode({ level, onResult }: { level: number; onResult: (ok: boolean) => void }) {
   const [q] = useState(() => makeCompareLevel(rand, level));
   const [pick, setPick] = useState<null | -1 | 0 | 1>(null); // 1: 왼쪽이 커요, -1: 오른쪽이 커요, 0: 같아요
+  const [bars, setBars] = useState(level < 8);
   const [x, y] = q;
   const truth = cmpFr(x, y) as -1 | 0 | 1;
   const pie = (f: Fr) => Array.from({ length: f.n }, (_, i) => i < f.k);
@@ -384,8 +432,17 @@ function CompareMode({ level, onResult }: { level: number; onResult: (ok: boolea
           </button>
         ))}
       </div>
+      {bars && (
+        <div className="rounded-card bg-[#fff7ed] p-2">
+          <p className="font-game text-center text-lg">분수 막대 · 색칠된 길이를 비교해 봐요</p>
+          <FractionBars items={[{ n: x.n, k: x.k, label: "왼쪽" }, { n: y.n, k: y.k, label: "오른쪽" }]} />
+        </div>
+      )}
       <GButton variant={pick === 0 ? "primary" : "soft"} disabled={pick !== null} onClick={() => choose(0)} className="min-h-[56px]! w-full text-lg">
         똑같아요 ( = )
+      </GButton>
+      <GButton pressed={bars} onClick={() => setBars((b) => !b)} className={BIG}>
+        분수 막대 {bars ? "끄기" : "켜기"}
       </GButton>
       {pick === null ? <Say>어느 쪽을 더 많이 먹었을까요? 눈으로 비교해 보고, 많은 쪽 피자를 눌러요. 같으면 ‘똑같아요’!</Say> : <Say tone={pick === truth ? "ok" : "bad"}>{pick === truth ? "정답이에요! 잘했어요! ⭐ " : "아쉬워요, 괜찮아요! 새 문제로 다시 해 봐요. "}{explain}</Say>}
     </div>
