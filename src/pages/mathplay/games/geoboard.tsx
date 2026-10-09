@@ -67,7 +67,7 @@ export default function GeoboardGame() {
     }
   }
 
-  function press(p: Pt) {
+  function press(p: Pt, quiet = false) {
     if (closedRef.current) return;
     const cp = pathRef.current;
     if (!cp.length) {
@@ -79,6 +79,7 @@ export default function GeoboardGame() {
     if (eq(cp[cp.length - 1], p)) return;
     if (cp.length >= 3 && eq(cp[0], p)) {
       if (canClose(cp)) finish(cp);
+      else if (quiet) return;
       else {
         oops();
         setMsg({ t: "bad", s: "이렇게 닫으면 고무줄이 겹쳐요. ‘되돌리기’를 눌러 다른 길로 가 봐요." });
@@ -86,12 +87,13 @@ export default function GeoboardGame() {
       return;
     }
     if (cp.length === 2 && eq(cp[0], p)) {
+      if (quiet) return;
       setMsg({ t: "info", s: "못이 한 개 더 필요해요. 다른 못을 눌러 삼각형부터 만들어요." });
       return;
     }
     const r = canAdd(cp, p);
     if (!r.ok) {
-      if (r.why !== "same") {
+      if (r.why !== "same" && !quiet) {
         oops();
         setMsg({ t: "bad", s: WHY[r.why] ?? WHY.cross });
       }
@@ -124,6 +126,8 @@ export default function GeoboardGame() {
   };
   /** 끌고 가다가 못 근처에서 방향이 꺾이면 그 못을 고무줄에 걸어요(곧게 지나가기만 하면 걸지 않아요) */
   function checkTurn(x: number, y: number) {
+    const tight = pinNear(x, y, 0.15);
+    if (tight) press(tight, true); // 못 한가운데를 지나가면 바로 걸어요
     const near = pinNear(x, y, 0.3);
     if (near && (!cand.current || !eq(cand.current.pin, near))) cand.current = { pin: near, trailIdx: trail.current.length - 1 };
     const c = cand.current;
@@ -141,7 +145,7 @@ export default function GeoboardGame() {
     const l1 = Math.hypot(...v1), l2 = Math.hypot(...v2);
     if (l1 < 1 || l2 < 1) return;
     const ang = (Math.acos(Math.max(-1, Math.min(1, (v1[0] * v2[0] + v1[1] * v2[1]) / (l1 * l2)))) * 180) / Math.PI;
-    if (ang > 30) press(c.pin);
+    if (ang > 30) press(c.pin, true);
   }
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const xy = svgXY(e);

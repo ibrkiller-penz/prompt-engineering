@@ -206,7 +206,7 @@ function Round({ level, board, onResult }: { level: number; board: BoardDef; onR
     setDrag(null);
     const p = board.pieces[d.i];
     const a = anchorOf(d.i, d.x, d.y - 46);
-    if (d.y < BY + 10 * CELL + 6 && a[0] === p.anchor[0] && a[1] === p.anchor[1]) {
+    if (a[0] === p.anchor[0] && a[1] === p.anchor[1]) {
       const np = placed.map((v, j) => (j === d.i ? true : v));
       setPlaced(np);
       setLast(d.i);
