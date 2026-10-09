@@ -5,6 +5,7 @@ export type Save = {
   v: 1;
   wins: Record<string, number>; // 게임별 성공 횟수(cheer 가 불린 횟수)
   plays: Record<string, number>; // 게임별 시작 횟수
+  levels: Record<string, number>; // 게임별로 깬 가장 높은 레벨(0~10)
   recent: string[]; // 최근에 한 게임(앞이 최신)
   days: string[]; // 놀았던 날(YYYY-MM-DD)
   today: { date: string; wins: string[] }; // 오늘 성공한 게임
@@ -14,7 +15,7 @@ export type Save = {
 
 const KEY = "penedu:mathplay:save";
 const EVT = "gz:save";
-const blank = (): Save => ({ v: 1, wins: {}, plays: {}, recent: [], days: [], today: { date: "", wins: [] }, avatar: "🐣", name: "" });
+const blank = (): Save => ({ v: 1, wins: {}, plays: {}, levels: {}, recent: [], days: [], today: { date: "", wins: [] }, avatar: "🐣", name: "" });
 
 export const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -63,6 +64,12 @@ const markDay = (s: Save) => {
 
 export function recordPlay(id: string) {
   update((s) => ({ ...s, plays: { ...s.plays, [id]: (s.plays[id] ?? 0) + 1 }, recent: [id, ...s.recent.filter((x) => x !== id)].slice(0, 8), days: markDay(s) }));
+}
+
+export const MAX_LEVEL = 10;
+/** n 레벨을 깼어요(더 높은 기록만 남긴다) */
+export function recordLevel(id: string, n: number) {
+  update((s) => ({ ...s, levels: { ...s.levels, [id]: Math.max(s.levels?.[id] ?? 0, Math.min(MAX_LEVEL, n)) } }));
 }
 
 export function recordWin(id: string) {

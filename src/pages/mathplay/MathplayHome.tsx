@@ -30,6 +30,7 @@ function Stars3({ n, light = false }: { n: number; light?: boolean }) {
 function Tile({ g, onOpen, save, today, dark = false }: { g: GameDef; onOpen: (id: string) => void; save: Save; today?: boolean; dark?: boolean }) {
   const n = starsOf(save.wins[g.id]);
   const fresh = !save.plays[g.id];
+  const lv = save.levels?.[g.id] ?? 0;
   return (
     <button
       type="button"
@@ -46,6 +47,11 @@ function Tile({ g, onOpen, save, today, dark = false }: { g: GameDef; onOpen: (i
       ) : fresh ? (
         <span className="font-game absolute left-2 top-2 rounded-full bg-[#ff4d6d] px-2.5 py-0.5 text-sm text-white shadow-[0_2px_0_0_rgba(0,0,0,0.15)]">NEW</span>
       ) : null}
+      {lv > 0 && (
+        <span className="font-game absolute right-2 top-2 rounded-full bg-white/95 px-2.5 py-0.5 text-sm text-[#7b61ff] shadow-[0_2px_0_0_rgba(0,0,0,0.15)]">
+          {lv >= 10 ? "👑 Lv.10" : `Lv.${lv}`}
+        </span>
+      )}
       <div className="px-3 pb-3 pt-2">
         <div className="flex items-center justify-between gap-1">
           <h3 className={`font-game min-w-0 truncate text-lg leading-tight ${dark ? "text-white" : "text-[#2b2340]"}`}>{g.title}</h3>

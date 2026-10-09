@@ -1,5 +1,5 @@
 // 게임 공통 도구. 모든 게임은 이 파일의 부품만 써서 모양을 맞춘다.
-import { useEffect, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 
 /** 누르는 단추. primary=강조, ghost=테두리 */
 export function GButton({ children, onClick, variant = "ghost", disabled, pressed, className = "", title }: { children: ReactNode; onClick?: () => void; variant?: "primary" | "ghost" | "soft"; disabled?: boolean; pressed?: boolean; className?: string; title?: string }) {
@@ -217,4 +217,17 @@ export function cheer() {
     else c.remove();
   };
   requestAnimationFrame(loop);
+}
+
+// ───── 단계(스테이지): 한 세트의 라운드를 다 깨면 다음 단계로 자동으로 넘어간다 ─────
+/** 지금 몇 단계인지(1부터). 게임 창이 넣어 준다. 단계가 오르면 문제를 조금씩 어렵게 할 때 쓴다. */
+export const StageContext = createContext(1);
+export const useStage = () => useContext(StageContext);
+/** 이번 단계의 라운드를 모두 깼어요 → 게임 창이 축하 화면을 띄우고 새 단계로 게임을 처음부터 다시 연다 */
+export function stageClear() {
+  try {
+    window.dispatchEvent(new Event("gz:stage"));
+  } catch {
+    /* 무시 */
+  }
 }

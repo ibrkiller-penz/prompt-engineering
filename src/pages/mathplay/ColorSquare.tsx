@@ -64,6 +64,13 @@ export default function ColorSquare() {
     if (done && !wasDone.current) cheer();
     wasDone.current = done;
   }, [done]);
+  // 다 맞추면 2.5초 뒤 자동으로 새 문제
+  useEffect(() => {
+    if (!done) return;
+    const t = window.setTimeout(() => start(n), 2500);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done]);
   useEffect(() => {
     if (anyBad && !wasBad.current) oops();
     wasBad.current = anyBad;
@@ -199,7 +206,7 @@ export default function ColorSquare() {
           </p>
           {done && (
             <p className="gz-pop mt-2 rounded-2xl border-2 border-ok/40 bg-ok-soft p-3 text-lg font-semibold text-ok" role="status">
-              🎉 모든 줄과 두 대각선에 색이 하나씩! 완성했어요.
+              🎉 모든 줄과 두 대각선에 색이 하나씩! 완성했어요. 곧 새 문제로 넘어가요!
               <button type="button" onClick={() => start(n)} className="font-game ml-3 min-h-[52px] rounded-full bg-accent px-6 text-xl text-accent-ink shadow-[0_5px_0_0_rgba(0,0,0,0.2)] hover:brightness-110">
                 새 문제 →
               </button>

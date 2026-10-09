@@ -115,6 +115,14 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
     if (done && !wasDone.current) cheer();
     wasDone.current = done;
   }, [done]);
+  // 다 맞추면 2.5초 뒤 자동으로 다음 문제(단추로 바로 넘어갈 수도 있다)
+  const nextRef = useRef(nextBtn);
+  nextRef.current = nextBtn;
+  useEffect(() => {
+    if (!done || !nextRef.current) return;
+    const t = window.setTimeout(() => nextRef.current?.onClick(), 2500);
+    return () => window.clearTimeout(t);
+  }, [done]);
 
   const nextUnplaced = useCallback(
     (after: Record<string, Cell[]>, from: string) => {
@@ -464,7 +472,7 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
       </p>
       {done && (
         <div className="gz-pop mt-2 flex flex-wrap items-center gap-3 rounded-2xl border-2 border-ok/40 bg-ok-soft p-3 text-lg font-semibold text-ok" role="status">
-          <span className="min-w-0 flex-1">🎉 {doneText}</span>
+          <span className="min-w-0 flex-1">🎉 {doneText}{nextBtn && <span className="block text-sm font-normal">곧 다음 문제로 넘어가요!</span>}</span>
           {nextBtn && (
             <button type="button" onClick={nextBtn.onClick} className="font-game min-h-[52px] rounded-full bg-accent px-6 text-xl text-accent-ink shadow-[0_5px_0_0_rgba(0,0,0,0.2)] hover:brightness-110 active:translate-y-[3px]">
               {nextBtn.label}

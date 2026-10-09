@@ -1,8 +1,8 @@
 import { Suspense, lazy, useEffect, useMemo, useState, type ComponentType, type CSSProperties } from "react";
-import { getSound, setSound } from "./games/kit";
+import { StageContext, getSound, setSound } from "./games/kit";
 import { GAMES, floorInfo, gameById } from "./games/registry";
 import Thumb from "./Thumb";
-import { recordPlay, recordWin, starsOf, useSave } from "./progress";
+import { MAX_LEVEL, recordLevel, recordPlay, recordWin, starsOf, useSave } from "./progress";
 import { useGameFont } from "./theme";
 
 const mods = import.meta.glob("./games/*.tsx") as Record<string, () => Promise<{ default: ComponentType }>>;
@@ -20,7 +20,13 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
   const [started, setStarted] = useState(false);
   const [help, setHelp] = useState(false);
   const [toast, setToast] = useState(0);
+  // 레벨: 라운드를 다 깨면 축하 화면 뒤 다음 레벨로 게임을 새로 연다(1~10)
+  const [stage, setStage] = useState(1);
+  const [clear, setClear] = useState<{ n: number; left: number } | null>(null);
+  const [allClear, setAllClear] = useState(false);
   const save = useSave();
+  const cleared = save.levels?.[id] ?? 0;
+  const [pickLevel, setPickLevel] = useState(1);
   const Game = useMemo(() => {
     const load = puzzleMods[id] ?? mods[`./games/${id}.tsx`];
     return load ? lazy(load) : null;
@@ -30,7 +36,37 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
   useEffect(() => {
     setStarted(false);
     setHelp(false);
+    setStage(1);
+    setClear(null);
+    setAllClear(false);
   }, [id]);
+  // 시작 화면에서 고를 레벨: 깬 다음 레벨(최대 10)
+  useEffect(() => {
+    setPickLevel(Math.min(MAX_LEVEL, (save.levels?.[id] ?? 0) + 1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // 단계 클리어 신호 → 3·2·1 뒤 다음 단계
+  useEffect(() => {
+    if (!started) return;
+    const h = () => {
+      recordLevel(id, stage);
+      if (stage >= MAX_LEVEL) setAllClear(true);
+      else setClear((c) => c ?? { n: stage, left: 3 });
+    };
+    window.addEventListener("gz:stage", h);
+    return () => window.removeEventListener("gz:stage", h);
+  }, [started, stage, id]);
+  useEffect(() => {
+    if (!clear) return;
+    if (clear.left <= 0) {
+      setStage(clear.n + 1);
+      setClear(null);
+      return;
+    }
+    const t = window.setTimeout(() => setClear({ ...clear, left: clear.left - 1 }), 1000);
+    return () => window.clearTimeout(t);
+  }, [clear]);
 
   // 게임이 성공(cheer)하면 별을 기록하고 ‘+⭐’를 띄운다
   useEffect(() => {
@@ -74,7 +110,7 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
 
   return (
     <div className="fixed inset-0 z-50 bg-black/55 sm:p-3" role="dialog" aria-modal="true" aria-label={g.title}>
-      <div className="gamezone flex h-full w-full flex-col overflow-hidden bg-bg text-ink shadow-2xl sm:rounded-[28px]" style={zoneStyle}>
+      <div className="gamezone relative flex h-full w-full flex-col overflow-hidden bg-bg text-ink shadow-2xl sm:rounded-[28px]" style={zoneStyle}>
         {/* 위 막대: 게임 이름 · 도움말 · 다른 게임 · 소리 · ✕ */}
         <header className="flex items-center gap-2 px-3 py-2 text-white sm:px-4" style={{ background: `linear-gradient(90deg, ${f.grad[0]}, ${f.grad[1]})` }}>
           <span className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-2 border-white/70">
@@ -87,6 +123,7 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
                 {"★".repeat(starsOf(save.wins[g.id]))}
                 <span className="opacity-50">{"☆".repeat(3 - starsOf(save.wins[g.id]))}</span>
               </span>
+              {started && <span className="mr-1 rounded-full bg-white/25 px-1.5">레벨 {stage}</span>}
               {f.emoji} {f.label} {f.name}
               {g.level === "upper" ? " · 중·고 도전" : ""}
             </p>
@@ -113,6 +150,48 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
             ✕
           </button>
         </header>
+
+        {clear && (
+          <div className="absolute inset-0 z-[70] flex items-center justify-center bg-black/45 p-6" role="status" aria-live="assertive">
+            <div className="gz-pop w-full max-w-sm rounded-[32px] bg-white p-6 text-center shadow-[0_10px_0_0_rgba(0,0,0,0.15)]">
+              <p className="text-6xl">🏆</p>
+              <p className="font-game mt-2 text-4xl text-accent">레벨 {clear.n} 클리어!</p>
+              <p className="mt-1 text-lg text-muted">대단해요! 곧 레벨 {clear.n + 1}이 시작돼요</p>
+              <div className="mx-auto mt-3 flex max-w-[260px] gap-1">{Array.from({ length: MAX_LEVEL }, (_, i) => <span key={i} className={`h-3 flex-1 rounded-full ${i < clear.n ? "bg-accent" : "bg-line"}`} />)}</div>
+              <p className="font-game mt-3 text-6xl text-[#f59e0b]">{clear.left}</p>
+              <button
+                type="button"
+                onClick={() => setClear({ ...clear, left: 0 })}
+                className="font-game mt-4 min-h-[56px] w-full rounded-full bg-accent px-6 text-2xl text-white shadow-[0_5px_0_0_rgba(0,0,0,0.2)] active:translate-y-[3px]"
+              >
+                바로 다음 레벨 ▶
+              </button>
+            </div>
+          </div>
+        )}
+
+        {allClear && (
+          <div className="absolute inset-0 z-[70] flex items-center justify-center bg-black/45 p-6" role="status" aria-live="assertive">
+            <div className="gz-pop w-full max-w-sm rounded-[32px] bg-white p-6 text-center shadow-[0_10px_0_0_rgba(0,0,0,0.15)]">
+              <p className="text-6xl">👑</p>
+              <p className="font-game mt-2 text-4xl text-accent">모든 레벨 클리어!</p>
+              <p className="mt-1 text-lg text-muted">레벨 {MAX_LEVEL}까지 다 깼어요. 정말 최고예요!</p>
+              <button type="button" onClick={randomOne} className="font-game mt-5 min-h-[56px] w-full rounded-full bg-accent px-6 text-2xl text-white shadow-[0_5px_0_0_rgba(0,0,0,0.2)] active:translate-y-[3px]">
+                🎲 다른 게임 하기
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAllClear(false);
+                  setStage(1);
+                }}
+                className="font-game mt-3 min-h-[48px] w-full rounded-full border-2 border-line px-6 text-xl text-ink"
+              >
+                레벨 1부터 다시
+              </button>
+            </div>
+          </div>
+        )}
 
         {toast > 0 && (
           <div className="pointer-events-none fixed left-1/2 top-20 z-[85] -translate-x-1/2" aria-live="polite">
@@ -151,15 +230,42 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
                 <span className="font-game text-accent">어떻게 해요? </span>
                 {g.how}
               </p>
+              <div className="mt-5 w-full">
+                <p className="font-game text-lg text-ink">
+                  레벨 고르기 <span className="text-sm text-muted">(깬 레벨 {cleared}/{MAX_LEVEL})</span>
+                </p>
+                <div className="mt-2 grid grid-cols-5 gap-2">
+                  {Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((lv) => {
+                    const open = lv <= cleared + 1;
+                    const done = lv <= cleared;
+                    return (
+                      <button
+                        key={lv}
+                        type="button"
+                        disabled={!open}
+                        onClick={() => setPickLevel(lv)}
+                        aria-pressed={pickLevel === lv}
+                        aria-label={`레벨 ${lv}${done ? " 깼음" : open ? "" : " 잠김"}`}
+                        className={`font-game flex aspect-square min-h-[44px] items-center justify-center rounded-2xl text-xl shadow-[0_3px_0_0_rgba(0,0,0,0.12)] transition active:translate-y-[2px] ${
+                          pickLevel === lv ? "bg-accent text-white ring-4 ring-accent/30" : done ? "bg-[#fff1b8] text-[#b45309]" : open ? "bg-surface text-ink" : "bg-line/60 text-muted opacity-60"
+                        }`}
+                      >
+                        {open ? (done && pickLevel !== lv ? "⭐" : lv) : "🔒"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => {
                   recordPlay(g.id);
+                  setStage(pickLevel);
                   setStarted(true);
                 }}
                 className="font-game mt-6 min-h-[64px] w-full max-w-xs rounded-full bg-accent px-8 text-3xl text-white shadow-[0_6px_0_0_rgba(0,0,0,0.25)] transition hover:brightness-110 active:translate-y-[4px] active:shadow-[0_2px_0_0_rgba(0,0,0,0.25)]"
               >
-                ▶ 시작!
+                ▶ 레벨 {pickLevel} 시작!
               </button>
               <button type="button" onClick={randomOne} className="font-game mt-4 min-h-[44px] px-4 text-lg text-muted underline underline-offset-4 hover:text-ink">
                 🎲 다른 게임 할래요
@@ -169,7 +275,9 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
             <div className="mx-auto max-w-4xl px-3 py-3 sm:px-5 sm:py-5">
               {Game ? (
                 <Suspense fallback={<p className="font-game p-10 text-center text-2xl text-muted">불러오는 중… 🎮</p>}>
-                  <Game />
+                  <StageContext.Provider value={stage}>
+                    <Game key={stage} />
+                  </StageContext.Provider>
                 </Suspense>
               ) : (
                 <p className="rounded-3xl border-2 border-line bg-surface p-10 text-center text-muted">이 게임은 준비 중이에요.</p>

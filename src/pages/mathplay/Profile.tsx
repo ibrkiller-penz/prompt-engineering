@@ -16,6 +16,7 @@ export const BADGES: Badge[] = [
   { icon: "🏛️", name: "박물관 정복", how: "3층 게임마다 별 1개 이상", ok: (s) => has(s, byFloor("classic")) },
   { icon: "🧩", name: "퍼즐 왕", how: "퍼즐 3가지 모두 별 받기", ok: (s) => has(s, ["calendar", "tetromino", "colorsquare"]) },
   { icon: "🔥", name: "3일 연속", how: "3일 연속 놀기", ok: (s) => streak(s) >= 3 },
+  { icon: "🔟", name: "레벨 10", how: "아무 게임이나 레벨 10까지 깨기", ok: (s) => Object.values(s.levels ?? {}).some((n) => n >= 10) },
   { icon: "🎓", name: "도전자", how: "중·고 도전 게임에서 별 받기", ok: (s) => GAMES.some((g) => g.level === "upper" && starsOf(s.wins[g.id]) >= 1) },
 ];
 
@@ -106,7 +107,7 @@ export default function Profile({ onClose }: { onClose: () => void }) {
           type="button"
           onClick={() => {
             if (window.confirm("별과 배지 기록을 모두 지울까요?")) {
-              update(() => ({ v: 1, wins: {}, plays: {}, recent: [], days: [], today: { date: "", wins: [] }, avatar: s.avatar, name: s.name }));
+              update(() => ({ v: 1, wins: {}, plays: {}, levels: {}, recent: [], days: [], today: { date: "", wins: [] }, avatar: s.avatar, name: s.name }));
             }
           }}
           className="mt-2 min-h-[44px] text-sm font-semibold text-[#6b6280] underline underline-offset-4"
