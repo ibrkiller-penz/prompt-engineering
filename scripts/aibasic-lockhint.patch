@@ -1,0 +1,29 @@
+--- a/style.css	2026-10-09 01:59:51.470092982 +0000
++++ b/style.css	2026-10-09 01:59:51.472629615 +0000
+@@ -296,3 +296,5 @@
+ .slot-t{font-size:.98rem}
+ .slot-d{font-size:.85rem}
+ .tg-pool{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
++
++.score,.lockmsg,.chk .q{word-break:keep-all;overflow-wrap:break-word}
+--- a/app.js	2026-10-09 01:59:29.886068731 +0000
++++ b/app.js	2026-10-09 01:59:29.909412794 +0000
+@@ -379,6 +379,7 @@
+   const sec2 = el(`<div class="sec" id="stairs"><h2><span>${steps.length}계단</span> 한 칸씩 올라가요</h2><div class="rail"></div><div class="stl"></div></div>`);
+   const rail = $('.rail', sec2), stl = $('.stl', sec2);
+   const after = el('<div></div>');
++  const lockNote = el(`<div class="sec"><div class="score">🔒 ${steps.length}계단을 모두 오르면 아래가 열려요<br><span style="font-weight:500;font-size:.92rem">📝 한 줄 정리 · 🧩 용어 카드 게임 · 🏁 마무리 시험 — 시험에서 ${PASS}점 이상이면 통과, 그때 이 레슨이 <b>완료</b>돼요.</span></div></div>`);
+   const chosen = {};
+   const paint = () => {
+     rail.innerHTML = steps.map((s, i) => `<a href="#" data-i="${i}" class="${i < open ? 'pass' : i === open ? 'open' : 'lock'}">${esc(s.level || (i + 1) + '계단')}<br>${i < open ? '✓' : i === open ? '▲' : '🔒'}</a>`).join('');
+@@ -417,8 +418,10 @@
+       if (c) c.replaceWith(n); else stl.appendChild(n);
+     });
+     after.style.display = open >= steps.length ? '' : 'none';
++    lockNote.style.display = open >= steps.length ? 'none' : '';
+   };
+   root.appendChild(sec2);
++  root.appendChild(lockNote);
+ 
+   /* 정리 / 용어 게임 / 시험 */
+   if (l.recap) after.appendChild(el(`<div class="sec"><h2><span>정리</span> 한 줄로 다시 보기</h2><ul class="recap">${l.recap.map(r => `<li>${r}</li>`).join('')}</ul></div>`));

@@ -73,3 +73,4 @@ npx firebase-tools login:ci             # 처음 한 번, 나온 토큰을 FIREB
 FIREBASE_TOKEN=<토큰> npm run deploy
 ```
 - 패치를 이미 적용한 뒤 `--force` 로 다시 받으면 패치 전 상태로 돌아가니, 다시 받았다면 패치도 다시 적용한다.
+- 2026-10-09: /aibasic 레슨 하단에 잠금 안내 추가(5계단을 모두 오르기 전에는 정리·용어 게임·마무리 시험이 숨겨져 있어 완료 방법이 안 보였음). 패치 `scripts/aibasic-lockhint.patch`(aibasic-mobile.patch 적용 뒤에): `git apply --directory=public/aibasic scripts/aibasic-lockhint.patch`
