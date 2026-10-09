@@ -300,7 +300,7 @@ export default function GoldbachGame() {
                         ✦
                       </span>
                     ))}
-                    <span className="font-game gz-pop absolute -left-8 -top-4 text-4xl text-white" style={{ WebkitTextStroke: `2px ${bal[2]}` }}>팡!</span>
+                    <span className="font-game gz-pop absolute -left-8 -top-4 whitespace-nowrap text-4xl text-white" style={{ WebkitTextStroke: `2px ${bal[2]}` }}>팡!</span>
                   </div>
                 )}
               </div>

@@ -209,9 +209,9 @@ export default function ArchPiGame() {
             return <circle key={k} cx={(R - 2) * Math.cos(a)} cy={(R - 2) * Math.sin(a)} r={6} fill="#f59e0b" opacity={0.55} />;
           })}
           <circle cx={0} cy={0} r={R} fill="none" stroke="#92400e" strokeWidth={4} />
-          <polygon points={poly(ptsOut)} fill="#ec489926" stroke="#9d174d" strokeWidth={7} strokeLinejoin="round" />
+          <polygon points={poly(ptsOut)} fill="none" stroke="#9d174d" strokeWidth={7} strokeLinejoin="round" />
           <polygon points={poly(ptsOut)} fill="none" stroke="#f472b6" strokeWidth={3.5} strokeLinejoin="round" />
-          <polygon points={poly(ptsIn)} fill="#3b82f633" stroke="#1e3a8a" strokeWidth={7} strokeLinejoin="round" />
+          <polygon points={poly(ptsIn)} fill="#ffffff2e" stroke="#1e3a8a" strokeWidth={7} strokeLinejoin="round" />
           <polygon points={poly(ptsIn)} fill="none" stroke="#60a5fa" strokeWidth={3.5} strokeLinejoin="round" />
           <text x={0} y={10} fontSize={34} fill="#4c1d95" textAnchor="middle" stroke="#fff" strokeWidth={7} paintOrder="stroke" style={JUA}>{n}각형</text>
         </g>

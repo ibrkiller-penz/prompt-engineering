@@ -23,7 +23,7 @@ const H_MIN = 0.12, H_MAX = 0.95;
 
 export default function BrachistoGame() {
   const [view, setView] = useState<"race" | "bowl">("race");
-  const [msg, setMsg] = useState<Msg>({ t: "info", s: "어느 구슬이 가장 빨리 도착할까요? 구슬을 톡 눌러요!" });
+  const [msg, setMsg] = useState<Msg>({ t: "info", s: "어느 공 친구가 가장 빨리 도착할까요? 친구를 톡 눌러요!" });
   const [hint, setHint] = useState(false);
 
   // 경주
@@ -118,17 +118,17 @@ export default function BrachistoGame() {
     setPred(id);
     setClock(0);
     setPhase("run");
-    setMsg({ t: "info", s: "출발! 구슬이 굴러가요. 내 구슬이 이길까요?" });
+    setMsg({ t: "info", s: "출발! 공 친구들이 미끄럼틀을 내려가요. 내 공이 이길까요?" });
   };
   function nextRace() {
     setTi((i) => (i + 1 + rand(THETAS.length - 1)) % THETAS.length);
     setRound((r) => r + 1);
     setPred(null); setPhase("ready"); setClock(0); setHint(false);
-    setMsg({ t: "info", s: "새 경주판이에요! 이길 것 같은 구슬을 톡 눌러요." });
+    setMsg({ t: "info", s: "새 경주판이에요! 이길 것 같은 공 친구를 톡 눌러요." });
   }
   const resetRace = () => {
     setRound(1); setStar(0); setPred(null); setPhase("ready"); setClock(0); setHint(false);
-    setMsg({ t: "info", s: "처음부터 다시 해요. 이길 것 같은 구슬을 톡 눌러요!" });
+    setMsg({ t: "info", s: "처음부터 다시 해요. 이길 것 같은 공 친구를 톡 눌러요!" });
   };
   const pickBowl = (p: "same" | "diff") => {
     if (bphase !== "ready" || Math.abs(hA - hB) < 0.2) return;
@@ -153,7 +153,7 @@ export default function BrachistoGame() {
   };
   const goView = (v: "race" | "bowl") => {
     setView(v);
-    if (v === "race") setMsg({ t: "info", s: "이길 것 같은 구슬을 톡 눌러요!" });
+    if (v === "race") setMsg({ t: "info", s: "이길 것 같은 공 친구를 톡 눌러요!" });
     else setMsg({ t: "info", s: "공을 위아래로 끌어 높이를 정하고, 같이 닿을지 골라요." });
   };
 
@@ -344,7 +344,7 @@ export default function BrachistoGame() {
             </ol>
           )}
           <div className="mt-3"><Say tone={msg.t}>{raceEnd ? `${msg.s} 5판을 모두 했어요! 별 ${star}개를 모았어요. 정말 잘했어요!` : msg.s}</Say></div>
-          {hint && <p className="mt-2 rounded-card bg-bg px-3 py-2 text-base">💡 구슬은 내려갈수록 점점 빨라져요. 처음에 가파르게 내려가는 길이 유리해요. 하지만 너무 멀리 돌아가면 손해예요!</p>}
+          {hint && <p className="mt-2 rounded-card bg-bg px-3 py-2 text-base">💡 공은 내려갈수록 점점 빨라져요. 처음에 가파르게 내려가는 길이 유리해요. 하지만 너무 멀리 돌아가면 손해예요!</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             {phase === "done" && !raceEnd && <GButton variant="soft" className={BIG} onClick={nextRace}>바로 다음 판 ▶</GButton>}
             {raceEnd && <GButton variant="primary" className={BIG} onClick={resetRace}>🔄 한 번 더 하기</GButton>}

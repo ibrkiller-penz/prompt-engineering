@@ -168,8 +168,9 @@ export default function FibStairsGame() {
 
   const SW = 72;
   const SH = 36;
-  const X0 = 64;
-  const VW = X0 + n * SW + 40;
+  const CW = 64 + n * SW + 40;
+  const VW = Math.max(CW, 440);
+  const X0 = 64 + (VW - CW) / 2;
   const VH = Math.max(n, 3) * SH + 120;
   const base = VH - 28;
   const px = pos === 0 ? X0 - 36 : X0 + (pos - 0.5) * SW;
