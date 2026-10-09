@@ -12,6 +12,7 @@ const PATCHES = [
   ["aibasic-lockhint", "app.js", "lockSec"],
   ["aibasic-termgrid", "app.js", "'--tgc'"],
   ["aibasic-circle", "app.js", "okCircle"],
+  ["aibasic-ogimage", "index.html", "og:image:width"],
 ];
 const HAPPY = "public/happy/HappyMpX.zip";
 const HAPPY_URL = "https://github.com/ibrkiller-penz/happymp3/releases/download/files-2026-10-08/HappyMpX.zip";
