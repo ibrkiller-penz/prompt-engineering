@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, tick, useFrame } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, stageClear, tick, useFrame, useStage } from "./kit";
 import { BIG } from "./easykit";
 
 // ==PURE==
@@ -58,9 +58,32 @@ export function makePoint(rnd: () => number, poly: Pt[], wantInside: boolean, ma
   }
   return null;
 }
+/** 레벨(1~10)별 규칙: 울타리 꼭짓점 수(nMin~nMin+span-1), 점과 울타리 사이 최소 거리, 최소 교차 횟수 */
+export function levelSpec(level: number) {
+  const L = Math.max(1, Math.min(10, level));
+  return {
+    nMin: [5, 6, 6, 7, 8, 9, 10, 11, 12, 12][L - 1],
+    span: L <= 3 ? 2 : L <= 6 ? 3 : 4,
+    margin: [24, 22, 20, 18, 16, 14, 12, 10, 9, 8][L - 1],
+    minHits: L >= 8 ? 2 : L >= 5 ? 1 : 0,
+  };
+}
+
+/** 레벨에 맞는 울타리와 점 하나(안/밖 반반) */
+export function makeLevelQ(rnd: () => number, level: number): { poly: Pt[]; pt: Pt } {
+  const sp = levelSpec(level);
+  for (;;) {
+    const poly = makePoly(rnd, 200, 160, sp.nMin, sp.span);
+    const want = rnd() < 0.5;
+    for (let k = 0; k < 20; k++) {
+      const pt = makePoint(rnd, poly, want, sp.margin);
+      if (pt && rayHits(pt, poly).length >= sp.minHits) return { poly, pt };
+    }
+  }
+}
 // ==END==
 
-const TOTAL = 5;
+const ROUNDS = 3;
 const W = 400;
 const H = 320;
 const WALK = 1.5; // 걸어가는 데 걸리는 시간(초)
@@ -75,29 +98,18 @@ const CSS = `
 @media (prefers-reduced-motion: reduce) { .in-hop, .in-shake { animation: none; } }
 `;
 
-function newQ(hard: boolean) {
-  for (;;) {
-    const poly = hard ? makePoly(Math.random, 200, 160, 10, 4) : makePoly(Math.random, 200, 160, 6, 3);
-    const want = Math.random() < 0.5;
-    const pt = makePoint(Math.random, poly, want, hard ? 9 : 18);
-    if (pt) return { poly, pt };
-  }
-}
-
 type Phase = "ask" | "walk" | "shown";
 
 export default function InsideGame() {
   const timer = useRef(0);
   const finishedRef = useRef(false);
-  const [hard, setHard] = useState(false);
-  const [q, setQ] = useState(() => newQ(false));
-  const [idx, setIdx] = useState(0);
+  const level = useStage();
+  const [q, setQ] = useState(() => makeLevelQ(Math.random, level));
   const [score, setScore] = useState(0);
   const [ans, setAns] = useState<null | "in" | "out">(null);
   const [phase, setPhase] = useState<Phase>("ask");
   const [walkX, setWalkX] = useState(0);
   const [hint, setHint] = useState(false);
-  const [over, setOver] = useState(false); // 5문제 끝
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -114,11 +126,16 @@ export default function InsideGame() {
       setPhase("shown");
       const ok = (ans === "in") === inside;
       if (ok) {
-        setScore((s) => s + 1);
         cheer();
+        const n = score + 1;
+        setScore(n);
+        if (n >= ROUNDS) {
+          timer.current = window.setTimeout(stageClear, 1200);
+          return;
+        }
       } else oops();
-      if (idx < TOTAL - 1) timer.current = window.setTimeout(next, ok ? 1800 : 3200);
-      else setOver(true);
+      // 틀리면 같은 라운드에서 새 문제를 풀어요
+      timer.current = window.setTimeout(next, ok ? 1800 : 3200);
     }
   }, phase === "walk");
 
@@ -131,22 +148,9 @@ export default function InsideGame() {
     setPhase("walk");
   };
   const next = () => {
-    setQ(newQ(hardRef.current));
-    setIdx((i) => i + 1);
+    setQ(makeLevelQ(Math.random, level));
     setAns(null);
     setPhase("ask");
-  };
-  const hardRef = useRef(false);
-  hardRef.current = hard;
-  const restart = (h = hard) => {
-    window.clearTimeout(timer.current);
-    hardRef.current = h;
-    setQ(newQ(h));
-    setIdx(0);
-    setScore(0);
-    setAns(null);
-    setPhase("ask");
-    setOver(false);
   };
 
   const showRay = hint || phase !== "ask";
@@ -156,8 +160,7 @@ export default function InsideGame() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Stat label="문제" value={`${idx + 1}/${TOTAL}`} />
-        <Stat label="맞힌 개수" value={score} tone="ok" />
+        <Stat label={`레벨 ${level}`} value={`라운드 ${Math.min(score + 1, ROUNDS)}/${ROUNDS}`} />
       </div>
 
       <Board>
@@ -196,7 +199,7 @@ export default function InsideGame() {
           )}
           {phase === "walk" && <text x={walkX} y={q.pt[1] - 14} fontSize="24" textAnchor="middle">🐕</text>}
           {/* 양(정확한 위치는 가운데 점) */}
-          <g key={`sheep${idx}${phase}`} className={phase === "shown" ? (correct ? "in-hop" : "in-shake") : ""}>
+          <g key={`sheep${q.pt[0]}${phase}`} className={phase === "shown" ? (correct ? "in-hop" : "in-shake") : ""}>
             <circle cx={q.pt[0]} cy={q.pt[1]} r="17" fill="#fff" stroke="#e8552f" strokeWidth="3" />
             <text x={q.pt[0]} y={q.pt[1] + 8} fontSize="22" textAnchor="middle">🐑</text>
             <circle cx={q.pt[0]} cy={q.pt[1]} r="3" fill="#e8552f" />
@@ -230,28 +233,9 @@ export default function InsideGame() {
       {phase === "ask" && <Say>양이 울타리 안이면 오른쪽 단추, 밖이면 왼쪽 단추를 눌러요. 어려우면 ‘길 보기’ 힌트!</Say>}
       {phase === "walk" && <Say>양이 오른쪽으로 걸어가며 울타리를 세고 있어요…</Say>}
       {phase === "shown" && <Say tone={correct ? "ok" : "bad"}>{correct ? "정답이에요! 잘했어요! ⭐ " : "아쉬워요, 괜찮아요! "}{why}</Say>}
-      {over && (
-        <Say tone={score >= 4 ? "ok" : "info"}>
-          {TOTAL}문제 끝! {score}문제 맞혔어요. {score >= 4 ? "대단해요! 눈썰미가 최고예요!" : "잘했어요! ‘길 보기’ 힌트를 쓰면 더 잘 맞힐 수 있어요."}
-        </Say>
-      )}
-
       <div className="flex flex-wrap gap-2">
-        {over && (
-          <GButton variant="primary" onClick={() => restart()} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
         <GButton pressed={hint} onClick={() => setHint((h) => !h)} disabled={phase !== "ask"} className={BIG}>
           힌트: 길 보기 {hint ? "끄기" : "켜기"}
-        </GButton>
-        {!over && (
-          <GButton onClick={() => restart()} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
-        <GButton pressed={hard} className={BIG} onClick={() => { const h = !hard; setHard(h); restart(h); }}>
-          더 어려운 도전
         </GButton>
       </div>
       <p className="text-base text-muted">비밀 규칙: 양이 오른쪽으로 쭉 걸어가며 울타리를 몇 번 넘는지 세요. 홀수 번이면 안, 짝수 번이면 밖이에요.</p>

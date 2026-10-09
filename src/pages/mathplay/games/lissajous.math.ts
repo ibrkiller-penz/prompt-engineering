@@ -58,3 +58,27 @@ export const TARGETS: Target[] = [
 
 /** 닫힌 곡선이 되는 가장 짧은 시간: 2π / gcd(a, b) */
 export const periodDivisor = (a: number, b: number) => gcd(a, b);
+
+/** 레벨(1~10)에 맞는 목표 모양 count 개. 레벨이 오를수록 빠르기 수가 크고 어긋남이 잘게 나뉜 ‘수수께끼 모양’이 섞여요 */
+export function levelTargets(level: number, rnd: () => number, count = 3): Target[] {
+  const L = Math.max(1, Math.min(10, level));
+  const base = L === 1 ? [0, 1, 2] : L === 2 ? [0, 1, 2, 3] : [0, 1, 2, 3, 4];
+  const nRandom = L <= 3 ? 0 : Math.min(count, L - 3);
+  const maxAB = Math.min(6, 2 + Math.floor(L / 2));
+  const step = L < 8 ? 45 : 15;
+  const out: Target[] = [];
+  const curve = (t: Target) => sampleCurve(t.a, t.b, rad(t.deg), 160);
+  const fresh = (t: Target) => out.every((o) => !overlap(curve(o), curve(t)).same);
+  const pool = [...base].sort(() => rnd() - 0.5);
+  for (let guard = 0; out.length < count - nRandom && guard < 50; guard++) {
+    const t = TARGETS[pool[guard % pool.length]];
+    if (fresh(t)) out.push(t);
+  }
+  for (let guard = 0; out.length < count && guard < 500; guard++) {
+    const a = 1 + Math.floor(rnd() * maxAB), b = 1 + Math.floor(rnd() * maxAB);
+    const deg = step * Math.floor(rnd() * (360 / step));
+    const t = { name: "수수께끼 모양", a, b, deg };
+    if (fresh(t)) out.push(t);
+  }
+  return out;
+}

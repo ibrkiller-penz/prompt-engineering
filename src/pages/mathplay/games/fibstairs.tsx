@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, tick } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, stageClear, tick, useStage } from "./kit";
 
 // ==PURE-START==
 /** n칸 계단을 한 칸·두 칸씩 올라 정확히 끝까지 가는 모든 방법 (예: "1+2+1") */
@@ -21,6 +21,40 @@ export function countWays(n: number): number {
   let b = 1; // 1칸
   for (let i = 2; i <= n; i++) [a, b] = [b, a + b];
   return b;
+}
+export type Round = { n: number; kind: "all" | "count"; need: number };
+/** 레벨별 계단 수 후보와 할 일 */
+export const LEVEL_PLAN: { ns: number[]; kind: "all" | "count"; need: number }[] = [
+  { ns: [2, 3], kind: "all", need: 0 },
+  { ns: [3], kind: "all", need: 0 },
+  { ns: [3, 4], kind: "all", need: 0 },
+  { ns: [4], kind: "all", need: 0 },
+  { ns: [4, 5], kind: "all", need: 0 },
+  { ns: [5], kind: "all", need: 0 },
+  { ns: [5, 6], kind: "count", need: 2 },
+  { ns: [6, 7], kind: "count", need: 2 },
+  { ns: [7, 8], kind: "count", need: 3 },
+  { ns: [8], kind: "count", need: 3 },
+];
+export function levelRounds(level: number, rnd: () => number = Math.random): Round[] {
+  const p = LEVEL_PLAN[Math.min(10, Math.max(1, level)) - 1];
+  return Array.from({ length: 3 }, () => ({ n: p.ns[Math.floor(rnd() * p.ns.length)], kind: p.kind, need: p.need }));
+}
+/** ‘모두 몇 가지일까?’ 보기 3개 (정답 1개 + 그럴듯한 오답 2개) */
+export function quizOptions(n: number, rnd: () => number = Math.random): number[] {
+  const c = countWays(n);
+  const cand = [countWays(n - 1), countWays(n + 1), c + 1, c - 1, 2 * n, c + 2].filter((v, i, a) => v > 0 && v !== c && a.indexOf(v) === i);
+  const pick: number[] = [];
+  while (pick.length < 2) {
+    const v = cand[Math.floor(rnd() * cand.length)];
+    if (!pick.includes(v)) pick.push(v);
+  }
+  const opts = [c, ...pick];
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  return opts;
 }
 // ==PURE-END==
 
@@ -63,36 +97,53 @@ function Bunny({ happy }: { happy: boolean }) {
     </g>
   );
 }
-const AUTO_MAX = 5;
+const ROUNDS = 3;
 const BIG = "min-h-[48px]! text-base";
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
 
 export default function FibStairsGame() {
-  const [n, setN] = useState(1);
-  const [more, setMore] = useState(false);
+  const level = useStage();
+  const [plan] = useState(() => levelRounds(level));
+  const [ri, setRi] = useState(0);
+  const { n, kind, need } = plan[ri];
   const [steps, setSteps] = useState<number[]>([]); // 지금 올라가는 중인 걸음들
-  const [found, setFound] = useState<Record<number, string[]>>({});
+  const [list, setList] = useState<string[]>([]);
   const [last, setLast] = useState<string | null>(null);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "깜빡이는 계단을 눌러서 깃발까지 올라가요!" });
+  const [opts, setOpts] = useState<number[] | null>(null);
+  const [won, setWon] = useState(false);
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: kind === "all" ? "깜빡이는 계단을 눌러서 깃발까지 올라가요! 오르는 방법을 모두 찾아봐요." : `깜빡이는 계단을 눌러 서로 다른 방법 ${need}가지로 올라가 봐요!` });
   const timer = useRef(0);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const total = countWays(n);
-  const list = found[n] ?? [];
   const pos = steps.reduce((a, b) => a + b, 0);
-  const complete = list.length === total;
-  const busy = pos === n; // 꼭대기에서 잠깐 쉬는 중
+  const complete = won;
+  const busy = pos === n || won; // 꼭대기에서 잠깐 쉬는 중
 
-  const gotoN = (k: number, text?: string) => {
+  const win = (text: string) => {
+    setWon(true);
+    cheer();
     window.clearTimeout(timer.current);
-    setN(k);
-    setSteps([]);
-    setLast(null);
-    setMsg({ tone: "info", text: text ?? ((found[k] ?? []).length === countWays(k) ? `${k}칸 계단은 이미 다 찾았어요!` : `${k}칸 계단이에요. 깜빡이는 계단을 눌러요! 방법이 모두 몇 가지일까요?`) });
+    if (ri + 1 >= ROUNDS) {
+      setMsg({ tone: "ok", text: `${text} 레벨 ${level} 끝!` });
+      timer.current = window.setTimeout(() => stageClear(), 1200);
+    } else {
+      setMsg({ tone: "ok", text: `${text} 곧 다음 계단이 나와요.` });
+      timer.current = window.setTimeout(() => {
+        const nr = plan[ri + 1];
+        setRi(ri + 1);
+        setSteps([]);
+        setList([]);
+        setLast(null);
+        setOpts(null);
+        setWon(false);
+        setMsg({ tone: "info", text: nr.kind === "all" ? `${nr.n}칸 계단이에요. 오르는 방법을 모두 찾아봐요!` : `${nr.n}칸 계단이에요. 서로 다른 방법 ${nr.need}가지로 올라가 봐요!` });
+      }, 2600);
+    }
   };
 
   const go = (d: number) => {
-    if (busy || d < 1 || d > 2) return;
+    if (busy || opts || d < 1 || d > 2) return;
     const np = pos + d;
     if (np > n) {
       oops();
@@ -116,18 +167,27 @@ export default function FibStairsGame() {
       return;
     }
     const nl = [...list, key];
-    setFound({ ...found, [n]: nl });
+    setList(nl);
     setLast(key);
-    if (nl.length === total) {
-      cheer();
-      if (n < AUTO_MAX) {
-        setMsg({ tone: "ok", text: `⭐ 대단해요! ${n}칸 계단의 방법 ${total}가지를 모두 찾았어요! 곧 ${n + 1}칸 계단이 나와요.` });
-        timer.current = window.setTimeout(() => gotoN(n + 1), 2600);
-      } else setMsg({ tone: "ok", text: `⭐ 대단해요! ${n}칸 계단의 방법 ${total}가지를 모두 찾았어요! 아래 표도 구경해 봐요.` });
+    if (kind === "all" && nl.length === total) {
+      win(`⭐ 대단해요! ${n}칸 계단의 방법 ${total}가지를 모두 찾았어요!`);
+    } else if (kind === "count" && nl.length >= need) {
+      tick();
+      setOpts(quizOptions(n));
+      setMsg({ tone: "info", text: `잘했어요! 그럼 ${n}칸 계단을 오르는 방법은 모두 몇 가지일까요? 아래에서 골라요.` });
     } else {
       tick();
-      setMsg({ tone: "ok", text: `좋아요! 새로운 방법을 찾았어요: ${key} (${nl.length}/${total}). 다시 올라가 봐요!` });
+      setMsg({ tone: "ok", text: `좋아요! 새로운 방법을 찾았어요: ${key} (${nl.length}/${kind === "all" ? total : need}). 다시 올라가 봐요!` });
       timer.current = window.setTimeout(() => setSteps([]), 1000);
+    }
+  };
+
+  const answer = (v: number) => {
+    if (won) return;
+    if (v === total) win(`⭐ 정답! ${n}칸 계단은 모두 ${total}가지예요!`);
+    else {
+      oops();
+      setMsg({ tone: "bad", text: `아깝다! ${v}가지가 아니에요. 💡 힌트를 보고 규칙을 찾아봐요.` });
     }
   };
 
@@ -146,18 +206,14 @@ export default function FibStairsGame() {
   };
 
   const hint = () => {
+    if (opts) {
+      const known = Array.from({ length: n - 1 }, (_, i) => `${i + 1}칸: ${countWays(i + 1)}가지`).join(", ");
+      setMsg({ tone: "info", text: `힌트: ${known} … 앞의 두 수를 더하면 다음 수가 돼요!` });
+      return;
+    }
     const rest = allWays(n).filter((w) => !list.includes(w));
     if (rest.length === 0) setMsg({ tone: "ok", text: "이미 모두 찾았어요!" });
-    else setMsg({ tone: "info", text: `힌트: 이런 방법이 아직 남았어요 → ${rest[0]} (1은 한 칸, 2는 두 칸이에요)` });
-  };
-
-  const resetAll = () => {
-    window.clearTimeout(timer.current);
-    setFound({});
-    setSteps([]);
-    setLast(null);
-    setN(1);
-    setMsg({ tone: "info", text: "처음부터 다시 해요. 깜빡이는 계단을 눌러요!" });
+    else setMsg({ tone: "info", text: `힌트: 이런 방법이 아직 남았어요 → ${rest[Math.floor(Math.random() * rest.length)]} (1은 한 칸, 2는 두 칸이에요)` });
   };
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -175,11 +231,12 @@ export default function FibStairsGame() {
   const base = VH - 28;
   const px = pos === 0 ? X0 - 36 : X0 + (pos - 0.5) * SW;
   const py = base - pos * SH;
-  const firstEver = Object.keys(found).length === 0 && steps.length === 0;
+  const firstEver = level === 1 && ri === 0 && list.length === 0 && steps.length === 0;
 
   return (
     <div className="space-y-3 text-base" onKeyDown={onKey}>
-      <p className="rounded-card bg-accent-soft px-3 py-2 font-bold">깜빡이는 계단을 눌러 깃발까지 올라가요. 방법을 모두 찾아봐요!</p>
+      <p className="font-game text-center text-xl text-accent">레벨 {level} · 라운드 {ri + 1}/{ROUNDS}</p>
+      <p className="rounded-card bg-accent-soft px-3 py-2 font-bold">{kind === "all" ? `깜빡이는 계단을 눌러 깃발까지! ${n}칸 계단을 오르는 방법을 모두 찾아봐요.` : `${n}칸 계단을 서로 다른 방법 ${need}가지로 올라간 다음, 방법이 모두 몇 가지인지 맞혀요.`}</p>
       <Board>
         <style>{`
           @keyframes fs-hop{0%{transform:translateY(0) scale(1,1)}20%{transform:translateY(2px) scale(1.15,.85)}55%{transform:translateY(-26px) scale(.92,1.1)}85%{transform:translateY(0) scale(1.1,.9)}100%{transform:translateY(0) scale(1,1)}}
@@ -268,27 +325,27 @@ export default function FibStairsGame() {
 
       <div className="flex flex-wrap items-center gap-2">
         <Stat label="계단" value={`${n}칸`} />
-        <Stat label="⭐ 찾은 방법" value={`${list.length}/${total}`} tone={complete ? "ok" : "plain"} />
+        <Stat label="⭐ 찾은 방법" value={kind === "all" ? `${list.length}/${total}` : `${Math.min(list.length, need)}/${need}`} tone={complete ? "ok" : "plain"} />
+        <Stat label="라운드" value={`${ri + 1}/${ROUNDS}`} />
       </div>
       <Say tone={msg.tone}>{msg.text}</Say>
+      {opts && (
+        <Board className="gz-pop">
+          <p className="font-game mb-2 text-center text-xl">{n}칸 계단을 오르는 방법은 모두 몇 가지?</p>
+          <div className="flex justify-center gap-3" role="group" aria-label="답 고르기">
+            {opts.map((v) => (
+              <GButton key={v} variant="primary" onClick={() => answer(v)} className="font-game min-h-[56px]! min-w-[4.5rem] text-2xl">
+                {v}
+              </GButton>
+            ))}
+          </div>
+        </Board>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <GButton onClick={undo} disabled={steps.length === 0 || busy} className={BIG}>↶ 한 걸음 뒤로</GButton>
         <GButton variant="soft" onClick={hint} className={BIG}>💡 힌트 보기</GButton>
-        <GButton pressed={more} onClick={() => { if (more && n > AUTO_MAX) gotoN(AUTO_MAX); setMore(!more); }} className={BIG}>{more ? "어려운 도전 닫기" : "더 어려운 도전"}</GButton>
-        <GButton onClick={resetAll} className={BIG}>↻ 처음부터</GButton>
       </div>
-
-      {more && (
-        <Board className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold">계단 몇 칸으로 할까?</span>
-          {Array.from({ length: MAXN }, (_, i) => i + 1).map((k) => (
-            <button key={k} type="button" onClick={() => gotoN(k)} aria-pressed={k === n} aria-label={`${k}칸 계단`} className={`h-12 w-12 rounded-card text-lg font-bold ${k === n ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"} ${(found[k]?.length ?? 0) === countWays(k) ? "ring-2 ring-ok" : ""}`}>
-              {k}
-            </button>
-          ))}
-        </Board>
-      )}
 
       <Board>
         <h3 className="mb-2 text-base font-bold">찾은 방법 목록</h3>

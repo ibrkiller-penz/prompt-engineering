@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as RKeyboardEvent } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, rand, tick } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, rand, stageClear, tick, useStage } from "./kit";
 import { BIG } from "./easykit";
 
 // ==PURE==
@@ -69,12 +69,72 @@ export function makeCompareEasy(rnd: (n: number) => number): [Fr, Fr] {
     x = y;
   }
 }
+export const PN = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+export const PN_EASY = [2, 3, 4, 6, 8, 12];
+
+/** 레벨(1~10)별 규칙 */
+export function levelSpec(level: number) {
+  const L = Math.max(1, Math.min(10, level));
+  return {
+    /** 라운드 종류(3개) */
+    kinds: (L === 1 ? ["make", "make", "make"] : L % 2 === 0 ? ["make", "compare", "make"] : ["compare", "make", "compare"]) as ("make" | "compare")[],
+    /** 조각 수 단추로 고를 수 있는 수 */
+    list: L <= 4 ? PN_EASY : PN,
+    /** 처음 조각 수: easy=목표 분모와 그 2배로 맞춰 줌, half=왼쪽만 맞춰 줌, none=둘 다 직접 */
+    preset: (L <= 4 ? "easy" : L <= 7 ? "half" : "none") as "easy" | "half" | "none",
+  };
+}
+
+/** 레벨별 ‘같은 양 만들기’ 목표 분수(기약분수) */
+export function makeTargetLevel(rnd: (n: number) => number, level: number): Fr {
+  const L = Math.max(1, Math.min(10, level));
+  if (L === 1) return [{ k: 1, n: 2 }, { k: 1, n: 4 }, { k: 3, n: 4 }][rnd(3)];
+  if (L === 2) return [{ k: 1, n: 2 }, { k: 1, n: 4 }, { k: 3, n: 4 }, { k: 1, n: 3 }, { k: 2, n: 3 }][rnd(5)];
+  const bs = L <= 4 ? [2, 3, 4] : L <= 7 ? [2, 3, 4, 5] : [2, 3, 4, 5, 6];
+  for (;;) {
+    const b = bs[rnd(bs.length)];
+    const a = 1 + rnd(b - 1);
+    if (gcd(a, b) === 1) return { k: a, n: b };
+  }
+}
+
+/** 레벨별 크기 비교 문제 */
+export function makeCompareLevel(rnd: (n: number) => number, level: number): [Fr, Fr] {
+  if (level <= 3) return makeCompareEasy(rnd);
+  if (level >= 7) return makeCompare(rnd);
+  const sets = [[2, 4, 8], [2, 3, 6], [3, 6, 12], [4, 8, 12], [2, 5, 10]];
+  for (;;) {
+    const set = sets[rnd(sets.length)];
+    const n1 = set[rnd(set.length)];
+    const n2 = set[rnd(set.length)];
+    if (n1 === n2) continue;
+    const x: Fr = { k: 1 + rnd(n1 - 1), n: n1 };
+    let y: Fr = { k: 1 + rnd(n2 - 1), n: n2 };
+    if (rnd(4) === 0) {
+      const base = reduceFr(x);
+      const m = n2 / base.n;
+      if (Number.isInteger(m)) y = { k: base.k * m, n: n2 };
+    }
+    return [x, y];
+  }
+}
+
+/** 처음 두 피자의 조각 수 */
+export function startCounts(rnd: (n: number) => number, level: number, t: Fr): [number, number] {
+  const sp = levelSpec(level);
+  const any = () => sp.list[rnd(sp.list.length)];
+  if (sp.preset === "easy") return [t.n, t.n * 2];
+  if (sp.preset === "half") {
+    let b = any();
+    while (b === t.n) b = any();
+    return [t.n, b];
+  }
+  return [any(), any()];
+}
 // ==END==
 
 const frText = (f: Fr) => `${f.k}/${f.n}`;
-const PN = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-const PN_EASY = [2, 3, 4, 6, 8, 12];
-const ROUNDS = 5;
+const ROUNDS = 3;
 const CSS = `
 @keyframes pz-hop { 0%,100% { transform: translateY(0) scale(1); } 35% { transform: translateY(-10px) scale(1.03); } 70% { transform: translateY(0) scale(.99); } }
 @keyframes pz-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 50% { transform: translateX(7px); } 75% { transform: translateX(-4px); } }
@@ -213,18 +273,15 @@ function FreeMode() {
 }
 
 /* ── 같은 양 만들기: 두 피자가 목표와 같아지면 바로 성공! ── */
-function MakeMode({ hard }: { hard: boolean }) {
-  const timer = useRef(0);
-  const gen = () => (hard ? makeTarget(rand) : makeEasyTarget(rand));
-  const [target, setTarget] = useState(gen);
-  const [round, setRound] = useState(1);
-  const [score, setScore] = useState(0);
-  const [nA, setNA] = useState(target.n);
-  const [nB, setNB] = useState(target.n * 2);
-  const [sA, setSA] = useState<boolean[]>(blank(target.n));
-  const [sB, setSB] = useState<boolean[]>(blank(target.n * 2));
+function MakeMode({ level, onResult }: { level: number; onResult: (ok: boolean) => void }) {
+  const sp = levelSpec(level);
+  const [target] = useState(() => makeTargetLevel(rand, level));
+  const [start] = useState(() => startCounts(rand, level, target));
+  const [nA, setNA] = useState(start[0]);
+  const [nB, setNB] = useState(start[1]);
+  const [sA, setSA] = useState<boolean[]>(blank(start[0]));
+  const [sB, setSB] = useState<boolean[]>(blank(start[1]));
   const [hint, setHint] = useState(false);
-  const [hinted, setHinted] = useState(false);
   const [solved, setSolved] = useState(false);
 
   const fA = { k: countOf(sA), n: nA };
@@ -232,55 +289,26 @@ function MakeMode({ hard }: { hard: boolean }) {
   const okA = fA.k > 0 && eqFr(fA, target);
   const okB = fB.k > 0 && eqFr(fB, target);
   const success = okA && okB && nA !== nB;
-  const last = round === ROUNDS;
-  const list = hard ? PN : PN_EASY;
 
-  useEffect(() => () => window.clearTimeout(timer.current), []);
   useEffect(() => {
     if (!success || solved) return;
     setSolved(true);
-    setScore((v) => v + (hinted ? 1 : 2));
     cheer();
-    if (round < ROUNDS) timer.current = window.setTimeout(() => nextRound(), 2600);
+    onResult(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [success]);
 
-  const reset = (t: Fr) => {
-    setTarget(t);
-    setNA(t.n);
-    setNB(t.n * 2);
-    setSA(blank(t.n));
-    setSB(blank(t.n * 2));
-    setHint(false);
-    setHinted(false);
-    setSolved(false);
-  };
-  const nextRound = () => {
-    setRound((r) => r + 1);
-    reset(gen());
-  };
-  const restart = () => {
-    window.clearTimeout(timer.current);
-    setRound(1);
-    setScore(0);
-    reset(gen());
-  };
   const mults = [1, 2, 3, 4, 5, 6].filter((m) => target.n * m <= 12);
-
   const status = (f: Fr, ok: boolean) =>
     ok ? "✓ 맞아요!" : f.k === 0 ? "" : f.n % target.n !== 0 ? `${f.n}조각으로는 ${frText(target)}를 딱 맞게 못 만들어요. 조각 수를 바꿔 봐요.` : `${frText(f)}예요. ${frText(target)}가 되도록 먹어 봐요.`;
 
   let say: { tone: "info" | "ok" | "bad"; text: string };
-  if (success) say = { tone: "ok", text: `잘했어요! ⭐ ${[...new Set([frText(fA), frText(target), frText(fB)])].join(" = ")} — 조각 수가 달라도 양은 같아요!${last ? "" : " 곧 다음 문제로 가요."}` };
+  if (success) say = { tone: "ok", text: `잘했어요! ⭐ ${[...new Set([frText(fA), frText(target), frText(fB)])].join(" = ")} — 조각 수가 달라도 양은 같아요!` };
   else if (okA && okB) say = { tone: "bad", text: "두 피자의 조각 수가 같아요. 괜찮아요! 한쪽 조각 수를 −/+ 로 바꿔서 다시 먹어 봐요." };
-  else say = { tone: "info", text: `두 피자에 ${frText(target)} 만큼씩 먹어요. 조각을 누르면 냠! 다시 누르면 되돌아와요!` };
+  else say = { tone: "info", text: sp.preset === "easy" ? `두 피자에서 ${frText(target)} 만큼씩 먹어요. 조각을 누르면 냠! 다시 누르면 되돌아와요!` : `−/+ 로 조각 수를 맞추고, 두 피자에서 ${frText(target)} 만큼씩 먹어요!` };
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Stat label="라운드" value={`${round}/${ROUNDS}`} />
-        <Stat label="점수" value={score} tone="ok" />
-      </div>
       <p className="font-game text-center text-2xl">
         <span className="text-accent tabular-nums">{frText(target)}</span> 만큼 두 피자에서 먹어 봐요 <span className="text-base font-semibold text-muted">(조각 수는 서로 다르게!)</span>
       </p>
@@ -298,7 +326,7 @@ function MakeMode({ hard }: { hard: boolean }) {
               </p>
               <p className={`min-h-[3.2rem] text-center text-sm font-semibold leading-snug sm:min-h-[1.5rem] sm:text-base ${p.ok ? "text-ok" : "text-muted"}`}>{status(p.f, p.ok)}</p>
               <div className="mt-1">
-                <Stepper n={p.n} setN={p.setN} disabled={solved} list={list} />
+                <Stepper n={p.n} setN={p.setN} disabled={solved} list={sp.list} />
               </div>
             </div>
           ))}
@@ -310,69 +338,36 @@ function MakeMode({ hard }: { hard: boolean }) {
           같은 양은 이렇게 여러 가지로 쓸 수 있어요: {mults.map((m) => `${target.k * m}/${target.n * m}`).join(" = ")}. 조각을 2배로 잘게 나누면 먹을 조각도 2배가 돼요!
         </Say>
       )}
-      {solved && last && <Say tone={score >= 8 ? "ok" : "info"}>5문제 끝! {score}점 / 10점이에요. {score >= 8 ? "대단해요!" : "잘했어요!"}</Say>}
-      <div className="flex flex-wrap gap-2">
-        {solved && last && (
-          <GButton variant="primary" onClick={restart} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
-        <GButton pressed={hint} onClick={() => { setHint((h) => !h); setHinted(true); }} className={BIG}>
-          힌트 {hint ? "숨기기" : "보기"}
-        </GButton>
-        {!(solved && last) && (
-          <GButton onClick={restart} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
-      </div>
+      <GButton pressed={hint} onClick={() => setHint((h) => !h)} className={BIG}>
+        힌트 {hint ? "숨기기" : "보기"}
+      </GButton>
     </div>
   );
 }
 
 /* ── 크기 비교: 더 많이 먹은 피자를 직접 눌러요 ── */
-function CompareMode({ hard }: { hard: boolean }) {
-  const timer = useRef(0);
-  const gen = () => (hard ? makeCompare(rand) : makeCompareEasy(rand));
-  const [q, setQ] = useState(gen);
-  const [round, setRound] = useState(1);
-  const [score, setScore] = useState(0);
+function CompareMode({ level, onResult }: { level: number; onResult: (ok: boolean) => void }) {
+  const [q] = useState(() => makeCompareLevel(rand, level));
   const [pick, setPick] = useState<null | -1 | 0 | 1>(null); // 1: 왼쪽이 커요, -1: 오른쪽이 커요, 0: 같아요
   const [x, y] = q;
   const truth = cmpFr(x, y) as -1 | 0 | 1;
-  const last = round === ROUNDS;
   const pie = (f: Fr) => Array.from({ length: f.n }, (_, i) => i < f.k);
-
-  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const choose = (v: -1 | 0 | 1) => {
     if (pick !== null) return;
     setPick(v);
     const ok = v === truth;
-    if (ok) {
-      setScore((s) => s + 1);
-      cheer();
-    } else oops();
-    if (round < ROUNDS) timer.current = window.setTimeout(() => { setQ(gen()); setRound((r) => r + 1); setPick(null); }, ok ? 1800 : 3600);
+    if (ok) cheer();
+    else oops();
+    onResult(ok);
   };
   const L = lcm(x.n, y.n);
   const xs = x.k * (L / x.n);
   const ys = y.k * (L / y.n);
   const explain = `조각 크기를 똑같이 ${L}조각으로 맞춰 봐요. ${frText(x)}는 ${xs}/${L}, ${frText(y)}는 ${ys}/${L}이에요. ${truth > 0 ? `${xs}가 ${ys}보다 커서 왼쪽이 더 커요.` : truth < 0 ? `${xs}가 ${ys}보다 작아서 오른쪽이 더 커요.` : "둘이 같아서 양이 같아요."}`;
-  const again = () => {
-    window.clearTimeout(timer.current);
-    setQ(gen());
-    setRound(1);
-    setScore(0);
-    setPick(null);
-  };
   const ring = (side: 1 | -1) => (pick === null ? "border-line" : truth === side ? "border-ok bg-ok-soft" : pick === side ? "border-bad bg-bad-soft" : "border-line");
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Stat label="라운드" value={`${round}/${ROUNDS}`} />
-        <Stat label="점수" value={score} tone="ok" />
-      </div>
       <p className="font-game text-center text-2xl">더 많이 먹은 피자를 눌러요!</p>
       <div className="grid grid-cols-2 gap-3">
         {([{ f: x, side: 1 as const, name: "왼쪽" }, { f: y, side: -1 as const, name: "오른쪽" }]).map(({ f, side, name }) => (
@@ -392,30 +387,52 @@ function CompareMode({ hard }: { hard: boolean }) {
       <GButton variant={pick === 0 ? "primary" : "soft"} disabled={pick !== null} onClick={() => choose(0)} className="min-h-[56px]! w-full text-lg">
         똑같아요 ( = )
       </GButton>
-      {pick === null ? <Say>어느 쪽을 더 많이 먹었을까요? 눈으로 비교해 보고, 많은 쪽 피자를 눌러요. 같으면 ‘똑같아요’!</Say> : <Say tone={pick === truth ? "ok" : "bad"}>{pick === truth ? "정답이에요! 잘했어요! ⭐ " : "아쉬워요, 괜찮아요! "}{explain}</Say>}
-      {pick !== null && last && <Say tone={score >= 4 ? "ok" : "info"}>5문제 끝! {score}문제 맞혔어요. {score >= 4 ? "대단해요!" : "잘했어요!"}</Say>}
-      <GButton variant={pick !== null && last ? "primary" : "ghost"} onClick={again} className={BIG}>
-        다시 하기
-      </GButton>
+      {pick === null ? <Say>어느 쪽을 더 많이 먹었을까요? 눈으로 비교해 보고, 많은 쪽 피자를 눌러요. 같으면 ‘똑같아요’!</Say> : <Say tone={pick === truth ? "ok" : "bad"}>{pick === truth ? "정답이에요! 잘했어요! ⭐ " : "아쉬워요, 괜찮아요! 새 문제로 다시 해 봐요. "}{explain}</Say>}
     </div>
   );
 }
 
-type Mode = "free" | "make" | "compare";
 export default function PizzaGame() {
-  const [mode, setMode] = useState<Mode>("make");
-  const [hard, setHard] = useState(false);
+  const level = useStage();
+  const sp = levelSpec(level);
+  const timer = useRef(0);
+  const [free, setFree] = useState(false);
+  const [cleared, setCleared] = useState(0);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const kind = sp.kinds[Math.min(cleared, ROUNDS - 1)];
+  const onResult = (ok: boolean) => {
+    if (ok) {
+      const n = cleared + 1;
+      if (n >= ROUNDS) {
+        timer.current = window.setTimeout(stageClear, 1200);
+        return;
+      }
+      timer.current = window.setTimeout(() => setCleared(n), 2200);
+    } else {
+      timer.current = window.setTimeout(() => setAttempt((a) => a + 1), 3600);
+    }
+  };
   return (
     <div className="space-y-4">
       <style>{CSS}</style>
-      {mode === "free" && <FreeMode key="free" />}
-      {mode === "make" && <MakeMode key={`make${hard}`} hard={hard} />}
-      {mode === "compare" && <CompareMode key={`cmp${hard}`} hard={hard} />}
+      {!free && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Stat label={`레벨 ${level}`} value={`라운드 ${cleared + 1}/${ROUNDS}`} />
+          <Stat label="이번 판" value={kind === "make" ? "같은 양 만들기" : "크기 비교"} />
+        </div>
+      )}
+      {free ? (
+        <FreeMode />
+      ) : kind === "make" ? (
+        <MakeMode key={`m${cleared}-${attempt}`} level={level} onResult={onResult} />
+      ) : (
+        <CompareMode key={`c${cleared}-${attempt}`} level={level} onResult={onResult} />
+      )}
       <div className="flex flex-wrap gap-2 border-t border-line pt-3">
-        <GButton pressed={mode === "make"} onClick={() => setMode("make")} className={BIG}>같은 양 만들기</GButton>
-        <GButton pressed={mode === "compare"} onClick={() => setMode("compare")} className={BIG}>크기 비교</GButton>
-        <GButton pressed={mode === "free"} onClick={() => setMode("free")} className={BIG}>마음대로 나누기</GButton>
-        {mode !== "free" && <GButton pressed={hard} onClick={() => setHard((h) => !h)} className={BIG}>더 어려운 도전</GButton>}
+        <GButton pressed={free} onClick={() => { window.clearTimeout(timer.current); setFree((f) => !f); }} className={BIG}>
+          {free ? "레벨로 돌아가기" : "마음대로 나누기"}
+        </GButton>
       </div>
     </div>
   );

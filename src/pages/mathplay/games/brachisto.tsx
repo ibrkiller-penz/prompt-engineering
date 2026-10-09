@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, clamp, oops, rand, svgPoint, tick, useFrame } from "./kit";
-import { BOWL_H, bowlOutline, bowlPath, buildTable, isSimultaneous, makeRace, posAt, type BowlId, type RaceId } from "./brachisto.math";
+import { Board, GButton, Say, Stat, cheer, clamp, oops, stageClear, svgPoint, tick, useFrame, useStage } from "./kit";
+import { BOWL_H, answerOf, bowlOutline, bowlPath, buildTable, isSimultaneous, makeRace, makeRound, posAt, type Ask, type BowlId, type RaceId, type RoundSpec } from "./brachisto.math";
 
 type Msg = { t: "info" | "ok" | "bad"; s: string };
 type Phase = "ready" | "run" | "done";
@@ -12,38 +12,41 @@ const DARK: Record<RaceId, string> = { line: "#b45309", cyc: "#b91c1c", arc: "#1
 const PAL: Record<RaceId, string> = { line: "주황이", cyc: "빨강이", arc: "파랑이", dip: "초록이" };
 const JUA = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
 const NAMES: Record<RaceId, string> = { line: "곧은 길", cyc: "처음에 확 내려가는 길", arc: "둥근 길", dip: "푹 꺼졌다 올라오는 길" };
-const THETAS = [2.2, 2.6, Math.PI, 3.4];
 const BOWL_KO: Record<BowlId, string> = { cyc: "특별한 곡선 그릇", arc: "둥근 그릇", line: "곧은 경사 그릇" };
-const ROUNDS = 5;
+const ASK_KO: Record<Ask, string> = { first: "가장 빨리 도착할", second: "두 번째로 도착할", last: "꼴찌로(가장 늦게) 도착할" };
+const ASK_DONE: Record<Ask, string> = { first: "1등", second: "2등", last: "꼴찌" };
+const ROUNDS = 3; // 한 레벨 = 라운드 3개
 const SPEED = 0.55;
 const AUTO_MS = 3200;
 const BIG = "!min-h-[48px] !text-base";
-const stars = (n: number) => (n ? "⭐".repeat(n) : "0");
 const H_MIN = 0.12, H_MAX = 0.95;
 
+const askMsg = (s: RoundSpec): string =>
+  s.kind === "race" ? `${ASK_KO[s.ask]} 것 같은 공 친구를 톡 눌러요!` : "공 친구를 위아래로 끌어 높이를 정하고, 바닥에 같이 닿을지 골라요!";
+
 export default function BrachistoGame() {
-  const [view, setView] = useState<"race" | "bowl">("race");
-  const [msg, setMsg] = useState<Msg>({ t: "info", s: "어느 공 친구가 가장 빨리 도착할까요? 친구를 톡 눌러요!" });
+  const level = useStage();
+  const [spec, setSpec] = useState<RoundSpec>(() => makeRound(level, 0, Math.random));
+  const [cleared, setCleared] = useState(0); // 깬 라운드 수 (0~3)
+  const [msg, setMsg] = useState<Msg>(() => ({ t: "info", s: askMsg(spec) }));
   const [hint, setHint] = useState(false);
+  const [lastOk, setLastOk] = useState(false);
 
   // 경주
-  const [round, setRound] = useState(1);
-  const [star, setStar] = useState(0);
-  const [ti, setTi] = useState(2);
+  const rs = spec.kind === "race" ? spec : { theta: Math.PI, kf: 2.2, af: 1, ask: "first" as Ask };
   const [pred, setPred] = useState<RaceId | null>(null);
   const [phase, setPhase] = useState<Phase>("ready");
   const [clock, setClock] = useState(0);
-  const race = useMemo(() => makeRace(THETAS[ti]), [ti]);
+  const race = useMemo(() => makeRace(rs.theta, rs.kf, rs.af), [rs.theta, rs.kf, rs.af]);
   const tabs = useMemo(() => Object.fromEntries(IDS.map((id) => [id, buildTable(race.paths[id], 3000)])) as Record<RaceId, ReturnType<typeof buildTable>>, [race]);
   const Tmax = Math.max(...IDS.map((id) => tabs[id].T));
   const order = [...IDS].sort((a, b) => tabs[a].T - tabs[b].T);
+  const answer = answerOf(order, rs.ask);
 
-  // 그릇 (더 어려운 도전)
-  const [bround, setBround] = useState(1);
-  const [bstar, setBstar] = useState(0);
-  const [bowl, setBowl] = useState<BowlId>("cyc");
-  const [hA, setHA] = useState(0.9);
-  const [hB, setHB] = useState(0.4);
+  // 그릇(같이 닿을까?)
+  const [bowl, setBowl] = useState<BowlId>(spec.kind === "bowl" ? spec.bowl : "cyc");
+  const [hA, setHA] = useState(spec.kind === "bowl" ? spec.hA : 0.9);
+  const [hB, setHB] = useState(spec.kind === "bowl" ? spec.hB : 0.4);
   const [bpred, setBpred] = useState<"same" | "diff" | null>(null);
   const [bphase, setBphase] = useState<Phase>("ready");
   const [bclock, setBclock] = useState(0);
@@ -53,16 +56,17 @@ export default function BrachistoGame() {
   const svgRef = useRef<SVGSVGElement>(null);
   const drag = useRef<"A" | "B" | null>(null);
 
-  const running = (view === "race" && phase === "run") || (view === "bowl" && bphase === "run");
+  const isRace = spec.kind === "race";
+  const running = (isRace && phase === "run") || (!isRace && bphase === "run");
   useFrame((_, dt) => {
-    if (view === "race" && phase === "run") {
+    if (isRace && phase === "run") {
       const c = clock + dt * SPEED;
       if (c >= Tmax) {
         setClock(Tmax);
         finishRace();
       } else setClock(c);
     }
-    if (view === "bowl" && bphase === "run") {
+    if (!isRace && bphase === "run") {
       const c = bclock + dt * SPEED;
       const end = Math.max(tA.T, tB.T);
       if (c >= end) {
@@ -72,44 +76,54 @@ export default function BrachistoGame() {
     }
   }, running);
 
-  // 끝나면 잠깐 보여 주고 저절로 다음 판
+  // 라운드가 끝나면: 3개를 다 깼으면 레벨 클리어, 아니면 잠깐 보여 주고 저절로 다음(또는 다시) 라운드
+  const roundDone = isRace ? phase === "done" : bphase === "done";
   useEffect(() => {
-    if (view === "race" && phase === "done" && round < ROUNDS) {
-      const id = setTimeout(nextRace, AUTO_MS);
+    if (!roundDone) return;
+    if (lastOk && cleared >= ROUNDS) {
+      const id = setTimeout(stageClear, 1200);
       return () => clearTimeout(id);
     }
-    if (view === "bowl" && bphase === "done" && bround < ROUNDS) {
-      const id = setTimeout(newBowl, AUTO_MS + 800);
-      return () => clearTimeout(id);
-    }
+    const id = setTimeout(() => newRound(cleared), AUTO_MS);
+    return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, bphase, round, bround, view]);
+  }, [roundDone, cleared, lastOk]);
 
+  function newRound(idx: number) {
+    const s = makeRound(level, idx, Math.random);
+    setSpec(s);
+    setPred(null); setPhase("ready"); setClock(0); setHint(false);
+    setBpred(null); setBphase("ready"); setBclock(0);
+    if (s.kind === "bowl") { setBowl(s.bowl); setHA(s.hA); setHB(s.hB); }
+    setMsg({ t: "info", s: (lastOkRef.current ? "다음 라운드예요! " : "새 판으로 다시 도전! ") + askMsg(s) });
+  }
+  const lastOkRef = useRef(false);
+  lastOkRef.current = lastOk;
+
+  function win(text: string) {
+    cheer();
+    setLastOk(true);
+    setCleared((c) => c + 1);
+    setMsg({ t: "ok", s: text + (cleared + 1 >= ROUNDS ? ` 레벨 ${level}의 라운드 3개를 모두 깼어요!` : "") });
+  }
+  function lose(text: string) {
+    oops();
+    setLastOk(false);
+    setMsg({ t: "bad", s: text });
+  }
   function finishRace() {
     setPhase("done");
-    const win = order[0];
-    if (pred === win) {
-      cheer();
-      setStar((s) => s + 1);
-      setMsg({ t: "ok", s: `와, 맞혔어요! ⭐ 가장 빨리 도착한 길은 ‘${NAMES[win]}’(${tabs[win].T.toFixed(2)}초)예요!` });
-    } else {
-      oops();
-      setMsg({ t: "bad", s: `아쉽지만 괜찮아요! 이긴 길은 ‘${NAMES[win]}’(${tabs[win].T.toFixed(2)}초)였어요. 다음 판에는 꼭 맞혀 봐요!` });
-    }
+    const who = `‘${PAL[answer]}’(${NAMES[answer]}, ${tabs[answer].T.toFixed(2)}초)`;
+    if (pred === answer) win(`와, 맞혔어요! ⭐ ${ASK_DONE[rs.ask]}은 ${who}예요!`);
+    else lose(`아쉽지만 괜찮아요! ${ASK_DONE[rs.ask]}은 ${who}였어요. 새 판으로 다시 해 봐요!`);
   }
   function finishBowl() {
     setBphase("done");
     const same = isSimultaneous(bowl, hA * BOWL_H, hB * BOWL_H);
     const ok = (bpred === "same") === same;
     const detail = `공 A ${tA.T.toFixed(2)}초, 공 B ${tB.T.toFixed(2)}초`;
-    if (ok) {
-      cheer();
-      setBstar((s) => s + 1);
-      setMsg({ t: "ok", s: `잘 맞혔어요! ⭐ ${detail}. ${same ? "특별한 곡선 그릇에서는 어디서 놓아도 바닥에 같이 닿아요. 신기하죠?" : "이 그릇에서는 높이에 따라 도착 시간이 달라요."}` });
-    } else {
-      oops();
-      setMsg({ t: "bad", s: `괜찮아요, 하나 배웠어요! ${detail}. ${same ? "이 그릇에서는 같이 닿았어요." : "이 그릇에서는 시간이 달랐어요."}` });
-    }
+    if (ok) win(`잘 맞혔어요! ⭐ ${detail}. ${same ? "특별한 곡선 그릇에서는 어디서 놓아도 바닥에 같이 닿아요. 신기하죠?" : "이 그릇에서는 높이에 따라 도착 시간이 달라요."}`);
+    else lose(`괜찮아요, 하나 배웠어요! ${detail}. ${same ? "이 그릇에서는 같이 닿았어요." : "이 그릇에서는 시간이 달랐어요."}`);
   }
 
   const pickRace = (id: RaceId) => {
@@ -118,17 +132,7 @@ export default function BrachistoGame() {
     setPred(id);
     setClock(0);
     setPhase("run");
-    setMsg({ t: "info", s: "출발! 공 친구들이 미끄럼틀을 내려가요. 내 공이 이길까요?" });
-  };
-  function nextRace() {
-    setTi((i) => (i + 1 + rand(THETAS.length - 1)) % THETAS.length);
-    setRound((r) => r + 1);
-    setPred(null); setPhase("ready"); setClock(0); setHint(false);
-    setMsg({ t: "info", s: "새 경주판이에요! 이길 것 같은 공 친구를 톡 눌러요." });
-  }
-  const resetRace = () => {
-    setRound(1); setStar(0); setPred(null); setPhase("ready"); setClock(0); setHint(false);
-    setMsg({ t: "info", s: "처음부터 다시 해요. 이길 것 같은 공 친구를 톡 눌러요!" });
+    setMsg({ t: "info", s: "출발! 공 친구들이 미끄럼틀을 내려가요. 내 공을 응원해요!" });
   };
   const pickBowl = (p: "same" | "diff") => {
     if (bphase !== "ready" || Math.abs(hA - hB) < 0.2) return;
@@ -137,24 +141,6 @@ export default function BrachistoGame() {
     setBclock(0);
     setBphase("run");
     setMsg({ t: "info", s: "두 공을 놓았어요! 바닥에 누가 먼저 닿을까요?" });
-  };
-  function newBowl() {
-    const kinds: BowlId[] = ["cyc", "arc", "line"];
-    const a = 0.7 + rand(26) / 100;
-    const b = 0.15 + rand(30) / 100;
-    setBowl(kinds[rand(3)]); setHA(a); setHB(b);
-    setBround((r) => r + 1);
-    setBpred(null); setBphase("ready"); setBclock(0);
-    setMsg({ t: "info", s: "새 문제예요! 공을 끌어 높이를 바꾸고, 같이 닿을지 골라요." });
-  }
-  const resetBowl = () => {
-    setBround(1); setBstar(0); setBpred(null); setBphase("ready"); setBclock(0); setBowl("cyc"); setHA(0.9); setHB(0.4);
-    setMsg({ t: "info", s: "처음부터 다시 해요. 공을 끌어 높이를 바꿔 보세요!" });
-  };
-  const goView = (v: "race" | "bowl") => {
-    setView(v);
-    if (v === "race") setMsg({ t: "info", s: "이길 것 같은 공 친구를 톡 눌러요!" });
-    else setMsg({ t: "info", s: "공을 위아래로 끌어 높이를 정하고, 같이 닿을지 골라요." });
   };
 
   // ───── 경주 그림: 놀이터 미끄럼틀 ─────
@@ -218,7 +204,7 @@ export default function BrachistoGame() {
             const p = race.paths[id](0.5);
             const cx = X(p.x), cy = Y(p.d);
             return (
-              <g key={id} role="button" tabIndex={0} aria-label={`${PAL[id]}(${NAMES[id]})가 이길 거라고 고르기`} style={{ cursor: "pointer" }}
+              <g key={id} role="button" tabIndex={0} aria-label={`${PAL[id]}(${NAMES[id]})가 ${ASK_KO[rs.ask]} 거라고 고르기`} style={{ cursor: "pointer" }}
                 onClick={() => pickRace(id)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), pickRace(id))}>
                 <circle cx={cx} cy={cy} r={34} fill="transparent" />
                 <circle cx={cx} cy={cy} r={23} fill={COLORS[id]} opacity={0.3} className="animate-pulse" />
@@ -233,9 +219,11 @@ export default function BrachistoGame() {
             const x = arrived ? bxp - rank[id] * 24 : X(p.x);
             const y = arrived ? byp - 4 : Y(p.d);
             const done = phase === "done";
-            const mood = done ? (id === win ? "happy" : id === pred ? "sad" : "happy") : "wow";
-            const cls = done && id === win ? "br-bounce" : done && id === pred && pred !== win ? "br-shake" : "";
-            return <Face key={id} x={x} y={y} r={id === pred ? 13 : 11} id={id} mood={mood} crown={done && id === win} tag={id === pred ? "내 공!" : undefined} cls={cls} />;
+            const wrong = pred !== answer;
+            const mood = done ? (id === pred && wrong ? "sad" : "happy") : "wow";
+            const cls = done && id === answer ? "br-bounce" : done && id === pred && wrong ? "br-shake" : "";
+            const tag = id === pred ? (done && !wrong ? "내 공! 정답" : "내 공!") : done && id === answer ? "정답!" : undefined;
+            return <Face key={id} x={x} y={y} r={id === pred ? 13 : 11} id={id} mood={mood} crown={done && id === win} tag={tag} cls={cls} />;
           })}
         {phase === "done" && (
           <g className="br-sparkle">
@@ -282,7 +270,7 @@ export default function BrachistoGame() {
       const y = by(h) - 12;
       const id: RaceId = who === "A" ? "cyc" : "arc";
       const done = bphase === "done";
-      const okNow = done && msg.t === "ok";
+      const okNow = done && lastOk;
       return (
         <g>
           {canDrag && <circle cx={x} cy={y} r={24} fill={COLORS[id]} opacity={0.25} className="animate-pulse" />}
@@ -311,20 +299,25 @@ export default function BrachistoGame() {
     );
   })();
 
-  const raceEnd = phase === "done" && round >= ROUNDS;
-  const bowlEnd = bphase === "done" && bround >= ROUNDS;
   const tooClose = Math.abs(hA - hB) < 0.2;
+  const hintText = !isRace
+    ? "💡 높은 곳에서 놓으면 더 멀리 가야 하지만 더 빨라지기도 해요. 그릇 모양에 따라 달라요!"
+    : rs.ask === "first"
+      ? "💡 공은 내려갈수록 빨라져요. 처음에 가파르게 내려가서 빨리 달리기 시작하는 길이 유리해요!"
+      : rs.ask === "last"
+        ? "💡 처음에 천천히 내려가는 길이나, 너무 멀리 돌아가는 길은 늦어요. 어느 쪽이 더 손해일까요?"
+        : "💡 1등은 처음에 확 내려가는 길일 때가 많아요. 그다음은 누구일까요? 처음 기울기와 길이를 함께 봐요.";
 
   return (
     <Board>
-      {view === "race" ? (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-game text-xl">레벨 {level} · 라운드 {Math.min(cleared + 1, ROUNDS)}/{ROUNDS}</span>
+        <Stat label="깬 라운드" value={"⭐".repeat(cleared) || "0"} tone={cleared ? "ok" : "plain"} />
+      </div>
+      {isRace ? (
         <>
-          <h3 className="font-game text-2xl">🛝 미끄럼틀 달리기 경주</h3>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Stat label="판" value={`${round}/${ROUNDS}`} />
-            <Stat label="별" value={stars(star)} tone={star ? "ok" : "plain"} />
-          </div>
-          <p className="mt-2 text-base font-bold">{phase === "ready" ? "👆 가장 빨리 도착할 것 같은 공 친구를 톡 눌러요!" : phase === "run" ? "🏁 달려요! ‘내 공!’ 친구를 응원해요" : "🏁 도착!"}</p>
+          <p className="mt-2 font-game text-xl">🛝 {ASK_KO[rs.ask]} 공 친구는 누구일까요?</p>
+          <p className="mt-1 text-base font-bold">{phase === "ready" ? "👆 공 친구를 톡 누르면 바로 출발해요!" : phase === "run" ? "🏁 달려요! ‘내 공!’ 친구를 응원해요" : "🏁 도착!"}</p>
           <div className="mt-1">{raceSvg}</div>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-hidden>
             {IDS.map((id) => (
@@ -334,7 +327,7 @@ export default function BrachistoGame() {
           {phase === "done" && (
             <ol className="mt-3 space-y-1 rounded-card bg-bg p-3 text-base" aria-label="도착 순서">
               {order.map((id, i) => (
-                <li key={id} className="flex items-center gap-2">
+                <li key={id} className={`flex items-center gap-2 ${id === answer ? "font-bold" : ""}`}>
                   <span className="font-game w-16 text-lg">{i + 1}등{i === 0 ? " 👑" : ""}</span>
                   <span className="inline-block h-4 w-4 rounded-full border-2" style={{ background: COLORS[id], borderColor: DARK[id] }} aria-hidden />
                   <span className="flex-1"><b className="font-game">{PAL[id]}</b> · {NAMES[id]}</span>
@@ -343,30 +336,10 @@ export default function BrachistoGame() {
               ))}
             </ol>
           )}
-          <div className="mt-3"><Say tone={msg.t}>{raceEnd ? `${msg.s} 5판을 모두 했어요! 별 ${star}개를 모았어요. 정말 잘했어요!` : msg.s}</Say></div>
-          {hint && <p className="mt-2 rounded-card bg-bg px-3 py-2 text-base">💡 공은 내려갈수록 점점 빨라져요. 처음에 가파르게 내려가는 길이 유리해요. 하지만 너무 멀리 돌아가면 손해예요!</p>}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {phase === "done" && !raceEnd && <GButton variant="soft" className={BIG} onClick={nextRace}>바로 다음 판 ▶</GButton>}
-            {raceEnd && <GButton variant="primary" className={BIG} onClick={resetRace}>🔄 한 번 더 하기</GButton>}
-            {phase === "ready" && <GButton className={BIG} pressed={hint} onClick={() => setHint((v) => !v)}>💡 힌트</GButton>}
-            {!raceEnd && <GButton className={BIG} onClick={resetRace} disabled={phase === "run"}>다시 하기</GButton>}
-          </div>
-          <div className="mt-4 border-t border-line pt-3">
-            <GButton className={BIG} onClick={() => goView("bowl")} disabled={phase === "run"}>🔥 더 어려운 도전 해 보기 ▶</GButton>
-          </div>
         </>
       ) : (
         <>
-          <h3 className="font-game text-2xl">🔥 더 어려운 도전: 높이가 달라도 같이 닿을까?</h3>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Stat label="문제" value={`${bround}/${ROUNDS}`} />
-            <Stat label="별" value={stars(bstar)} tone={bstar ? "ok" : "plain"} />
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label="그릇 고르기">
-            {(["cyc", "arc", "line"] as BowlId[]).map((k) => (
-              <GButton key={k} className={BIG} variant={bowl === k ? "primary" : "ghost"} pressed={bowl === k} disabled={bphase !== "ready"} onClick={() => { tick(); setBowl(k); }}>{BOWL_KO[k]}</GButton>
-            ))}
-          </div>
+          <p className="mt-2 font-game text-xl">🥣 {BOWL_KO[bowl]}: 높이가 달라도 바닥에 같이 닿을까요?</p>
           <div className="mt-2">{bowlSvg}</div>
           <p className="mt-2 text-base font-bold">
             {bphase === "ready" ? (tooClose ? "두 공의 높이를 서로 다르게 끌어 주세요." : "두 공을 같은 때에 놓으면 바닥에 같이 닿을까요? 골라 보세요!") : bphase === "run" ? "⏳ 굴러가는 중…" : "🏁 도착!"}
@@ -375,17 +348,14 @@ export default function BrachistoGame() {
             <GButton className={BIG} variant="primary" disabled={bphase !== "ready" || tooClose} pressed={bpred === "same"} onClick={() => pickBowl("same")}>🤝 같이 닿아요</GButton>
             <GButton className={BIG} variant="primary" disabled={bphase !== "ready" || tooClose} pressed={bpred === "diff"} onClick={() => pickBowl("diff")}>↔️ 따로 닿아요</GButton>
           </div>
-          <div className="mt-3"><Say tone={msg.t}>{bowlEnd ? `${msg.s} 5문제를 모두 했어요! 별 ${bstar}개를 모았어요. 대단해요!` : msg.s}</Say></div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {bphase === "done" && !bowlEnd && <GButton variant="soft" className={BIG} onClick={newBowl}>바로 다음 문제 ▶</GButton>}
-            {bowlEnd && <GButton variant="primary" className={BIG} onClick={resetBowl}>🔄 한 번 더 하기</GButton>}
-            {!bowlEnd && <GButton className={BIG} onClick={resetBowl} disabled={bphase === "run"}>다시 하기</GButton>}
-          </div>
-          <div className="mt-4 border-t border-line pt-3">
-            <GButton className={BIG} onClick={() => goView("race")} disabled={bphase === "run"}>◀ 쉬운 경주로 돌아가기</GButton>
-          </div>
         </>
       )}
+      <div className="mt-3"><Say tone={msg.t}>{msg.s}</Say></div>
+      {hint && <p className="mt-2 rounded-card bg-bg px-3 py-2 text-base">{hintText}</p>}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {roundDone && !(lastOk && cleared >= ROUNDS) && <GButton variant="soft" className={BIG} onClick={() => newRound(cleared)}>바로 다음 ▶</GButton>}
+        {!running && !roundDone && <GButton className={BIG} pressed={hint} onClick={() => setHint((v) => !v)}>💡 힌트</GButton>}
+      </div>
     </Board>
   );
 }

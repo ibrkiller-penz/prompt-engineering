@@ -1,16 +1,15 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { Board, GButton, Slider, cheer, oops, svgPoint, tick, useFrame } from "./kit";
+import { Board, GButton, Slider, cheer, oops, stageClear, svgPoint, tick, useFrame, useStage } from "./kit";
 import { BIG, Pill, Stars, Talk } from "./easykit";
 import { EPI_CSS, EpiDefs, MiniFace, Tile, VillageFrame, VirusPop } from "./epidemic.art";
-import { DEFAULT_P, DURATION, I, LEVELS, R, S, V, build, count, idx, shuffled, starsFor, stepSim, type Level, type Sim } from "./epidemic.logic";
+import { DURATION, I, R, S, V, build, count, idx, levelCfg, shuffled, starsFor, stepSim, type Sim } from "./epidemic.logic";
 
 type Phase = "ready" | "run" | "pause" | "done";
 type Msg = { t: string; tone: "info" | "ok" | "bad" };
 const CELL = 40;
 const PAD = 14;
 
-function newVillage(level: Level) {
-  const { size, starts: n } = LEVELS[level];
+function newVillage(size: number, n: number) {
   const starts: number[] = [];
   while (starts.length < n) {
     const i = idx(size, 1 + Math.floor(Math.random() * (size - 2)), 1 + Math.floor(Math.random() * (size - 2)));
@@ -21,14 +20,17 @@ function newVillage(level: Level) {
 const mcount = (m: Uint8Array) => m.reduce((a, b) => a + b, 0);
 
 export default function EpidemicGame() {
-  const [level, setLevel] = useState<Level>("easy");
-  const [pPct, setPPct] = useState(Math.round(DEFAULT_P * 100));
+  const stage = useStage();
+  const L = levelCfg(stage);
+  const baseP = Math.round(L.p * 100);
+  const [round, setRound] = useState(1);
+  const [pPct, setPPct] = useState(baseP);
   const [ratioPct, setRatioPct] = useState(0);
-  const [init] = useState(() => newVillage("easy"));
+  const [init] = useState(() => newVillage(L.size, L.starts));
   const [starts, setStarts] = useState(init.starts);
   const [order, setOrder] = useState<number[]>(init.order);
   const [manual, setManual] = useState<Uint8Array>(init.manual);
-  const [sim, setSim] = useState<Sim>(() => build(LEVELS.easy.size, init.starts, init.order, 0, init.manual));
+  const [sim, setSim] = useState<Sim>(() => build(L.size, init.starts, init.order, 0, init.manual));
   const [phase, setPhase] = useState<Phase>("ready");
   const [hist, setHist] = useState<number[]>(() => [init.starts.length]);
   const [wins, setWins] = useState(0);
@@ -41,7 +43,9 @@ export default function EpidemicGame() {
   const painting = useRef<"add" | "erase" | null>(null);
   const live = useRef<{ cells: Uint8Array; manual: Uint8Array; age: Uint8Array }>({ cells: new Uint8Array(0), manual: new Uint8Array(0), age: new Uint8Array(0) });
 
-  const { size, budget } = LEVELS[level];
+  const { size, budget, target } = L;
+  const tPct = Math.round(target * 100);
+  const experiment = pPct !== baseP || ratioPct > 0;
   const total = size * size;
   const p = pPct / 100;
   const cells = sim.cells;
@@ -50,26 +54,31 @@ export default function EpidemicGame() {
   const ever = nI + count(cells, R);
   const mUsed = mcount(manual);
   const peak = Math.max(...hist);
-  const won = !!result && result.stars > 0 && count(cells, V) <= budget;
+  const won = !!result && result.stars > 0;
 
   const finish = (c: Uint8Array, h: number[]) => {
     const ratio = (count(c, R) + count(c, I)) / total;
     const vac = count(c, V);
-    const stars = vac > budget ? 0 : starsFor(ratio);
+    let randomV = 0;
+    for (let i = 0; i < c.length; i++) if (c[i] === V && !manual[i]) randomV++;
+    const exp = experiment || randomV > 0;
+    const stars = vac > budget || exp ? 0 : starsFor(ratio, target);
     setResult({ ratio, peak: Math.max(...h), stars });
     setPhase("done");
     const pct = (ratio * 100).toFixed(0);
-    if (vac > budget) {
+    if (exp) {
+      setMsg({ t: `실험 끝! 아팠던 친구는 ${pct}%예요. 실험실 설정을 바꾸면 라운드는 올라가지 않아요.`, tone: "info" });
+    } else if (vac > budget) {
       oops();
       setMsg({ t: `끝! 아팠던 친구는 ${pct}%예요. 백신을 너무 많이 썼어요. ${budget}개 이하로 해 봐요.`, tone: "info" });
     } else if (stars > 0) {
       cheer();
       setWins((w) => w + 1);
-      setLeft(3.5);
-      setMsg({ t: `대단해요! 아픈 친구가 ${pct}%만 나왔어요. 별 ${stars}개!`, tone: "ok" });
+      setLeft(round >= 3 ? 1.2 : 2.2);
+      setMsg({ t: round >= 3 ? `대단해요! 마을 3곳을 모두 지켰어요. 별 ${stars}개!` : `대단해요! 아픈 친구가 ${pct}%만 나왔어요. 별 ${stars}개! 곧 다음 마을로 가요.`, tone: "ok" });
     } else {
       oops();
-      setMsg({ t: `괜찮아요! 아팠던 친구가 ${pct}%예요. 아픈 친구를 빙 둘러 막으면 돼요. 다시 해 봐요!`, tone: "bad" });
+      setMsg({ t: `괜찮아요! 아팠던 친구가 ${pct}%예요(목표 ${tPct}% 미만). 아픈 친구를 빙 둘러 막으면 돼요. 다시 해 봐요!`, tone: "bad" });
     }
   };
 
@@ -98,15 +107,16 @@ export default function EpidemicGame() {
     const nl = left - dt;
     if (nl <= 0) {
       setLeft(0);
-      newVillage2(level);
+      if (round >= 3) stageClear();
+      else nextRound();
     } else setLeft(nl);
   }, phase === "done" && won && left > 0);
 
-  const setup = (lv: Level, v: { starts: number[]; order: number[]; manual: Uint8Array }, pct = ratioPct) => {
+  const setup = (v: { starts: number[]; order: number[]; manual: Uint8Array }, pct = ratioPct) => {
     setStarts(v.starts);
     setOrder(v.order);
     setManual(v.manual);
-    setSim(build(LEVELS[lv].size, v.starts, v.order, pct / 100, v.manual));
+    setSim(build(size, v.starts, v.order, pct / 100, v.manual));
     setHist([v.starts.length]);
     setFresh({ k: 0, list: [] });
     setPhase("ready");
@@ -114,20 +124,18 @@ export default function EpidemicGame() {
     setLeft(0);
     acc.current = 0;
   };
-  function newVillage2(lv: Level) {
-    setup(lv, newVillage(lv));
+  function newVillage2() {
+    setup(newVillage(size, L.starts));
     setMsg({ t: "새 마을이에요! 아픈 친구 둘레에 백신을 놓아요.", tone: "info" });
   }
+  function nextRound() {
+    setRound((r) => r + 1);
+    newVillage2();
+  }
   const again = () => {
-    setup(level, { starts, order, manual });
+    setup({ starts, order, manual });
     setMsg({ t: "같은 마을에서 다시 해요. 이번엔 어떻게 막을까요?", tone: "info" });
   };
-  const changeLevel = (lv: Level) => {
-    setLevel(lv);
-    setup(lv, newVillage(lv));
-    setMsg({ t: lv === "hard" ? "큰 마을이에요! 아픈 친구가 3명이에요. 백신은 24개!" : "작은 마을로 돌아왔어요.", tone: "info" });
-  };
-
   const cellAt = (e: PointerEvent<SVGSVGElement>) => {
     const [x, y] = svgPoint(e.currentTarget, e.clientX, e.clientY);
     const c = Math.floor(x / CELL),
@@ -221,6 +229,14 @@ export default function EpidemicGame() {
     <div className="space-y-3">
       <style>{EPI_CSS}</style>
       <Board className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-game rounded-full bg-accent px-4 py-1 text-lg text-white shadow-[0_3px_0_0_rgba(0,0,0,0.2)]">레벨 {stage} · 라운드 {round}/3</span>
+          <span className="flex gap-1" aria-label={`마을 3곳 중 ${round - 1 + (won ? 1 : 0)}곳 성공`}>
+            {[1, 2, 3].map((k) => (
+              <span key={k} className={`text-2xl ${k < round || (k === round && won) ? "" : "opacity-25 grayscale"}`}>🏡</span>
+            ))}
+          </span>
+        </div>
         {phase === "done" && result ? (
           <div className="space-y-1 rounded-card bg-bg p-3 text-center">
             <p className="gz-pop text-4xl"><Stars n={result.stars} /></p>
@@ -232,7 +248,7 @@ export default function EpidemicGame() {
               <div className="text-sm font-bold">🛡️ 남은 백신</div>
               <div className="font-game text-5xl tabular-nums text-accent" aria-live="polite">{Math.max(0, budget - mUsed)}</div>
             </div>
-            <div className="font-game flex-1 text-xl leading-snug">🎯 아픈 친구를 <span className="text-bad">20%보다 적게</span> 막아요!</div>
+            <div className="font-game flex-1 text-xl leading-snug">🎯 아픈 친구를 <span className="text-bad">{tPct}%보다 적게</span> 막아요!</div>
           </div>
         )}
         <Talk tone={msg.tone}>{msg.t}</Talk>
@@ -279,8 +295,16 @@ export default function EpidemicGame() {
           </div>
         ) : (
           <div className="flex flex-wrap justify-center gap-2">
-            <GButton variant="primary" className="min-h-[60px]! flex-1 text-xl" onClick={() => newVillage2(level)}>{won && left > 0 ? `새 마을 ▶ (${Math.ceil(left)})` : "새 마을 ▶"}</GButton>
-            <GButton className={`${BIG} min-h-[60px]!`} onClick={again}>이 마을 다시</GButton>
+            {won ? (
+              <GButton variant="primary" className="min-h-[60px]! flex-1 text-xl" onClick={() => (round >= 3 ? stageClear() : nextRound())}>
+                {round >= 3 ? "🎉 레벨 클리어!" : `다음 마을 ▶ (${Math.max(1, Math.ceil(left))})`}
+              </GButton>
+            ) : (
+              <>
+                <GButton variant="primary" className="min-h-[60px]! flex-1 text-xl" onClick={again}>이 마을 다시</GButton>
+                <GButton className={`${BIG} min-h-[60px]!`} onClick={newVillage2}>새 마을</GButton>
+              </>
+            )}
           </div>
         )}
         <div className="flex flex-wrap gap-2">
@@ -311,15 +335,12 @@ export default function EpidemicGame() {
       </Board>
 
       <details className="rounded-card border border-line bg-surface p-3">
-        <summary className="flex min-h-[48px] cursor-pointer items-center text-base font-bold">🏆 더 어려운 도전</summary>
+        <summary className="flex min-h-[48px] cursor-pointer items-center text-base font-bold">🔬 실험실 (라운드는 안 올라가요)</summary>
         <div className="mt-2 space-y-2 text-base">
-          <div className="flex flex-wrap gap-2">
-            <GButton className={BIG} pressed={level === "easy"} onClick={() => changeLevel("easy")}>작은 마을</GButton>
-            <GButton className={BIG} pressed={level === "hard"} onClick={() => changeLevel("hard")}>큰 마을 (아픈 친구 3명)</GButton>
-          </div>
           <Slider label="친구들이 얼마나 가까이 지내요?" value={pPct} min={3} max={30} onChange={setPPct} show={(v) => (v < 10 ? "조금" : v < 20 ? "보통" : "많이")} />
           <Slider label="처음부터 백신 맞은 친구" value={ratioPct} min={0} max={80} step={5} onChange={onRatio} show={(v) => `${Math.round((v * total) / 100)}명`} />
-          <p className="text-sm text-muted">‘처음부터 백신 맞은 친구’는 퍼져라! 전에만 바꿀 수 있어요{phase === "ready" ? "" : " (다시 하기를 누르세요)"}. 백신이 {budget}개를 넘으면 별을 받을 수 없어요.</p>
+          <p className="text-sm text-muted">‘처음부터 백신 맞은 친구’는 퍼져라! 전에만 바꿀 수 있어요{phase === "ready" ? "" : " (다시 하기를 누르세요)"}. 설정을 바꾸면 이번 판은 실험으로만 쳐요. 레벨이 오를수록 마을이 커지고 아픈 친구가 늘어나요.</p>
+          <GButton className={BIG} onClick={() => { setPPct(baseP); if (phase === "ready") onRatio(0); }}>처음 설정으로</GButton>
           <GButton className={BIG} onClick={doStep} disabled={phase === "run" || phase === "done"}>한 단계씩 보기</GButton>
         </div>
       </details>

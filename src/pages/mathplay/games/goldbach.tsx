@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, tick } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, stageClear, tick, useStage } from "./kit";
 
 // <pure>
 function isPrime(n: number): boolean {
@@ -12,6 +12,47 @@ function goldbachPairs(n: number): [number, number][] {
   const out: [number, number][] = [];
   for (let p = 2; p <= n / 2; p++) if (isPrime(p) && isPrime(n - p)) out.push([p, n - p]);
   return out;
+}
+type GRound = { kind: "pair" | "all"; n: number };
+const LEVEL_RANGE: [number, number][] = [[4, 20], [4, 30], [10, 40], [20, 50], [30, 60], [40, 80], [50, 100], [60, 120], [80, 160], [100, 200]];
+const LEVEL_KINDS = ["ppp", "ppp", "ppa", "ppa", "pap", "pap", "ppa", "paa", "pap", "pap"];
+/** ‘모두 찾기’에 쓸 짝수는 방법이 너무 많지 않게 */
+const allLimit = (level: number) => (level <= 5 ? 3 : level <= 8 ? 4 : 5);
+function makeRounds(level: number, rnd: () => number): GRound[] {
+  const L = Math.min(10, Math.max(1, level));
+  const [lo, hi] = LEVEL_RANGE[L - 1];
+  const evens: number[] = [];
+  for (let n = lo; n <= hi; n += 2) evens.push(n);
+  const used = new Set<number>();
+  return LEVEL_KINDS[L - 1].split("").map((k) => {
+    let pool = evens.filter((n) => !used.has(n) && (k === "p" || goldbachPairs(n).length <= allLimit(L)));
+    if (k === "a" && pool.length === 0) pool = evens.filter((n) => !used.has(n));
+    // 높은 레벨일수록 범위의 큰 쪽에서 더 자주 나오게
+    const big = pool.filter((n) => n >= (lo + hi) / 2);
+    const src = L >= 4 && big.length && rnd() < 0.6 ? big : pool;
+    const n = src[Math.floor(rnd() * src.length)];
+    used.add(n);
+    return { kind: k === "p" ? "pair" : "all", n };
+  });
+}
+/** 풍선 놀이 사탕: 작은 수는 모든 소수, 큰 수는 정답 짝 2개 + 헷갈리는 소수 */
+function chipSet(n: number, rnd: () => number): number[] {
+  const all: number[] = [];
+  for (let p = 2; p < n - 1; p++) if (isPrime(p)) all.push(p);
+  if (n <= 40) return all;
+  const pairs = goldbachPairs(n);
+  const set = new Set<number>();
+  const take = [...pairs].sort(() => rnd() - 0.5).slice(0, 2);
+  for (const [a, b] of take) {
+    set.add(a);
+    set.add(b);
+  }
+  const rest = all.filter((p) => !set.has(p)).sort(() => rnd() - 0.5);
+  for (const p of rest) {
+    if (set.size >= 12) break;
+    set.add(p);
+  }
+  return [...set].sort((a, b) => a - b);
 }
 // </pure>
 
@@ -28,12 +69,8 @@ const MAX_C = Math.max(...COUNTS);
 const MIN_N = ALL_EVENS[COUNTS.indexOf(MIN_C)];
 const MAX_N = ALL_EVENS[COUNTS.indexOf(MAX_C)];
 const primesBelow = (n: number) => Array.from({ length: n }, (_, i) => i).filter(isPrime);
-const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
-const five = (src: number[]) => shuffle(src).slice(0, 5);
-const PAIR_SET = () => five(EASY);
-const ALL_SET = () => five(EASY.filter((n) => goldbachPairs(n).length >= 2));
 const BIG = "!min-h-[48px] !text-base";
-const stars = (n: number) => (n > 0 ? "⭐".repeat(n) : "0");
+const starStr = (n: number) => (n > 0 ? "⭐".repeat(n) : "0");
 
 const CANDY: [string, string, string][] = [
   ["#fda4af", "#f43f5e", "#9f1239"],
@@ -82,47 +119,64 @@ function PairBars({ n, pairs }: { n: number; pairs: [number, number][] }) {
 }
 
 export default function GoldbachGame() {
-  const [tab, setTab] = useState<Tab>("pair");
+  const level = useStage();
+  const [rounds] = useState(() => makeRounds(level, Math.random));
+  const [ri, setRi] = useState(0);
+  const cur = rounds[ri];
+  const [chips] = useState(() => rounds.map((r) => chipSet(r.n, Math.random)));
+  const [explore, setExplore] = useState(false);
+  const tab: Tab = explore ? "explore" : cur.kind;
   const [hard, setHard] = useState(false);
-  const [more, setMore] = useState(false);
   const [n, setN] = useState(12);
-  const [msg, setMsg] = useState<M>({ t: "info", s: "두 소수를 눌러서 합이 목표 수가 되게 해 보세요!" });
+  const [msg, setMsg] = useState<M>({ t: "info", s: cur.kind === "pair" ? "풍선의 수를 소수 두 개의 합으로 만들어 줘요!" : "이번엔 만드는 방법을 모두 찾아요!" });
+  const [stars, setStarsN] = useState(0);
+  const [roundDone, setRoundDone] = useState(false);
 
   // 풍선 놀이(소수 두 개 더하기)
-  const [set1, setSet1] = useState(PAIR_SET);
-  const [r1, setR1] = useState(0);
   const [slots, setSlots] = useState<(number | null)[]>([null, null]);
   const [wrong1, setWrong1] = useState(0);
   const [phase1, setPhase1] = useState<"play" | "ok" | "bad">("play");
-  const [star1, setStar1] = useState(0);
   const [drag, setDrag] = useState<{ p: number; x: number; y: number } | null>(null);
   const dragInfo = useRef<{ p: number; sx: number; sy: number; moved: boolean } | null>(null);
 
   // 모두 찾기
-  const [set2, setSet2] = useState(ALL_SET);
-  const [r2, setR2] = useState(0);
   const [found, setFound] = useState<number[]>([]);
-  const [solved2, setSolved2] = useState(false);
+  const [wrong2, setWrong2] = useState(0);
   const [gaveUp, setGaveUp] = useState(false);
-  const [star2, setStar2] = useState(0);
 
-  const q1 = set1[Math.min(r1, 4)];
-  const q2 = set2[Math.min(r2, 4)];
-  const bal = BALLOONS[r1 % BALLOONS.length];
+  const q1 = cur.n;
+  const q2 = cur.n;
+  const r1 = ri;
+  const bal = BALLOONS[ri % BALLOONS.length];
   const pairs1 = useMemo(() => goldbachPairs(q1), [q1]);
-  const pairs2 = useMemo(() => goldbachPairs(q2), [q2]);
+  const pairs2 = pairs1;
   const pairsN = useMemo(() => goldbachPairs(n), [n]);
 
-  const goMode = (t: Tab) => {
-    setTab(t);
-    if (t === "pair") setMsg({ t: "info", s: "풍선의 수를 소수 두 개의 합으로 만들어 줘요!" });
-    if (t === "all") setMsg({ t: "info", s: "소수를 하나씩 눌러 보세요. 짝이 되는 수도 소수이면 찾은 거예요!" });
-    if (t === "explore") setMsg({ t: "info", s: "짝수를 눌러 보면 두 소수의 합으로 나타내는 방법을 모두 보여 줘요." });
-  };
+  // 라운드 끝 → 다음 라운드, 마지막이면 레벨 클리어
+  useEffect(() => {
+    if (!roundDone) return;
+    if (ri >= rounds.length - 1) {
+      const id = setTimeout(stageClear, 1200);
+      return () => clearTimeout(id);
+    }
+    const id = setTimeout(() => {
+      const nr = ri + 1;
+      setRi(nr);
+      setRoundDone(false);
+      setSlots([null, null]);
+      setWrong1(0);
+      setPhase1("play");
+      setFound([]);
+      setWrong2(0);
+      setGaveUp(false);
+      setMsg({ t: "info", s: rounds[nr].kind === "pair" ? "새 풍선이 떴어요! 소수 두 개로 만들어 봐요." : `이번엔 ${rounds[nr].n} 을 만드는 방법을 모두 찾아요!` });
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [roundDone, ri, rounds]);
 
   // --- 풍선 놀이 ---
   const place = (p: number, idx?: number) => {
-    if (phase1 !== "play" || r1 >= 5) return;
+    if (phase1 !== "play" || roundDone) return;
     const cur = [...slots];
     let at = idx !== undefined && cur[idx] === null ? idx : cur.indexOf(null);
     if (at < 0) return;
@@ -135,7 +189,7 @@ export default function GoldbachGame() {
         setPhase1("ok");
         cheer();
         if (wrong1 === 0) {
-          setStar1((s) => s + 1);
+          setStarsN((s) => s + 1);
           setMsg({ t: "ok", s: `팡! ⭐ ${cur[0]} + ${cur[1]} = ${q1}. 둘 다 소수예요. 잘했어요!` });
         } else setMsg({ t: "ok", s: `팡! ${cur[0]} + ${cur[1]} = ${q1}. 끝까지 해냈어요!` });
       } else {
@@ -154,27 +208,8 @@ export default function GoldbachGame() {
       }, 1100);
       return () => clearTimeout(id);
     }
-    if (phase1 === "ok") {
-      const id = setTimeout(() => {
-        const nr = r1 + 1;
-        setR1(nr);
-        setSlots([null, null]);
-        setWrong1(0);
-        setPhase1("play");
-        setMsg(nr >= 5 ? { t: "ok", s: "5개를 모두 터뜨렸어요! 정말 잘했어요!" } : { t: "info", s: "새 풍선이 떴어요!" });
-      }, 1500);
-      return () => clearTimeout(id);
-    }
-  }, [phase1, r1]);
-  const restart1 = () => {
-    setSet1(PAIR_SET());
-    setR1(0);
-    setStar1(0);
-    setSlots([null, null]);
-    setWrong1(0);
-    setPhase1("play");
-    setMsg({ t: "info", s: "처음부터 다시 해요!" });
-  };
+    if (phase1 === "ok") setRoundDone(true);
+  }, [phase1]);
   const chipDown = (e: React.PointerEvent<HTMLButtonElement>, p: number) => {
     if (phase1 !== "play") return;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -202,7 +237,7 @@ export default function GoldbachGame() {
 
   // --- 모두 찾기 ---
   const tryP = (p: number) => {
-    if (solved2 || r2 >= 5) return;
+    if (roundDone) return;
     const q = q2 - p;
     if (found.includes(Math.min(p, q))) {
       setMsg({ t: "info", s: `${Math.min(p, q)} + ${Math.max(p, q)} 는 이미 찾았어요.` });
@@ -213,43 +248,27 @@ export default function GoldbachGame() {
       const nf = [...found, Math.min(p, q)];
       setFound(nf);
       if (nf.length === pairs2.length) {
-        setSolved2(true);
         cheer();
-        setStar2((s) => s + 1);
+        if (wrong2 === 0) setStarsN((s) => s + 1);
+        setRoundDone(true);
         setMsg({ t: "ok", s: `⭐ 모두 찾았어요! ${q2} 은 ${pairs2.length}가지로 만들 수 있어요. 최고예요!` });
       } else setMsg({ t: "ok", s: `${Math.min(p, q)} + ${Math.max(p, q)} = ${q2} 찾았어요! (${nf.length} / ${pairs2.length}) 또 있을까요?` });
     } else {
       oops();
+      setWrong2((w) => w + 1);
       setMsg({ t: "bad", s: `${q2} − ${p} = ${q} 은 소수가 아니에요. 괜찮아요, 다른 소수를 눌러 봐요!` });
     }
   };
   const giveUp = () => {
     setFound(pairs2.map(([p]) => p));
-    setSolved2(true);
     setGaveUp(true);
+    setRoundDone(true);
     setMsg({ t: "info", s: `정답을 보여 줬어요. ${q2} 은 모두 ${pairs2.length}가지예요. 다음엔 꼭 찾아봐요!` });
-  };
-  const next2 = () => {
-    setR2((r) => r + 1);
-    setFound([]);
-    setSolved2(false);
-    setGaveUp(false);
-    setMsg(r2 + 1 >= 5 ? { t: "ok", s: `5문제 끝! 별 ${star2}개예요. 정말 잘했어요!` } : { t: "info", s: "다음 문제예요!" });
-  };
-  const restart2 = () => {
-    setSet2(ALL_SET());
-    setR2(0);
-    setStar2(0);
-    setFound([]);
-    setSolved2(false);
-    setGaveUp(false);
-    setMsg({ t: "info", s: "처음부터 다시 해요!" });
   };
 
   const gridNums = hard ? ALL_EVENS : EASY;
   const foundPairs = pairs2.filter(([p]) => found.includes(p));
   const gaveNote = gaveUp ? " (정답 보기)" : "";
-  const chip = "min-h-[48px] min-w-[48px] rounded-card border px-2 text-lg font-bold tabular-nums";
 
   return (
     <div className="space-y-3 text-base">
@@ -261,10 +280,10 @@ export default function GoldbachGame() {
       {tab === "pair" && (
         <Board>
           <div className="mb-2 flex flex-wrap gap-2">
-            <Stat label="풍선" value={`${Math.min(r1 + 1, 5)} / 5`} />
-            <Stat label="별" value={stars(star1)} tone={star1 > 0 ? "ok" : "plain"} />
+            <Stat label={`레벨 ${level} · 라운드`} value={`${ri + 1} / ${rounds.length}`} />
+            <Stat label="별" value={starStr(stars)} tone={stars > 0 ? "ok" : "plain"} />
           </div>
-          {r1 < 5 ? (
+          {true ? (
             <>
               <p className="font-game mb-2 text-center text-xl">👆 사탕(소수)을 눌러요 · 끌어서 □ 칸에 넣어도 돼요</p>
               <div className="relative mx-auto h-56 max-w-md overflow-hidden rounded-card border-4 border-sky-300" style={{ background: "linear-gradient(180deg, #bae6fd 0%, #e0f2fe 55%, #fbcfe8 100%)" }}>
@@ -328,7 +347,7 @@ export default function GoldbachGame() {
                 <span className="font-game text-accent">= {q1}</span>
               </div>
               <div className="flex flex-wrap justify-center gap-2.5" role="group" aria-label="소수 칩">
-                {primesBelow(q1 - 1).map((p) => (
+                {chips[ri].map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -351,12 +370,7 @@ export default function GoldbachGame() {
                 <GButton className={BIG} onClick={() => { setSlots([null, null]); }}>비우기</GButton>
               </div>
             </>
-          ) : (
-            <div className="text-center">
-              <p className="text-lg font-bold">풍선을 모두 터뜨렸어요! 별 {star1}개 {"⭐".repeat(star1)}</p>
-              <GButton className={`${BIG} mt-2`} variant="primary" onClick={restart1}>다시 하기</GButton>
-            </div>
-          )}
+          ) : null}
           <div className="mt-3 [&_p]:!text-base">
             <Say tone={msg.t}>{msg.s}</Say>
           </div>
@@ -371,35 +385,32 @@ export default function GoldbachGame() {
       {tab === "all" && (
         <Board>
           <div className="mb-2 flex flex-wrap gap-2">
-            <Stat label="문제" value={`${Math.min(r2 + 1, 5)} / 5`} />
-            <Stat label="별" value={stars(star2)} tone={star2 > 0 ? "ok" : "plain"} />
-            {r2 < 5 && <Stat label="찾은 것" value={`${found.length} / ${pairs2.length}`} tone={solved2 ? "ok" : "plain"} />}
+            <Stat label={`레벨 ${level} · 라운드`} value={`${ri + 1} / ${rounds.length}`} />
+            <Stat label="별" value={starStr(stars)} tone={stars > 0 ? "ok" : "plain"} />
+            <Stat label="찾은 것" value={`${found.length} / ${pairs2.length}`} tone={found.length === pairs2.length ? "ok" : "plain"} />
           </div>
-          {r2 < 5 ? (
-            <>
-              <p className="font-semibold">👇 {q2} 을 소수 두 개의 합으로 만드는 방법을 모두 찾아요. 소수를 하나 누르면 짝이 되는 수가 소수인지 알려 줘요.</p>
-              <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="소수 목록">
-                {primesBelow(q2 - 1).map((p) => (
-                  <button key={p} type="button" onClick={() => tryP(p)} disabled={solved2} className={`${chip} ${found.includes(Math.min(p, q2 - p)) && isPrime(q2 - p) ? "border-ok bg-ok-soft text-ok" : "border-line bg-surface hover:bg-bg"} disabled:opacity-70`}>
-                    {p}
-                  </button>
-                ))}
-              </div>
-              {foundPairs.length > 0 && (
-                <div className="mt-3">
-                  <p className="mb-1 font-bold">찾은 방법{gaveNote}</p>
-                  <PairBars n={q2} pairs={foundPairs} />
-                </div>
-              )}
-              <div className="mt-2 flex flex-wrap gap-2">
-                {!solved2 && <GButton className={BIG} onClick={giveUp}>정답 보기</GButton>}
-                {solved2 && <GButton className={BIG} variant="primary" onClick={next2}>{r2 === 4 ? "결과 보기" : "다음 문제 ▶"}</GButton>}
-              </div>
-            </>
-          ) : (
-            <div>
-              <p className="text-lg font-bold">모두 풀었어요! 별 {star2}개 {"⭐".repeat(star2)}</p>
-              <GButton className={`${BIG} mt-2`} variant="primary" onClick={restart2}>다시 하기</GButton>
+          <p className="font-game text-xl">👇 {q2} 을 소수 두 개의 합으로 만드는 방법을 모두 찾아요!</p>
+          <p className="text-base text-muted">작은 쪽 소수를 누르면, 나머지 수도 소수인지 알려 줘요.</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2.5" role="group" aria-label="소수 목록">
+            {primesBelow(Math.floor(q2 / 2) + 1).map((p) => {
+              const hit = found.includes(p) && isPrime(q2 - p);
+              return (
+                <button key={p} type="button" onClick={() => tryP(p)} disabled={roundDone} aria-label={`소수 ${p}${hit ? " (찾음)" : ""}`} className={`font-game relative min-h-[54px] min-w-[54px] rounded-full border-[3px] px-3 text-2xl tabular-nums transition active:translate-y-1 ${hit ? "ring-4 ring-yellow-300" : ""}`} style={candy(p)}>
+                  <span className="pointer-events-none absolute left-2.5 top-1.5 h-2.5 w-4 rotate-[-25deg] rounded-full bg-white/70" aria-hidden />
+                  <span className="relative">{hit ? `✓${p}` : p}</span>
+                </button>
+              );
+            })}
+          </div>
+          {foundPairs.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-1 font-bold">찾은 방법{gaveNote}</p>
+              <PairBars n={q2} pairs={foundPairs} />
+            </div>
+          )}
+          {!roundDone && (
+            <div className="mt-3">
+              <GButton className={BIG} onClick={giveUp}>정답 보기</GButton>
             </div>
           )}
           <div className="mt-3 [&_p]:!text-base">
@@ -478,14 +489,7 @@ export default function GoldbachGame() {
         </>
       )}
       <Board>
-        <GButton className={BIG} pressed={more} onClick={() => setMore((m) => !m)}>🔥 더 어려운 도전 {more ? "닫기" : "열기"}</GButton>
-        {more && (
-          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="다른 놀이">
-            <GButton className={BIG} pressed={tab === "pair"} onClick={() => goMode("pair")}>🎈 풍선 터뜨리기</GButton>
-            <GButton className={BIG} pressed={tab === "all"} onClick={() => goMode("all")}>모두 찾기</GButton>
-            <GButton className={BIG} pressed={tab === "explore"} onClick={() => goMode("explore")}>짝수 탐험 (4~200)</GButton>
-          </div>
-        )}
+        <GButton className={BIG} pressed={explore} onClick={() => setExplore((v) => !v)}>{explore ? "🎈 게임으로 돌아가기" : "🔍 짝수 탐험해 보기"}</GButton>
       </Board>
     </div>
   );

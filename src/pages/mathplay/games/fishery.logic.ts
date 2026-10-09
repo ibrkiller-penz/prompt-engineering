@@ -73,8 +73,8 @@ export const FISH_LEVELS = [
   { years: 7, r: 0.4, start: 450, f: 0.74 },
   { years: 8, r: 0.35, start: 450, f: 0.76 },
   { years: 8, r: 0.35, start: 400, f: 0.78 },
-  { years: 9, r: 0.3, start: 400, f: 0.8 },
-  { years: 10, r: 0.3, start: 400, f: 0.82 },
+  { years: 9, r: 0.3, start: 400, f: 0.72 },
+  { years: 10, r: 0.3, start: 400, f: 0.76 },
 ] as const;
 export const fishLevel = (lv: number) => FISH_LEVELS[Math.max(1, Math.min(10, lv)) - 1];
 /** 한 라운드 문제: 시작 수를 조금씩 흔들고, 목표 = (25 단위로 고를 때 가장 많이 잡는 양) × f 를 10 단위로 내림 */

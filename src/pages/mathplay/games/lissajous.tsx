@@ -1,18 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Board, GButton, Say, Slider, Stat, fitCanvas, useFrame } from "./kit";
-import { TAU, TARGETS, gcd, overlap, point, rad, sampleCurve } from "./lissajous.math";
+import { Board, GButton, Say, Slider, Stat, cheer, fitCanvas, oops, stageClear, useFrame, useStage } from "./kit";
+import { TAU, gcd, levelTargets, overlap, point, rad, sampleCurve, type Target } from "./lissajous.math";
 
 type Mode = "free" | "quest";
 const M = 38; // 막대 두께
-
-function shuffle<T>(xs: T[]): T[] {
-  const a = [...xs];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+const ROUNDS = 3;
 
 function NumRow({ label, v, set }: { label: string; v: number; set: (n: number) => void }) {
   return (
@@ -28,28 +20,29 @@ function NumRow({ label, v, set }: { label: string; v: number; set: (n: number) 
 }
 
 export default function LissajousGame() {
-  const [a, setA] = useState(3);
-  const [b, setB] = useState(2);
-  const [deg, setDeg] = useState(90);
-  const [trace, setTrace] = useState<"fade" | "full">("fade");
+  const [a, setA] = useState(1);
+  const [b, setB] = useState(1);
+  const [deg, setDeg] = useState(0);
+  const [trace, setTrace] = useState<"fade" | "full">("full");
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
-  const [mode, setMode] = useState<Mode>("free");
-  const [order, setOrder] = useState<number[]>(() => shuffle([0, 1, 2, 3, 4]));
+  const level = useStage();
+  const [mode, setMode] = useState<Mode>("quest");
+  const [targets, setTargets] = useState<Target[]>(() => levelTargets(level, Math.random));
   const [qi, setQi] = useState(0);
   const [score, setScore] = useState(0);
   const [solved, setSolved] = useState(0);
   const [tries, setTries] = useState(0);
   const [hint, setHint] = useState(false);
   const [got, setGot] = useState(false);
-  const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "가로·세로 진동의 빠르기(a, b)와 어긋남(δ)을 바꿔 보세요. 그림이 어떻게 달라져요?" });
+  const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "주황 점선과 똑같은 모양이 되도록 a, b, δ를 맞춰 보세요. 다 맞으면 ‘정답 확인’!" });
 
   const wrap = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
   const size = useRef(320);
   const tRef = useRef(0);
 
-  const target = TARGETS[order[qi] ?? 0];
+  const target = targets[qi] ?? targets[0];
   const targetCurve = useMemo(() => sampleCurve(target.a, target.b, rad(target.deg), 240), [target]);
   const myCurve = useMemo(() => sampleCurve(a, b, rad(deg), 240), [a, b, deg]);
   const ov = useMemo(() => overlap(myCurve, targetCurve, 0.05), [myCurve, targetCurve]);
@@ -182,11 +175,11 @@ export default function LissajousGame() {
 
   const g = gcd(a, b);
   const period = g === 1 ? "2π" : `2π ÷ ${g}`;
-  const done = mode === "quest" && solved >= TARGETS.length;
+  const done = mode === "quest" && solved >= ROUNDS;
+  const tg = gcd(target.a, target.b);
 
   const startQuest = () => {
-    const o = shuffle([0, 1, 2, 3, 4]);
-    setOrder(o);
+    setTargets(levelTargets(level, Math.random));
     setQi(0);
     setScore(0);
     setSolved(0);
@@ -213,24 +206,30 @@ export default function LissajousGame() {
       setScore((s) => s + gain);
       setSolved((n) => n + 1);
       setGot(true);
-      setMsg({ t: "ok", s: `딱 맞아요! ‘${target.name}’ 은(는) a:b = ${target.a}:${target.b}, δ = ${target.deg}° 예요. +${gain}점 🎉` + (solved + 1 >= TARGETS.length ? ` 모든 모양을 맞혔어요! 총 ${score + gain}점!` : "")});
+      cheer();
+      setMsg({ t: "ok", s: `딱 맞아요! ‘${target.name}’ 은(는) a:b = ${target.a / tg}:${target.b / tg}, δ = ${target.deg}° 로 만들 수 있어요. +${gain}점 🎉` + (solved + 1 >= ROUNDS ? ` 레벨 ${level}의 라운드 3개를 모두 깼어요!` : " 곧 다음 모양이에요.") });
     } else {
+      oops();
       setMsg({ t: "bad", s: `아직이에요. 겹침 ${Math.round(ov.pct * 100)}%. 점선과 모양이 달라요. 먼저 가로·세로로 몇 번 왕복하는지(a:b)부터 살펴봐요.` });
     }
   };
 
-  const next = () => {
-    if (qi + 1 >= TARGETS.length) {
-      setMsg({ t: "ok", s: `모든 모양을 만났어요! 총 ${score}점이에요. ‘다시 하기’로 새 순서로 도전해요.` });
-      setQi(TARGETS.length - 1);
-      return;
-    }
+  // 맞히면: 3라운드째면 레벨 클리어, 아니면 잠깐 뒤 저절로 다음 모양
+  useEffect(() => {
+    if (!got) return;
+    const id = solved >= ROUNDS ? setTimeout(stageClear, 1200) : setTimeout(next, 1800);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [got, solved]);
+
+  function next() {
+    if (qi + 1 >= targets.length) setTargets((t) => [...t, ...levelTargets(level, Math.random, 1)]);
     setQi((n) => n + 1);
     setHint(false);
     setGot(false);
     setA(1); setB(1); setDeg(0);
     setMsg({ t: "info", s: "다음 모양이에요. 점선과 겹치게 맞춰 봐요." });
-  };
+  }
 
   return (
     <Board>
@@ -242,14 +241,14 @@ export default function LissajousGame() {
       {mode === "quest" && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Stat label="점수" value={score} />
-          <Stat label="맞힌 모양" value={`${solved}/${TARGETS.length}`} tone={solved === TARGETS.length ? "ok" : "plain"} />
+          <span className="font-game text-lg">레벨 {level} · 라운드 {Math.min(solved + 1, ROUNDS)}/{ROUNDS}</span>
           <Stat label="확인" value={`${tries}번`} />
           <Stat label="겹침" value={`${Math.round(ov.pct * 100)}%`} tone={ov.same ? "ok" : "plain"} />
         </div>
       )}
       {mode === "quest" && !done && (
         <p className="mt-2 rounded-card bg-bg px-3 py-2 text-[0.95rem] font-semibold">
-          🎯 {qi + 1}번째 모양 · 주황 점선과 같은 그림을 만들어요{hint && <span className="text-accent"> (힌트: a:b = {target.a}:{target.b}, 이름은 ‘{target.name}’)</span>}
+          🎯 주황 점선과 같은 그림을 만들어요{hint && <span className="text-accent"> (힌트: a:b = {target.a / tg}:{target.b / tg}, 이름은 ‘{target.name}’)</span>}
         </p>
       )}
 
@@ -292,7 +291,7 @@ export default function LissajousGame() {
           <>
             <GButton variant="primary" onClick={check} disabled={got || done}>정답 확인</GButton>
             <GButton variant="soft" onClick={() => setHint(true)} disabled={hint || got || done}>힌트 (점수 반)</GButton>
-            <GButton onClick={next} disabled={done}>다음 모양</GButton>
+            <GButton onClick={next} disabled={done || got}>다른 모양</GButton>
             <GButton onClick={startQuest}>다시 하기</GButton>
           </>
         ) : (

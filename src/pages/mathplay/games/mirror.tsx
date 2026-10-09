@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, clamp, oops, rand, svgPoint, tick } from "./kit";
+import { Board, GButton, Say, Stat, cheer, clamp, oops, rand, stageClear, svgPoint, tick, useStage } from "./kit";
 import { BIG } from "./easykit";
 
 // ==PURE==
@@ -51,14 +51,22 @@ export function clampToWedge(p: V, a0: number, theta: number, rMin: number, rMax
   rel = clamp(rel, m, theta - m);
   return [r * Math.cos(a0 + rel), r * Math.sin(a0 + rel)];
 }
+/** 360°를 나누어떨어지게 하는 거울 각도(상의 수가 딱 정해져요) */
+export const ANGLES = [15, 18, 20, 24, 30, 36, 40, 45, 60, 72, 90, 120, 180];
+
+/** 레벨(1~10)별 규칙: 돌릴 수 있는 각도, '○개로 보이게' 목표 개수 */
+export function levelSpec(level: number): { allowed: number[]; counts: number[] } {
+  const L = Math.max(1, Math.min(10, level));
+  const allowed =
+    L <= 2 ? [60, 90, 120, 180] : L === 3 ? [60, 72, 90, 120, 180] : L === 4 ? [45, 60, 72, 90, 120, 180] : L === 5 ? [36, 40, 45, 60, 72, 90, 120, 180] : L === 6 ? [30, 36, 40, 45, 60, 72, 90, 120, 180] : ANGLES;
+  const counts = [[2, 3, 4], [2, 3, 4, 6], [3, 4, 5, 6], [4, 5, 6, 8], [5, 6, 8, 9, 10], [6, 8, 9, 10, 12], [8, 9, 10, 12], [9, 10, 12, 15], [10, 12, 15, 18], [12, 15, 18, 20, 24]][L - 1];
+  return { allowed, counts };
+}
+/** 라운드 종류: 레벨 4부터는 두 번째 라운드가 ‘몇 개일까?’ 퀴즈 */
+export const roundKind = (level: number, r: number): "match" | "quiz" => (level >= 4 && r === 1 ? "quiz" : "match");
 // ==END==
 
-const ANGLES = [15, 18, 20, 24, 30, 36, 40, 45, 60, 72, 90, 120, 180];
-const EASY_ANGLES = [60, 90, 120, 180];
-const EASY_COUNTS = [2, 3, 4, 6];
-const HARD_COUNTS = [2, 3, 4, 5, 6, 8, 9, 10, 12];
-const HARD_QUIZ = [72, 45, 40, 36, 30, 24];
-const QN = 5;
+const ROUNDS = 3;
 const OX = 200;
 const OY = 205;
 const MLEN = 175;
@@ -117,15 +125,6 @@ const rad = (d: number) => (d * Math.PI) / 180;
 const toS = (p: V): V => [OX + p[0], OY - p[1]];
 const A0 = 0; // 거울 A는 오른쪽으로 고정, 거울 B를 끌어 돌려요
 
-const pickList = (pool: number[]) => {
-  const out: number[] = [];
-  while (out.length < QN) {
-    const c = pool[rand(pool.length)];
-    if (c !== out[out.length - 1]) out.push(c);
-  }
-  return out;
-};
-const startDegFor = (count: number, hard: boolean) => (count === (hard ? 4 : 2) ? (hard ? 180 : 90) : hard ? 90 : 180);
 /** 정답 하나와 틀린 보기 셋을 섞어서 단추 네 개로 */
 const makeOpts = (ans: number) => {
   const set = new Set<number>([ans]);
@@ -140,90 +139,86 @@ const defaultObj = (theta: number): V => {
   return [95 * Math.cos(mid), 95 * Math.sin(mid)];
 };
 
-type Mode = "match" | "free" | "quiz";
 type Grab = "none" | "mirror" | "obj";
 
 export default function MirrorGame() {
   const svgRef = useRef<SVGSVGElement>(null);
   const grab = useRef<Grab>("none");
   const timer = useRef(0);
-  const [mode, setMode] = useState<Mode>("match");
-  const [hard, setHard] = useState(false);
-  const [goals, setGoals] = useState(() => pickList(EASY_COUNTS)); // match: 목표 개수, quiz: 각도
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [userDeg, setUserDeg] = useState(() => startDegFor(goals[0], false));
+  const level = useStage();
+  const spec = levelSpec(level);
+  type Task = { kind: "match" | "quiz"; v: number }; // match: 목표 개수, quiz: 거울 각도
+  const pickFrom = (pool: number[], prev: number) => {
+    for (;;) {
+      const c = pool[rand(pool.length)];
+      if (c !== prev || pool.length === 1) return c;
+    }
+  };
+  const makeTask = (r: number, prev = -1): Task => {
+    const kind = roundKind(level, r);
+    return kind === "quiz" ? { kind, v: pickFrom(spec.allowed, prev) } : { kind, v: pickFrom(spec.counts, prev) };
+  };
+  /** 목표와 다른 개수로 보이는 시작 각도 */
+  const startDeg = (count: number) => {
+    const others = spec.allowed.filter((a) => 360 / a !== count);
+    return others.includes(180) && count !== 2 ? 180 : others[rand(others.length)];
+  };
+  const [free, setFree] = useState(false);
+  const [task, setTask] = useState<Task>(() => makeTask(0));
+  const [score, setScore] = useState(0); // 깬 라운드 수
+  const [userDeg, setUserDeg] = useState(() => (task.kind === "match" ? startDeg(task.v) : 90));
   const [picked, setPicked] = useState<number | null>(null);
-  const [opts, setOpts] = useState<number[]>([]);
+  const [opts, setOpts] = useState<number[]>(() => (task.kind === "quiz" ? makeOpts(360 / task.v) : []));
   const [solved, setSolved] = useState(false);
   const [msg, setMsg] = useState<{ tone: "info" | "ok" | "bad"; text: string } | null>(null);
   const [nums, setNums] = useState(true);
   const [hint, setHint] = useState(false);
-  const [over, setOver] = useState(false);
   const [touched, setTouched] = useState(false);
-  const [objRaw, setObj] = useState<V>(() => defaultObj(180));
+  const [objRaw, setObj] = useState<V>(() => defaultObj(task.kind === "quiz" ? task.v : 180));
   const [react, setReact] = useState<{ kind: "" | "ok" | "bad"; n: number }>({ kind: "", n: 0 });
+  const mode: "match" | "quiz" | "free" = free ? "free" : task.kind;
   const quiz = mode === "quiz";
-  const deg = quiz ? goals[round] : userDeg;
+  const deg = quiz ? task.v : userDeg;
   const theta = rad(deg);
   const obj = clampToWedge(objRaw, A0, theta, 30, 125);
-  const allowed = hard ? ANGLES : EASY_ANGLES;
+  const allowed = free ? ANGLES : spec.allowed;
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const imgs = imageSeqs(obj, A0, theta);
   const total = imgs.length + 1;
   const showImgs = !quiz || picked !== null;
-  const goal = mode === "match" ? goals[round] : 0;
+  const goal = mode === "match" ? task.v : 0;
 
-  const begin = (m: Mode, h: boolean) => {
-    window.clearTimeout(timer.current);
-    setMode(m);
-    setHard(h);
-    setRound(0);
-    setScore(0);
+  const loadTask = (t: Task) => {
+    setTask(t);
     setSolved(false);
     setPicked(null);
     setMsg(null);
-    setOver(false);
     setHint(false);
-    if (m === "match") {
-      const g = pickList(h ? HARD_COUNTS : EASY_COUNTS);
-      setGoals(g);
-      const d = startDegFor(g[0], h);
-      setUserDeg(d);
-      setObj(defaultObj(d));
-    } else if (m === "quiz") {
-      const g = pickList(h ? [...EASY_ANGLES, ...HARD_QUIZ] : EASY_ANGLES);
-      setGoals(g);
-      setOpts(makeOpts(360 / g[0]));
-      setObj(defaultObj(g[0]));
-    } else {
-      setUserDeg(90);
-      setObj(defaultObj(90));
-    }
-  };
-  const advance = () => {
-    const n = round + 1;
-    setRound(n);
-    setSolved(false);
-    setPicked(null);
-    setMsg(null);
-    if (mode === "match") {
-      const d = startDegFor(goals[n], hard);
+    if (t.kind === "match") {
+      const d = startDeg(t.v);
       setUserDeg(d);
       setObj(defaultObj(d));
     } else {
-      setOpts(makeOpts(360 / goals[n]));
-      setObj(defaultObj(goals[n]));
+      setOpts(makeOpts(360 / t.v));
+      setObj(defaultObj(t.v));
     }
   };
-  // advance 는 최신 상태를 써야 해서 ref 로 부른다
-  const advRef = useRef(advance);
-  advRef.current = advance;
+  /** 라운드 결과: 성공하면 다음 라운드(3개 다 깨면 레벨 클리어), 퀴즈를 틀리면 같은 라운드에서 새 문제 */
   const afterRoundSafe = (ok: boolean) => {
-    if (round >= QN - 1) setOver(true);
-    else timer.current = window.setTimeout(() => advRef.current(), ok ? 1800 : 3000);
+    if (ok) {
+      const n = score + 1;
+      setScore(n);
+      if (n >= ROUNDS) {
+        timer.current = window.setTimeout(stageClear, 1200);
+        return;
+      }
+      timer.current = window.setTimeout(() => loadTask(makeTask(n, -1)), 1800);
+    } else {
+      const prev = task.v;
+      timer.current = window.setTimeout(() => loadTask(makeTask(score, prev)), 3000);
+    }
   };
 
   // ── 포인터: 거울 손잡이를 끌어 돌리기 / 물체 끌기 ──
@@ -274,7 +269,6 @@ export default function MirrorGame() {
     const n = 360 / userDeg;
     if (n === goal) {
       setSolved(true);
-      setScore((v) => v + 1);
       cheer();
       setReact((r) => ({ kind: "ok", n: r.n + 1 }));
       setMsg({ tone: "ok", text: `와, ${goal}개로 보여요! 잘했어요! ⭐` });
@@ -290,10 +284,8 @@ export default function MirrorGame() {
     if (picked !== null) return;
     setPicked(n);
     const ok = n === total;
-    if (ok) {
-      setScore((s) => s + 1);
-      cheer();
-    } else oops();
+    if (ok) cheer();
+    else oops();
     afterRoundSafe(ok);
   };
 
@@ -306,7 +298,7 @@ export default function MirrorGame() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        {mode !== "free" && <Stat label="문제" value={`${Math.min(round + 1, QN)}/${QN}`} />}
+        {mode !== "free" && <Stat label={`레벨 ${level}`} value={`라운드 ${Math.min(score + 1, ROUNDS)}/${ROUNDS}`} />}
         {mode !== "free" && <Stat label="별" value={score} tone="ok" />}
         <Stat label="거울 사이" value={`${deg}°`} />
       </div>
@@ -442,39 +434,32 @@ export default function MirrorGame() {
       )}
       {mode === "free" && <Say tone="ok">거울 사이가 {deg}°예요. 물체 1개 + 비친 모습 {imgs.length}개 = 모두 {total}개!</Say>}
       {hint && mode !== "quiz" && <Say>힌트: 한 바퀴는 360°예요. {formula}.</Say>}
-      {over && (
-        <Say tone={score >= 4 ? "ok" : "info"}>
-          {QN}문제 끝! 별 {score}개예요. {score >= 4 ? "거울 박사예요!" : "잘했어요! 또 해 보면 더 잘할 수 있어요."}
-        </Say>
-      )}
-
       <div className="flex flex-wrap gap-2">
-        {over && (
-          <GButton variant="primary" onClick={() => begin(mode, hard)} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
         <GButton pressed={hint} onClick={() => setHint((h) => !h)} className={BIG}>
           힌트 {hint ? "숨기기" : "보기"}
         </GButton>
-        {!over && mode !== "free" && (
-          <GButton onClick={() => begin(mode, hard)} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
         {!quiz && (
           <GButton pressed={nums} onClick={() => setNums((n) => !n)} className={BIG}>
             번호 {nums ? "끄기" : "켜기"}
           </GButton>
         )}
-        <GButton pressed={hard} className={BIG} onClick={() => begin(mode, !hard)}>
-          더 어려운 도전
-        </GButton>
-        <GButton pressed={mode === "free"} className={BIG} onClick={() => begin(mode === "free" ? "match" : "free", hard)}>
-          마음대로 놀기
-        </GButton>
-        <GButton pressed={quiz} className={BIG} onClick={() => begin(quiz ? "match" : "quiz", hard)}>
-          몇 개일까? 퀴즈
+        <GButton
+          pressed={free}
+          className={BIG}
+          onClick={() => {
+            window.clearTimeout(timer.current);
+            if (free) {
+              setFree(false);
+              loadTask(makeTask(score));
+            } else {
+              setFree(true);
+              setMsg(null);
+              setUserDeg(90);
+              setObj(defaultObj(90));
+            }
+          }}
+        >
+          {free ? "레벨로 돌아가기" : "마음대로 놀기"}
         </GButton>
       </div>
     </div>

@@ -115,3 +115,15 @@ export function mineChain(contents: string[], zeros: number): Block[] {
   });
   return out;
 }
+
+/** 레벨 1~10: 블록 수·앞자리 0 개수·'모두 다시 채굴' 단추 허용·고칠 블록 범위(앞쪽일수록 다시 채굴할 블록이 많아요) */
+export function hashLevel(lv: number) {
+  const L = Math.max(1, Math.min(10, lv));
+  const blocks = L <= 2 ? 4 : L <= 5 ? 5 : 6;
+  const zeros = L <= 4 ? 1 : 2;
+  const allButton = L <= 3;
+  // 고칠 블록(0부터): 낮은 레벨은 뒤쪽, 높은 레벨은 앞쪽
+  const lo = L <= 3 ? blocks - 2 : L <= 6 ? 1 : 0;
+  const hi = L <= 3 ? blocks - 2 : L <= 6 ? blocks - 3 : 1;
+  return { blocks, zeros, allButton, lo, hi };
+}

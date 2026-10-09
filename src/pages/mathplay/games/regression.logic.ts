@@ -15,14 +15,14 @@ function mulberry(seed: number) {
 }
 
 /** 가상 자료 30개(1991~2020). 기울기는 일정하고 잡음이 섞여 있어요 */
-export function makeData(seed: number): Pt[] {
+export function makeData(seed: number, noiseAmp = 0.26): Pt[] {
   const rnd = mulberry(seed);
   const slope = 0.016 + rnd() * 0.012;
   const base = -0.05 + rnd() * 0.2;
   const pts: Pt[] = [];
   for (let k = 0; k < 30; k++) {
     const x = 1991 + k;
-    const noise = (rnd() + rnd() + rnd() - 1.5) * 0.26; // 대략 -0.4..0.4, 가운데에 몰림
+    const noise = (rnd() + rnd() + rnd() - 1.5) * noiseAmp; // 대략 -0.4..0.4, 가운데에 몰림
     pts.push({ x, y: Math.round((base + slope * (x - X0) + noise) * 100) / 100 });
   }
   return pts;
@@ -48,3 +48,9 @@ export function leastSquares(pts: Pt[]) {
 export const lineAt = (ya: number, yb: number, x: number) => ya + ((yb - ya) * (x - X0)) / (X1 - X0);
 export const lsAt = (ls: { a: number; b: number }, x: number) => ls.a + ls.b * (x - X0);
 export const sse = (pts: Pt[], f: (x: number) => number) => pts.reduce((s, p) => s + (p.y - f(p.x)) ** 2, 0);
+
+/** 레벨 1~10: 잡음 크기와 성공 기준(최소제곱선 오차의 몇 배 이내) */
+export const regLevel = (lv: number) => {
+  const L = Math.max(1, Math.min(10, lv));
+  return { noise: Math.round((0.2 + 0.02 * (L - 1)) * 100) / 100, tol: Math.round((1.25 - 0.02 * (L - 1)) * 100) / 100 };
+};

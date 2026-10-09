@@ -337,7 +337,8 @@ export default function PascalGame() {
   const vw = LM + W + (mode === "rowsum" ? RM_SUM : 0);
   const vh = (rows - 1) * RH + 2 * R + 8 + FLOOR;
   // 넓은 화면에서는 배경을 옆으로 넓혀 판을 꽉 채운다
-  const VBW = Math.max(vw, cw / 1.15);
+  // 판이 너무 높아지지 않게(풍선과 ? 칸이 한 화면에 보이도록) 키는 최대 약 400px
+  const VBW = Math.max(vw, cw / Math.min(1.15, 400 / vh));
   const EXT = (VBW - vw) / 2;
   const cx = (n: number, k: number) => LM + W / 2 + (k - n / 2) * CW;
   const cy = (n: number) => R + 4 + n * RH;
@@ -536,10 +537,11 @@ export default function PascalGame() {
       </div>
 
       <div className="mt-3 space-y-3">
-        {showOpts && mode === "blank" && (
+        {showOpts && (
           <div>
             <p className="font-game mb-1 text-lg text-ink">
-              <span className="pa-bob" aria-hidden>👆</span> 풍선을 ? 칸에 끌어다 놓아요 (톡 눌러도 돼요)
+              <span className="pa-bob" aria-hidden>👆</span>{" "}
+              {mode === "blank" ? "풍선을 ? 칸에 끌어다 놓아요 (톡 눌러도 돼요)" : qkind === "odd" ? `노란 ${sumRow}줄에 홀수는 몇 개? 풍선을 톡!` : `노란 ${sumRow}줄을 모두 더하면? 풍선을 톡!`}
             </p>
             <div className="flex flex-wrap items-start gap-4 rounded-2xl bg-gradient-to-b from-sky-100 to-sky-50 px-3 pb-2 pt-3">
               {opts.map((o, i) => (
@@ -561,24 +563,12 @@ export default function PascalGame() {
             </div>
           </div>
         )}
-        {showOpts && mode === "sumq" && (
-          <div>
-            <p className="mb-1 text-base font-semibold">{sumRow}줄의 합은?</p>
-            <div className="flex flex-wrap gap-2">
-              {opts.map((o) => (
-                <GButton key={o} variant="soft" disabled={wrong.includes(o)} className="min-h-[56px]! min-w-[72px] text-xl" onClick={() => pickAnswer(o)}>
-                  {o}
-                </GButton>
-              ))}
-            </div>
-          </div>
-        )}
         <Tip tone={info.t}>{info.s}</Tip>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {quest && roundDone && !finished && <GButton variant="primary" className={BIG} onClick={nextRound}>{round >= 4 ? "끝내기 ▶" : "다음 판 ▶"}</GButton>}
-        {quest && <GButton className={BIG} onClick={() => begin(mode, rows)}>다시 하기</GButton>}
+        {quest && roundDone && !finished && round < 2 && <GButton variant="primary" className={BIG} onClick={nextRound}>다음 라운드 ▶</GButton>}
+        {quest && !roundDone && <GButton className={BIG} onClick={() => setupRound(round)}>이 라운드 다시</GButton>}
         {!quest && <GButton className={BIG} onClick={() => { setSel(SEL); setMsg(null); }}>선택 지우기</GButton>}
       </div>
 

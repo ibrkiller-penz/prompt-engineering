@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, clamp, oops, rand, svgPoint, tick, useFrame } from "./kit";
+import { Board, GButton, Say, Stat, cheer, clamp, oops, stageClear, svgPoint, tick, useFrame, useStage } from "./kit";
 
 // <pure>
 /** 반지름 r 인 원이 θ(라디안)만큼 구른 뒤, 중심에서 d·r 떨어진 점의 위치 (x는 오른쪽, y는 땅 위 높이) */
@@ -11,25 +11,46 @@ const archHeight = (r: number) => 2 * r;
 // </pure>
 
 type Need = "half" | "full";
-type Q = { text: string; need: Need; answer: number; choices: number[]; hint: string; why: string };
+/** 문제 하나. d = 빨간 점 위치(바퀴 반지름에 대한 비), fixD = 답이 점 위치에 따라 달라져서 점을 못 옮기는 문제 */
+type Q = { text: string; need: Need; answer: number; choices: number[]; hint: string; why: string; d: number; fixD: boolean };
 
-const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
-
-function makeQuestions(): Q[] {
-  const kinds = shuffle([0, 1, 2, 3, rand(4)]);
-  return kinds.map((k): Q => {
-    const c = 10 * (2 + rand(4)); // 20~50
-    const D = 10 * (1 + rand(3)); // 10~30
-    if (k === 0)
-      return { text: `바퀴 둘레가 ${c} cm 예요. 한 바퀴 굴러가면 바퀴 가운데는 몇 cm 갈까요?`, need: "full", answer: c, choices: shuffle([c, c / 2, 2 * c]), hint: "바퀴가 한 바퀴 돌면 바퀴 둘레만큼 가요. 파란 막대를 보세요.", why: "한 바퀴 돌면 바퀴 둘레만큼 가요." };
-    if (k === 1)
-      return { text: `바퀴 둘레가 ${c} cm 예요. 두 바퀴 굴러가면 몇 cm 갈까요? (한 바퀴만 굴려 봐요)`, need: "full", answer: 2 * c, choices: shuffle([2 * c, c, 3 * c]), hint: `한 바퀴에 ${c} cm 씩 가요. 두 바퀴는 그 두 배예요.`, why: `${c} cm 가 두 번이니까 ${2 * c} cm 예요.` };
-    if (k === 2)
-      return { text: `바퀴 지름이 ${D} cm 예요. 빨간 점이 가장 높이 올라가면 땅에서 몇 cm 일까요? (반 바퀴 굴려 봐요)`, need: "half", answer: D, choices: shuffle([D, D / 2, 2 * D]), hint: "점이 바퀴 맨 위에 오면 가장 높아요. 반 바퀴 굴렸을 때예요.", why: "맨 위에 오면 바퀴 지름만큼 높아요." };
-    const a = Math.round(3.14 * D * 10) / 10;
-    return { text: `바퀴 지름이 ${D} cm 예요. 바퀴 둘레는 지름의 3.14배쯤이에요. 한 바퀴 굴러가면 약 몇 cm 갈까요?`, need: "full", answer: a, choices: shuffle([a, 2 * D, 4 * D]), hint: `${D} × 3.14 를 계산해 봐요.`, why: `${D} × 3.14 = ${a} 이니까 약 ${a} cm 예요.` };
+// <pure>
+/** 레벨별 문제 종류(라운드 3개): A 한 바퀴, F 반 바퀴, B 여러 바퀴, C 가장 높이(가장자리), D 지름→둘레, E 안쪽 점 높이, O 바깥쪽 점 높이 */
+const LEVEL_KINDS = ["AAC", "AFC", "ABC", "BCD", "DBC", "DEB", "EDF", "ODB", "EOD", "ODB"];
+function shuf<T>(a: T[], rnd: () => number): T[] {
+  const r = [...a];
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
+}
+const r1 = (x: number) => Math.round(x * 10) / 10;
+function makeQuestions(level: number, rnd: () => number): Q[] {
+  const L = Math.min(10, Math.max(1, level));
+  const pick = (a: number[]) => a[Math.floor(rnd() * a.length)];
+  const cPool = L <= 3 ? [10, 20, 30] : L <= 6 ? [20, 30, 40, 50] : [40, 50, 60, 70, 80, 90];
+  const dPool = L <= 6 ? [10, 20, 30] : [20, 30, 40, 50];
+  return LEVEL_KINDS[L - 1].split("").map((k): Q => {
+    const c = pick(cPool);
+    const D = pick(dPool);
+    const base = { d: 1, fixD: false };
+    if (k === "A") return { ...base, text: `바퀴 둘레가 ${c} cm 예요. 한 바퀴 굴러가면 바퀴 가운데는 몇 cm 갈까요?`, need: "full", answer: c, choices: shuf([c, c / 2, 2 * c], rnd), hint: "바퀴가 한 바퀴 돌면 바퀴 둘레만큼 가요. 노란 줄자를 보세요.", why: "한 바퀴 돌면 바퀴 둘레만큼 가요." };
+    if (k === "F") return { ...base, text: `바퀴 둘레가 ${c} cm 예요. 반 바퀴만 굴러가면 몇 cm 갈까요?`, need: "half", answer: c / 2, choices: shuf([c / 2, c, c / 4], rnd), hint: "반 바퀴는 바퀴 둘레의 절반만큼 가요.", why: `${c} cm 의 절반이니까 ${c / 2} cm 예요.` };
+    if (k === "B") {
+      const n = L <= 5 ? 2 : L <= 8 ? 3 : pick([4, 5]);
+      return { ...base, text: `바퀴 둘레가 ${c} cm 예요. ${n}바퀴 굴러가면 몇 cm 갈까요? (한 바퀴만 굴려 봐요)`, need: "full", answer: n * c, choices: shuf([n * c, (n - 1) * c, (n + 1) * c], rnd), hint: `한 바퀴에 ${c} cm 씩 가요. ${n}바퀴는 ${n}배예요.`, why: `${c} × ${n} = ${n * c} cm 예요.` };
+    }
+    if (k === "C") return { d: 1, fixD: true, text: `바퀴 지름이 ${D} cm 예요. 가장자리의 별이 가장 높이 올라가면 땅에서 몇 cm 일까요? (반 바퀴 굴려 봐요)`, need: "half", answer: D, choices: shuf([D, D / 2, 2 * D], rnd), hint: "별이 바퀴 맨 위에 오면 가장 높아요. 반 바퀴 굴렸을 때예요.", why: "맨 위에 오면 바퀴 지름만큼 높아요." };
+    if (k === "D") {
+      const a = r1(3.14 * D);
+      return { ...base, text: `바퀴 지름이 ${D} cm 예요. 바퀴 둘레는 지름의 3.14배쯤이에요. 한 바퀴 굴러가면 약 몇 cm 갈까요?`, need: "full", answer: a, choices: shuf([a, 2 * D, 4 * D], rnd), hint: `${D} × 3.14 를 계산해 봐요.`, why: `${D} × 3.14 = ${a} 이니까 약 ${a} cm 예요.` };
+    }
+    if (k === "E") return { d: 0.5, fixD: true, text: `바퀴 지름이 ${D} cm 예요. 별을 바퀴 가운데와 가장자리의 딱 중간에 붙였어요. 별이 가장 높을 때 땅에서 몇 cm 일까요?`, need: "half", answer: r1(0.75 * D), choices: shuf([r1(0.75 * D), D, D / 2], rnd), hint: `바퀴 가운데는 땅에서 ${D / 2} cm 높이에 있어요. 별은 가운데에서 ${D / 4} cm 위로 올라가요.`, why: `${D / 2} + ${D / 4} = ${r1(0.75 * D)} cm 예요.` };
+    return { d: 1.5, fixD: true, text: `바퀴 지름이 ${D} cm 예요. 별을 바퀴 밖으로 반지름의 절반만큼 더 나간 곳에 붙였어요. 별이 가장 높을 때 땅에서 몇 cm 일까요?`, need: "half", answer: r1(1.25 * D), choices: shuf([r1(1.25 * D), D, r1(1.5 * D)], rnd), hint: `바퀴 가운데는 땅에서 ${D / 2} cm 높이, 별은 가운데에서 ${r1(0.75 * D)} cm 떨어져 있어요.`, why: `${D / 2} + ${r1(0.75 * D)} = ${r1(1.25 * D)} cm 예요.` };
   });
 }
+// </pure>
 
 const W = 440;
 const H = 270;
@@ -38,6 +59,7 @@ const X0 = 60;
 const GY = 140;
 const TH_MAX = 2 * Math.PI;
 const BIG = "!min-h-[48px] !text-base";
+const ROUNDS = 3;
 const GF = "Jua, Pretendard Variable, sans-serif";
 function starPath(x: number, y: number, r1: number, r2: number) {
   let d = "";
@@ -50,25 +72,24 @@ function starPath(x: number, y: number, r1: number, r2: number) {
 }
 
 export default function CycloidGame() {
+  const level = useStage();
+  const [qs] = useState<Q[]>(() => makeQuestions(level, Math.random));
   const [th, setTh] = useState(0);
-  const [d, setD] = useState(1);
+  const [d, setD] = useState(qs[0].d);
   const [playing, setPlaying] = useState(false);
   const [touched, setTouched] = useState(false);
-  const [qs, setQs] = useState<Q[]>(makeQuestions);
   const [round, setRound] = useState(0);
   const [reached, setReached] = useState(false);
   const [wrong, setWrong] = useState<number[]>([]);
   const [solved, setSolved] = useState(false);
   const [stars, setStars] = useState(0);
   const [hint, setHint] = useState(false);
-  const [hard, setHard] = useState(false);
   const [fx, setFx] = useState<{ k: number; t: "ok" | "bad" | "" }>({ k: 0, t: "" });
   const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "바퀴를 손가락으로 옆으로 끌어 굴려 봐요!" });
   const svgRef = useRef<SVGSVGElement>(null);
   const mode = useRef<"wheel" | "pen" | null>(null);
   const lastSnap = useRef<number | null>(null);
-  const finished = round >= 5;
-  const q = qs[Math.min(round, 4)];
+  const q = qs[Math.min(round, ROUNDS - 1)];
   const needTh = q.need === "half" ? Math.PI : TH_MAX;
 
   useFrame((_t, dt) => {
@@ -84,15 +105,19 @@ export default function CycloidGame() {
 
   // 목표만큼 굴리면 보기가 나타나요
   useEffect(() => {
-    if (!reached && !finished && th >= needTh - 0.001) {
+    if (!reached && th >= needTh - 0.001) {
       setReached(true);
       setMsg({ t: "info", s: "잘 굴렸어요! 이제 알맞은 답을 눌러 보세요." });
     }
-  }, [th, reached, finished, needTh]);
+  }, [th, reached, needTh]);
 
-  // 맞히면 잠깐 뒤 자동으로 다음 문제
+  // 맞히면 잠깐 뒤 자동으로 다음 문제, 3문제를 다 풀면 레벨 클리어
   useEffect(() => {
     if (!solved) return;
+    if (round >= ROUNDS - 1) {
+      const id = setTimeout(stageClear, 1200);
+      return () => clearTimeout(id);
+    }
     const id = setTimeout(() => {
       const nr = round + 1;
       setRound(nr);
@@ -102,11 +127,11 @@ export default function CycloidGame() {
       setReached(false);
       setPlaying(false);
       setTh(0);
-      setD(1);
-      setMsg(nr < 5 ? { t: "info", s: "다음 문제예요! 바퀴를 다시 굴려 봐요." } : { t: "ok", s: "5문제를 모두 풀었어요. 정말 잘했어요!" });
+      setD(qs[nr].d);
+      setMsg({ t: "info", s: qs[nr].d !== 1 ? "다음 문제예요! 별 자리가 바뀌었어요. 바퀴를 굴려 봐요." : "다음 문제예요! 바퀴를 다시 굴려 봐요." });
     }, 1600);
     return () => clearTimeout(id);
-  }, [solved, round]);
+  }, [solved, round, qs]);
 
   const penPos = (thv: number, dv: number): [number, number] => {
     const [x, y] = trochoidPoint(R, dv, thv);
@@ -121,7 +146,7 @@ export default function CycloidGame() {
     setPlaying(false);
     const [x, y] = svgPoint(svg, e.clientX, e.clientY);
     const [pxx, pyy] = penPos(th, d);
-    mode.current = Math.hypot(x - pxx, y - pyy) < 22 && th > 0 ? "pen" : "wheel";
+    mode.current = Math.hypot(x - pxx, y - pyy) < 22 && th > 0 && !q.fixD ? "pen" : "wheel";
     onMove(e);
   };
   const onMove = useCallback(
@@ -172,7 +197,7 @@ export default function CycloidGame() {
   void archHeight;
 
   const pick = (v: number) => {
-    if (solved || finished) return;
+    if (solved) return;
     if (v === q.answer) {
       setSolved(true);
       cheer();
@@ -188,30 +213,14 @@ export default function CycloidGame() {
       setMsg({ t: "bad", s: "아쉬워요. 괜찮아요, 다시 해 봐요! 힌트를 눌러도 돼요." });
     }
   };
-  const restart = () => {
-    setQs(makeQuestions());
-    setRound(0);
-    setStars(0);
-    setWrong([]);
-    setSolved(false);
-    setHint(false);
-    setReached(false);
-    setTh(0);
-    setMsg({ t: "info", s: "처음부터 다시 해요. 바퀴를 끌어 굴려 봐요!" });
-  };
-
   return (
     <div className="space-y-3 text-base">
       <Board>
         <div className="mb-2 flex flex-wrap gap-2">
-          <Stat label="문제" value={`${Math.min(round + 1, 5)} / 5`} />
+          <Stat label={`레벨 ${level} · 라운드`} value={`${round + 1} / ${ROUNDS}`} />
           <Stat label="별" value={stars > 0 ? "⭐".repeat(stars) : "0"} tone={stars > 0 ? "ok" : "plain"} />
         </div>
-        {!finished ? (
-          <p className="font-game mb-2 text-xl">{q.text}</p>
-        ) : (
-          <p className="mb-2 text-lg font-bold">모두 풀었어요! 별 {stars}개 {"⭐".repeat(stars)}</p>
-        )}
+        <p className="font-game mb-2 text-xl">{q.text}</p>
         <div key={fx.k} className={fx.t === "ok" ? "am-pop" : fx.t === "bad" ? "am-shake" : ""}>
         <svg
           ref={svgRef}
@@ -351,11 +360,11 @@ export default function CycloidGame() {
         </svg>
         </div>
 
-        {!finished && !reached && (
+        {!reached && (
           <p className="mt-2 text-base font-semibold text-accent">👆 바퀴를 옆으로 끌어서 {q.need === "half" ? "반 바퀴" : "한 바퀴"} 굴려 보세요. (‘철컥’ 하고 붙는 곳까지!)</p>
         )}
 
-        {!finished && reached && (
+        {reached && (
           <div className="mt-3">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label="답 고르기">
               {q.choices.map((v) => (
@@ -377,30 +386,18 @@ export default function CycloidGame() {
           <Say tone={msg.t}>{msg.s}</Say>
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
-          {!finished && (
+          {(
             <GButton className={BIG} onClick={() => { if (th >= TH_MAX) setTh(0); setTouched(true); setPlaying((p) => !p); }}>
               {playing ? "⏸ 멈추기" : "▶ 저절로 굴리기"}
             </GButton>
           )}
-          {!finished && <GButton className={BIG} onClick={() => { setPlaying(false); setTh(0); setReached(false); }}>처음으로</GButton>}
-          {finished && <GButton className={BIG} variant="primary" onClick={restart}>다시 하기</GButton>}
+          <GButton className={BIG} onClick={() => { setPlaying(false); setTh(0); setReached(false); }}>처음으로</GButton>
         </div>
       </Board>
 
-      <Board>
-        <GButton className={BIG} pressed={hard} onClick={() => setHard((h) => !h)}>🔥 더 어려운 도전 {hard ? "닫기" : "열기"}</GButton>
-        {hard && (
-          <div className="mt-3 space-y-2">
-            <p className="text-base">바퀴를 어느 정도 굴린 뒤 <strong>빨간 점을 끌어서</strong> 바퀴 안쪽이나 바깥쪽으로 옮겨 보세요. 길 모양이 어떻게 달라질까요?</p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="빨간 점의 위치">
-              <GButton className={BIG} pressed={d === 1} onClick={() => setD(1)}>바퀴 가장자리</GButton>
-              <GButton className={BIG} pressed={d === 0.5} onClick={() => setD(0.5)}>바퀴 안쪽</GButton>
-              <GButton className={BIG} pressed={d === 1.5} onClick={() => setD(1.5)}>바퀴 바깥쪽</GButton>
-            </div>
-            <p className="text-base text-muted">{d === 1 ? "가장자리 점은 뾰족한 아치 모양 길을 그려요." : d < 1 ? "안쪽 점은 물결치는 완만한 길을 그려요." : "바깥쪽 점은 고리가 생기는 길을 그려요."}</p>
-          </div>
-        )}
-      </Board>
+      {!q.fixD && (
+        <p className="px-1 text-base text-muted">💡 바퀴를 조금 굴린 뒤 별을 끌면 별 자리를 바꿀 수 있어요. 길 모양이 어떻게 달라질까요?</p>
+      )}
     </div>
   );
 }

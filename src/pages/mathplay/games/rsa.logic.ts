@@ -74,3 +74,14 @@ export function textToNums(s: string): number[] | null {
 export const numToLetter = (n: number) => (n >= 1 && n <= 26 ? String.fromCharCode(64 + n) : "?");
 export const lockNums = (m: number[], e: number, n: number) => m.map((x) => modPow(x, e, n));
 export const unlockNums = (c: number[], d: number, n: number) => c.map((x) => modPow(x, d, n));
+
+/** 레벨 1~10: 낱말 길이·숫자만 보여 주기(글자로 직접 바꾸기)·낯선 열쇠(n 을 소인수분해해서 내 열쇠로 다시 만들기) */
+export function rsaLevel(lv: number) {
+  const L = Math.max(1, Math.min(10, lv));
+  return { len: L <= 3 ? 3 : L <= 6 ? 4 : 5, numbersOnly: L >= 4, stranger: L >= 7 };
+}
+export const WORDS_BY_LEN: Record<number, string[]> = {
+  3: ["SUN", "KEY", "CAT", "DOG", "SKY", "MAP"],
+  4: ["MATH", "STAR", "CODE", "MOON", "BOOK", "LOVE"],
+  5: ["PRIME", "LIGHT", "SMILE", "HAPPY", "OCEAN", "MUSIC"],
+};

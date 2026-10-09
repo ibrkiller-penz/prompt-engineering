@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, rand, svgPoint, tick, useFrame } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, rand, stageClear, svgPoint, tick, useFrame, useStage } from "./kit";
 import { BIG, Stars } from "./easykit";
 
 // ==PURE==
-export type Wt = { slot: number; w: number }; // slot: -3~-1(왼쪽), 1~3(오른쪽)
-export const WEIGHTS = [1, 2, 3];
-export const MAXSLOT = 3;
+export type Wt = { slot: number; w: number }; // slot: 왼쪽은 음수, 오른쪽은 양수(칸 수)
 
 /** 돌리는 힘(토크) 합 = 무게×거리. 오른쪽은 +, 왼쪽은 −. 0이면 수평 */
 export const netTorque = (ws: Wt[]) => ws.reduce((s, x) => s + x.w * x.slot, 0);
@@ -13,12 +11,24 @@ export const sideTorque = (ws: Wt[], side: 1 | -1) => ws.filter((x) => Math.sign
 /** 기울기(도). 양수면 오른쪽이 내려가요. */
 export const tiltOf = (net: number) => Math.max(-16, Math.min(16, net * 3));
 
-/** 오른쪽 눈금 1~3에 추(없음 또는 1·2·3kg)를 올려서 돌리는 힘 합이 T가 되는 모든 방법 */
-export function solutions(T: number): Wt[][] {
+/** 레벨(1~10)별 규칙: 눈금 칸 수, 쓸 수 있는 추, 왼쪽 고정 추 개수, 최소 힘, 추 한 개로는 못 풀게 할지 */
+export function levelSpec(level: number) {
+  const L = Math.max(1, Math.min(10, level));
+  return {
+    maxSlot: L <= 4 ? 3 : 4,
+    weights: L <= 3 ? [1, 2, 3] : [1, 2, 3, 4],
+    fixedCount: L <= 3 ? 1 : 2,
+    minT: [2, 3, 4, 4, 5, 6, 6, 8, 8, 10][L - 1],
+    needMulti: L >= 8,
+  };
+}
+
+/** 오른쪽 눈금 1~maxSlot 에 추(없음 또는 weights 중 하나)를 칸마다 하나씩 올려 힘 합이 T가 되는 모든 방법 */
+export function solutions(T: number, maxSlot = 3, weights: number[] = [1, 2, 3]): Wt[][] {
   const out: Wt[][] = [];
-  const opts = [0, ...WEIGHTS];
+  const opts = [0, ...weights];
   const rec = (slot: number, acc: Wt[], sum: number) => {
-    if (slot > MAXSLOT) {
+    if (slot > maxSlot) {
       if (sum === T && acc.length > 0) out.push(acc);
       return;
     }
@@ -32,18 +42,21 @@ export function solutions(T: number): Wt[][] {
   return out;
 }
 
-/** 쉬운 문제: 왼쪽에 추 1개. 어려운 문제: 추 2개 */
-export function makeProblem(rnd: (n: number) => number, hard = false): { fixed: Wt[]; T: number } {
-  for (let t = 0; t < 500; t++) {
-    const count = hard ? 2 : 1;
+export function makeProblem(rnd: (n: number) => number, level = 1): { fixed: Wt[]; T: number } {
+  const sp = levelSpec(level);
+  for (let t = 0; t < 2000; t++) {
     const slots: number[] = [];
-    while (slots.length < count) {
-      const s = -(1 + rnd(MAXSLOT));
+    while (slots.length < sp.fixedCount) {
+      const s = -(1 + rnd(sp.maxSlot));
       if (!slots.includes(s)) slots.push(s);
     }
-    const fixed = slots.map((slot) => ({ slot, w: WEIGHTS[rnd(WEIGHTS.length)] }));
+    const fixed = slots.map((slot) => ({ slot, w: sp.weights[rnd(sp.weights.length)] }));
     const T = -netTorque(fixed);
-    if (T >= (hard ? 4 : 2) && solutions(T).length >= (hard ? 3 : 2)) return { fixed, T };
+    if (T < sp.minT) continue;
+    const sols = solutions(T, sp.maxSlot, sp.weights);
+    if (sols.length === 0) continue;
+    if (sp.needMulti && sols.some((x) => x.length === 1)) continue;
+    return { fixed, T };
   }
   return { fixed: [{ slot: -2, w: 2 }], T: 4 };
 }
@@ -51,10 +64,7 @@ export function makeProblem(rnd: (n: number) => number, hard = false): { fixed: 
 
 const CX = 220;
 const CY = 140;
-const GAP = 64;
-const ROUNDS = 5;
-const SLOTS = [-3, -2, -1, 1, 2, 3];
-const SHELF_X: Record<number, number> = { 1: 110, 2: 220, 3: 330 };
+const ROUNDS = 3;
 const SHELF_Y = 322; // 선반 위 추의 바닥
 const blockH = (w: number) => 22 + w * 8;
 const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
@@ -69,11 +79,12 @@ const LOOK: Record<number, { body: string; line: string }> = {
   1: { body: "#f9a8d4", line: "#be185d" }, // 토끼
   2: { body: "#fde047", line: "#a16207" }, // 병아리
   3: { body: "#fdba74", line: "#c2410c" }, // 곰
+  4: { body: "#c4b5fd", line: "#6d28d9" }, // 하마
 };
 /** 무게가 몸에 적힌 동물 친구(바닥 가운데 cx, 바닥 높이 bottom) */
 function Critter({ cx, bottom, w, team, mood }: { cx: number; bottom: number; w: number; team?: boolean; mood: "happy" | "calm" }) {
   const h = blockH(w);
-  const rx = 15 + w * 3;
+  const rx = 13 + w * 2.5;
   const cy = bottom - h / 2;
   const c = team ? { body: "#93c5fd", line: "#1d4ed8" } : LOOK[w];
   const ex = rx * 0.38;
@@ -87,7 +98,7 @@ function Critter({ cx, bottom, w, team, mood }: { cx: number; bottom: number; w:
           <ellipse cx={cx + 7} cy={cy - h / 2 - 7} rx="4.5" ry="10" />
         </g>
       )}
-      {w === 3 && (
+      {w >= 3 && (
         <g fill={c.body} stroke={c.line} strokeWidth="2.5">
           <circle cx={cx - rx * 0.62} cy={cy - h / 2 + 4} r="7" />
           <circle cx={cx + rx * 0.62} cy={cy - h / 2 + 4} r="7" />
@@ -122,14 +133,18 @@ type Drag = { w: number; x: number; y: number; moved: number; sx: number; sy: nu
 export default function LeverGame() {
   const svgRef = useRef<SVGSVGElement>(null);
   const timer = useRef(0);
+  const level = useStage();
+  const sp = levelSpec(level);
+  const GAP = sp.maxSlot === 3 ? 64 : 46;
+  const SLOTS = [...Array.from({ length: sp.maxSlot }, (_, i) => -(sp.maxSlot - i)), ...Array.from({ length: sp.maxSlot }, (_, i) => i + 1)];
+  const SHELF_X: Record<number, number> = Object.fromEntries(sp.weights.map((w, i) => [w, 220 + (i - (sp.weights.length - 1) / 2) * (sp.weights.length > 3 ? 98 : 110)]));
   const [mode, setMode] = useState<Mode>("problem");
-  const [hard, setHard] = useState(false);
-  const [prob, setProb] = useState(() => makeProblem(rand, false));
+  const [prob, setProb] = useState(() => makeProblem(rand, level));
   const [mine, setMine] = useState<Wt[]>([]);
   const [pick, setPick] = useState<number | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hint, setHint] = useState(false);
-  const [round, setRound] = useState(1);
+  const [round, setRound] = useState(0); // 깬 라운드 수
   const [solved, setSolved] = useState(0);
   const [done, setDone] = useState(false); // 이 문제를 풀었는지
   const [peeked, setPeeked] = useState(false);
@@ -145,7 +160,6 @@ export default function LeverGame() {
   const left = sideTorque(all, -1);
   const right = sideTorque(all, 1);
   const balanced = net === 0 && all.some((x) => x.slot < 0) && all.some((x) => x.slot > 0);
-  const finished = mode === "problem" && done && round === ROUNDS;
 
   const slotOpen = (s: number) => (mode === "free" ? true : s > 0);
   const slotPos = (s: number, a = ang): [number, number] => {
@@ -189,35 +203,26 @@ export default function LeverGame() {
       setDone(true);
       cheer();
       setHopKey((k) => k + 1);
-      if (!peeked) setSolved((v) => v + 1);
-      if (round < ROUNDS) {
-        timer.current = window.setTimeout(() => newProblem(hard, true), 2200);
-      }
+      setSolved((v) => v + 1);
+      const n = round + 1;
+      setRound(n);
+      if (n >= ROUNDS) timer.current = window.setTimeout(stageClear, 1200);
+      else timer.current = window.setTimeout(() => newProblem(), 2200);
     } else if (mode === "free" && netTorque(list) === 0 && list.some((x) => x.slot < 0) && list.some((x) => x.slot > 0)) {
       cheer();
       setHopKey((k) => k + 1);
     }
   };
 
-  const newProblem = (h = hard, advance = false) => {
+  const newProblem = () => {
     window.clearTimeout(timer.current);
-    setProb(makeProblem(rand, h));
+    setProb(makeProblem(rand, level));
     setMine([]);
     setDone(false);
     setPeeked(false);
-    if (advance) setRound((r) => r + 1);
-  };
-  const restart = (h = hard) => {
-    window.clearTimeout(timer.current);
-    setProb(makeProblem(rand, h));
-    setMine([]);
-    setDone(false);
-    setPeeked(false);
-    setRound(1);
-    setSolved(0);
   };
   const showAnswer = () => {
-    const sols = solutions(prob.T);
+    const sols = solutions(prob.T, sp.maxSlot, sp.weights);
     const small = sols.filter((x) => x.length <= 3);
     const pool = small.length ? small : sols;
     const pickOne = pool[rand(pool.length)];
@@ -225,7 +230,8 @@ export default function LeverGame() {
     setMine(pickOne);
     if (!done) {
       setDone(true);
-      if (round < ROUNDS) timer.current = window.setTimeout(() => newProblem(hard, true), 3000);
+      // 답을 본 문제는 라운드로 세지 않고 새 문제로 바꿔요
+      timer.current = window.setTimeout(() => newProblem(), 3000);
     }
   };
   const changeMode = (m: Mode) => {
@@ -255,7 +261,7 @@ export default function LeverGame() {
       }
     }
     // 선반의 추
-    for (const w of [1, 2, 3]) {
+    for (const w of sp.weights) {
       if (Math.abs(x - SHELF_X[w]) < 44 && y > SHELF_Y - blockH(w) - 14 && y < SHELF_Y + 14) {
         svg.setPointerCapture(e.pointerId);
         setDrag({ w, x, y, moved: 0, sx: x, sy: y, from: "shelf" });
@@ -289,7 +295,7 @@ export default function LeverGame() {
   // 말풍선
   let say: { tone: "info" | "ok" | "bad"; text: string };
   if (balanced && (mode === "free" || done)) {
-    say = { tone: "ok", text: `와, 수평이에요! 잘했어요! ⭐ 왼쪽 힘 ${left} = 오른쪽 힘 ${right}.${peeked ? " (답을 보고 맞춰서 점수는 그대로예요.)" : round < ROUNDS ? " 곧 다음 문제로 가요." : ""}` };
+    say = { tone: "ok", text: `와, 수평이에요! 잘했어요! ⭐ 왼쪽 힘 ${left} = 오른쪽 힘 ${right}.${peeked ? " (답을 본 문제는 라운드로 세지 않아요. 새 문제가 나와요.)" : round < ROUNDS ? " 곧 다음 라운드로 가요." : " 레벨 클리어!"}` };
   } else if (mode === "problem" && mine.length === 0) {
     say = { tone: "info", text: "아래 선반의 추를 끌어서 오른쪽 + 칸에 놓아요. 막대가 수평이 되면 성공!" };
   } else if (net > 0) {
@@ -308,7 +314,7 @@ export default function LeverGame() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        {mode === "problem" && <Stat label="문제" value={`${round}/${ROUNDS}`} />}
+        {mode === "problem" && <Stat label={`레벨 ${level}`} value={`라운드 ${Math.min(round + 1, ROUNDS)}/${ROUNDS}`} />}
         {mode === "problem" && <Stat label="별" value={solved} tone="ok" />}
         {mode === "free" && <Stat label="모드" value="마음대로 놀기" />}
       </div>
@@ -369,7 +375,7 @@ export default function LeverGame() {
           <g transform={`rotate(${ang} ${CX} ${CY})`}>
             {/* 시소 판 */}
             <rect x={CX - 215} y={CY - 7} width="430" height="14" rx="7" fill="url(#lv-wood)" stroke="#92400e" strokeWidth="3" />
-            {Array.from({ length: 7 }, (_, i) => i - 3).map((s) => (
+            {Array.from({ length: 2 * sp.maxSlot + 1 }, (_, i) => i - sp.maxSlot).map((s) => (
               <g key={s}>
                 <line x1={CX + s * GAP} y1={CY - 5} x2={CX + s * GAP} y2={CY + 5} stroke="#92400e" strokeWidth={s === 0 ? 3 : 2} strokeLinecap="round" />
                 <circle cx={CX + s * GAP} cy={CY + 22} r="11" fill="#fff" stroke="#d97706" strokeWidth="2" />
@@ -407,8 +413,8 @@ export default function LeverGame() {
             )}
           </g>
           <circle cx={CX} cy={CY} r="6" fill="#fde047" stroke="#92400e" strokeWidth="2.5" />
-          <text x={CX - 205} y={CY + 84} fontSize="15" fill="#14532d" style={GF}>왼쪽</text>
-          <text x={CX + 160} y={CY + 84} fontSize="15" fill="#14532d" style={GF}>오른쪽</text>
+          <text x={CX - 205} y={CY + 100} fontSize="15" fill="#14532d" style={GF}>왼쪽</text>
+          <text x={CX + 160} y={CY + 100} fontSize="15" fill="#14532d" style={GF}>오른쪽</text>
 
           {/* 대기석 벤치 */}
           <rect x="34" y={SHELF_Y + 10} width="10" height="16" rx="3" fill="#92400e" />
@@ -418,7 +424,7 @@ export default function LeverGame() {
             <rect x="140" y={SHELF_Y - 76} width="160" height="24" rx="12" fill="#fff" stroke="#16a34a" strokeWidth="2" />
             <text x="220" y={SHELF_Y - 59} fontSize="14" textAnchor="middle" fill="#166534" style={GF}>대기석 · 끌어서 태워요</text>
           </g>
-          {[1, 2, 3].map((w) => (
+          {sp.weights.map((w) => (
             <g key={w} opacity={drag && drag.from === "shelf" && drag.w === w ? 0.4 : 1} style={{ cursor: "grab" }}>
               <Critter cx={SHELF_X[w]} bottom={SHELF_Y + 3} w={w} mood="calm" />
               {pick === w && !drag && <rect x={SHELF_X[w] - 30} y={SHELF_Y + 3 - blockH(w) - 16} width="60" height={blockH(w) + 22} rx="12" fill="none" stroke="#e8552f" strokeWidth="3" />}
@@ -450,14 +456,8 @@ export default function LeverGame() {
       </Board>
 
       <Say tone={say.tone}>{say.text}</Say>
-      {finished && <Say tone="ok">5문제 끝! 별 {solved}개를 모았어요. {solved >= 4 ? "수평 박사예요!" : "잘했어요! 또 해 봐요."}</Say>}
 
       <div className="flex flex-wrap gap-2">
-        {mode === "problem" && finished && (
-          <GButton variant="primary" onClick={() => restart()} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
         <GButton pressed={hint} onClick={() => setHint((h) => !h)} className={BIG}>
           힌트 {hint ? "숨기기" : "보기"}
         </GButton>
@@ -469,11 +469,6 @@ export default function LeverGame() {
         <GButton onClick={() => setMine([])} className={BIG}>
           추 모두 빼기
         </GButton>
-        {mode === "problem" && (
-          <GButton pressed={hard} className={BIG} onClick={() => { const h = !hard; setHard(h); restart(h); }}>
-            더 어려운 도전
-          </GButton>
-        )}
         <GButton pressed={mode === "free"} className={BIG} onClick={() => changeMode(mode === "free" ? "problem" : "free")}>
           마음대로 놀기
         </GButton>

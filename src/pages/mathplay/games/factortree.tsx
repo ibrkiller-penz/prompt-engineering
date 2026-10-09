@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Board, GButton, Stat, cheer, rand, tick } from "./kit";
-import { allPrime, divisorPairs, isComposite, isPrime, leaves, split, type TNode } from "./factortree.logic";
+import { Board, GButton, Stat, cheer, stageClear, tick, useStage } from "./kit";
+import { allPrime, divisorPairs, isComposite, isPrime, leaves, levelTargets, split, type TNode } from "./factortree.logic";
 
 const UNIT = 72;
 const GAP = 92;
@@ -11,8 +11,6 @@ const CHIP_H = 56;
 const MIN_W = 320;
 const TRUNK = 54;
 const GROUND = 44;
-const EASY = [12, 16, 18, 20, 24, 28, 30, 32, 36, 40, 42, 48];
-const HARD = [60, 72, 90, 100, 120, 144, 150, 180, 210];
 const BIG = "min-h-[48px]!";
 const FONT = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
 
@@ -50,15 +48,6 @@ const FRUITS = [
 const fruitIdx = (p: number) => (p === 2 ? 0 : p === 3 ? 1 : p === 5 ? 2 : p === 7 ? 3 : p % 4);
 const APPLE = "M0,-17 C 14,-31 36,-13 27,9 C 21,27 7,31 0,27 C -7,31 -21,27 -27,9 C -36,-13 -14,-31 0,-17 Z";
 
-const shuffle = <T,>(a: T[]) => {
-  const b = [...a];
-  for (let i = b.length - 1; i > 0; i--) {
-    const j = rand(i + 1);
-    [b[i], b[j]] = [b[j], b[i]];
-  }
-  return b;
-};
-const makeTargets = (hard: boolean) => shuffle(hard ? HARD : EASY).slice(0, 5).sort((a, b) => a - b);
 const fresh = (n: number): TNode[] => [{ id: 0, v: n, kids: null }];
 type Rec = { steps: string[]; leaves: number[] };
 type Msg = { t: "info" | "ok" | "bad"; s: ReactNode };
@@ -94,16 +83,15 @@ function layout(nodes: TNode[]) {
 }
 
 export default function FactorTreeGame() {
-  const [hard, setHard] = useState(false);
-  const [targets, setTargets] = useState(() => makeTargets(false));
+  const stage = useStage();
+  const [targets] = useState(() => levelTargets(stage));
   const [round, setRound] = useState(0);
-  const target = targets[Math.min(round, 4)];
+  const target = targets[Math.min(round, 2)];
   const [tree, setTree] = useState<TNode[]>(() => fresh(targets[0]));
   const [order, setOrder] = useState<number[]>([]);
   const [sel, setSel] = useState<number | null>(0);
   const [hist, setHist] = useState<Rec[]>([]);
   const [solved, setSolved] = useState(false);
-  const [over, setOver] = useState(false);
   const [stars, setStars] = useState(0);
   const [msg, setMsg] = useState<Msg | null>(null);
 
@@ -153,32 +141,19 @@ export default function FactorTreeGame() {
     setSolved(false);
     setMsg(null);
   };
-  const restartAll = (h: boolean) => {
-    const t = makeTargets(h);
-    setHard(h);
-    setTargets(t);
-    setRound(0);
-    setStars(0);
-    setOver(false);
-    begin(t[0]);
-  };
   const goNext = () => {
-    if (round >= 4) {
-      setOver(true);
-      setSolved(false);
-      cheer();
-      return;
-    }
+    if (round >= 2) return;
     setRound(round + 1);
     begin(targets[round + 1]);
   };
-  // 성공하면 잠깐 뒤 자동으로 다음 수
+  // 성공하면 잠깐 뒤 자동으로 다음 라운드, 3라운드를 다 깨면 다음 레벨
   useEffect(() => {
-    if (!solved || over) return;
-    const id = setTimeout(goNext, 3200);
+    if (!solved) return;
+    const last = round >= 2;
+    const id = setTimeout(last ? stageClear : goNext, last ? 1200 : 3200);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solved, over, round]);
+  }, [solved, round]);
 
   const again = () => {
     setTree(fresh(target));
@@ -236,29 +211,12 @@ export default function FactorTreeGame() {
   const sameAll = hist.length >= 2 && hist.every((r) => r.leaves.join() === hist[0].leaves.join());
   const first = tree.length === 1 && round === 0 && !solved;
 
-  if (over)
-    return (
-      <Board>
-        <div className="space-y-4 py-6 text-center">
-          <p className="gz-bob text-5xl" aria-hidden>🌳🐦🍎</p>
-          <p className="text-4xl" aria-hidden>🌟🌟🌟🌟🌟</p>
-          <p className="font-game text-3xl text-ink">다섯 수를 모두 쪼갰어요! 멋져요!</p>
-          <p className="text-base text-muted">수를 어떻게 쪼개도 마지막 열매는 같았죠?</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            <GButton variant="primary" className={BIG} onClick={() => restartAll(hard)}>또 하기</GButton>
-            {!hard && <GButton className={BIG} onClick={() => restartAll(true)}>🔥 더 어려운 도전</GButton>}
-          </div>
-        </div>
-      </Board>
-    );
-
   return (
     <Board>
       <style>{CSS}</style>
       <div className="flex flex-wrap items-center gap-2">
-        <Stat label="판" value={`${round + 1} / 5`} />
+        <Stat label={`레벨 ${stage}`} value={`라운드 ${round + 1}/3`} />
         <Stat label="별" value={"⭐".repeat(stars) || "0"} tone={stars ? "ok" : "plain"} />
-        <GButton className={`${BIG} ml-auto`} pressed={hard} onClick={() => restartAll(!hard)}>🔥 더 어려운 도전</GButton>
       </div>
 
       <p className="font-game mt-3 text-lg text-ink">
@@ -516,9 +474,9 @@ export default function FactorTreeGame() {
 
       <div className="mt-3 space-y-3">
         <Tip tone={msg?.t ?? "info"}>{msg?.s ?? (first ? "👆 곱셈 칩을 톡 눌러서 쪼개요!" : sel === null ? "풍선을 눌러요." : `${selNode?.v} 을(를) 어떻게 쪼갤까요? 칩을 톡!`)}</Tip>
-        {solved && (
+        {solved && round < 2 && (
           <div className="flex flex-wrap gap-2">
-            <GButton variant="primary" className={BIG} onClick={goNext}>{round >= 4 ? "끝내기 ▶" : "다음 수 ▶"}</GButton>
+            <GButton variant="primary" className={BIG} onClick={goNext}>다음 수 ▶</GButton>
             <GButton className={BIG} onClick={again}>🔁 다르게 쪼개 보기</GButton>
           </div>
         )}

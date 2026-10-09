@@ -53,7 +53,7 @@ export type Race = { xb: number; yb: number; theta: number; paths: Record<RaceId
 
 /** 사이클로이드(반지름 1)의 θ 지점을 B 로 삼는 경주판 */
 /** kf: ‘깊이 처진 길’이 얼마나 깊이 처지는지(도착점 높이의 몇 배) */
-export function makeRace(theta: number, kf = 2.2): Race {
+export function makeRace(theta: number, kf = 2.2, af = 1): Race {
   const xb = theta - Math.sin(theta);
   const yb = 1 - Math.cos(theta);
   const line: PathFn = (u) => ({ x: xb * u, d: yb * u, dx: xb, dd: yb });
@@ -61,12 +61,23 @@ export function makeRace(theta: number, kf = 2.2): Race {
     const th = theta * u;
     return { x: th - Math.sin(th), d: 1 - Math.cos(th), dx: theta * (1 - Math.cos(th)), dd: theta * Math.sin(th) };
   };
-  // A 에서 수직으로 출발하는 원호: 중심 (R, 0), 반지름 R = (xb²+yb²)/(2 xb)
-  const R = (xb * xb + yb * yb) / (2 * xb);
-  const phiB = Math.atan2(yb, R - xb);
+  // 원호: A, B 를 지나는 원의 일부. af=1 이면 A 에서 수직으로 출발(가장 많이 휨), af 가 작을수록 곧은 길에 가까워짐.
+  // 중심은 현(AB)의 수직이등분선 위 오른쪽 위에 있다: 중심 = 중점 + t·n, t = tV / af
+  const R0 = (xb * xb + yb * yb) / (2 * xb); // af=1 원의 중심 (R0, 0)
+  const mx = xb / 2, my = yb / 2;
+  const L = Math.hypot(xb, yb);
+  const nx = yb / L, ny = -xb / L; // 현에 수직(오른쪽 위)
+  const tV = (R0 - mx) * nx + (0 - my) * ny;
+  const t = tV / Math.max(0.05, af);
+  const cx = mx + t * nx, cy = my + t * ny;
+  const R = Math.hypot(cx, cy);
+  const phA = Math.atan2(-cy, -cx);
+  let dph = Math.atan2(yb - cy, xb - cx) - phA;
+  while (dph > Math.PI) dph -= 2 * Math.PI;
+  while (dph <= -Math.PI) dph += 2 * Math.PI;
   const arc: PathFn = (u) => {
-    const p = phiB * u;
-    return { x: R - R * Math.cos(p), d: R * Math.sin(p), dx: R * Math.sin(p) * phiB, dd: R * Math.cos(p) * phiB };
+    const p = phA + dph * u;
+    return { x: cx + R * Math.cos(p), d: cy + R * Math.sin(p), dx: -R * Math.sin(p) * dph, dd: R * Math.cos(p) * dph };
   };
   const k = kf * yb;
   const dip: PathFn = (u) => ({ x: xb * u, d: yb * u + k * u * (1 - u), dx: xb, dd: yb + k * (1 - 2 * u) });
@@ -135,7 +146,7 @@ export const isSimultaneous = (kind: BowlId, h1: number, h2: number) => Math.abs
 
 // ───────── 레벨(1~10) 문제 만들기 ─────────
 export type Ask = "first" | "second" | "last";
-export type RoundSpec = { kind: "race"; theta: number; kf: number; ask: Ask } | { kind: "bowl"; bowl: BowlId; hA: number; hB: number };
+export type RoundSpec = { kind: "race"; theta: number; kf: number; af: number; ask: Ask } | { kind: "bowl"; bowl: BowlId; hA: number; hB: number };
 
 /** 레벨마다 라운드 3개의 질문 종류 */
 export const LEVEL_PLAN: (Ask | "bowl")[][] = [
@@ -153,8 +164,8 @@ export const LEVEL_PLAN: (Ask | "bowl")[][] = [
 export const RACE_GAP = 0.02; // 등수끼리 시간이 이만큼(초) 이상 벌어진 판만 낸다
 
 /** 도착 순서(빠른 것부터)와 시간 */
-export function raceOrder(theta: number, kf: number, K = 3000) {
-  const T = raceTimes(makeRace(theta, kf), K);
+export function raceOrder(theta: number, kf: number, af = 1, K = 3000) {
+  const T = raceTimes(makeRace(theta, kf, af), K);
   const order = (Object.keys(T) as RaceId[]).sort((a, b) => T[a] - T[b]);
   return { T, order };
 }
@@ -169,13 +180,14 @@ export function makeRound(level: number, idx: number, rnd: () => number): RoundS
     const hB = Math.round((0.15 + 0.3 * rnd()) * 100) / 100;
     return { kind: "bowl", bowl: kinds[Math.floor(rnd() * kinds.length)], hA, hB };
   }
-  for (let tries = 0; tries < 200; tries++) {
-    const theta = L === 1 ? [Math.PI, 2.6, 3.4][idx % 3] : 2.0 + 1.6 * rnd();
-    const kf = L <= 2 ? 2.2 : Math.round((0.8 + 2.8 * rnd()) * 10) / 10;
-    const { T, order } = raceOrder(theta, kf, 1500);
-    let ok = true;
-    for (let i = 0; i + 1 < order.length; i++) if (T[order[i + 1]] - T[order[i]] < RACE_GAP) ok = false;
-    if (ok) return { kind: "race", theta: Math.round(theta * 1000) / 1000, kf, ask: kind };
+  for (let tries = 0; tries < 300; tries++) {
+    const theta = L === 1 ? [Math.PI, 3.3, 3.6][idx % 3] : Math.round((2.0 + 1.6 * rnd()) * 1000) / 1000;
+    const kf = L <= 2 ? 2.2 : Math.round((0.5 + 5.5 * rnd()) * 10) / 10;
+    const af = L <= 2 ? 1 : Math.round((0.1 + 0.9 * rnd()) * 100) / 100;
+    const { T, order } = raceOrder(theta, kf, af, 1500);
+    const gaps = order.slice(1).map((id, i) => T[id] - T[order[i]]);
+    const need = kind === "first" ? [0] : kind === "second" ? [0, 1] : [2];
+    if (need.every((i) => gaps[i] >= RACE_GAP)) return { kind: "race", theta, kf, af, ask: kind };
   }
-  return { kind: "race", theta: Math.PI, kf: 2.2, ask: kind };
+  return { kind: "race", theta: Math.PI, kf: 2.2, af: 1, ask: kind };
 }

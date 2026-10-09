@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, clamp, fitCanvas, oops, tick, useFrame } from "./kit";
+import { Board, GButton, Say, Stat, cheer, clamp, fitCanvas, oops, stageClear, tick, useFrame, useStage } from "./kit";
 
 // <pure>
 /** 이항계수 C(n,k) */
@@ -18,11 +18,51 @@ function makePath(rows: number, rnd: () => number): number[] {
   for (let k = 0; k < rows; k++) p.push(p[k] + (rnd() < 0.5 ? 1 : 0));
   return p;
 }
+type GKind = "drop" | "most" | "least" | "path" | "count";
+const LEVEL_ROWS = [6, 6, 7, 8, 8, 9, 10, 10, 11, 12];
+const LEVEL_PLAN: GKind[][] = [
+  ["drop", "most", "least"],
+  ["drop", "most", "path"],
+  ["most", "path", "least"],
+  ["drop", "most", "path"],
+  ["most", "count", "path"],
+  ["least", "count", "most"],
+  ["path", "count", "most"],
+  ["count", "most", "path"],
+  ["most", "count", "path"],
+  ["count", "path", "most"],
+];
+const DROP_N = [20, 30, 30, 50, 50, 50, 50, 50, 50, 50];
+/** 가장 많이 쌓일 칸(0부터): 줄 수가 짝수면 가운데 하나, 홀수면 가운데 둘 */
+const modeBins = (rows: number) => (rows % 2 === 0 ? [rows / 2] : [(rows - 1) / 2, (rows + 1) / 2]);
+/** 가장 적게 쌓일 칸: 양 끝 */
+const leastBins = (rows: number) => [0, rows];
+type Choice = { text: string; answer: number; choices: number[]; unit: string; why: string };
+function pathQuestion(rows: number, level: number, rnd: () => number): Choice {
+  if (level <= 2)
+    return { text: `못이 ${rows}줄이에요. 구슬이 맨 왼쪽 1번 칸에 들어가려면 못에 부딪힐 때마다 왼쪽으로 몇 번 가야 할까요?`, answer: rows, choices: [1, rows - 1, rows], unit: "번", why: `못이 ${rows}줄이니까 ${rows}번 모두 왼쪽으로 가야 해요. 그래서 끝 칸은 잘 안 나와요.` };
+  const b = 2 + Math.floor(rnd() * (rows - 1)); // 2..rows (1부터 센 칸 번호)
+  const ans = b - 1;
+  const set = new Set([ans]);
+  for (const c of [b, rows - ans, ans - 1, ans + 2]) if (set.size < 3 && c >= 0 && c <= rows) set.add(c);
+  return { text: `못이 ${rows}줄이에요. 구슬이 ${b}번 칸에 들어가려면 오른쪽으로 몇 번 가야 할까요? (나머지는 왼쪽)`, answer: ans, choices: [...set].sort((x, y) => x - y), unit: "번", why: `1번 칸은 오른쪽 0번, 2번 칸은 1번… ${b}번 칸은 오른쪽으로 ${ans}번이에요.` };
+}
+function countQuestion(rows: number): Choice {
+  const m = modeBins(rows)[0];
+  const a = Math.round(100 * binomPmf(rows, m));
+  return { text: `못이 ${rows}줄이에요. 구슬 100개를 떨어뜨리면 가운데 ${m + 1}번 칸에는 대략 몇 개쯤 들어갈까요?`, answer: a, choices: [Math.round(a / 3), a, Math.min(95, 2 * a)], unit: "개", why: `계산하면 100개 중 약 ${a}개예요. 가운데로 가는 길이 가장 많아서 그래요.` };
+}
 // </pure>
 
 type Ball = { path: number[]; s: number; pred: number | null; x0: number };
 
 const BALL_R = 5;
+function roundIntro(k: GKind, rows: number, level: number) {
+  if (k === "drop") return `위쪽을 눌러서 구슬을 ${DROP_N[level - 1]}개 떨어뜨려 봐요! 꾹 누르면 계속 떨어져요.`;
+  if (k === "most") return "구슬을 아주 많이 떨어뜨리면 어느 칸에 가장 많이 쌓일까요? 아래 칸을 눌러 🚩 를 꽂아요. (먼저 구슬을 떨어뜨려 봐도 돼요)";
+  if (k === "least") return "구슬을 아주 많이 떨어뜨리면 어느 칸에 가장 적게 쌓일까요? 아래 칸을 눌러 🚩 를 꽂아요.";
+  return `못이 ${rows}줄이에요. 위의 문제를 읽고 답을 골라요. 구슬을 떨어뜨려 보며 생각해도 돼요!`;
+}
 const BALL_COLORS = ["#f472b6", "#60a5fa", "#facc15", "#34d399", "#a78bfa", "#fb923c"];
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -53,33 +93,39 @@ function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
 function layout(w: number, rows: number) {
   const dx = Math.min(60, (w - 16) / (rows + 1));
   const dy = Math.min(34, dx * 0.85);
-  const top = 52;
+  const top = 64;
   const binTop = top + rows * dy - dy * 0.3;
   const h = Math.round(top + rows * dy + 140);
   return { dx, dy, top, binTop, h, cx: w / 2 };
 }
 
 export default function GaltonGame() {
-  const [rows, setRows] = useState(6);
-  const [hard, setHard] = useState(false);
-  const [speed, setSpeed] = useState(1.5);
+  const level = Math.min(10, Math.max(1, useStage()));
+  const rows = LEVEL_ROWS[level - 1];
+  const plan = LEVEL_PLAN[level - 1];
+  const [ri, setRi] = useState(0);
+  const kind = plan[ri];
+  const [choice] = useState<Record<number, Choice | null>>(() => Object.fromEntries(plan.map((k, i) => [i, k === "path" ? pathQuestion(rows, level, Math.random) : k === "count" ? countQuestion(rows) : null])));
+  const q = choice[ri];
+  const [done, setDone] = useState<null | "fast" | "show">(null);
+  const [wrong, setWrong] = useState<number[]>([]);
+  const [stars, setStars] = useState(0);
+  const speed = 1.5;
   const [theory, setTheory] = useState(false);
   const [pred, setPred] = useState<number | null>(null);
-  const [score, setScore] = useState({ hit: 0, tries: 0 });
-  const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "위쪽을 눌러서 구슬을 떨어뜨려 봐요! 꾹 누르면 계속 떨어져요. 아래 칸을 누르면 🚩 로 예측할 수 있어요." });
+  const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: roundIntro(plan[0], rows, level) });
   const [, setTick] = useState(0);
   const [width, setWidth] = useState(640);
 
   const wrap = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
-  const counts = useRef<number[]>(new Array(7).fill(0));
+  const counts = useRef<number[]>(new Array(rows + 1).fill(0));
   const balls = useRef<Ball[]>([]);
   const queue = useRef(0);
   const relAcc = useRef(0);
-  const bellShown = useRef(false);
   const holding = useRef<{ x: number; t: number; acc: number } | null>(null);
-  const scoreRef = useRef(score);
-  scoreRef.current = score;
+  const doneRef = useRef(done);
+  doneRef.current = done;
 
   useEffect(() => {
     const el = wrap.current;
@@ -101,26 +147,58 @@ export default function GaltonGame() {
     void el.offsetWidth;
     el.classList.add(cls);
   };
+  const win = (text: string, show: boolean) => {
+    cheer();
+    flash("am-pop");
+    if (wrong.length === 0) setStars((s) => s + 1);
+    setMsg({ t: "ok", s: text });
+    setDone(show ? "show" : "fast");
+    if (show) {
+      counts.current = new Array(rows + 1).fill(0);
+      balls.current = [];
+      queue.current = 100;
+      setTick((v) => v + 1);
+    }
+  };
+  const miss = (text: string, v: number) => {
+    oops();
+    flash("am-shake");
+    setWrong((w) => [...w, v]);
+    setMsg({ t: "bad", s: text });
+  };
   const land = (b: Ball) => {
     const bin = b.path[rows];
     counts.current[bin]++;
-    if (b.pred !== null) {
-      const hit = b.pred === bin;
-      const sc = scoreRef.current;
-      const tries = sc.tries + 1;
-      setScore({ hit: sc.hit + (hit ? 1 : 0), tries });
-      if (hit) cheer();
-      else oops();
-      flash(hit ? "am-pop" : "am-shake");
-      const tail = tries >= 5 ? ` 5번 끝! 별 ${sc.hit + (hit ? 1 : 0)}개예요. 이제 ‘구슬 100개’를 떨어뜨려 봐요.` : "";
-      setMsg(hit ? { t: "ok", s: `맞았어요! ⭐ 구슬이 ${bin + 1}번 칸에 들어갔어요. 잘했어요!${tail}` } : { t: "bad", s: `아쉬워요! 구슬은 ${bin + 1}번 칸에 들어갔어요. 괜찮아요, 다시 해 봐요!${tail}` });
-    }
-    const tot = counts.current.reduce((a, c) => a + c, 0);
-    if (tot >= 100 && !bellShown.current && queue.current === 0 && balls.current.length <= 1) {
-      bellShown.current = true;
-      setMsg({ t: "ok", s: "구슬이 많이 쌓였어요! 가운데 칸이 가장 높고 양쪽은 낮아요. 종 모양이 보이나요? 왜 가운데에 많이 쌓일까요?" });
+    if (kind === "drop" && !doneRef.current) {
+      const tot = counts.current.reduce((a, c) => a + c, 0);
+      if (tot >= DROP_N[level - 1]) {
+        doneRef.current = "fast";
+        win(`⭐ 구슬 ${DROP_N[level - 1]}개 성공! 가운데 쪽에 더 많이 쌓인 게 보이나요?`, false);
+      }
     }
   };
+
+  // 라운드를 깨면 다음 라운드로, 마지막이면 레벨 클리어
+  useEffect(() => {
+    if (!done) return;
+    const wait = done === "show" ? 4200 : 1600;
+    if (ri >= plan.length - 1) {
+      const id = setTimeout(stageClear, done === "show" ? 3200 : 1200);
+      return () => clearTimeout(id);
+    }
+    const id = setTimeout(() => {
+      const nr = ri + 1;
+      setRi(nr);
+      setDone(null);
+      setWrong([]);
+      setPred(null);
+      counts.current = new Array(rows + 1).fill(0);
+      balls.current = [];
+      queue.current = 0;
+      setMsg({ t: "info", s: roundIntro(plan[nr], rows, level) });
+    }, wait);
+    return () => clearTimeout(id);
+  }, [done, ri, plan, rows, level]);
 
   const draw = useCallback(() => {
     const c = cv.current;
@@ -280,16 +358,16 @@ export default function GaltonGame() {
     // 처음 안내
     if (tot === 0 && balls.current.length === 0) {
       ctx.textAlign = "center";
-      const hy = L.top + rows * L.dy * 0.42;
+      const hy = 28; // 깔때기 위(못보다 위)
       ctx.fillStyle = "rgba(255,255,255,0.95)";
-      roundRect(ctx, L.cx - 135, hy - 26, 270, 54, 27);
+      roundRect(ctx, L.cx - 130, hy - 23, 260, 46, 23);
       ctx.fill();
-      ctx.font = "18px Jua, sans-serif";
+      ctx.font = "17px Jua, sans-serif";
       ctx.fillStyle = "#6d28d9";
-      ctx.fillText("👆 위쪽을 눌러 구슬을 떨어뜨려요!", L.cx, hy - 3);
-      ctx.font = "14px Jua, sans-serif";
+      ctx.fillText("👆 여기를 눌러 구슬을 떨어뜨려요!", L.cx, hy - 2);
+      ctx.font = "13px Jua, sans-serif";
       ctx.fillStyle = "#6b6280";
-      ctx.fillText("꾹 누르면 계속 떨어져요", L.cx, hy + 18);
+      ctx.fillText("꾹 누르면 계속 떨어져요", L.cx, hy + 15);
     }
   }, [width, rows, theory, pred]);
 
@@ -334,29 +412,15 @@ export default function GaltonGame() {
     draw();
   }, [draw]);
 
-  const reset = (r = rows) => {
-    counts.current = new Array(r + 1).fill(0);
-    balls.current = [];
-    queue.current = 0;
-    bellShown.current = false;
-    setPred(null);
-    setTick((v) => v + 1);
-  };
   const spawn = (x: number) => {
     const left = lay.cx - ((rows + 1) * lay.dx) / 2;
     const x0 = clamp(x, left + 8, left + (rows + 1) * lay.dx - 8);
-    const useP = pred !== null && score.tries < 5 && !balls.current.some((b) => b.pred !== null);
-    balls.current.push({ path: makePath(rows, Math.random), s: -1, pred: useP ? pred : null, x0 });
+    balls.current.push({ path: makePath(rows, Math.random), s: -1, pred: null, x0 });
     tick();
-    if (useP) {
-      setMsg({ t: "info", s: `🚩 ${(pred ?? 0) + 1}번 칸으로 예측했어요. 구슬이 내려와요…` });
-      setPred(null);
-    }
   };
   const dropMany = () => {
     queue.current += 100;
-    bellShown.current = false;
-    setMsg({ t: "info", s: "구슬 100개를 떨어뜨려요. 쌓이는 모양을 지켜봐요." });
+    tick();
   };
 
   const localXY = (e: React.PointerEvent<HTMLCanvasElement>): [number, number] => {
@@ -368,10 +432,16 @@ export default function GaltonGame() {
     if (y >= lay.binTop - 4) {
       const left = lay.cx - ((rows + 1) * lay.dx) / 2;
       const b = Math.floor((x - left) / lay.dx);
-      if (b >= 0 && b <= rows && score.tries < 5) {
+      if (b >= 0 && b <= rows && (kind === "most" || kind === "least") && !done && !wrong.includes(b)) {
         tick();
-        setPred((p) => (p === b ? null : b));
-        setMsg({ t: "info", s: `🚩 ${b + 1}번 칸에 깃발을 꽂았어요! 이제 위쪽을 눌러 구슬을 떨어뜨려요.` });
+        setPred(b);
+        const okSet = kind === "most" ? modeBins(rows) : leastBins(rows);
+        if (okSet.includes(b))
+          win(kind === "most" ? `🚩 맞아요! ⭐ 가운데 ${b + 1}번 칸이에요. 이제 구슬 100개로 확인해 봐요!` : `🚩 맞아요! ⭐ 맨 끝 칸은 ${rows}번 모두 같은 쪽으로 가야 해서 가장 적어요. 100개로 확인해 봐요!`, true);
+        else {
+          miss(kind === "most" ? "아쉬워요! 구슬이 가운데로 가는 길이 가장 많아요. 다시 골라 봐요." : "아쉬워요! 한쪽으로만 계속 가야 하는 칸이 가장 드물어요. 다시 골라 봐요.", b);
+          setPred(null);
+        }
       }
       return;
     }
@@ -386,19 +456,35 @@ export default function GaltonGame() {
     holding.current = null;
   };
 
-  const roundsLeft = score.tries < 5;
+  const answer = (v: number) => {
+    if (!q || done || wrong.includes(v)) return;
+    if (v === q.answer) win(`맞아요! ⭐ ${q.why}${kind === "count" ? " 진짜로 100개를 떨어뜨려 볼게요!" : ""}`, kind === "count");
+    else miss("아쉬워요. 괜찮아요, 다시 골라 봐요!", v);
+  };
   const BIG = "!min-h-[48px] !text-base";
+  const title = kind === "drop" ? `👆 위쪽을 눌러 구슬 ${DROP_N[level - 1]}개를 떨어뜨려요 (꾹 누르면 계속!)` : kind === "most" ? "🚩 구슬이 가장 많이 쌓일 칸을 눌러요" : kind === "least" ? "🚩 구슬이 가장 적게 쌓일 칸을 눌러요" : "🤔 생각해서 골라요";
   return (
     <div className="space-y-3 text-base">
       <Board>
-        <p className="font-game mb-2 text-xl">
-          {roundsLeft ? "👆 위쪽을 눌러 구슬을 떨어뜨려요. 아래 칸을 누르면 🚩 예측!" : "🚩 예측 5번이 끝났어요. 구슬을 마음껏 떨어뜨려 봐요!"}
-        </p>
+        <p className="font-game mb-2 text-xl">{title}</p>
         <div className="mb-2 flex flex-wrap gap-2">
-          <Stat label="🚩 예측" value={`${Math.min(score.tries, 5)} / 5`} />
-          <Stat label="별" value={score.hit > 0 ? "⭐".repeat(score.hit) : "0"} tone={score.hit > 0 ? "ok" : "plain"} />
-          <Stat label="떨어진 구슬" value={total} />
+          <Stat label={`레벨 ${level} · 라운드`} value={`${ri + 1} / ${plan.length}`} />
+          <Stat label="못" value={`${rows}줄`} />
+          <Stat label="별" value={stars > 0 ? "⭐".repeat(stars) : "0"} tone={stars > 0 ? "ok" : "plain"} />
+          <Stat label="떨어진 구슬" value={kind === "drop" ? `${total} / ${DROP_N[level - 1]}` : total} />
         </div>
+        {q && (
+          <div className="mb-3">
+            <p className="font-game text-lg">{q.text}</p>
+            <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label="답 고르기">
+              {q.choices.map((v) => (
+                <GButton key={v} className={`${BIG} !text-xl`} variant={done && v === q.answer ? "primary" : "ghost"} disabled={wrong.includes(v) || (!!done && v !== q.answer)} onClick={() => answer(v)}>
+                  {v}{q.unit}
+                </GButton>
+              ))}
+            </div>
+          </div>
+        )}
         <div ref={wrap} className="w-full overflow-hidden rounded-[18px] shadow-[0_6px_0_rgba(120,53,15,0.35)]">
           <canvas
             ref={cv}
@@ -423,32 +509,9 @@ export default function GaltonGame() {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <GButton variant="soft" className={BIG} onClick={dropMany}>구슬 100개 한꺼번에</GButton>
-          <GButton className={BIG} onClick={() => { reset(); setScore({ hit: 0, tries: 0 }); setMsg({ t: "info", s: "처음부터 다시 해요. 위쪽을 눌러 구슬을 떨어뜨려요!" }); }}>처음부터</GButton>
+          <GButton className={BIG} onClick={() => { counts.current = new Array(rows + 1).fill(0); balls.current = []; queue.current = 0; setTick((v) => v + 1); }}>구슬 비우기</GButton>
+          <GButton className={BIG} pressed={theory} onClick={() => setTheory((v) => !v)}>계산한 모양 보기</GButton>
         </div>
-      </Board>
-
-      <Board>
-        <GButton className={BIG} pressed={hard} onClick={() => { setHard((h) => !h); if (hard) setTheory(false); }}>🔥 더 어려운 도전 {hard ? "닫기" : "열기"}</GButton>
-        {hard && (
-          <div className="mt-3 space-y-3">
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="속도">
-          <span className="font-semibold">속도</span>
-          {([["느리게", 0.8], ["보통", 1.5], ["빠르게", 3]] as const).map(([l, v]) => (
-            <GButton key={l} className={BIG} pressed={speed === v} onClick={() => setSpeed(v)}>{l}</GButton>
-          ))}
-        </div>
-            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="못 줄 수">
-              <span className="font-semibold">못 줄 수</span>
-              {[6, 8, 10, 12].map((r) => (
-                <GButton key={r} className={BIG} pressed={rows === r} onClick={() => { setRows(r); reset(r); }}>{r}줄</GButton>
-              ))}
-            </div>
-            <GButton className={BIG} pressed={theory} onClick={() => setTheory((v) => !v)}>수학으로 계산한 모양 겹쳐 보기</GButton>
-            <p className="text-base">
-              {rows}줄이면 칸이 {rows + 1}개예요. 오른쪽으로 k번 갈 가능성은 C({rows}, k) / 2^{rows} 이에요. 가운데 칸은 {(100 * binomPmf(rows, Math.floor(rows / 2))).toFixed(1)}% 쯤이에요. 구슬을 많이 떨어뜨릴수록 주황 선과 막대가 비슷해져요.
-            </p>
-          </div>
-        )}
       </Board>
     </div>
   );

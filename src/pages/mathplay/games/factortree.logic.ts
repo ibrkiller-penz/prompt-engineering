@@ -44,3 +44,33 @@ export function split(nodes: TNode[], id: number, a: number, b: number): TNode[]
   return next;
 }
 export const allPrime = (nodes: TNode[]) => leaves(nodes).every(isPrime);
+
+/** 레벨(1~10)별 수 범위와 소인수 개수(같은 수도 따로 셈) */
+export const FT_LEVELS: { lo: number; hi: number; omin: number; omax: number }[] = [
+  { lo: 12, hi: 30, omin: 2, omax: 3 },
+  { lo: 12, hi: 40, omin: 3, omax: 3 },
+  { lo: 20, hi: 50, omin: 3, omax: 4 },
+  { lo: 30, hi: 60, omin: 3, omax: 4 },
+  { lo: 40, hi: 80, omin: 3, omax: 4 },
+  { lo: 50, hi: 100, omin: 4, omax: 4 },
+  { lo: 60, hi: 120, omin: 4, omax: 5 },
+  { lo: 80, hi: 150, omin: 4, omax: 5 },
+  { lo: 100, hi: 180, omin: 4, omax: 6 },
+  { lo: 120, hi: 210, omin: 4, omax: 6 },
+];
+export function levelPool(level: number): number[] {
+  const c = FT_LEVELS[Math.min(10, Math.max(1, Math.round(level))) - 1];
+  const out: number[] = [];
+  for (let n = c.lo; n <= c.hi; n++) {
+    const o = primeFactors(n).length;
+    if (isComposite(n) && o >= c.omin && o <= c.omax) out.push(n);
+  }
+  return out;
+}
+/** 레벨에서 서로 다른 수 3개(작은 수부터) */
+export function levelTargets(level: number, rnd: () => number = Math.random): number[] {
+  const pool = [...levelPool(level)];
+  const out: number[] = [];
+  while (out.length < 3 && pool.length) out.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+  return out.sort((a, b) => a - b);
+}

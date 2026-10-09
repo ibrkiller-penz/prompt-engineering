@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { Board, GButton, cheer, oops, tick, useFrame } from "./kit";
+import { Board, GButton, cheer, oops, stageClear, tick, useFrame, useStage } from "./kit";
 import { BIG, Pill, Stars, Talk } from "./easykit";
 import { BOAT, FISH_CSS, Fish, NetKnob, NetRing, SEA_H, SEA_W, SeaBack, SeaDefs, fishPos } from "./fishery.art";
-import { COLLAPSE, K, MSY, START, bestScore, simulate, stepYear } from "./fishery.logic";
+import { COLLAPSE, K, fishRound, stepYear } from "./fishery.logic";
 
 type Msg = { t: string; tone: "info" | "ok" | "bad" };
 const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -159,22 +159,22 @@ function Chart({ stock, years }: { stock: number[]; years: number }) {
 }
 
 export default function FisheryGame() {
-  const [years, setYears] = useState(7);
-  const [h, setH] = useState(100);
+  const stage = useStage();
+  const [round, setRound] = useState(1);
+  const q = useMemo(() => fishRound(stage, round), [stage, round]);
+  const years = q.years;
+  const msy = Math.round(q.msy);
+  const [h, setH] = useState(50);
   const [touched, setTouched] = useState(false);
-  const [stock, setStock] = useState([START]);
+  const [stock, setStock] = useState([q.start]);
   const [catches, setCatches] = useState<number[]>([]);
-  const [done, setDone] = useState<"" | "end" | "collapse">("");
+  const [done, setDone] = useState<"" | "win" | "short" | "collapse">("");
   const [stars, setStars] = useState(0);
-  const [auto, setAuto] = useState(false);
   const [wins, setWins] = useState(0);
-  const [msg, setMsg] = useState<Msg>({ t: `🎯 ${years}년 동안 물고기가 남게 하며 많이 잡아요. 그물을 위아래로 끌어 올해 잡을 마릿수를 정해요!`, tone: "info" });
+  const [msg, setMsg] = useState<Msg>({ t: `🎯 ${years}년 동안 ${q.goal}마리 넘게 잡아요! 물고기가 너무 줄면 안 돼요. 그물을 위아래로 끌어 올해 잡을 마릿수를 정해요.`, tone: "info" });
   const [t, setT] = useState(0);
   const [anim, setAnim] = useState<Anim | null>(null);
-  const [acc, setAcc] = useState(0);
-
-  const best = useMemo(() => bestScore(years), [years]);
-  const sustain = useMemo(() => simulate(Array(years).fill(MSY)).total, [years]);
+  const [left, setLeft] = useState(0);
 
   const year = catches.length;
   const n = stock[stock.length - 1];
@@ -182,7 +182,7 @@ export default function FisheryGame() {
 
   const nextYear = () => {
     if (done) return;
-    const r = stepYear(n, h);
+    const r = stepYear(n, h, q.r);
     const c = [...catches, r.catchAmt];
     const s = [...stock, r.next];
     const tot = total + r.catchAmt;
@@ -203,22 +203,28 @@ export default function FisheryGame() {
     if (r.collapsed) {
       oops();
       setDone("collapse");
-      setAuto(false);
       setStars(0);
-      setMsg({ t: `앗, 물고기가 ${Math.round(r.next)}마리로 너무 적어졌어요. 괜찮아요! 다음엔 그물을 조금 내려 봐요.`, tone: "bad" });
+      setMsg({ t: `앗, 물고기가 ${Math.round(r.next)}마리로 너무 적어졌어요. 괜찮아요! 그물을 조금 내려서 다시 해 봐요.`, tone: "bad" });
     } else if (c.length >= years) {
-      const st = tot >= sustain ? 3 : tot >= sustain * 0.7 ? 2 : 1;
-      cheer();
-      setDone("end");
-      setAuto(false);
-      setStars(st);
-      setWins((w) => w + 1);
-      setMsg({ t: `해냈어요! ${years}년 동안 물고기를 지켰어요. 별 ${st}개!`, tone: "ok" });
+      if (tot >= q.goal) {
+        const st = tot >= q.best * 0.97 ? 3 : tot >= q.goal + (q.best - q.goal) / 2 ? 2 : 1;
+        cheer();
+        setDone("win");
+        setStars(st);
+        setWins((w) => w + 1);
+        setLeft(round >= 3 ? 1.2 : 2.4);
+        setMsg({ t: round >= 3 ? `해냈어요! 바다 3곳을 모두 지키며 잡았어요. 별 ${st}개!` : `해냈어요! ${Math.round(tot)}마리를 잡았어요. 별 ${st}개! 곧 다음 바다로 가요.`, tone: "ok" });
+      } else {
+        oops();
+        setDone("short");
+        setStars(0);
+        setMsg({ t: `물고기는 지켰어요! 그런데 목표까지 ${Math.round(q.goal - tot)}마리 모자라요. 조금 더 잡아도 괜찮을 때가 있어요. 다시 해 봐요!`, tone: "bad" });
+      }
     } else {
       tick();
       const delta = r.next - n;
       setMsg({
-        t: `${c.length}년째: ${Math.round(r.catchAmt)}마리를 잡았어요. 바다에 ${Math.round(r.next)}마리가 남았어요. ${delta >= 0 ? "물고기가 늘었어요!" : "내년엔 물고기가 줄어요. 그물을 조금 내려 볼까요?"}`,
+        t: `${c.length}년째: ${Math.round(r.catchAmt)}마리를 잡았어요. 바다에 ${Math.round(r.next)}마리가 남았어요. ${delta >= 0 ? "물고기가 늘었어요!" : "내년엔 물고기가 줄어요."}`,
         tone: delta >= 0 ? "ok" : "info",
       });
     }
@@ -226,71 +232,83 @@ export default function FisheryGame() {
 
   useFrame((_tt, dt) => {
     if (!reduced()) setT((x) => x + dt);
-    if (auto) {
-      const a = acc + dt;
-      if (a >= 0.7) {
-        setAcc(0);
-        nextYear();
-      } else setAcc(a);
+    if (done === "win" && left > 0) {
+      const nl = left - dt;
+      if (nl <= 0) {
+        setLeft(0);
+        goNext();
+      } else setLeft(nl);
     }
   }, true);
 
-  const reset = (y = years) => {
+  const restart = (start: number, y: number, goal: number) => {
     setAnim(null);
-    setYears(y);
-    setStock([START]);
+    setStock([start]);
     setCatches([]);
     setDone("");
     setStars(0);
-    setAuto(false);
-    setMsg({ t: y === 7 ? "다시 시작해요! 7년 동안 물고기를 지켜 봐요." : "20년 도전이에요! 오래오래 물고기를 지켜 봐요.", tone: "info" });
+    setLeft(0);
+    setMsg({ t: `🎯 ${y}년 동안 ${goal}마리 넘게 잡아요! 물고기가 너무 줄면 안 돼요.`, tone: "info" });
   };
+  function goNext() {
+    if (round >= 3) {
+      stageClear();
+      return;
+    }
+    const nq = fishRound(stage, round + 1);
+    setRound(round + 1);
+    restart(nq.start, nq.years, nq.goal);
+  }
 
   return (
     <div className="space-y-3">
       <style>{FISH_CSS}</style>
       <Board className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-game rounded-full bg-accent px-4 py-1 text-lg text-white shadow-[0_3px_0_0_rgba(0,0,0,0.2)]">레벨 {stage} · 라운드 {round}/3</span>
+          <span className="flex gap-1" aria-label={`바다 3곳 중 ${round - 1 + (done === "win" ? 1 : 0)}곳 성공`}>
+            {[1, 2, 3].map((k) => (
+              <span key={k} className={`text-2xl ${k < round || (k === round && done === "win") ? "" : "opacity-25 grayscale"}`}>🐳</span>
+            ))}
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <Pill label="해" value={`${year}/${years}`} />
           <Pill label="🌊" value={`${Math.round(n)}마리`} tone={n < 250 ? "bad" : "plain"} />
-          <Pill label="🪣" value={`${Math.round(total)}마리`} />
-          {wins > 0 && <Pill label="성공" value={`${wins}번`} tone="ok" />}
+          <Pill label="🪣" value={`${Math.round(total)}마리`} tone={total >= q.goal ? "ok" : "plain"} />
+        </div>
+        <div aria-label={`목표 ${q.goal}마리 중 ${Math.round(total)}마리`} role="img">
+          <div className="flex justify-between text-sm font-bold"><span>🎯 목표 {q.goal}마리</span><span>{Math.min(100, Math.round((total / q.goal) * 100))}%</span></div>
+          <div className="mt-1 h-4 overflow-hidden rounded-full border-2 border-line bg-bg">
+            <div className="h-full rounded-full bg-gradient-to-r from-[#fbbf24] to-[#f97316] transition-all" style={{ width: `${Math.min(100, (total / q.goal) * 100)}%` }} />
+          </div>
         </div>
         {done && <p className="gz-pop text-center text-4xl"><Stars n={stars} /></p>}
         <Talk tone={msg.tone}>{msg.t}</Talk>
         <div className="mx-auto flex max-w-[560px] gap-2">
           <div className="min-w-0 flex-1">
-            <Tank n={n} h={done ? 0 : h} t={t} anim={anim} mood={done === "end" ? "party" : done === "collapse" ? "shake" : ""} />
+            <Tank n={n} h={done ? 0 : h} t={t} anim={anim} mood={done === "win" ? "party" : done ? "shake" : ""} />
           </div>
           <NetSlider value={h} onChange={(v) => { setH(v); setTouched(true); }} disabled={!!done} hint={!touched && !done} />
         </div>
         <p className="font-game text-center text-3xl tabular-nums">올해 <span className="text-accent">{h}</span>마리 잡기 <span className="text-sm font-normal text-muted">(🐟 하나 = 10마리)</span></p>
-        <div className="flex gap-2">
-          <GButton variant="primary" className="min-h-[60px]! flex-1 text-2xl" onClick={nextYear} disabled={!!done}>한 해 지나기 ▶</GButton>
-          <GButton className={`${BIG} min-h-[60px]!`} onClick={() => reset()}>다시 하기</GButton>
-        </div>
+        {done === "win" ? (
+          <GButton variant="primary" className="min-h-[60px]! w-full text-2xl" onClick={goNext}>{round >= 3 ? "🎉 레벨 클리어!" : `다음 바다 ▶ (${Math.max(1, Math.ceil(left))})`}</GButton>
+        ) : (
+          <div className="flex gap-2">
+            <GButton variant="primary" className="min-h-[60px]! flex-1 text-2xl" onClick={done ? () => restart(q.start, years, q.goal) : nextYear}>{done ? "다시 해 보기 ▶" : "한 해 지나기 ▶"}</GButton>
+            {!done && <GButton className={`${BIG} min-h-[60px]!`} onClick={() => restart(q.start, years, q.goal)}>다시 하기</GButton>}
+          </div>
+        )}
+        {wins > 0 && <p className="text-center text-sm text-muted">성공 {wins}번</p>}
       </Board>
 
       {done && (
-        <Board className="space-y-3">
-          <h3 className="text-lg font-extrabold">{done === "end" ? "결과" : "아쉬워요, 다시 해 봐요"} <Stars n={stars} /></h3>
-          <div className="space-y-2 text-base" role="img" aria-label={`내가 잡은 물고기 ${Math.round(total)}마리, 해마다 ${MSY}마리씩 잡을 때 ${Math.round(sustain)}마리`}>
-            {(years === 20 && done === "end"
-              ? [["내가 잡은 물고기", total, "bg-accent"], [`해마다 ${MSY}마리`, sustain, "bg-ok"], ["컴퓨터가 찾은 가장 많은 양", best, "bg-muted"]]
-              : [["내가 잡은 물고기", total, "bg-accent"], [`해마다 ${MSY}마리`, sustain, "bg-ok"]]
-            ).map(([l, v, c]) => (
-              <div key={l as string} className="flex items-center gap-2">
-                <span className="w-28 shrink-0 text-sm sm:w-44 sm:text-base">{l}</span>
-                <div className="h-5 flex-1 rounded-full bg-bg"><div className={`h-5 rounded-full ${c}`} style={{ width: `${Math.min(100, ((v as number) / Math.max(best, sustain, total)) * 100)}%` }} /></div>
-                <strong className="w-14 text-right tabular-nums">{Math.round(v as number)}</strong>
-              </div>
-            ))}
-          </div>
+        <Board className="space-y-2">
           <p className="rounded-card bg-accent-soft/60 p-4 text-base leading-relaxed">
-            💡 이 바다에서는 해마다 <strong>{MSY}마리쯤</strong> 잡으면 물고기가 줄지 않고 오래오래 잡을 수 있어요. 그보다 많이 잡으면 물고기가 점점 줄어요.
-            {years === 20 && done === "end" ? " 마지막 해에 한꺼번에 많이 잡으면 점수는 더 높아지지만, 그다음 해부터는 잡을 물고기가 없어요." : ""}
+            💡 이 바다에서는 해마다 <strong>{msy}마리쯤</strong> 잡으면 물고기가 줄지 않고 오래오래 잡을 수 있어요. 그보다 많이 잡으면 물고기가 점점 줄어요. 처음 물고기가 적을 때는 조금만 잡고 늘기를 기다리는 것도 방법이에요.
           </p>
-          <GButton variant="primary" className={BIG} onClick={() => reset()}>또 해 보기 ▶</GButton>
+          <p className="text-sm text-muted">이번 판에서 컴퓨터가 찾은 가장 많은 양: {Math.round(q.best)}마리</p>
         </Board>
       )}
 
@@ -299,15 +317,6 @@ export default function FisheryGame() {
         <Chart stock={stock} years={years} />
         <p className="text-sm text-muted">파란 선이 빨간 점선 아래로 내려가면 물고기가 너무 적은 거예요.</p>
       </Board>
-
-      <details className="rounded-card border border-line bg-surface p-3">
-        <summary className="flex min-h-[48px] cursor-pointer items-center text-base font-bold">🏆 더 어려운 도전</summary>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <GButton className={BIG} pressed={years === 7} onClick={() => reset(7)}>7년 (쉬움)</GButton>
-          <GButton className={BIG} pressed={years === 20} onClick={() => reset(20)}>20년 도전</GButton>
-          <GButton className={BIG} onClick={() => setAuto((a) => !a)} disabled={!!done} pressed={auto}>{auto ? "⏸ 멈춤" : "⏩ 같은 양으로 자동 진행"}</GButton>
-        </div>
-      </details>
     </div>
   );
 }

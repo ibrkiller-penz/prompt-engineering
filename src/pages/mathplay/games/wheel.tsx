@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Slider, Stat, cheer, clamp, fitCanvas, tick, useFrame } from "./kit";
+import { Board, GButton, Say, Slider, Stat, cheer, clamp, fitCanvas, stageClear, tick, useFrame, useStage } from "./kit";
 
 // ==PURE-START==
 // 단위: 바퀴의 외접원 반지름 R = 1. n = 0 이면 원.
@@ -36,6 +36,48 @@ export function pose(n: number, road: Road, x: number): { h: number; rot: number
   const w = archHalf(n);
   const u = mod(x + w, 2 * w) - w;
   return { h: 1, rot: -Math.PI / 2 + Math.PI / n + Math.atan(-Math.sinh(u / a)) };
+}
+export type Mission = { kind: "roll"; n: number } | { kind: "smooth"; t: number } | { kind: "wave"; n: number } | { kind: "most" } | { kind: "band"; lo: number; hi: number };
+/** 이 바퀴(n)와 길(road)로 굴리면 미션을 이루는가 */
+export function missionOk(m: Mission, n: number, road: Road): boolean {
+  if (m.kind === "wave") return road === "bumpy" && n === m.n && bumpyFits(n);
+  if (road !== "flat") return false;
+  const w = wiggle(n, "flat");
+  if (m.kind === "roll") return n === m.n;
+  if (m.kind === "smooth") return w <= m.t + 1e-9;
+  if (m.kind === "most") return n === 3;
+  return n > 0 && w >= m.lo - 1e-9 && w <= m.hi + 1e-9;
+}
+type MSpec = "roll" | "rollAny" | "most" | "wave" | ["smooth", number] | ["band", number, number];
+export const LEVEL_MISSIONS: MSpec[][] = [
+  ["roll", "roll", "roll"],
+  ["rollAny", "most", ["smooth", 0.3]],
+  [["smooth", 0.3], ["smooth", 0.2], "rollAny"],
+  [["smooth", 0.2], ["smooth", 0.15], "most"],
+  [["smooth", 0.15], ["smooth", 0.1], "wave"],
+  [["smooth", 0.1], "wave", ["band", 0.12, 0.2]],
+  ["wave", ["smooth", 0.1], ["band", 0.12, 0.2]],
+  ["wave", ["smooth", 0.08], ["band", 0.08, 0.12]],
+  ["wave", "wave", ["smooth", 0.08]],
+  ["wave", ["band", 0.25, 0.35], ["smooth", 0.08]],
+];
+export function levelMissions(level: number, rnd: () => number = Math.random): Mission[] {
+  const specs = LEVEL_MISSIONS[Math.min(10, Math.max(1, level)) - 1];
+  const used: number[] = [];
+  const pick = (pool: number[]) => {
+    const p = pool.filter((v) => !used.includes(v));
+    const v = (p.length ? p : pool)[Math.floor(rnd() * (p.length ? p : pool).length)];
+    used.push(v);
+    return v;
+  };
+  return specs.map((sp): Mission => {
+    if (sp === "roll") return { kind: "roll", n: pick([3, 5, 6, 0]) };
+    if (sp === "rollAny") return { kind: "roll", n: pick([3, 4, 5, 6, 7, 8, 0]) };
+    if (sp === "most") return { kind: "most" };
+    if (sp === "wave") return { kind: "wave", n: level <= 6 ? 4 : pick([4, 5, 6, 7, 8]) };
+    if (sp[0] === "smooth") return { kind: "smooth", t: sp[1] };
+    return { kind: "band", lo: sp[1], hi: sp[2] };
+  });
 }
 // ==PURE-END==
 
@@ -381,18 +423,27 @@ function Icon({ n }: { n: number }) {
 }
 
 const NEED = 4; // 미션 성공에 필요한 굴린 거리 (바퀴 반지름의 몇 배)
+const ROUNDS = 3;
+function missionText(m: Mission): string {
+  if (m.kind === "roll") return `${NAMES[m.n]} 바퀴를 골라 쓱 밀어 굴려 봐요!`;
+  if (m.kind === "most") return "가장 많이 덜컹거리는 바퀴를 찾아 굴려 봐요!";
+  if (m.kind === "smooth") return `평평한 길에서 덜컹거림이 ${Math.round(m.t * 100)}% 이하인 바퀴로 굴려 봐요!`;
+  if (m.kind === "wave") return `${NAMES[m.n]} 바퀴를 덜컹거림 없이(0%) 굴려 봐요! (길 모양을 바꿔 봐요)`;
+  return `평평한 길에서 덜컹거림이 ${Math.round(m.lo * 100)}%~${Math.round(m.hi * 100)}%인 바퀴로 굴려 봐요!`;
+}
 
 export default function WheelGame() {
   const [n, setN] = useState(4);
   const [road, setRoad] = useState<Road>("flat");
   const [running, setRunning] = useState(false);
   const [speed, setSpeed] = useState(5);
-  const [more, setMore] = useState(false);
-  const [m1, setM1] = useState(false);
-  const [m2, setM2] = useState(false);
+  const level = useStage();
+  const [missions] = useState(() => levelMissions(level));
+  const [mi, setMi] = useState(0);
+  const [won, setWon] = useState(false);
   const [touched, setTouched] = useState(false);
   const [prog, setProg] = useState(0);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "바퀴를 손가락으로 쓱 밀어 봐요! 네모 바퀴는 어떻게 굴러갈까요?" });
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "바퀴를 골라 손가락으로 쓱 밀어 봐요! 위의 미션을 해내면 다음으로 넘어가요." });
   const [W, setW] = useState(600);
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -401,8 +452,10 @@ export default function WheelGame() {
   const vRef = useRef(0);
   const distRef = useRef(0);
   const drag = useRef<{ px: number; t: number; v: number } | null>(null);
-  const cfg = useRef({ n, road, m1, m2 });
-  cfg.current = { n, road, m1, m2 };
+  const cfg = useRef({ n, road, mi, won });
+  cfg.current = { n, road, mi, won };
+  const timer = useRef(0);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -427,17 +480,26 @@ export default function WheelGame() {
     const p = Math.min(1, distRef.current / NEED);
     setProg((old) => (Math.floor(p * 20) !== Math.floor(old * 20) ? p : old));
     if (distRef.current < NEED) return;
-    const { n: cn, road: cr, m1: a, m2: b } = cfg.current;
-    if (cr === "flat" && wiggle(cn, cr) <= 0.1 && !a) {
-      setM1(true);
-      setMore(true);
-      cheer();
-      setMsg({ tone: "ok", text: `⭐ 미션 1 성공! ${NAMES[cn]} 바퀴는 거의 덜컹거리지 않아요. 변이 많을수록 동그라미에 가까워져요. 이제 미션 2에 도전해 봐요!` });
-    }
-    if (cr === "bumpy" && cn === 4 && !b) {
-      setM2(true);
-      cheer();
-      setMsg({ tone: "ok", text: "⭐ 미션 2 성공! 네모 바퀴도 물결 길에서는 덜컹거리지 않고 매끈하게 굴러가요!" });
+    const { n: cn, road: cr, mi: i, won: done } = cfg.current;
+    if (done || !missionOk(missions[i], cn, cr)) return;
+    setWon(true);
+    cfg.current.won = true;
+    cheer();
+    window.clearTimeout(timer.current);
+    const w = wiggle(cn, cr);
+    const praise = `⭐ 미션 성공! ${NAMES[cn]} 바퀴${cr === "bumpy" ? "가 물결 길에서" : ""} 덜컹거림 ${bumpWord(w)} (${(w * 100).toFixed(0)}%)!`;
+    if (i + 1 >= ROUNDS) {
+      setMsg({ tone: "ok", text: `${praise} 레벨 ${level} 끝!` });
+      timer.current = window.setTimeout(() => stageClear(), 1200);
+    } else {
+      setMsg({ tone: "ok", text: `${praise} 곧 다음 미션!` });
+      timer.current = window.setTimeout(() => {
+        setMi(i + 1);
+        setWon(false);
+        distRef.current = 0;
+        setProg(0);
+        setMsg({ tone: "info", text: `다음 미션: ${missionText(missions[i + 1])}` });
+      }, 1800);
     }
   };
 
@@ -497,8 +559,10 @@ export default function WheelGame() {
   };
 
   const giveHint = () => {
-    if (!m1) setMsg({ tone: "info", text: "힌트: 바퀴의 변을 7개나 8개로 바꿔서 쓱 밀어 보세요. 변이 많을수록 동그라미에 가까워져요!" });
-    else setMsg({ tone: "info", text: "힌트: ‘네모’ 바퀴를 고르고 ‘물결 길’을 누른 다음 바퀴를 쓱 밀어요." });
+    const m = missions[mi];
+    const ok = [3, 4, 5, 6, 7, 8, 0].filter((k) => missionOk(m, k, m.kind === "wave" ? "bumpy" : "flat"));
+    const names = ok.map((k) => NAMES[k]).join(", ");
+    setMsg({ tone: "info", text: m.kind === "wave" ? `힌트: ‘${NAMES[m.n]}’ 바퀴를 고르고 ‘물결 길’을 누른 다음 쓱 밀어요.` : `힌트: ${names} 바퀴로 평평한 길에서 굴려 보세요. 아래 막대 그래프도 도움이 돼요!` });
   };
 
   const restart = () => {
@@ -506,8 +570,6 @@ export default function WheelGame() {
     xRef.current = 0;
     vRef.current = 0;
     resetDist();
-    setM1(false);
-    setM2(false);
     setMsg({ tone: "info", text: "처음으로 돌아왔어요. 바퀴를 쓱 밀어 봐요!" });
   };
 
@@ -548,9 +610,8 @@ export default function WheelGame() {
 
   return (
     <div className="space-y-3 text-base">
-      <p className="rounded-card bg-accent-soft px-3 py-2 font-bold">
-        {m1 ? "미션 2: 네모 바퀴를 덜컹거리지 않게 굴려 봐요! (길 모양을 바꿔 봐요)" : "미션 1: 바퀴를 바꿔서 덜컹거림을 ‘조금’ 이하로 만들고 쓱 밀어 굴려 봐요!"}
-      </p>
+      <p className="font-game text-center text-xl text-accent">레벨 {level} · 라운드 {mi + 1}/{ROUNDS}</p>
+      <p className={`rounded-card px-3 py-2 font-bold ${won ? "bg-ok-soft text-ok" : "bg-accent-soft"}`}>미션 {mi + 1}: {missionText(missions[mi])}</p>
       <Board>
         <div className="mb-3 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="바퀴 모양 고르기">
           {shapes.map((k) => (
@@ -600,7 +661,7 @@ export default function WheelGame() {
 
       <div className="flex flex-wrap items-center gap-2">
         <Stat label="덜컹거림" value={`${bumpWord(w)} (${(w * 100).toFixed(0)}%)`} tone={w === 0 ? "ok" : "plain"} />
-        <Stat label="⭐ 미션" value={`${(m1 ? 1 : 0) + (m2 ? 1 : 0)}/2`} tone={m1 && m2 ? "ok" : "plain"} />
+        <Stat label="라운드" value={`${mi + 1}/${ROUNDS}`} tone={won ? "ok" : "plain"} />
       </div>
       <Say tone={msg.tone}>{msg.text}</Say>
 
@@ -608,10 +669,9 @@ export default function WheelGame() {
         <GButton variant={running ? "primary" : "soft"} onClick={() => { setRunning(!running); setTouched(true); }} className={BIG}>{running ? "■ 멈추기" : "▶ 저절로 굴러가기"}</GButton>
         <GButton onClick={restart} className={BIG}>↻ 다시 하기</GButton>
         <GButton variant="soft" onClick={giveHint} className={BIG}>💡 힌트 보기</GButton>
-        <GButton pressed={more} onClick={() => setMore(!more)} className={BIG}>{more ? "어려운 도전 닫기" : "더 어려운 도전"}</GButton>
       </div>
 
-      {more && (
+      {(level >= 5 || road === "bumpy") && (
         <Board className="space-y-2">
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="길 모양 고르기">
             <span className="font-semibold">길 모양</span>

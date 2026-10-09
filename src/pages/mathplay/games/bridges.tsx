@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, tick } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, stageClear, tick, useStage } from "./kit";
 
 // ==PURE-START==
 export type LandId = "A" | "B" | "C" | "D";
@@ -26,8 +26,8 @@ export const SLOTS: Bridge[] = [
   B(7, "C", "D", "M 620 60 C 690 130 690 250 620 320", [672, 190]),
   B(8, "C", "B", "M 522 60 L 522 166", [522, 108]),
   B(9, "D", "B", "M 522 320 L 522 204", [522, 266]),
-  B(10, "A", "B", "M 236 160 Q 323 112 410 160", [323, 136]),
-  B(11, "A", "B", "M 236 214 Q 323 262 410 214", [323, 238]),
+  B(10, "A", "B", "M 236 160 Q 323 84 410 160", [323, 122]),
+  B(11, "A", "B", "M 236 214 Q 323 296 410 214", [323, 255]),
 ];
 /** 레벨별 다리 수 */
 export const LEVEL_K = [4, 5, 5, 6, 6, 7, 8, 9, 10, 11];
@@ -61,7 +61,10 @@ export function mapsWith(k: number): Bridge[][] {
   return (cache[k] = out);
 }
 export function levelMap(level: number, rnd: () => number = Math.random): Bridge[] {
-  const all = mapsWith(LEVEL_K[Math.min(10, Math.max(1, level)) - 1]);
+  const L = Math.min(10, Math.max(1, level));
+  let all = mapsWith(LEVEL_K[L - 1]);
+  // 레벨 3·5는 출발할 땅이 정해진(홀수 땅 2곳) 지도만
+  if (L === 3 || L === 5) all = all.filter((m) => oddLands(m).length === 2);
   return all[Math.floor(rnd() * all.length)];
 }
 
@@ -177,14 +180,14 @@ function Bear({ mood }: { mood: "ok" | "happy" | "sad" }) {
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
 type G = { start: LandId | null; path: number[] };
 const BIG = "min-h-[48px]! text-base";
-const GOAL = 5;
+const ROUNDS = 3;
 
 export default function BridgesGame() {
-  const [mapId, setMapId] = useState<MapId>("minus");
+  const level = useStage();
+  const [bsState, setBs] = useState<Bridge[]>(() => levelMap(level));
+  const [round, setRound] = useState(1);
   const [g, setG] = useState<G>({ start: null, path: [] });
   const [hint, setHint] = useState(false);
-  const [more, setMore] = useState(false);
-  const [wins, setWins] = useState(0);
   const [stucks, setStucks] = useState(0);
   // 다리를 건널 때 ‘나’가 다리를 따라 걸어가는 애니메이션
   const [walkAnim, setWalkAnim] = useState<{ d: string; rev: boolean; k: number } | null>(null);
@@ -192,8 +195,8 @@ export default function BridgesGame() {
   const [msg, setMsg] = useState<Msg>({ tone: "info", text: "땅을 눌러 출발해요!" });
 
   const gRef = useRef(g);
-  const mapRef = useRef(mapId);
-  const winsRef = useRef(0);
+  const mapRef = useRef(bsState);
+  const roundRef = useRef(1);
   const timer = useRef(0);
 
   const clearTimer = () => {
@@ -209,12 +212,12 @@ export default function BridgesGame() {
     gRef.current = ng;
     setG(ng);
   };
-  const bsOf = () => MAPS[mapRef.current].bridges;
+  const bsOf = () => mapRef.current;
 
-  const resetRun = (text: string, id: MapId = mapRef.current) => {
+  const resetRun = (text: string, next: Bridge[] = mapRef.current) => {
     clearTimer();
-    mapRef.current = id;
-    setMapId(id);
+    mapRef.current = next;
+    setBs(next);
     commit({ start: null, path: [] });
     setMsg({ tone: "info", text });
   };
@@ -250,20 +253,23 @@ export default function BridgesGame() {
     setWalkAnim({ d: b.d, rev, k: Date.now() });
     animTimer.current = window.setTimeout(() => setWalkAnim(null), 520);
     if (np.length === bs.length) {
-      winsRef.current += 1;
-      const w = winsRef.current;
-      setWins(w);
       cheer();
-      if (w >= GOAL) setMsg({ tone: "ok", text: `⭐ 별 ${GOAL}개 완성! 정말 대단해요!` });
-      else {
+      if (roundRef.current >= ROUNDS) {
+        setMsg({ tone: "ok", text: `⭐ 대단해요! 레벨 ${level}의 지도를 모두 건넜어요!` });
+        timer.current = window.setTimeout(() => stageClear(), 1200);
+      } else {
         setMsg({ tone: "ok", text: `⭐ 대단해요! 다리를 모두 한 번씩 건넜어요! 곧 다음 지도가 나와요.` });
-        timer.current = window.setTimeout(() => resetRun("새 판이에요! 땅을 눌러 출발해요!", mapRef.current === "minus" ? "plus" : mapRef.current === "plus" ? "minus" : mapRef.current), 2300);
+        timer.current = window.setTimeout(() => {
+          roundRef.current += 1;
+          setRound(roundRef.current);
+          resetRun("새 지도예요! 땅을 눌러 출발해요!", levelMap(level));
+        }, 2300);
       }
     } else if (!bs.some((x) => !np.includes(x.id) && touches(x, to))) {
       oops();
       setStucks((s) => s + 1);
-      setMsg({ tone: "bad", text: mapRef.current === "classic" ? `아깝다! ${to}에서 막혔어요. 이 지도는 어디서 시작해도 이렇게 된다고 알려져 있어요. 쉬운 지도로 바꿔 볼까요?` : `아깝다! ${to}에서 막혔어요. 잠시 뒤 다시 시작해요. (‘한 걸음 뒤로’로 바로 고칠 수도 있어요)` });
-      if (mapRef.current !== "classic") timer.current = window.setTimeout(() => resetRun("다시 해 봐요! 이번엔 다른 길로 가 볼까요?"), 3000);
+      setMsg({ tone: "bad", text: `아깝다! ${to}에서 막혔어요. 잠시 뒤 다시 시작해요. (‘한 걸음 뒤로’로 바로 고칠 수도 있어요)` });
+      timer.current = window.setTimeout(() => resetRun("다시 해 봐요! 이번엔 다른 길로 가 볼까요?"), 3000);
     } else {
       setMsg({ tone: "info", text: `${at}에서 ${to}로 건넜어요! 다음 땅을 눌러요. (${np.length}/${bs.length})` });
     }
@@ -309,8 +315,7 @@ export default function BridgesGame() {
     }
   };
 
-  const bs = MAPS[mapId].bridges;
-  const map = MAPS[mapId];
+  const bs = bsState;
   const deg = degrees(bs);
   const odd = oddLands(bs);
   const good = startsThatWork(bs);
@@ -333,11 +338,12 @@ export default function BridgesGame() {
 
   return (
     <div className="space-y-3 text-base">
+      <p className="font-game text-center text-xl text-accent">레벨 {level} · 라운드 {round}/{ROUNDS}</p>
       <Board>
         <p className="mb-2 rounded-card bg-accent-soft px-3 py-2 text-base font-bold">
           {!g.start ? "① 출발할 땅을 눌러요 (다리는 한 번씩만!)" : over ? (done ? "성공! 별을 받았어요" : "막혔어요. 곧 다시 시작해요") : "② 반짝이는 땅을 누르면 다리를 건너요"}
         </p>
-        <p className="mb-2 text-base text-muted">{map.note}</p>
+        <p className="mb-2 text-base text-muted">다리가 {bs.length}개 있어요. 모든 다리를 딱 한 번씩만 건너 보세요.</p>
 
         <style>{`
           @keyframes br-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
@@ -447,7 +453,7 @@ export default function BridgesGame() {
                   </g>
                 )}
                 {/* 나무와 꽃 장식 */}
-                {(l === "C" ? [[300, 26], [395, 34], [560, 24], [665, 32]] : l === "D" ? [[290, 352], [400, 344], [555, 354], [668, 348]] : l === "A" ? [[118, 190]] : [[512, 192]]).map(([x, y], i) => (
+                {(l === "C" ? [[300, 26], [395, 34], [560, 24], [665, 32]] : l === "D" ? [[290, 352], [400, 344], [555, 354], [668, 348]] : l === "A" ? [[118, 190]] : []).map(([x, y], i) => (
                   <g key={i} pointerEvents="none">
                     <rect x={x - 3} y={y} width="6" height="12" rx="2" fill="#92400e" />
                     <circle cx={x} cy={y - 4} r="12" fill="#16a34a" stroke="#14532d" strokeWidth="2" />
@@ -519,7 +525,7 @@ export default function BridgesGame() {
 
       <div className="flex flex-wrap items-center gap-2">
         <Stat label="건넌 다리" value={`${g.path.length}/${bs.length}`} tone={done ? "ok" : "plain"} />
-        <Stat label="⭐ 별" value={`${wins}/${GOAL}`} tone={wins ? "ok" : "plain"} />
+        <Stat label="라운드" value={`${round}/${ROUNDS}`} />
         <Stat label="다시 해 본 횟수" value={stucks} />
       </div>
       {route && <p className="text-base text-muted">지나온 길: <strong className="text-ink">{route}</strong></p>}
@@ -529,19 +535,7 @@ export default function BridgesGame() {
         <GButton onClick={undo} disabled={g.path.length === 0} className={BIG}>↶ 한 걸음 뒤로</GButton>
         <GButton variant="primary" onClick={() => resetRun("다시 시작해요! 땅을 눌러 출발해요.")} disabled={!g.start} className={BIG}>↻ 다시 하기</GButton>
         <GButton variant="soft" pressed={hint} onClick={() => setHint(!hint)} className={BIG}>{hint ? "힌트 숨기기" : "💡 힌트 보기"}</GButton>
-        <GButton pressed={more} onClick={() => setMore(!more)} className={BIG}>{more ? "어려운 도전 닫기" : "더 어려운 도전"}</GButton>
       </div>
-
-      {more && (
-        <Board className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold">지도 고르기</span>
-          {(["minus", "plus", "classic"] as MapId[]).map((id) => (
-            <GButton key={id} variant={id === mapId ? "soft" : "ghost"} pressed={id === mapId} onClick={() => resetRun("새 지도예요. 땅을 눌러 출발해요!", id)} className={BIG}>
-              {MAPS[id].name}
-            </GButton>
-          ))}
-        </Board>
-      )}
 
       {hint && (
         <Board className="text-base leading-relaxed">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, tick } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, stageClear, tick, useStage } from "./kit";
 
 // ==PURE-START==
 export type Parsed = { names: string[]; cells: number[][]; adj: boolean[][] };
@@ -80,36 +80,57 @@ export function solveFrom(adj: boolean[][], k: number, fixed: (number | null)[])
   };
   return go(0) ? (col as number[]) : null;
 }
+/** 나라 n개짜리 무작위 지도 (W×H 칸). 씨앗에서 무작위로 넓혀 가서 나라마다 한 덩어리가 돼요. */
+export function genMap(n: number, rnd: () => number = Math.random, W = 12, H = 8, minSize = Math.min(5, Math.floor((W * H) / (2 * n)))): string[] {
+  for (let tries = 0; tries < 500; tries++) {
+    const g: number[] = Array(W * H).fill(-1);
+    const front: [number, number][] = [];
+    const cells = Array.from({ length: W * H }, (_, i) => i);
+    for (let r = 0; r < n; r++) {
+      const k = r + Math.floor(rnd() * (cells.length - r));
+      [cells[r], cells[k]] = [cells[k], cells[r]];
+      g[cells[r]] = r;
+      front.push([cells[r], r]);
+    }
+    while (front.length) {
+      const k = Math.floor(rnd() * front.length);
+      const [c, r] = front[k];
+      const x = c % W;
+      const y = Math.floor(c / W);
+      const nb = [x > 0 ? c - 1 : -1, x < W - 1 ? c + 1 : -1, y > 0 ? c - W : -1, y < H - 1 ? c + W : -1].filter((v) => v >= 0 && g[v] === -1);
+      if (!nb.length) {
+        front.splice(k, 1);
+        continue;
+      }
+      const t = nb[Math.floor(rnd() * nb.length)];
+      g[t] = r;
+      front.push([t, r]);
+    }
+    const size = Array(n).fill(0);
+    g.forEach((r) => size[r]++);
+    if (size.some((v) => v < minSize)) continue;
+    const L = "ABCDEFGHIJKLMNOP";
+    return Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => L[g[y * W + x]]).join(""));
+  }
+  if (minSize > 1) return genMap(n, rnd, W, H, minSize - 1);
+  throw new Error("지도를 못 만들었어요");
+}
+/** 레벨별 나라 수 */
+export const LEVEL_N = [5, 6, 7, 8, 9, 10, 10, 11, 12, 12];
+/** 레벨 문제: 지도와 쓸 수 있는 색 수. 레벨 1~6은 4색(언제나 충분), 레벨 7부터는 꼭 필요한 최소 색만 줘요. */
+export function levelPuzzle(level: number, rnd: () => number = Math.random): { rows: string[]; ncol: number; chi: number } {
+  const L = Math.min(10, Math.max(1, level));
+  let best: { rows: string[]; chi: number } | null = null;
+  for (let t = 0; t < 60; t++) {
+    const rows = genMap(LEVEL_N[L - 1], rnd);
+    const chi = chromatic(parseMap(rows).adj);
+    if (L <= 6 || !best || chi > best.chi) best = { rows, chi };
+    if (L <= 6) break;
+    if (L <= 8 ? chi >= 3 : chi >= 4) break;
+  }
+  return { rows: best!.rows, ncol: L <= 6 ? 4 : Math.max(3, best!.chi), chi: best!.chi };
+}
 // ==PURE-END==
-
-type MapDef = { id: string; name: string; rows: string[]; why: string };
-
-const MAPS: MapDef[] = [
-  {
-    id: "brick",
-    name: "지도 1",
-    rows: ["AAAABBBBCCCC", "AAAABBBBCCCC", "DDEEEEFFFFGG", "DDEEEEFFFFGG", "HHHHIIIIJJJJ", "HHHHIIIIJJJJ"],
-    why: "서로 붙어 있는 나라 셋이 있어서 2색은 모자라요. 하지만 3색이면 돼요.",
-  },
-  {
-    id: "village",
-    name: "지도 2",
-    rows: ["AAAABBBBCCCC", "AAAABBBBCCCC", "DDDEEEEEFFCC", "DDDEEEEEFFGG", "HHHHEEEEFFGG", "HHHHIIIIIIGG", "HHHHIIIIIIGG"],
-    why: "3색으로 칠하다 보면 꼭 막히는 곳이 생겨요. 컴퓨터가 모든 경우를 해 봤더니 4색이 필요했어요.",
-  },
-  {
-    id: "star",
-    name: "별 모양 지도",
-    rows: ["AAAAABBBBBGG", "AAAAABBBBBGG", "AAEEEEEBBBCC", "FFEEEEECCCCC", "FFEEEEECCCCC", "FFFDDDDCCCCH", "FFFDDDDCCCHH", "FFFDDDDHHHHH"],
-    why: "가운데 나라 E를 다섯 나라가 빙 둘러싸고 있어요. 둘러싼 나라는 두 색만으로 번갈아 칠하면 마지막이 안 맞아서 3색이 필요하고, E는 또 다른 색이어야 해서 4색이 필요해요.",
-  },
-  {
-    id: "k4",
-    name: "네 나라 지도",
-    rows: ["GGAAAAAABBHH", "GGAAAAAABBHH", "GGAAEEEEBBHH", "IICCEEEEBBJJ", "IICCCCCCBBJJ", "IICCCCCCCCJJ", "KKKKKKKKKKJJ"],
-    why: "A, B, C, E 네 나라가 모두 서로 붙어 있어요. 넷이 다 다른 색이어야 하니 4색이 필요해요.",
-  },
-];
 
 const PALETTE = [
   { fill: "#fde047", dark: "#ca8a04", name: "노랑" },
@@ -189,27 +210,22 @@ function buildGeometry(rows: string[]) {
 
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
 const BIG = "min-h-[48px]! text-base";
-const GOAL = 5;
-const EASY = [0, 1];
+const ROUNDS = 3;
 
 export default function MapColorGame() {
-  const [fixed, setFixed] = useState<number | null>(null);
+  const level = useStage();
+  const [puz, setPuz] = useState(() => levelPuzzle(level));
   const [round, setRound] = useState(1);
-  const [ncol, setNcol] = useState(4);
+  const ncol = puz.ncol;
   const [brush, setBrush] = useState<number | null>(null); // null = 톡 누르면 색이 바뀜, -1 = 지우개
   const [colors, setColors] = useState<(number | null)[]>([]);
-  const [showHint, setShowHint] = useState(false);
-  const [more, setMore] = useState(false);
   const [hintR, setHintR] = useState<number | null>(null);
-  const [wins, setWins] = useState(0);
   const [touched, setTouched] = useState(false);
   const [splash, setSplash] = useState<{ r: number; c: number; k: number } | null>(null);
   const [shake, setShake] = useState(false);
   const [msg, setMsg] = useState<Msg>({ tone: "info", text: "나라를 톡 누를 때마다 색이 바뀌어요. 붙은 나라는 다른 색으로!" });
 
-  const mi = fixed ?? EASY[(round - 1) % EASY.length];
-  const defs = MAPS[mi];
-  const geo = useMemo(() => buildGeometry(defs.rows), [defs]);
+  const geo = useMemo(() => buildGeometry(puz.rows), [puz]);
   const { p, W, H } = geo;
   const n = p.names.length;
   const cur: (number | null)[] = colors.length === n ? colors : Array<number | null>(n).fill(null);
@@ -219,8 +235,8 @@ export default function MapColorGame() {
   const full = painted === n;
 
   // 끌면서 칠할 때 최신 값을 쓰기 위한 참조
-  const live = useRef({ cur, n, p, geo, ncol, brush, round, fixed, wins });
-  live.current = { cur, n, p, geo, ncol, brush, round, fixed, wins };
+  const live = useRef({ cur, n, p, geo, ncol, brush, round });
+  live.current = { cur, n, p, geo, ncol, brush, round };
   const colorsRef = useRef<(number | null)[]>(cur);
   colorsRef.current = cur;
   const lock = useRef(false);
@@ -249,11 +265,10 @@ export default function MapColorGame() {
     if (cf.size === 0) {
       const k = new Set(next).size;
       lock.current = true;
-      const w = L.wins + 1;
-      setWins(w);
       cheer();
-      if (L.round >= GOAL) {
-        setMsg({ tone: "ok", text: `⭐ 별 ${GOAL}개 완성! 정말 대단해요!` });
+      if (L.round >= ROUNDS) {
+        setMsg({ tone: "ok", text: `⭐ 대단해요! 레벨 ${level}의 지도를 모두 칠했어요!` });
+        timer.current = window.setTimeout(() => stageClear(), 1200);
         return;
       }
       setMsg({ tone: "ok", text: k <= L.geo.chi ? `⭐ 대단해요! ${k}색으로 다 칠했어요! 곧 다음 지도가 나와요.` : `⭐ 성공! ${k}색으로 칠했어요. (이 지도는 ${L.geo.chi}색으로도 돼요) 곧 다음 지도가 나와요.` });
@@ -263,10 +278,12 @@ export default function MapColorGame() {
         setColors([]);
         setSplash(null);
         setRound((r) => r + 1);
+        setPuz(levelPuzzle(level));
+        setBrush(null);
         setMsg({ tone: "info", text: "새 지도예요! 나라를 톡 눌러 칠해 봐요." });
       }, 2300);
     } else if (L.ncol < L.geo.chi) {
-      setMsg({ tone: "bad", text: `아깝다! 사실 이 지도는 ${L.ncol}색으로는 칠할 수 없어요. ‘더 어려운 도전’에서 색을 늘려 봐요.` });
+      setMsg({ tone: "bad", text: `아깝다! 사실 이 지도는 ${L.ncol}색으로는 칠할 수 없어요. 색을 다시 바꿔 봐요.` });
     } else {
       setMsg({ tone: "bad", text: "아깝다! 같은 색이 붙은 곳이 있어요. 빨간 테두리를 톡 눌러 색을 바꿔 봐요." });
     }
@@ -325,30 +342,6 @@ export default function MapColorGame() {
     setMsg({ tone: "info", text: "새로 시작해요. 나라를 톡 눌러 보세요!" });
   };
 
-  const pickMap = (i: number | null) => {
-    window.clearTimeout(timer.current);
-    lock.current = false;
-    setFixed(i);
-    setRound(1);
-    setWins(0);
-    colorsRef.current = [];
-    setColors([]);
-    setSplash(null);
-    setShowHint(false);
-    setHintR(null);
-    setMsg({ tone: "info", text: "새 지도예요. 나라를 톡 눌러 칠해 봐요!" });
-  };
-
-  const changeNcol = (k: number) => {
-    setNcol(k);
-    if (brush !== null && brush >= k) setBrush(null);
-    const next = cur.map((c) => (c !== null && c >= k ? null : c));
-    colorsRef.current = next;
-    setColors(next);
-    setHintR(null);
-    setMsg({ tone: "info", text: `이제 ${k}색으로 칠해요.` });
-  };
-
   const giveHint = () => {
     if (bad.size) {
       const r = [...bad][0];
@@ -377,6 +370,8 @@ export default function MapColorGame() {
 
   return (
     <div className="space-y-3 text-base">
+      <p className="font-game text-center text-xl text-accent">레벨 {level} · 라운드 {round}/{ROUNDS}</p>
+      {level >= 7 && <p className="text-center font-bold text-ink">이번엔 물감이 딱 {ncol}가지뿐! 꼭 필요한 색만 있어요.</p>}
       <Board>
         <p className="mb-2 rounded-card bg-accent-soft px-3 py-2 text-base font-bold">
           {brush === null ? "나라를 톡 누를 때마다 색이 바뀌어요. 붙은 나라는 다른 색!" : brush === -1 ? "지우개예요. 나라를 누르거나 쓱쓱 문질러 지워요." : "물감을 골랐어요. 나라를 누르거나 손가락으로 쓱쓱 문질러 칠해요!"}
@@ -393,7 +388,7 @@ export default function MapColorGame() {
           className="block h-auto w-full select-none"
           style={{ touchAction: "none", ...JUA }}
           role="group"
-          aria-label={`${defs.name}. 나라 ${n}개`}
+          aria-label={`색칠할 지도. 나라 ${n}개`}
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
@@ -511,51 +506,18 @@ export default function MapColorGame() {
       </Board>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Stat label="판" value={`${fixed === null ? round : 1}/${fixed === null ? GOAL : 1}`} />
+        <Stat label="라운드" value={`${round}/${ROUNDS}`} />
         <Stat label="칠한 나라" value={`${painted}/${n}`} tone={full && bad.size === 0 ? "ok" : "plain"} />
         <Stat label="쓴 색" value={usedColors} />
         <Stat label="같은 색이 붙은 곳" value={bad.size ? `${bad.size}곳` : "없음"} tone={bad.size ? "bad" : "plain"} />
-        <Stat label="⭐ 별" value={wins} tone={wins ? "ok" : "plain"} />
       </div>
       <Say tone={msg.tone}>{msg.text}</Say>
 
       <div className="flex flex-wrap gap-2">
         <GButton variant="primary" onClick={reset} className={BIG}>↻ 다시 칠하기</GButton>
         <GButton variant="soft" onClick={giveHint} className={BIG}>💡 힌트 보기</GButton>
-        <GButton pressed={more} onClick={() => setMore(!more)} className={BIG}>{more ? "어려운 도전 닫기" : "더 어려운 도전"}</GButton>
       </div>
 
-      {more && (
-        <Board className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">지도 고르기</span>
-            <GButton variant={fixed === null ? "soft" : "ghost"} pressed={fixed === null} onClick={() => pickMap(null)} className={BIG}>차례대로</GButton>
-            {MAPS.map((m, i) => (
-              <GButton key={m.id} variant={fixed === i ? "soft" : "ghost"} pressed={fixed === i} onClick={() => pickMap(i)} className={BIG}>
-                {m.name}
-              </GButton>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">쓸 수 있는 색 (적을수록 어려워요)</span>
-            {[3, 4, 5].map((k) => (
-              <GButton key={k} variant={ncol === k ? "soft" : "ghost"} pressed={ncol === k} onClick={() => changeNcol(k)} className={BIG}>
-                {k}색
-              </GButton>
-            ))}
-          </div>
-          <GButton variant="soft" pressed={showHint} onClick={() => setShowHint(!showHint)} className={BIG}>{showHint ? "답 숨기기" : "이 지도는 몇 색이면 될까?"}</GButton>
-          {showHint && (
-            <div className="leading-relaxed">
-              <p>
-                이 지도는 <strong>{geo.canThree ? "3색으로 칠할 수 있어요" : "3색으로는 칠할 수 없어요"}</strong>
-                {geo.canThree ? "." : ` (${geo.chi}색이면 돼요).`}
-              </p>
-              <p className="mt-1 text-muted">{defs.why}</p>
-            </div>
-          )}
-        </Board>
-      )}
     </div>
   );
 }

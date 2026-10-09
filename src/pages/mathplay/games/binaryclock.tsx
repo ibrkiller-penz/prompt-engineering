@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, oops, rand, tick } from "./kit";
+import { Board, GButton, Say, Stat, cheer, oops, stageClear, tick, useStage } from "./kit";
 
 // ==PURE-START==
 /** 값 v를 len개 자리(왼쪽이 가장 큰 자리)의 이진 불로 */
@@ -17,14 +17,72 @@ export function sumText(bits: boolean[]): string {
   const on = w.filter((_, i) => bits[i]);
   return on.length ? `${on.join(" + ")} = ${on.reduce((a, b) => a + b, 0)}` : "0";
 }
+export type BRound = { kind: "make"; len: number; target: number } | { kind: "read"; len: number; value: number; options: number[] } | { kind: "clock"; h: number; m: number; options: [number, number][] };
+type Spec = ["make", number, number, number] | ["read", number] | ["clock"];
+/** 레벨별 라운드 3개: [만들기, 불 개수, 가장 작은 목표, 가장 큰 목표] / [읽기, 불 개수] / [시계 읽기] */
+export const LEVEL_SPECS: Spec[][] = [
+  [["make", 3, 1, 7], ["make", 3, 1, 7], ["make", 3, 1, 7]],
+  [["make", 3, 1, 7], ["make", 3, 3, 7], ["read", 3]],
+  [["make", 4, 1, 15], ["make", 4, 1, 15], ["make", 4, 1, 15]],
+  [["make", 4, 8, 15], ["read", 4], ["make", 4, 8, 15]],
+  [["make", 5, 1, 31], ["make", 5, 1, 31], ["make", 5, 1, 31]],
+  [["make", 5, 16, 31], ["read", 5], ["make", 5, 16, 31]],
+  [["read", 5], ["make", 5, 17, 31], ["read", 5]],
+  [["make", 6, 1, 63], ["read", 6], ["make", 6, 20, 63]],
+  [["clock"], ["make", 6, 32, 63], ["read", 6]],
+  [["clock"], ["read", 6], ["clock"]],
+];
+const ri = (rnd: () => number, lo: number, hi: number) => lo + Math.floor(rnd() * (hi - lo + 1));
+function shuffle<T>(a: T[], rnd: () => number): T[] {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+/** 불 하나만 바뀐 그럴듯한 오답 2개 + 정답 */
+export function readOptions(v: number, len: number, rnd: () => number = Math.random): number[] {
+  const wrong = new Set<number>();
+  while (wrong.size < 2) {
+    const w = v ^ (1 << Math.floor(rnd() * len));
+    if (w > 0 && w !== v) wrong.add(w);
+  }
+  return shuffle([v, ...wrong], rnd);
+}
+export function clockOptions(h: number, m: number, rnd: () => number = Math.random): [number, number][] {
+  const out: [number, number][] = [[h, m]];
+  while (out.length < 3) {
+    const c: [number, number] = rnd() < 0.5 ? [h ^ (1 << Math.floor(rnd() * 5)), m] : [h, m ^ (1 << Math.floor(rnd() * 6))];
+    if (c[0] <= 23 && c[1] <= 59 && !out.some(([a, b]) => a === c[0] && b === c[1])) out.push(c);
+  }
+  return shuffle(out, rnd);
+}
+export function levelRounds(level: number, rnd: () => number = Math.random): BRound[] {
+  const specs = LEVEL_SPECS[Math.min(10, Math.max(1, level)) - 1];
+  let prev = -1;
+  return specs.map((sp) => {
+    if (sp[0] === "make") {
+      let t = ri(rnd, sp[2], sp[3]);
+      while (t === prev && sp[3] > sp[2]) t = ri(rnd, sp[2], sp[3]);
+      prev = t;
+      return { kind: "make", len: sp[1], target: t };
+    }
+    if (sp[0] === "read") {
+      const v = ri(rnd, 2 ** (sp[1] - 1) / 2 + 1, 2 ** sp[1] - 1);
+      return { kind: "read", len: sp[1], value: v, options: readOptions(v, sp[1], rnd) };
+    }
+    const h = ri(rnd, 1, 23);
+    const m = ri(rnd, 1, 59);
+    return { kind: "clock", h, m, options: clockOptions(h, m, rnd) };
+  });
+}
 // ==PURE-END==
 
-type Mode = "quiz" | "free" | "clock";
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const BIG = "min-h-[48px]! text-base";
-const ROUNDS = 5;
+const ROUNDS = 3;
 
 function Bulbs({ bits, onToggle, label, size = "lg", guide }: { bits: boolean[]; onToggle?: (i: number) => void; label: string; size?: "lg" | "md"; guide?: number | null }) {
   const w = weights(bits.length);
@@ -176,233 +234,167 @@ function Balloon({ n, ok, sad }: { n: number; ok: boolean; sad: boolean }) {
 }
 
 export default function BinaryClockGame() {
-  const [mode, setMode] = useState<Mode>("quiz");
-  const [len, setLen] = useState(3);
-  const [more, setMore] = useState(false);
-  const [bits, setBits] = useState<boolean[]>(Array(3).fill(false));
-  const [target, setTarget] = useState(() => 1 + rand(7));
+  const level = useStage();
+  const [plan] = useState(() => levelRounds(level));
+  const [idx, setIdx] = useState(0);
+  const round = plan[idx];
+  const len = round.kind === "make" ? round.len : 5;
+  const [bits, setBits] = useState<boolean[]>(() => Array(plan[0].kind === "make" ? plan[0].len : 5).fill(false));
   const [solved, setSolved] = useState(false);
-  const [hinted, setHinted] = useState(false);
-  const [stars, setStars] = useState(0);
-  const [round, setRound] = useState(1);
-  const [finished, setFinished] = useState(false);
   const [touched, setTouched] = useState(false);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "불을 톡 눌러 켜요. 켜진 불의 숫자를 모두 더하면 풍선의 수가 돼요!" });
-  const [now, setNow] = useState(() => new Date());
-  const [hideDigits, setHideDigits] = useState(false);
-  const [peek, setPeek] = useState(false);
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: startText(plan[0]) });
 
-  const st = useRef({ bits, target, solved, finished, hinted, mode, len, round, stars });
-  st.current = { bits, target, solved, finished, hinted, mode, len, round, stars };
+  const st = useRef({ bits, solved, round, idx });
+  st.current = { bits, solved, round, idx };
   const bitsRef = useRef(bits);
   const timer = useRef(0);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
-  useEffect(() => {
-    if (mode !== "clock") return;
-    setNow(new Date());
-    const id = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(id);
-  }, [mode]);
-
-  const value = fromBits(bits);
   const setB = (b: boolean[]) => {
     bitsRef.current = b;
     setBits(b);
   };
-  const empty = (l = len) => Array<boolean>(l).fill(false);
+  const value = fromBits(bits);
 
-  const newGame = (l = len) => {
+  const win = (text: string) => {
+    setSolved(true);
+    cheer();
     window.clearTimeout(timer.current);
-    setTarget(1 + rand(2 ** l - 1));
-    setB(empty(l));
-    setSolved(false);
-    setHinted(false);
-    setStars(0);
-    setRound(1);
-    setFinished(false);
-    setTouched(false);
-    setMsg({ tone: "info", text: "새 게임이에요! 불을 톡 눌러서 풍선의 수를 만들어 봐요." });
-  };
-
-  const advance = (curRound: number, curStars: number, curTarget: number) => {
-    if (curRound >= ROUNDS) {
-      setFinished(true);
-      setMsg({ tone: "ok", text: `끝! ${ROUNDS}문제 중 ⭐ ${curStars}개를 받았어요. ${curStars >= 4 ? "정말 잘했어요!" : "한 번 더 하면 더 잘할 수 있어요!"}` });
+    const i = st.current.idx;
+    if (i + 1 >= ROUNDS) {
+      setMsg({ tone: "ok", text: `${text} 레벨 ${level} 끝!` });
+      timer.current = window.setTimeout(() => stageClear(), 1200);
       return;
     }
-    const mv = 2 ** st.current.len - 1;
-    let t = 1 + rand(mv);
-    while (t === curTarget && mv > 1) t = 1 + rand(mv);
-    setTarget(t);
-    setB(empty(st.current.len));
-    setSolved(false);
-    setHinted(false);
-    setRound(curRound + 1);
-    setMsg({ tone: "info", text: "새 풍선이에요! 불을 눌러서 수를 만들어 봐요." });
+    setMsg({ tone: "ok", text: `${text} 곧 다음 문제!` });
+    timer.current = window.setTimeout(() => {
+      const nr = plan[i + 1];
+      setIdx(i + 1);
+      setB(Array(nr.kind === "make" ? nr.len : 5).fill(false));
+      setSolved(false);
+      setMsg({ tone: "info", text: startText(nr) });
+    }, 1700);
   };
 
   const toggle = (i: number) => {
     const S = st.current;
-    if (S.mode === "quiz" && (S.solved || S.finished)) return;
+    if (S.solved || S.round.kind !== "make") return;
+    const target = S.round.target;
     const prev = bitsRef.current;
     const nb = prev.map((b, j) => (j === i ? !b : b));
     setB(nb);
     setTouched(true);
     const v = fromBits(nb);
     const pv = fromBits(prev);
-    if (S.mode === "quiz") {
-      if (v === S.target) {
-        setSolved(true);
-        cheer();
-        const gain = S.hinted ? 0 : 1;
-        const ns = S.stars + gain;
-        setStars(ns);
-        setMsg({ tone: "ok", text: gain ? `⭐ 정답! ${sumText(nb)}. 별을 받았어요!` : `맞았어요! ${sumText(nb)}. 힌트를 썼으니 별은 없지만 잘했어요!` });
-        window.clearTimeout(timer.current);
-        timer.current = window.setTimeout(() => advance(S.round, ns, S.target), 1700);
-      } else if (v > S.target) {
-        if (pv <= S.target) oops();
-        else tick();
-        setMsg({ tone: "bad", text: `아깝다! 지금 ${v}이에요. 풍선의 ${S.target}보다 커요. 불을 하나 꺼 봐요.` });
-      } else {
-        tick();
-        setMsg({ tone: "info", text: `지금 ${v}이에요. 풍선까지 ${S.target - v} 남았어요.` });
-      }
-    } else if (S.mode === "free") {
-      const mx = 2 ** S.len - 1;
-      if (v === mx) cheer();
+    if (v === target) win(`⭐ 정답! ${sumText(nb)}.`);
+    else if (v > target) {
+      if (pv <= target) oops();
       else tick();
-      setMsg({ tone: v === mx ? "ok" : "info", text: v === mx ? `⭐ 불을 모두 켰어요! ${sumText(nb)}. 불 ${S.len}개로 만들 수 있는 가장 큰 수예요!` : `지금 수는 ${v}이에요.` });
+      setMsg({ tone: "bad", text: `아깝다! 지금 ${v}이에요. 풍선의 ${target}보다 커요. 불을 하나 꺼 봐요.` });
+    } else {
+      tick();
+      setMsg({ tone: "info", text: `지금 ${v}이에요. 풍선까지 ${target - v} 남았어요.` });
+    }
+  };
+
+  const pickRead = (v: number) => {
+    if (solved || round.kind !== "read") return;
+    if (v === round.value) win(`⭐ 정답! ${sumText(toBits(round.value, round.len))}.`);
+    else {
+      oops();
+      setMsg({ tone: "bad", text: `아깝다! ${v}이 아니에요. 켜진 불의 숫자를 하나씩 더해 봐요.` });
+    }
+  };
+  const pickClock = (h: number, m: number) => {
+    if (solved || round.kind !== "clock") return;
+    if (h === round.h && m === round.m) win(`⭐ 정답! ${round.h}시 ${round.m}분이에요.`);
+    else {
+      oops();
+      setMsg({ tone: "bad", text: "아깝다! 시와 분의 불을 따로따로 더해 봐요." });
     }
   };
 
   const showHint = () => {
-    setHinted(true);
-    setMsg({ tone: "info", text: `힌트: ${target}은(는) ${sumText(toBits(target, len))} 이에요. 이 숫자의 불을 켜 봐요.` });
+    if (round.kind === "make") setMsg({ tone: "info", text: `힌트: ${round.target}은(는) ${sumText(toBits(round.target, round.len))} 이에요. 이 숫자의 불을 켜 봐요.` });
+    else if (round.kind === "read") setMsg({ tone: "info", text: `힌트: 켜진 불은 ${weights(round.len).filter((_, i) => toBits(round.value, round.len)[i]).join(", ")}이에요. 모두 더해 봐요!` });
+    else setMsg({ tone: "info", text: `힌트: 시의 켜진 불은 ${weights(5).filter((_, i) => toBits(round.h, 5)[i]).join(", ")}, 분의 켜진 불은 ${weights(6).filter((_, i) => toBits(round.m, 6)[i]).join(", ")}이에요.` });
   };
 
-  const changeMode = (m: Mode) => {
-    window.clearTimeout(timer.current);
-    setMode(m);
-    setB(empty());
-    setSolved(false);
-    setPeek(false);
-    if (m === "quiz") newGame();
-    else if (m === "free") setMsg({ tone: "info", text: "불을 마음대로 켜고 꺼 보세요. 켜진 불의 숫자를 모두 더한 값이 지금 수예요." });
-  };
-
-  const changeLen = (l: number) => {
-    setLen(l);
-    newGame(l);
-  };
-
-  const hh = now.getHours();
-  const mm = now.getMinutes();
-  const needFirst = !touched && round === 1 && mode === "quiz" ? toBits(target, len).findIndex(Boolean) : null;
+  const needFirst = !touched && idx === 0 && level === 1 && round.kind === "make" ? toBits(round.target, round.len).findIndex(Boolean) : null;
+  const chip = "font-game min-h-[56px]! min-w-[5rem] text-2xl";
 
   return (
     <div className="space-y-3 text-base">
+      <p className="font-game text-center text-xl text-accent">레벨 {level} · 라운드 {idx + 1}/{ROUNDS}</p>
       <Board>
         <p className="mb-3 rounded-card bg-accent-soft px-3 py-2 font-bold">
-          {mode === "quiz" ? "풍선의 수가 되도록 불을 톡 눌러요! (쓱 문지르면 여러 개가 한꺼번에 바뀌어요)" : mode === "free" ? "불을 켜고 꺼 보며 수가 어떻게 변하는지 봐요." : "지금 시각을 불로 나타냈어요. 켜진 불의 숫자를 더해 읽어 봐요."}
+          {round.kind === "make" ? "풍선의 수가 되도록 불을 톡 눌러요! (쓱 문지르면 여러 개가 한꺼번에 바뀌어요)" : round.kind === "read" ? "켜진 불이 나타내는 수는 얼마일까요? 아래에서 골라요." : "이진법 시계예요! 몇 시 몇 분일까요? 아래에서 골라요."}
         </p>
 
-        {mode !== "clock" && (
+        {round.kind === "make" && (
           <div className="space-y-3">
-            {mode === "quiz" && <Balloon n={target} ok={solved} sad={!solved && value > target} />}
-            <Bulbs bits={bits} onToggle={toggle} guide={needFirst} label={`불 ${len}개: ${weights(len).join(", ")}`} />
+            <Balloon n={round.target} ok={solved} sad={!solved && value > round.target} />
+            <Bulbs bits={bits.length === len ? bits : Array(len).fill(false)} onToggle={toggle} guide={needFirst} label={`불 ${len}개: ${weights(len).join(", ")}`} />
             <div className="text-center">
               <p className="text-muted">지금 내가 만든 수</p>
-              <p className={`font-game text-5xl tabular-nums ${mode === "quiz" && solved ? "text-ok" : "text-ink"}`}>{value}</p>
+              <p className={`font-game text-5xl tabular-nums ${solved ? "text-ok" : "text-ink"}`}>{value}</p>
               <p className="tabular-nums text-muted">{sumText(bits)}</p>
             </div>
           </div>
         )}
 
-        {mode === "clock" && (
+        {round.kind === "read" && (
+          <div className="space-y-4">
+            <Bulbs bits={toBits(round.value, round.len)} label={`켜진 불이 나타내는 수를 맞혀요`} />
+            <div className="flex flex-wrap justify-center gap-3" role="group" aria-label="답 고르기">
+              {round.options.map((v) => (
+                <GButton key={v} variant={solved && v === round.value ? "primary" : "soft"} onClick={() => pickRead(v)} className={chip}>
+                  {v}
+                </GButton>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {round.kind === "clock" && (
           <div className="space-y-4">
             <div>
-              <p className="mb-1 text-center font-semibold">시 (불 5개)</p>
-              <Bulbs bits={toBits(hh, 5)} label={`시 ${hh}를 나타내는 불`} size="md" />
+              <p className="font-game mb-1 text-center text-lg">시 (불 5개)</p>
+              <Bulbs bits={toBits(round.h, 5)} label="시를 나타내는 불" size="md" />
             </div>
             <div>
-              <p className="mb-1 text-center font-semibold">분 (불 6개)</p>
-              <Bulbs bits={toBits(mm, 6)} label={`분 ${mm}을 나타내는 불`} size="md" />
+              <p className="font-game mb-1 text-center text-lg">분 (불 6개)</p>
+              <Bulbs bits={toBits(round.m, 6)} label="분을 나타내는 불" size="md" />
             </div>
-            <div className="text-center">
-              <p className="text-muted">지금 시각</p>
-              <p className="font-game text-4xl tabular-nums">{hideDigits && !peek ? "--시 --분" : `${pad(hh)}시 ${pad(mm)}분`}</p>
-              <p className="tabular-nums text-muted">{hideDigits && !peek ? "불을 읽어서 시각을 맞혀 봐요" : `시: ${sumText(toBits(hh, 5))} / 분: ${sumText(toBits(mm, 6))}`}</p>
+            <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="시각 고르기">
+              {round.options.map(([h, m]) => (
+                <GButton key={`${h}-${m}`} variant={solved && h === round.h && m === round.m ? "primary" : "soft"} onClick={() => pickClock(h, m)} className="font-game min-h-[56px]! text-xl">
+                  {h}시 {pad(m)}분
+                </GButton>
+              ))}
             </div>
           </div>
         )}
       </Board>
 
       <div className="flex flex-wrap items-center gap-2">
-        {mode === "quiz" && (
-          <>
-            <Stat label="⭐ 별" value={stars} tone={stars ? "ok" : "plain"} />
-            <Stat label="풍선" value={`${round}/${ROUNDS}`} />
-          </>
-        )}
-        {mode === "free" && <Stat label="내 수" value={value} />}
-        {mode === "clock" && <Stat label="시각" value={`${pad(hh)}:${pad(mm)}`} />}
+        <Stat label="라운드" value={`${idx + 1}/${ROUNDS}`} />
+        {round.kind === "make" && <Stat label="내 수" value={value} />}
       </div>
-
-      {mode !== "clock" && <Say tone={msg.tone}>{msg.text}</Say>}
-      {mode === "clock" && <Say>시계는 1초마다 바뀌어요. 시는 16·8·4·2·1, 분은 32·16·8·4·2·1 불을 더해서 읽어요.</Say>}
+      <Say tone={msg.tone}>{msg.text}</Say>
 
       <div className="flex flex-wrap gap-2">
-        {mode === "quiz" && (
-          <>
-            {finished ? (
-              <GButton variant="primary" onClick={() => newGame()} className={BIG}>↻ 다시 하기</GButton>
-            ) : (
-              <>
-                <GButton variant="soft" onClick={showHint} disabled={solved} className={BIG}>💡 힌트 보기</GButton>
-                <GButton onClick={() => setB(empty())} disabled={solved} className={BIG}>불 모두 끄기</GButton>
-              </>
-            )}
-          </>
+        <GButton variant="soft" onClick={showHint} disabled={solved} className={BIG}>💡 힌트 보기</GButton>
+        {round.kind === "make" && (
+          <GButton onClick={() => setB(Array(len).fill(false))} disabled={solved} className={BIG}>불 모두 끄기</GButton>
         )}
-        {mode === "free" && (
-          <>
-            <GButton variant="primary" onClick={() => setB(empty())} className={BIG}>↻ 다시 하기 (모두 끄기)</GButton>
-            <GButton onClick={() => setB(Array(len).fill(true))} className={BIG}>모두 켜기</GButton>
-          </>
-        )}
-        {mode === "clock" && (
-          <>
-            <GButton variant="soft" pressed={hideDigits} onClick={() => { setHideDigits(!hideDigits); setPeek(false); }} className={BIG}>숫자 가리고 불만 읽기</GButton>
-            {hideDigits && <GButton onClick={() => setPeek(!peek)} className={BIG}>{peek ? "다시 가리기" : "정답 보기"}</GButton>}
-          </>
-        )}
-        <GButton pressed={more} onClick={() => { if (more && mode !== "quiz") changeMode("quiz"); setMore(!more); }} className={BIG}>{more ? "어려운 도전 닫기" : "더 어려운 도전"}</GButton>
       </div>
-
-      {more && (
-        <Board className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">놀이 고르기</span>
-            {([["quiz", "풍선 맞히기"], ["free", "마음대로 켜 보기"], ["clock", "시계 보기"]] as [Mode, string][]).map(([m, t]) => (
-              <GButton key={m} variant={mode === m ? "soft" : "ghost"} pressed={mode === m} onClick={() => changeMode(m)} className={BIG}>
-                {t}
-              </GButton>
-            ))}
-          </div>
-          {mode !== "clock" && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">불 개수 (많을수록 어려워요)</span>
-              {[3, 4, 5].map((l) => (
-                <GButton key={l} variant={len === l ? "soft" : "ghost"} pressed={len === l} onClick={() => changeLen(l)} className={BIG}>
-                  {l}개
-                </GButton>
-              ))}
-            </div>
-          )}
-        </Board>
-      )}
     </div>
   );
+}
+
+function startText(r: BRound): string {
+  if (r.kind === "make") return `불을 톡 눌러 켜요. 켜진 불의 숫자를 모두 더하면 풍선의 수 ${r.target}이 되게 해요!`;
+  if (r.kind === "read") return "켜진 불의 숫자를 모두 더하면 얼마일까요?";
+  return "위쪽 불은 시, 아래쪽 불은 분이에요. 몇 시 몇 분일까요?";
 }

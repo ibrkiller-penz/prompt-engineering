@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
-import { Board, GButton, Say, Slider, Stat, clamp, useFrame } from "./kit";
-import { EPS_LIST, NMAX, QB, SYNC_FROM, SYNC_TOL, THRESH, firstDivergence, makePredict, orbit, predictScore, synced, type Predict } from "./chaos.math";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Board, GButton, Say, Slider, Stat, cheer, clamp, oops, stageClear, useFrame, useStage } from "./kit";
+import { EPS_LIST, NMAX, QB, SYNC_FROM, SYNC_TOL, THRESH, firstDivergence, makePredict, orbit, predictOk, predictScore, predictTol, synced, type Predict } from "./chaos.math";
 
 type Mode = "free" | "predict" | "sync";
 type Msg = { t: "info" | "ok" | "bad"; s: string };
@@ -13,22 +13,25 @@ const COL_A = "#2563eb";
 const COL_B = "#ea580c";
 
 const f4 = (v: number) => v.toFixed(4);
+const ROUNDS = 3;
 
 export default function ChaosGame() {
-  const [mode, setMode] = useState<Mode>("free");
+  const level = useStage();
+  const [mode, setMode] = useState<Mode>("predict");
+  const [rounds, setRounds] = useState(0); // 이번 레벨에서 깬 라운드(예측 성공) 수
   const [r, setR] = useState(3.9);
   const [x0, setX0] = useState(0.3);
   const [ei, setEi] = useState(2);
   const [n, setN] = useState(0);
   const [auto, setAuto] = useState(false);
-  const [pq, setPq] = useState<Predict | null>(null);
+  const [pq, setPq] = useState<Predict | null>(() => makePredict(Math.random));
   const [guess, setGuess] = useState(20);
   const [answered, setAnswered] = useState(false);
   const [lvl, setLvl] = useState(0);
   const [score, setScore] = useState(0);
   const [tries, setTries] = useState(0);
   const [hit, setHit] = useState(0);
-  const [msg, setMsg] = useState<Msg>({ t: "info", s: "r=3.9 로 ‘다음 해’를 눌러 보세요. 두 궤도는 처음엔 거의 겹쳐 있어요." });
+  const [msg, setMsg] = useState<Msg>({ t: "info", s: `두 궤도의 차이가 처음으로 0.5 를 넘는 해를 예측해 봐요(±${predictTol(level)}해 안이면 성공). ‘다음 해’로 조금 보고 예측해도 돼요.` });
   const accRef = useRef(0);
 
   const eps = mode === "predict" && pq ? pq.eps : mode === "sync" ? QB.eps : EPS_LIST[ei];
@@ -99,11 +102,26 @@ export default function ChaosGame() {
     setN(Math.min(NMAX, pq.answer));
     setTries((t) => t + 1);
     setScore((x) => x + s);
-    if (s > 0) setHit((h) => h + 1);
-    if (s === 10) setMsg({ t: "ok", s: `정확해요! ${pq.answer}해에 처음으로 차이가 ${THRESH} 를 넘었어요. +10점 🎉` });
-    else if (s > 0) setMsg({ t: "ok", s: `거의 맞았어요! 정답은 ${pq.answer}해, 내 예측은 ${guess}해예요. +${s}점` });
-    else setMsg({ t: "bad", s: `정답은 ${pq.answer}해예요. 내 예측은 ${guess}해였어요. 그래프에서 차이가 커지는 모습을 살펴봐요.` });
+    const ok = predictOk(guess, pq.answer, level);
+    const tail = ok ? (rounds + 1 >= ROUNDS ? ` 레벨 ${level}의 라운드 3개를 모두 깼어요!` : " 곧 다음 라운드예요.") : " 곧 새 문제가 나와요.";
+    if (ok) {
+      cheer();
+      setHit((h) => h + 1);
+      setRounds((r) => r + 1);
+      setMsg({ t: "ok", s: (s === 10 ? `정확해요! ${pq.answer}해에 처음으로 차이가 ${THRESH} 를 넘었어요. +10점 🎉` : `성공! 정답은 ${pq.answer}해, 내 예측은 ${guess}해예요(±${predictTol(level)} 안). +${s}점`) + tail });
+    } else {
+      oops();
+      setMsg({ t: "bad", s: `정답은 ${pq.answer}해예요. 내 예측은 ${guess}해였어요(±${predictTol(level)}해 안이어야 해요).` + tail });
+    }
   };
+
+  // 예측을 확인하면: 3라운드를 다 깼으면 레벨 클리어, 아니면 잠깐 뒤 저절로 새 문제
+  useEffect(() => {
+    if (mode !== "predict" || !answered) return;
+    const id = rounds >= ROUNDS ? setTimeout(stageClear, 1200) : setTimeout(newPredict, 3000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answered, rounds, mode]);
 
   const checkSync = () => {
     setTries((t) => t + 1);
@@ -146,6 +164,7 @@ export default function ChaosGame() {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
+        {mode === "predict" && <span className="font-game text-lg">레벨 {level} · 라운드 {Math.min(rounds + 1, ROUNDS)}/{ROUNDS}</span>}
         <Stat label="해" value={`${shown}`} />
         <Stat label="차이" value={f4(diffNow)} tone={diffNow > THRESH ? "bad" : "plain"} />
         {mode !== "free" && <Stat label="점수" value={score} />}
