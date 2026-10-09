@@ -121,13 +121,13 @@ function Pizza({ n, sel, onToggle, label, size = 200 }: { n: number; sel: boolea
 /** 조각 수를 큰 −/+ 단추로 바꾸기 */
 function Stepper({ n, setN, disabled, list }: { n: number; setN: (n: number) => void; disabled?: boolean; list: number[] }) {
   const i = Math.max(0, list.indexOf(n));
-  const btn = "inline-flex h-12 w-14 items-center justify-center rounded-card border border-line bg-surface text-2xl font-extrabold transition hover:bg-bg active:scale-95 disabled:opacity-40";
+  const btn = "inline-flex h-12 w-12 items-center justify-center rounded-card border border-line bg-surface text-2xl font-extrabold transition hover:bg-bg active:scale-95 disabled:opacity-40";
   return (
-    <div className="flex items-center justify-center gap-3" role="group" aria-label="피자를 나눌 조각 수">
+    <div className="flex items-center justify-center gap-1 sm:gap-3" role="group" aria-label="피자를 나눌 조각 수">
       <button type="button" className={btn} disabled={disabled || i <= 0} aria-label="조각 수 줄이기" onClick={() => { setN(list[i - 1]); tick(); }}>
         −
       </button>
-      <span className="min-w-[4.5rem] text-center text-lg font-bold tabular-nums">{n}조각</span>
+      <span className="min-w-[3.4rem] text-center text-base font-bold tabular-nums sm:text-lg">{n}조각</span>
       <button type="button" className={btn} disabled={disabled || i >= list.length - 1} aria-label="조각 수 늘리기" onClick={() => { setN(list[i + 1]); tick(); }}>
         +
       </button>
@@ -238,18 +238,18 @@ function MakeMode({ hard }: { hard: boolean }) {
         <span className="text-accent tabular-nums">{frText(target)}</span> 만큼 두 피자에 칠해 봐요 <span className="text-base font-semibold text-muted">(조각 수는 서로 다르게!)</span>
       </p>
       <Board>
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2 sm:gap-5">
           {[
             { id: "왼쪽", n: nA, setN: (v: number) => { setNA(v); setSA(blank(v)); }, sel: sA, setSel: setSA, f: fA, ok: okA },
             { id: "오른쪽", n: nB, setN: (v: number) => { setNB(v); setSB(blank(v)); }, sel: sB, setSel: setSB, f: fB, ok: okB },
           ].map((p) => (
-            <div key={p.id} className={`rounded-card p-2 ${p.ok ? "bg-ok-soft" : ""}`}>
+            <div key={p.id} className={`rounded-card p-1 sm:p-2 ${p.ok ? "bg-ok-soft" : ""}`}>
               <Pizza n={p.n} sel={p.sel} onToggle={solved ? undefined : (i) => { p.setSel((v) => toggleAt(v, i)); tick(); }} label={`${p.id} 피자 ${p.n}조각 중 ${p.f.k}조각`} size={200} />
               <p className="mt-1 text-center text-2xl font-extrabold tabular-nums">
                 {p.f.k}/{p.f.n}
                 {p.f.k > 0 && reduceFr(p.f).n !== p.f.n && <span className="ml-2 text-base text-muted">(= {frText(reduceFr(p.f))})</span>}
               </p>
-              <p className={`min-h-[1.5rem] text-center text-base font-semibold ${p.ok ? "text-ok" : "text-muted"}`}>{status(p.f, p.ok)}</p>
+              <p className={`min-h-[3.2rem] text-center text-sm font-semibold leading-snug sm:min-h-[1.5rem] sm:text-base ${p.ok ? "text-ok" : "text-muted"}`}>{status(p.f, p.ok)}</p>
               <div className="mt-1">
                 <Stepper n={p.n} setN={p.setN} disabled={solved} list={list} />
               </div>

@@ -316,8 +316,8 @@ export default function LeverGame() {
             })}
           </g>
           <circle cx={CX} cy={CY} r="5" fill="#1f2937" />
-          <text x={CX - 205} y={CY + 56} fontSize="14" fill="#6b7280">왼쪽</text>
-          <text x={CX + 165} y={CY + 56} fontSize="14" fill="#6b7280">오른쪽</text>
+          <text x={CX - 205} y={CY + 84} fontSize="14" fill="#6b7280">왼쪽</text>
+          <text x={CX + 165} y={CY + 84} fontSize="14" fill="#6b7280">오른쪽</text>
 
           {/* 선반 */}
           <rect x="20" y={SHELF_Y + 4} width="400" height="14" rx="4" fill="#a8a29e" />
