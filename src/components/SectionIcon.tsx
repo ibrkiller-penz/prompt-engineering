@@ -163,6 +163,20 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 온라인 수학 체험 — 네 칸 조각(테트로미노) + 반짝임
+  "/mathplay": {
+    from: "#0ea5a4",
+    to: "#34d399",
+    glyph: (
+      <g>
+        <rect x="9" y="13" width="9.5" height="9.5" rx="2.2" fill="#fff" />
+        <rect x="19.3" y="13" width="9.5" height="9.5" rx="2.2" fill="#fff" fillOpacity=".85" />
+        <rect x="19.3" y="23.3" width="9.5" height="9.5" rx="2.2" fill="#fff" fillOpacity=".85" />
+        <rect x="29.6" y="23.3" width="9.5" height="9.5" rx="2.2" fill="#fff" />
+        <path d="M36 8v6M33 11h6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",
