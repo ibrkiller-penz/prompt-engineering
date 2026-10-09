@@ -6,7 +6,13 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 const AIBASIC = "public/aibasic";
-const PATCHES = ["aibasic-mobile", "aibasic-lockhint", "aibasic-termgrid"]; // 적용 순서
+// [패치 이름, 적용되면 생기는 표식이 든 파일, 표식] — 표식이 이미 있으면(배포본에 들어 있으면) 건너뛴다. 적용 순서대로.
+const PATCHES = [
+  ["aibasic-mobile", "index.html", 'property="og:title"'],
+  ["aibasic-lockhint", "app.js", "lockSec"],
+  ["aibasic-termgrid", "app.js", "'--tgc'"],
+  ["aibasic-circle", "app.js", "okCircle"],
+];
 const HAPPY = "public/happy/HappyMpX.zip";
 const HAPPY_URL = "https://github.com/ibrkiller-penz/happymp3/releases/download/files-2026-10-08/HappyMpX.zip";
 
@@ -34,14 +40,14 @@ for (const f of ["index.html", "style.css", "app.js"]) {
 const MARK = `${AIBASIC}/.applied`;
 const applied = new Set(fs.existsSync(MARK) ? fs.readFileSync(MARK, "utf8").split("\n").filter(Boolean) : []);
 const mark = (name) => { applied.add(name); fs.writeFileSync(MARK, [...applied].join("\n") + "\n"); };
-for (const name of PATCHES) {
+for (const [name, target, signature] of PATCHES) {
   // 윈도우의 git 이 패치 파일을 CRLF 로 저장해 두면 적용이 안 되므로, LF 로 바꾼 임시 파일로 적용한다.
   const file = path.join(os.tmpdir(), `${name}.lf.patch`);
   fs.writeFileSync(file, fs.readFileSync(`scripts/${name}.patch`, "utf8").replace(/\r\n/g, "\n"));
   const opts = [`--directory=${AIBASIC}`, file];
   if (applied.has(name)) {
     console.log(`[prepare] ${name}: 이미 적용됨`);
-  } else if (git("apply", "--reverse", "--check", ...opts).status === 0) {
+  } else if (fs.readFileSync(`${AIBASIC}/${target}`, "utf8").includes(signature)) {
     mark(name); // 배포본에 이미 들어 있는 경우
     console.log(`[prepare] ${name}: 이미 들어 있음`);
   } else if (git("apply", "--check", ...opts).status === 0) {

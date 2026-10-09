@@ -62,8 +62,9 @@
 - 변경(모바일 줄 줄이기): 헤더 '인공지능 기초'·'용어 사전' 한 줄, 단원 카드 이모지 옆에 단원명, 배지 4+3 두 줄, 첫 화면 제목·설명을 단어 단위로 줄바꿈. 패치: `scripts/aibasic-mobile.patch` → `cd public/aibasic && patch -p1 < ../../scripts/aibasic-mobile.patch` (style.css·app.js).
 
 ## 배포하는 법 (자동화됨 — 2026-10-09)
-- `npm run build` 앞에서 `scripts/prepare-aibasic.mjs` 가 자동으로 돈다: /aibasic 을 배포본에서 복원 → 패치 3개(`aibasic-mobile`·`aibasic-lockhint`·`aibasic-termgrid`) 적용(적용 기록은 `public/aibasic/.applied`) → HappyMpX.zip 받기. 여러 번 돌려도 안전하다.
+- `npm run build` 앞에서 `scripts/prepare-aibasic.mjs` 가 자동으로 돈다: /aibasic 을 배포본에서 복원 → 패치 4개(`aibasic-mobile`·`lockhint`·`termgrid`·`circle`) 적용(패치마다 '적용되면 생기는 표식'이 이미 있으면 건너뜀, 기록은 `public/aibasic/.applied`) → HappyMpX.zip 받기. 여러 번 돌려도 안전하다.
 - 어느 PC 든 이렇게 하면 된다: `git pull` → `npm ci` → `npm run deploy` (처음 한 번 `npx firebase-tools login`; **페네두 구글 계정**으로. 프로젝트는 .firebaserc 의 firsttest-5db1f).
 - GitHub Actions(`.github/workflows/deploy.yml`): main 에 올라가면 자동 배포, 또는 Actions 탭에서 Run workflow. 저장소 Secrets 에 `FIREBASE_TOKEN` 이 있어야 한다.
 - /aibasic 을 더 고칠 때는 `scripts/aibasic-*.patch` 를 새로 만들어 PATCHES 목록(prepare-aibasic.mjs)에 더한다.
 - 주의: Windows 에서는 /aibasic 파일이 CRLF 가 될 수 있어 prepare 가 패치 전에 LF 로 통일한다.
+- 2026-10-09: /aibasic 정답 동그라미 효과(`aibasic-circle.patch`): 계단 확인문제·마무리 시험에서 맞히면 화면 가운데 큰 동그라미가 겹쳐 뜬 뒤 다음 계단/문제로 이동(기존 스크롤 이동 유지). '움직임 줄이기' 설정에서는 효과 없음.
