@@ -155,6 +155,21 @@ export default function BrachistoGame() {
     const H = Math.round(oy + maxD * s + 44);
     const bxp = X(race.xb), byp = Y(race.yb);
     const rank = Object.fromEntries(order.map((id, i) => [id, i])) as Record<RaceId, number>;
+    // 고르는 공 친구 자리: 서로(이름표까지) 겹치지 않게 길 위에서 가장 떨어진 곳을 고른다
+    const spots = {} as Record<RaceId, [number, number]>;
+    const placed: [number, number][] = [];
+    for (const id of ["cyc", "dip", "arc", "line"] as RaceId[]) {
+      let best: [number, number] = [0, 0], bestD = -1;
+      for (let u = 0.25; u <= 0.85; u += 0.05) {
+        const q = race.paths[id](u);
+        const c: [number, number] = [X(q.x), Y(q.d)];
+        const d = placed.length ? Math.min(...placed.map(([px, py]) => Math.hypot((px - c[0]) * 0.8, (py - c[1]) * 1.3))) : 1e9;
+        const score = Math.min(d, 90) - Math.abs(u - 0.5) * 20;
+        if (score > bestD) { bestD = score; best = c; }
+      }
+      spots[id] = best;
+      placed.push(best);
+    }
     const win = order[0];
     return (
       <svg viewBox={`0 0 400 ${H}`} className="w-full select-none rounded-card" style={{ touchAction: "manipulation" }} role="group" aria-label="놀이터 미끄럼틀. 출발점에서 도착점까지 가는 네 가지 길과 공 친구 네 명">
@@ -201,8 +216,7 @@ export default function BrachistoGame() {
         {/* 고르는 공 친구: 길 위에 서 있는 친구를 톡 누르면 바로 출발 */}
         {phase === "ready" &&
           IDS.map((id) => {
-            const p = race.paths[id](0.5);
-            const cx = X(p.x), cy = Y(p.d);
+            const [cx, cy] = spots[id];
             return (
               <g key={id} role="button" tabIndex={0} aria-label={`${PAL[id]}(${NAMES[id]})가 ${ASK_KO[rs.ask]} 거라고 고르기`} style={{ cursor: "pointer" }}
                 onClick={() => pickRace(id)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), pickRace(id))}>
