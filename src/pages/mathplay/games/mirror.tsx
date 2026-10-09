@@ -97,7 +97,7 @@ function svgMatrix(seq: (0 | 1)[], theta: number) {
 /** 장난감 곰(왼쪽 귀에 리본, 오른손에 별: 거울에 비치면 좌우가 바뀌어 보여요) */
 function Teddy({ x, y, ghost }: { x: number; y: number; ghost?: boolean }) {
   return (
-    <g transform={`translate(${x} ${y})`} opacity={ghost ? 0.82 : 1}>
+    <g transform={`translate(${x} ${y}) scale(1.3)`} opacity={ghost ? 0.82 : 1}>
       <ellipse cx="0" cy="19" rx="11" ry="3" fill="rgba(0,0,0,0.15)" />
       <circle cx="0" cy="8" r="10.5" fill="#d08b52" stroke="#7c3f12" strokeWidth="2" />
       <ellipse cx="0" cy="10" rx="5.5" ry="5" fill="#f6d3a8" />
@@ -357,7 +357,7 @@ export default function MirrorGame() {
                   <Teddy x={toS(obj)[0]} y={toS(obj)[1]} ghost />
                 </g>
                 {nums && (
-                  <text x={toS(im.pt)[0]} y={toS(im.pt)[1] - 24} fontSize="17" textAnchor="middle" fill="#7c2d92" stroke="#fff" strokeWidth="4" paintOrder="stroke" style={GF}>
+                  <text x={toS(im.pt)[0]} y={toS(im.pt)[1] - 30} fontSize="17" textAnchor="middle" fill="#7c2d92" stroke="#fff" strokeWidth="4" paintOrder="stroke" style={GF}>
                     {i + 2}
                   </text>
                 )}
@@ -400,7 +400,7 @@ export default function MirrorGame() {
             <circle cx={toS(obj)[0]} cy={toS(obj)[1]} r="28" fill="transparent" />
             <Teddy x={toS(obj)[0]} y={toS(obj)[1]} />
             {nums && showImgs && (
-              <text x={toS(obj)[0]} y={toS(obj)[1] - 24} fontSize="17" textAnchor="middle" fill="#9a2d14" stroke="#fff" strokeWidth="4" paintOrder="stroke" style={GF}>
+              <text x={toS(obj)[0]} y={toS(obj)[1] - 30} fontSize="17" textAnchor="middle" fill="#9a2d14" stroke="#fff" strokeWidth="4" paintOrder="stroke" style={GF}>
                 1
               </text>
             )}

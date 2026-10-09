@@ -369,12 +369,6 @@ export default function LeverGame() {
           <g transform={`rotate(${ang} ${CX} ${CY})`}>
             {/* 시소 판 */}
             <rect x={CX - 215} y={CY - 7} width="430" height="14" rx="7" fill="url(#lv-wood)" stroke="#92400e" strokeWidth="3" />
-            {[-1, 1].map((d) => (
-              <g key={d}>
-                <rect x={CX + d * 200 - 4} y={CY - 26} width="8" height="20" rx="3" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
-                <rect x={CX + d * 200 - 9} y={CY - 30} width="18" height="7" rx="3.5" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
-              </g>
-            ))}
             {Array.from({ length: 7 }, (_, i) => i - 3).map((s) => (
               <g key={s}>
                 <line x1={CX + s * GAP} y1={CY - 5} x2={CX + s * GAP} y2={CY + 5} stroke="#92400e" strokeWidth={s === 0 ? 3 : 2} strokeLinecap="round" />
