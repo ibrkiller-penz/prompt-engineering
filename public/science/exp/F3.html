@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>땅이 흔들리면 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+:root{--q-p:#0076fb;--q-s:#d9480f;--q-ground:#efe6d6;--q-rock:#5a6577;--q-soft:#b07a2a;--q-grid:#d9e0ec}
+@media (prefers-color-scheme:dark){:root{--q-p:#4da3ff;--q-s:#ff8a4c;--q-ground:#2a2418;--q-rock:#9aa7bd;--q-soft:#e0a956;--q-grid:#2c3649}}
+.f3-seg{display:flex;gap:6px;flex-wrap:wrap}
+.f3-quiz input[type=number]{min-height:44px;width:7em;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);padding:0 10px;font:inherit}
+.f3-quiz[hidden]{display:none}
+</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"F3",
+ predict:{q:"관측소가 진원에서 멀어질수록 P파와 S파가 도착하는 시간의 차이는 어떻게 될까요?",
+  options:["점점 커진다","점점 작아진다","거리와 상관없이 같다"],answer:0,
+  feedback:["맞아요! P파가 S파보다 빨라서, 멀리 갈수록 둘 사이의 간격이 더 벌어져요.","반대예요. 두 파는 빠르기가 달라서 먼 거리를 갈수록 간격이 더 벌어져요.","두 파의 빠르기가 다르기 때문에 거리가 멀수록 차이가 커져요. 직접 확인해 보세요."]},
+ steps:["'직접 조절'에서 관측소까지의 진원 거리를 정하고 '지진 발생'을 눌러요. 화면은 실제보다 10배 빠르게 흘러요.","단면 그림에서 P파(점선 원)와 S파(실선 원)가 퍼져 나가는 모습을 보고, 아래 그래프에서 단단한 암반과 무른 땅에 놓인 지진계의 흔들림을 비교해요.","거리를 바꿔 가며 P파와 S파의 도착 시간 차이가 어떻게 변하는지 확인해요.","'거리 맞히기'를 눌러 거리가 숨겨진 지진을 일으키고, 그래프에서 도착 시간 차이를 읽어 거리를 계산해 보세요."],
+ observe:["P파와 S파 중 어느 쪽이 먼저 도착하나요? 어느 쪽이 더 크게 흔들리나요?","진원 거리가 2배가 되면 S−P 시간 차이도 2배가 되나요?","같은 거리에서 무른 땅의 지진계는 암반의 지진계와 무엇이 다른가요?","관측소에서는 지진이 '언제' 일어났는지 모르는데도 거리를 알 수 있는 이유는 무엇일까요?"],
+ more:["번개가 칠 때 빛을 보고 천둥소리가 들릴 때까지 몇 초인지 세어 보세요. 빛과 소리의 빠르기 차이로 번개까지 거리를 구할 수 있어요(소리는 1초에 약 340 m).","세 곳 이상의 관측소에서 각각 거리를 구하고 지도에 원을 그리면 원들이 만나는 곳이 진앙이에요. 종이 지도에서 컴퍼스로 해 보세요.","기상청 지진 정보에서 최근 지진의 규모와 진앙, 각 지역의 진도를 찾아보세요."],
+ why:{easy:["지진이 나면 땅속에서 두 종류의 파동이 퍼져 나가요. 먼저 오는 P파와 늦게 오는 S파예요.","P파가 S파보다 빨라요. 달리기에서 빠른 선수와 느린 선수가 같이 출발하면, 결승선이 멀수록 두 사람이 들어오는 시간 차이가 커지는 것과 같아요.","그래서 두 파의 도착 시간 차이(S−P 시간)를 재면 진원까지 거리를 알 수 있어요. 이 화면의 단순 모델에서는 차이 1초마다 약 8.4 km예요.","무른 땅(진흙, 모래가 쌓인 땅)은 단단한 암반보다 더 크게, 더 오래 흔들려요. 그래서 같은 지진에서도 땅에 따라 피해가 달라질 수 있어요."],
+  detail:["P파(Primary, 종파)는 흔들림이 나아가는 방향과 같은 방향으로 밀고 당기는 파동이고, S파(Secondary, 횡파)는 나아가는 방향에 수직으로 흔드는 파동이에요. S파는 액체를 지나가지 못해요. 대체로 S파의 흔들림이 더 커요.","이 화면의 단순 모델: 지각 속 P파 속력 Vp = 6.0 km/s, S파 속력 Vs = 3.5 km/s로 일정하고, 파는 진원에서 관측소까지 곧게 간다고 가정했어요(근사). 실제로는 깊이에 따라 속력이 변해 파의 경로가 휘고, 지역마다 속력도 달라요.","도착 시간: tP = d/Vp, tS = d/Vs. 차이 Δt = d(1/Vs − 1/Vp)이므로 d = Δt · Vp·Vs/(Vp − Vs) = Δt × 8.4 km/s 예요. 지진이 일어난 시각을 몰라도 Δt만으로 거리를 구할 수 있어요(오모리 공식과 같은 생각).","지반 효과(근사): 무른 퇴적층은 파의 속력이 느려서 파의 에너지가 좁은 층에 모여 진폭이 커지고(지반 증폭), 층 안에서 파가 되울려 흔들림이 길어져요. 이 화면에서는 무른 땅의 흔들림을 P파 1.6배, S파 2.5배로 키우고 더 오래, 더 느리게 흔들리도록 정했어요. 무른 층을 지나며 생기는 1초 미만의 도착 지연은 무시했어요.","그래프의 파형은 실제 지진 기록이 아니라 도착 시각과 특징을 보여 주려고 만든 합성 파형이에요. 실제 진원 거리는 관측소 세 곳 이상의 거리를 이용해 진원 위치와 함께 구해요."]},
+ init:function(el){
+  el.innerHTML='<div class="f3-seg" role="group" aria-label="체험 방법"><button type="button" data-m="free" aria-pressed="true">직접 조절</button><button type="button" data-m="quiz" aria-pressed="false">거리 맞히기</button></div>'+
+   '<canvas id="sec" role="img" aria-label="땅속 단면. 진원에서 P파와 S파가 원 모양으로 퍼져 지표의 관측소에 도착하는 그림" style="margin-top:8px"></canvas>'+
+   '<canvas id="seis" role="img" aria-label="관측소 지진계 기록. 위는 단단한 암반, 아래는 무른 땅에 놓인 지진계의 흔들림 그래프"></canvas>'+
+   '<div class="controls" id="freeC"><label>진원 거리 <input id="dist" type="range" min="20" max="300" step="10" value="100" aria-label="진원 거리(km)"><span class="readout" id="distR"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">지진 발생</button></div>'+
+   '<div class="controls f3-quiz" id="quizC" hidden><label>내가 계산한 거리 <input id="est" type="number" min="0" max="1000" step="1" inputmode="numeric" aria-label="추정한 진원 거리(km)"> km</label><button id="chk" type="button">확인</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>'+
+   '<p class="note">단순 모델이에요: P파 6.0 km/s, S파 3.5 km/s로 일정하다고 보고, 파형은 만든(합성) 그래프예요. 지반에 따른 흔들림 크기도 대략적인 배율이에요.</p>';
+  var sec=el.querySelector("#sec"),seis=el.querySelector("#seis"),dist=el.querySelector("#dist"),msg=el.querySelector("#msg"),est=el.querySelector("#est");
+  var VP=6.0,VS=3.5,K=VP*VS/(VP-VS),DEPTH=10,SPEED=10;
+  var mode="free",d=100,t=0,tEnd=0,running=false,raf=0,lastNow=0,done=false,hiddenD=0,checked=false;
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+  function tp(){return d/VP}function ts(){return d/VS}
+  /* 결정적 의사난수(배경 잡음) */
+  function noise(x){var s=Math.sin(x*12.9898+78.233)*43758.5453;return (s-Math.floor(s))*2-1}
+  function trace(tt,soft){
+   var a=0,P=tp(),S=ts(),att=60/(d+40);
+   var fP=soft?3:5,fS=soft?0.9:1.6,tauP=soft?5:3,tauS=soft?16:8,gP=soft?1.6:1,gS=soft?2.5:1;
+   if(tt>P){var u=tt-P;a+=0.35*gP*att*Math.exp(-u/tauP)*(1-Math.exp(-u*6))*(Math.sin(2*Math.PI*fP*u)+0.5*Math.sin(2*Math.PI*fP*1.7*u+1))}
+   if(tt>S){var v=tt-S;a+=1.0*gS*att*Math.exp(-v/tauS)*(1-Math.exp(-v*3))*(Math.sin(2*Math.PI*fS*v)+0.6*Math.sin(2*Math.PI*fS*1.45*v+2)+0.3*Math.sin(2*Math.PI*fS*2.3*v))}
+   a+=0.012*noise(Math.floor(tt*20)+(soft?500:0));
+   return a;
+  }
+  function stationX(){return Math.sqrt(Math.max(0,d*d-DEPTH*DEPTH))}
+  function drawSec(){
+   var s=Sci.fit(sec,.42),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,ox=16,top=26,sc=(w-32)/320;
+   c.clearRect(0,0,w,h);
+   c.fillStyle=css("--q-ground");c.fillRect(0,top,w,h-top);
+   c.strokeStyle=ink;c.lineWidth=1.5;c.beginPath();c.moveTo(0,top);c.lineTo(w,top);c.stroke();
+   c.font="11px sans-serif";c.fillStyle=ink;
+   if(mode==="free"||checked)for(var k=0;k<=300;k+=100){var X=ox+k*sc;c.fillText(k+" km",X-10,h-4)}
+   var sx=ox,sy=top+DEPTH*sc;
+   /* 파면 */
+   c.save();c.beginPath();c.rect(0,top,w,h-top);c.clip();
+   if(t>0){
+    c.lineWidth=2;c.strokeStyle=css("--q-p");c.setLineDash([6,4]);c.beginPath();c.arc(sx,sy,VP*t*sc,0,7);c.stroke();
+    c.strokeStyle=css("--q-s");c.setLineDash([]);c.lineWidth=3;c.beginPath();c.arc(sx,sy,VS*t*sc,0,7);c.stroke();
+   }
+   c.restore();
+   if(t>0){c.font="bold 12px sans-serif";
+    [[VP*t*sc,"P파",css("--q-p")],[VS*t*sc,"S파",css("--q-s")]].forEach(function(q){
+     var r=q[0],y=Math.min(sy+r*0.57,h-14);if(y-sy>r)return;var x=sx+Math.sqrt(r*r-(y-sy)*(y-sy));
+     if(x>w-30||r<12)return;c.fillStyle=q[2];c.fillText(q[1],x+4,y)});
+   }
+   /* 진원 */
+   c.fillStyle=ink;c.beginPath();c.moveTo(sx,sy-7);for(var i=1;i<10;i++){var r=i%2?3:7,a=-Math.PI/2+i*Math.PI/5;c.lineTo(sx+r*Math.cos(a),sy+r*Math.sin(a))}c.closePath();c.fill();
+   c.font="12px sans-serif";c.fillText("진원",sx+8,sy+16);
+   /* 관측소 */
+   var X=ox+stationX()*sc,sh=running?trace(t,false)*6:0;
+   c.fillStyle=ink;c.beginPath();c.moveTo(X+sh,top-14);c.lineTo(X+sh-8,top);c.lineTo(X+sh+8,top);c.closePath();c.fill();
+   c.fillText(mode==="quiz"&&!checked?"관측소 (거리 ?)":"관측소 "+d+" km",Math.min(X-20,w-110),top-17);
+  }
+  function drawSeis(){
+   var s=Sci.fit(seis,.62),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,pl=10,pr=10,pt=6,pb=22,gw=w-pl-pr,gh=h-pt-pb;
+   var T=tEnd||60;c.clearRect(0,0,w,h);c.font="11px sans-serif";
+   /* 눈금: 1초 잔눈금, 10초 굵은 눈금 */
+   for(var x=0;x<=T;x++){var X=pl+x/T*gw;c.strokeStyle=css("--q-grid");c.lineWidth=x%10===0?1.4:(T<=60||x%5===0?0.5:0);if(c.lineWidth){c.beginPath();c.moveTo(X,pt);c.lineTo(X,pt+gh);c.stroke()}
+    if(x%10===0){c.fillStyle=ink;c.fillText(x+"초",X-8,h-6)}}
+   var rows=[[false,"단단한 암반",css("--q-rock")],[true,"무른 땅(퇴적층)",css("--q-soft")]],rh=gh/2;
+   /* 같은 배율로 그림: 무른 땅 최대값 기준 */
+   var mx=1e-6;for(var u=0;u<T;u+=0.05)mx=Math.max(mx,Math.abs(trace(u,true)));
+   rows.forEach(function(r,i){
+    var y0=pt+rh*i+rh/2,amp=rh*0.46/mx;
+    c.strokeStyle=css("--q-grid");c.lineWidth=1;c.beginPath();c.moveTo(pl,y0);c.lineTo(pl+gw,y0);c.stroke();
+    c.strokeStyle=r[2];c.lineWidth=1.3;c.beginPath();
+    var tt=Math.min(t,T);for(var u=0;u<=tt;u+=T/1400){var X=pl+u/T*gw,Y=y0-trace(u,r[0])*amp;u?c.lineTo(X,Y):c.moveTo(X,Y)}c.stroke();
+    c.fillStyle=ink;c.font="bold 12px sans-serif";c.fillText(r[1],pl+4,pt+rh*i+14);
+   });
+   if(done){
+    [[tp(),"P",css("--q-p"),[6,4]],[ts(),"S",css("--q-s"),[]]].forEach(function(m){
+     var X=pl+m[0]/T*gw;c.save();c.strokeStyle=m[2];c.lineWidth=2;c.setLineDash(m[3]);c.beginPath();c.moveTo(X,pt);c.lineTo(X,pt+gh);c.stroke();c.restore();
+     c.fillStyle=m[2];c.font="bold 12px sans-serif";var lb=m[1]+"파 도착"+(mode==="free"?" "+m[0].toFixed(1)+"초":"");c.fillText(lb,Math.min(X+3,w-c.measureText(lb).width-2),pt+rh-6+(m[1]==="S"?14:0));
+    });
+   }
+  }
+  function draw(){drawSec();drawSeis()}
+  function readout(){el.querySelector("#distR").textContent=dist.value+" km"}
+  function start(){
+   if(raf)cancelAnimationFrame(raf);
+   if(mode==="quiz"){hiddenD=Math.round(40+Math.random()*220);d=hiddenD;est.value="";}else d=+dist.value;
+   checked=false;tEnd=Math.max(40,Math.ceil((ts()+30)/10)*10);t=0;done=false;running=true;msg.textContent=mode==="quiz"?"지진이 났어요! 관측소에 P파와 S파가 도착하는 시간을 그래프에서 읽어 보세요.":"지진이 났어요! (10배 빠르게 보는 중)";
+   if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){t=tEnd;finish();return}
+   lastNow=performance.now();raf=requestAnimationFrame(loop);
+  }
+  function loop(now){t+=Math.min(0.1,(now-lastNow)/1000)*SPEED;lastNow=now;if(t>=tEnd){t=tEnd;finish();return}draw();raf=requestAnimationFrame(loop)}
+  function finish(){
+   running=false;raf=0;done=true;draw();var dt=ts()-tp();
+   if(mode==="free"){msg.textContent="P파 "+tp().toFixed(1)+"초, S파 "+ts().toFixed(1)+"초에 도착 → 차이 "+dt.toFixed(1)+"초. 거리 = "+dt.toFixed(1)+"초 × 8.4 km/s ≈ "+(dt*K).toFixed(0)+" km (실제 "+d+" km)";Exp.reveal()}
+   else msg.textContent="그래프에서 P파와 S파 도착 시각(세로선)을 읽고, 차이(초) × 8.4를 계산해 거리를 적어 보세요. 가는 세로 눈금 간격은 "+(tEnd>60?"5초":"1초")+", 굵은 눈금은 10초마다 있어요.";
+  }
+  function setMode(m){mode=m;el.querySelectorAll("[data-m]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.m===m)});
+   el.querySelector("#freeC").hidden=m!=="free";el.querySelector("#quizC").hidden=m!=="quiz";
+   if(raf)cancelAnimationFrame(raf);raf=0;running=false;t=0;done=false;tEnd=0;if(m==="free")d=+dist.value;
+   msg.textContent=m==="quiz"?"'지진 발생'을 누르면 거리를 모르는 관측소의 기록이 나와요.":"";draw()}
+  el.querySelectorAll("[data-m]").forEach(function(b){b.addEventListener("click",function(){setMode(b.dataset.m)})});
+  dist.addEventListener("input",function(){readout();if(!running){d=+dist.value;t=0;done=false;tEnd=0;draw()}});
+  el.querySelector("#go").addEventListener("click",start);
+  el.querySelector("#chk").addEventListener("click",function(){
+   if(!done||mode!=="quiz"){msg.textContent="먼저 '지진 발생'을 누르고 기록이 끝날 때까지 기다려 주세요.";return}
+   var v=parseFloat(est.value);if(!(v>0)){msg.textContent="거리를 숫자(km)로 적어 주세요.";est.focus();return}
+   var dt=ts()-tp(),err=Math.abs(v-d)/d;checked=true;draw();
+   msg.textContent=(err<=0.15?"아주 잘했어요! ":"조금 차이가 나요. ")+"S−P 시간 차이는 "+dt.toFixed(1)+"초, 실제 진원 거리는 "+d+" km예요 ("+dt.toFixed(1)+" × 8.4 ≈ "+(dt*K).toFixed(0)+" km). 내 답 "+v+" km.";
+   Exp.reveal();
+  });
+  est.addEventListener("keydown",function(e){if(e.key==="Enter")el.querySelector("#chk").click()});
+  document.addEventListener("visibilitychange",function(){if(document.hidden&&raf){cancelAnimationFrame(raf);raf=0;t=tEnd;finish()}});
+  readout();draw();window.addEventListener("resize",function(){if(!raf)draw()});
+ }
+};
+Sci.initExp();
+</script></body></html>

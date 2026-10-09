@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>지레와 도르래 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 12px;margin:8px 0 0;font-size:15px}.stat div{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--bg)}.stat b{font-variant-numeric:tabular-nums}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"G3",
+ predict:{q:"지레나 도르래를 쓰면 같은 짐을 훨씬 작은 힘으로 들어 올릴 수 있어요. 대신 무엇이 늘어날까요?",options:["힘을 주어 움직여야 하는 거리","한 일의 양(힘×거리)","아무것도 늘지 않아요. 그냥 이득이에요"],answer:0,
+  feedback:["맞아요! 힘은 줄어드는 대신 움직이는 거리가 늘어나요. 한 일의 양은 그대로예요.","한 일의 양은 이상적인 경우 똑같아요(일의 원리). 늘어나는 건 거리예요. 아래에서 확인해 보세요.","공짜는 없어요! 힘이 줄어든 만큼 무언가는 늘어나요. 아래에서 확인해 보세요."]},
+ steps:["먼저 '지레'에서 받침점 슬라이더(← → 키)로 받침점 위치를 옮겨 보세요. 짐은 왼쪽 끝, 힘을 주는 곳은 오른쪽 끝이에요.","'막대 기울이기' 슬라이더로 막대를 눌러 보며 손이 움직인 거리와 짐이 올라간 높이를 비교해요.","'도르래'로 바꿔 짐을 받치는 줄의 개수를 1~6개로 바꿔 보세요. '줄 당기기' 슬라이더로 줄을 당겨 보세요.","아래 숫자에서 힘, 움직인 거리, 한 일(힘×거리)을 비교해요."],
+ observe:["받침점을 짐 쪽으로 옮기면 필요한 힘은 어떻게 되나요? 손이 움직이는 거리는요?","짐이 올라간 높이와 손이 움직인 거리의 비는 어떤 값과 같나요?","줄이 4개일 때 힘은 얼마가 되나요? 줄은 짐이 올라간 높이의 몇 배를 당겨야 하나요?","'내가 한 일'과 '짐에게 한 일'을 비교하면 어때요?"],
+ more:["가위, 병따개, 시소, 손수레는 모두 지레예요. 받침점·힘점·작용점이 어디인지 찾아보세요.","줄과 막대 두 개로 간단한 도르래를 만들어 보세요. 줄을 여러 번 감으면 줄 당기기가 쉬워지고 더 많이 당겨야 하는지 확인해 보세요.","나사못이나 비탈길(빗면)도 힘을 줄이는 대신 움직이는 거리가 늘어나요. 같은 원리를 찾아보세요."],
+ why:{easy:["지레는 받침점을 중심으로 막대를 눌러 짐을 들어요. 받침점에서 힘을 주는 곳까지가 멀수록 작은 힘으로 들 수 있어요.","하지만 그만큼 막대의 힘 쪽 끝을 더 많이 눌러야 해요. 힘은 줄지만 움직이는 거리는 늘어나요.","도르래도 마찬가지예요. 짐을 받치는 줄이 4개면 힘은 4분의 1이지만 줄은 4배 길이를 당겨야 해요.","힘이 줄어든 만큼 거리가 늘어나서, 힘과 거리를 곱한 '일'은 그대로예요. 이걸 '일의 원리'라고 해요."],
+  detail:["지레의 평형(돌림힘): F × (힘팔) = W × (짐팔). 필요한 힘 F = W × (짐팔 ÷ 힘팔). 힘팔이 길수록 F가 작아져요.","막대가 θ만큼 회전하면 양 끝의 수직 이동거리는 각각 (팔 길이) × sin θ 라서, 이동거리의 비는 팔 길이의 비와 같아요. 따라서 F·s_F = W·s_W 가 성립해요.","움직도르래+고정도르래 조합에서 짐을 받치는 줄이 n개이면 이상적으로 F = W/n, 줄을 당기는 길이 s = n·h 예요. 일 W_in = F·s = W·h = W_out.","이 체험은 마찰, 막대·도르래·줄의 무게를 무시한 이상적인 경우(근사)예요. 실제로는 마찰 때문에 더 큰 힘이 들고, 한 일의 합은 짐에게 한 일보다 커요(에너지 손실). 도르래 그림은 개념도예요."]},
+ init:function(el){
+  el.innerHTML='<div class="controls" role="group" aria-label="도구 선택"><button id="mL" type="button" aria-pressed="true">지레</button><button id="mP" type="button" aria-pressed="false">도르래</button></div>'+
+   '<canvas id="cv" role="img" aria-label="지레 그림"></canvas>'+
+   '<div id="ctl"></div><div class="stat" id="st" aria-live="off"></div>'+
+   '<p class="note">짐의 무게는 60 N(약 6 kg)이에요. N(뉴턴)은 힘의 단위이고, 1 kg짜리를 들 때 약 10 N이 필요해요. 마찰과 무게는 무시한 이상적인 경우(근사)예요.</p>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var cv=el.querySelector("#cv"),ctl=el.querySelector("#ctl"),st=el.querySelector("#st"),msg=el.querySelector("#msg"),mL=el.querySelector("#mL"),mP=el.querySelector("#mP");
+  var W=60,mode="L",fx=50,th=0,n=2,pull=0,RAD=Math.PI/180,col="#000",moved=false;
+  function build(){
+   if(mode==="L")ctl.innerHTML='<div class="controls"><label>받침점 위치 <input id="fx" type="range" min="10" max="90" step="1" value="'+fx+'" aria-label="받침점 위치(왼쪽 끝에서 센티미터)"><span class="readout" id="rfx"></span></label></div><div class="controls"><label>막대 기울이기 <input id="th" type="range" min="0" max="20" step="1" value="'+th+'" aria-label="막대를 누른 각도(도)"><span class="readout" id="rth"></span></label></div>';
+   else ctl.innerHTML='<div class="controls"><label>짐을 받치는 줄 <input id="nn" type="range" min="1" max="6" step="1" value="'+n+'" aria-label="짐을 받치는 줄의 개수"><span class="readout" id="rnn"></span></label></div><div class="controls"><label>줄 당기기 <input id="pl" type="range" min="0" max="60" step="1" value="'+pull+'" aria-label="줄을 당긴 길이(센티미터)"><span class="readout" id="rpl"></span></label></div>';
+   [].forEach.call(ctl.querySelectorAll("input"),function(i){i.addEventListener("input",function(){read();if(!moved&&(th>0||pull>0)){moved=true;Exp.reveal()}draw()})});
+  }
+  function read(){var q=function(i){return ctl.querySelector("#"+i)};if(mode==="L"){fx=+q("fx").value;th=+q("th").value}else{n=+q("nn").value;pull=+q("pl").value}}
+  function stat(a){st.innerHTML=a.map(function(x){return "<div>"+x[0]+" <b>"+x[1]+"</b></div>"}).join("")}
+  function draw(){
+   var s=Sci.fit(cv,.62),c=s.c,w=s.w,h=s.h;col=getComputedStyle(document.body).color;
+   c.clearRect(0,0,w,h);c.fillStyle=col;c.strokeStyle=col;c.font=Math.max(12,w*.037)+"px sans-serif";c.lineWidth=3;c.lineCap="round";
+   if(mode==="L")lever(c,w,h);else pulley(c,w,h)
+  }
+  function arrow(c,x,y,dy,label,al){c.save();c.lineWidth=3;c.strokeStyle="#e03131";c.fillStyle="#e03131";c.beginPath();c.moveTo(x,y);c.lineTo(x,y+dy);c.stroke();var d=dy>0?1:-1;c.beginPath();c.moveTo(x,y+dy);c.lineTo(x-6,y+dy-8*d);c.lineTo(x+6,y+dy-8*d);c.closePath();c.fill();c.font="bold "+Math.max(12,c.canvas.width/(window.devicePixelRatio||1)*.037)+"px sans-serif";c.textAlign=al||"center";c.fillText(label,x,y+(d>0?-6:dy-6)+(d>0?0:0));c.restore()}
+  function lever(c,w,h){
+   var x0=.07*w,Lp=.86*w,py=h*.55,fxp=x0+Lp*fx/100,t=th*RAD,Ld=fx,Ea=100-fx,F=W*Ld/Ea,dE=Ea*Math.sin(t),dL=Ld*Math.sin(t);
+   /* 받침점 */
+   c.save();c.fillStyle="#666";c.beginPath();c.moveTo(fxp,py);c.lineTo(fxp-w*.04,py+w*.1);c.lineTo(fxp+w*.04,py+w*.1);c.closePath();c.fill();c.stroke();c.restore();
+   c.textAlign="center";c.fillText("받침점",fxp,py+w*.1+16);
+   c.save();c.translate(fxp,py);c.rotate(t);c.translate(-fxp,-py);
+   c.fillStyle="#c9a26b";c.beginPath();c.rect(x0,py-7,Lp,14);c.fill();c.stroke();c.restore();
+   /* 짐: 막대 왼쪽 끝 위 */
+   var lx=fxp+(x0-fxp)*Math.cos(t),ly=py+(x0-fxp)*Math.sin(t),ex=fxp+(x0+Lp-fxp)*Math.cos(t),ey=py+(x0+Lp-fxp)*Math.sin(t);
+   var bs=w*.11;c.save();c.fillStyle="#74c0fc";c.beginPath();c.rect(lx-bs/2,ly-7-bs,bs,bs);c.fill();c.stroke();c.fillStyle="#102";c.textAlign="center";c.font="bold "+Math.max(12,w*.037)+"px sans-serif";c.fillText("짐 60N",lx,ly-7-bs/2+4);c.restore();
+   arrow(c,ex,ey-w*.15,w*.13,"힘 "+F.toFixed(0)+" N");
+   c.save();c.textAlign="center";c.globalAlpha=.8;c.font=Math.max(11,w*.033)+"px sans-serif";c.fillText("짐팔 "+Ld+" cm",(x0+fxp)/2,py+w*.2);c.fillText("힘팔 "+Ea+" cm",(fxp+x0+Lp)/2,py+w*.2);
+   c.lineWidth=1.5;c.beginPath();c.moveTo(x0,py+w*.155);c.lineTo(fxp,py+w*.155);c.moveTo(fxp,py+w*.155);c.lineTo(x0+Lp,py+w*.155);c.stroke();c.restore();
+   if(ctl.querySelector("#rfx")){ctl.querySelector("#rfx").textContent=fx+" cm";ctl.querySelector("#rth").textContent=th+"°"}
+   cv.setAttribute("aria-label","지레. 받침점이 왼쪽 끝에서 "+fx+"센티미터. 필요한 힘 "+F.toFixed(0)+"뉴턴. 막대를 "+th+"도 눌렀을 때 손은 "+dE.toFixed(1)+"센티미터, 짐은 "+dL.toFixed(1)+"센티미터 움직임");
+   stat([["필요한 힘","F = "+F.toFixed(0)+" N"],["손이 내려간 거리",dE.toFixed(1)+" cm"],["짐이 올라간 높이",dL.toFixed(1)+" cm"],["내가 한 일",(F*dE/100).toFixed(2)+" J"],["짐에게 한 일",(W*dL/100).toFixed(2)+" J"],["거리 비","손 ÷ 짐 = "+(Ea/Ld).toFixed(2)+" 배"]]);
+  }
+  function pulley(c,w,h){
+   var top=h*.1,bx0=w*.2,bx1=w*.8,F=W/n,hh=pull/n,sc=h*.0075,load0=h*.7,by=load0-hh*sc*1.0-0;
+   /* 천장 */
+   c.save();c.fillStyle="#999";c.fillRect(bx0-10,top-10,bx1-bx0+20,10);c.strokeRect(bx0-10,top-10,bx1-bx0+20,10);c.restore();
+   c.textAlign="center";c.fillText("고정된 천장",w/2,top-16>10?top-16:12);
+   /* 움직도르래 블록(짐 위) */
+   var blk=w*.34,bxm=(bx0+bx1)/2-w*.06,left=bxm-blk/2,right=bxm+blk/2,i,ys=by-w*.07;
+   c.save();c.lineWidth=2.5;
+   for(i=0;i<n;i++){var xx=left+(blk)*(n===1?.5:i/(n-1));c.beginPath();c.moveTo(xx,top);c.lineTo(xx,ys);c.stroke()}
+   c.restore();
+   c.save();c.fillStyle="#ced4da";c.fillRect(left-8,ys,blk+16,w*.035);c.strokeRect(left-8,ys,blk+16,w*.035);c.restore();
+   c.save();c.lineWidth=2;c.beginPath();c.moveTo(bxm,ys+w*.035);c.lineTo(bxm,by);c.stroke();c.fillStyle="#74c0fc";var bs=w*.12;c.fillRect(bxm-bs/2,by,bs,bs*.8);c.strokeRect(bxm-bs/2,by,bs,bs*.8);c.fillStyle="#102";c.font="bold "+Math.max(12,w*.037)+"px sans-serif";c.fillText("짐 60N",bxm,by+bs*.8/2+4);c.restore();
+   /* 당기는 줄 */
+   var px=right+w*.1;c.save();c.lineWidth=2.5;c.beginPath();c.moveTo(right>left?left+blk*(n===1?.5:1):right,top);c.lineTo(px,top);c.lineTo(px,top+pull*sc*1.0+h*.12);c.stroke();c.restore();
+   arrow(c,px,top+pull*sc+h*.12,h*.14,"힘 "+F.toFixed(0)+" N");
+   if(ctl.querySelector("#rnn")){ctl.querySelector("#rnn").textContent=n+"개";ctl.querySelector("#rpl").textContent=pull+" cm"}
+   c.save();c.globalAlpha=.8;c.font=Math.max(11,w*.033)+"px sans-serif";c.textAlign="left";c.fillText("받치는 줄 "+n+"개 (개념도)",8,h-8);c.restore();
+   cv.setAttribute("aria-label","도르래 개념도. 짐을 받치는 줄 "+n+"개. 필요한 힘 "+F.toFixed(0)+"뉴턴. 줄을 "+pull+"센티미터 당기면 짐은 "+hh.toFixed(1)+"센티미터 올라감");
+   stat([["필요한 힘","F = "+F.toFixed(0)+" N"],["줄 당긴 거리",pull+" cm"],["짐이 올라간 높이",hh.toFixed(1)+" cm"],["내가 한 일",(F*pull/100).toFixed(2)+" J"],["짐에게 한 일",(W*hh/100).toFixed(2)+" J"],["거리 비","줄 ÷ 짐 = "+n+" 배"]]);
+  }
+  function setMode(m){mode=m;mL.setAttribute("aria-pressed",m==="L");mP.setAttribute("aria-pressed",m==="P");moved=moved;build();draw();
+   msg.textContent=m==="L"?"지레: 받침점 위치와 막대 기울이기를 바꿔 보세요.":"도르래: 줄 개수를 바꾸고 줄을 당겨 보세요."}
+  mL.addEventListener("click",function(){setMode("L")});mP.addEventListener("click",function(){setMode("P")});
+  /* 도르래 모드 안정을 위해 pulley 줄 시작점 보정 */
+  build();draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>
