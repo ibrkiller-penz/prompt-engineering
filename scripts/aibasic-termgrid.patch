@@ -1,0 +1,46 @@
+--- a/style.css	2026-10-09 02:03:39.892641402 +0000
++++ b/style.css	2026-10-09 02:04:23.810273937 +0000
+@@ -247,7 +247,7 @@
+ .tg-bar b{color:var(--accent)}
+ .tg-bar .btn.sm{margin-left:auto;min-height:34px;padding:0 14px;font-size:.92rem}
+ .tg-hint{font-size:.95rem;color:var(--muted);margin:8px 0 12px;line-height:1.7}
+-.tg-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
++.tg-slots{display:grid;grid-template-columns:repeat(var(--tgc,4),minmax(0,1fr));gap:10px}
+ .slot{border:2px dashed var(--line);border-radius:12px;padding:8px 12px;min-height:84px;background:var(--bg);transition:.15s}
+ .slot-t{font-weight:800;color:var(--accent);line-height:1.5}
+ .slot-d{font-size:.9rem;color:var(--muted);line-height:1.6;margin-top:2px}
+@@ -255,7 +255,7 @@
+ .slot.ok{border:2px solid var(--ok);background:var(--ok-soft)}
+ .slot.ok .slot-d{color:var(--ink)}
+ .slot.bad{border-color:var(--bad);background:var(--bad-soft)}
+-.tg-pool{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
++.tg-pool{display:grid;grid-template-columns:repeat(var(--tgc,4),minmax(0,1fr));gap:10px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+ .dcard{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:9px 12px;font-size:.95rem;line-height:1.65;cursor:grab;touch-action:none;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+ .dcard:hover{transform:translateY(-2px)}
+ .dcard.sel{background:var(--accent-soft);box-shadow:0 0 0 3px var(--accent)}
+@@ -291,10 +291,13 @@
+ .bd details.sm[open]>summary::before{content:"✕";font-size:1rem;color:var(--accent-ink);font-weight:800}
+ .bd details.sm[open] .sm-body{margin:10px -46px 6px 0}
+ 
+-.tg-slots{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
++.tg-slots{grid-template-columns:repeat(var(--tgc,4),minmax(0,1fr))}
+ .slot{min-height:70px;padding:8px 10px}
+ .slot-t{font-size:.98rem}
+ .slot-d{font-size:.85rem}
+-.tg-pool{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
++.tg-pool{grid-template-columns:repeat(var(--tgc,4),minmax(0,1fr))}
+ 
+ .score,.lockmsg,.chk .q{word-break:keep-all;overflow-wrap:break-word}
++
++@media(max-width:700px){.tg-slots,.tg-pool{grid-template-columns:repeat(2,minmax(0,1fr))}}
++.dcard,.slot-t{word-break:keep-all;overflow-wrap:break-word}
+--- a/app.js	2026-10-09 02:03:39.892589821 +0000
++++ b/app.js	2026-10-09 02:04:23.810178581 +0000
+@@ -231,6 +231,7 @@
+   <p class="tg-hint">아래 <b>설명 카드</b>를 마우스로 끌어서 알맞은 <b>낱말</b> 위에 놓아요. (끌기 어려우면 카드를 누른 뒤 낱말을 눌러도 돼요)</p>
+   <div class="tg-slots"></div><div class="tg-pool"></div><div class="tg-res"></div></div>`;
+   const slots = $('.tg-slots', host), pool = $('.tg-pool', host), res = $('.tg-res', host);
++  host.firstElementChild.style.setProperty('--tgc', N <= 5 ? N : N === 6 ? 3 : 4); // 칸 수를 낱말 수에 맞춰 빈칸 없이(8개면 4×2)
+   let matched, combo, miss, sel, best = 0;
+   const upd = () => { $('.c', host).textContent = matched; $('.cb', host).textContent = combo; $('.m', host).textContent = miss; };
+   function setup() {

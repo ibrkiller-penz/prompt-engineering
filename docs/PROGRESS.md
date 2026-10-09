@@ -74,3 +74,4 @@ FIREBASE_TOKEN=<토큰> npm run deploy
 ```
 - 패치를 이미 적용한 뒤 `--force` 로 다시 받으면 패치 전 상태로 돌아가니, 다시 받았다면 패치도 다시 적용한다.
 - 2026-10-09: /aibasic 레슨 하단에 정리·용어 게임·마무리 시험 제목을 처음부터 보이고, 안에는 "위 N계단을 모두 올라야 열려요" 잠금 안내(전에는 계단을 다 오르기 전까지 통째로 숨겨져 완료 방법이 안 보였음). 패치 `scripts/aibasic-lockhint.patch`(aibasic-mobile.patch 적용 뒤에): `git apply --directory=public/aibasic scripts/aibasic-lockhint.patch`
+- 2026-10-09: /aibasic 용어 카드 맞추기를 낱말 수에 맞춰 빈칸 없이(8개면 4×2, 모바일은 2열) 배치하고 설명 카드는 단어 단위로 줄바꿈. 패치 `scripts/aibasic-termgrid.patch`(lockhint 패치 적용 뒤에): `git apply --directory=public/aibasic scripts/aibasic-termgrid.patch`
