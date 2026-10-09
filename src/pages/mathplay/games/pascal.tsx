@@ -32,7 +32,7 @@ type Pal = { top: string; base: string; edge: string; ink: string };
 const ROWPAL: Pal[] = [
   { top: "#ffe0ef", base: "#f9a8d4", edge: "#db2777", ink: "#831843" },
   { top: "#ffe8cc", base: "#fdba74", edge: "#ea580c", ink: "#7c2d12" },
-  { top: "#fff7b8", base: "#fde047", edge: "#ca8a04", ink: "#713f12" },
+  { top: "#ecfccb", base: "#bef264", edge: "#65a30d", ink: "#365314" },
   { top: "#dcfce7", base: "#86efac", edge: "#16a34a", ink: "#14532d" },
   { top: "#d5f7fd", base: "#67e8f9", edge: "#0891b2", ink: "#164e63" },
   { top: "#e3e7ff", base: "#a5b4fc", edge: "#4f46e5", ink: "#312e81" },
@@ -488,6 +488,7 @@ export default function PascalGame() {
                           <rect x={-BW / 2} y={-BH / 2 + 4} width={BW} height={BH} rx={13} fill={pl.edge} />
                           <rect x={-BW / 2} y={-BH / 2} width={BW} height={BH} rx={13} fill={`url(#pa-${pid})`} stroke={pl.edge} strokeWidth={2.2} />
                           <rect x={-BW / 2 + 7} y={-BH / 2 + 5} width={BW - 22} height={6} rx={3} fill="#fff" opacity={0.6} />
+                          {pid === "gold" && isParent(n, k) && <rect x={-BW / 2 - 4} y={-BH / 2 - 4} width={BW + 8} height={BH + 12} rx={16} fill="none" stroke="#fbbf24" strokeWidth={3} strokeDasharray="5 4" className="pa-flow" />}
                           {selected && <rect x={-BW / 2 - 4} y={-BH / 2 - 4} width={BW + 8} height={BH + 12} rx={16} fill="none" stroke="#fbbf24" strokeWidth={3.5} />}
                           <text textAnchor="middle" dominantBaseline="central" y={1} fontSize={fs} fill={pl.ink} style={FONT}>{label}</text>
                         </>
