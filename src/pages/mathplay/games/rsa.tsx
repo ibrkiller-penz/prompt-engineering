@@ -48,7 +48,7 @@ export default function RsaGame() {
 
   const pick = (v: number) => {
     if (!isPrime(v)) {
-      setKeyMsg({ t: `${v} 는 소수가 아니에요. ${smallestFactor(v)} × ${v / smallestFactor(v)} 로 쪼개져요.`, tone: "bad" });
+      setKeyMsg({ t: `${v}은(는) 소수가 아니에요. ${smallestFactor(v)} × ${v / smallestFactor(v)} 로 쪼개져요.`, tone: "bad" });
       return;
     }
     if (slot === "p") {
@@ -62,7 +62,7 @@ export default function RsaGame() {
     }
     setE(null);
     setDGuess(null);
-    setKeyMsg({ t: `${v} 를 골랐어요. 이제 공개 지수 e 를 골라 보세요.`, tone: "info" });
+    setKeyMsg({ t: `소수 ${v}을(를) 골랐어요. 둘을 다 고르면 공개 지수 e 를 골라 보세요.`, tone: "info" });
     newQuest(false);
   };
 
@@ -70,7 +70,7 @@ export default function RsaGame() {
     setE(v);
     setDGuess(null);
     const r = modInverse(v, phi);
-    setKeyMsg({ t: `e=${v} 를 골랐어요. 확장 유클리드 호제법으로 비밀 지수 d=${r.d} 를 찾았어요! (${v} × ${r.d} 를 φ=${phi} 로 나눈 나머지가 1)`, tone: "ok" });
+    setKeyMsg({ t: `e=${v} 를 골랐어요. 확장 유클리드 호제법으로 비밀 지수 d=${r.d} 를 찾았어요! (${v} × ${r.d} 를 φ=${phi} 로 나누면 나머지가 1이에요)`, tone: "ok" });
     newQuest(false);
   };
 

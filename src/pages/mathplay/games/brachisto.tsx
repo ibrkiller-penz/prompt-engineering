@@ -179,7 +179,6 @@ export default function BrachistoGame() {
             const p = posAt(tabs[id], clock);
             return <circle key={id} cx={X(p.x)} cy={Y(p.d)} r={8} fill={COLORS[id]} stroke="var(--surface)" strokeWidth={2.5} />;
           })}
-        {phase === "ready" && IDS.map((id) => <circle key={id} cx={X(0)} cy={Y(0)} r={7} fill={COLORS[id]} opacity={0.0} />)}
       </svg>
     );
   })();

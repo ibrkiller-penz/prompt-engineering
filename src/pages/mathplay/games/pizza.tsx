@@ -191,7 +191,7 @@ function MakeMode() {
     const pts = tries === 0 ? 2 : 1;
     setScore((s) => s + pts);
     setSolved(true);
-    setRes({ ok: true, text: `성공! ${frText(fA)} = ${frText(target)} = ${frText(fB)}. 조각 수가 달라도 양은 같아요. (+${pts}점)` });
+    setRes({ ok: true, text: `성공! ${[...new Set([frText(fA), frText(target), frText(fB)])].join(" = ")}. 조각 수가 달라도 양은 같아요. (+${pts}점)` });
   };
 
   const mults = [1, 2, 3, 4, 5, 6].filter((m) => target.n * m <= 12);
