@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { makeColorSquare } from "./poly";
-import { cheer, oops, tick } from "./games/kit";
+import { cheer, oops, stageClear, tick, useStage } from "./games/kit";
 
 /** 칩 색: 사진 속 교구처럼 1 빨강 · 2 노랑 · 3 초록 · 4 파랑 · 5 주황. 숫자도 같이 써서 색을 구분하기 어려워도 풀 수 있다. */
 const CHIP = [
@@ -37,8 +37,11 @@ function conflicts(g: number[][]): boolean[][] {
 
 /** 색동 마방진: 가로줄·세로줄·두 대각선에 같은 색이 겹치지 않게 칩을 놓는다. */
 export default function ColorSquare() {
-  const [n, setN] = useState<4 | 5>(4);
-  const [puzzle, setPuzzle] = useState<Puzzle>(() => makeColorSquare(4));
+  // 레벨 1~5는 4×4, 레벨 6부터 5×5
+  const stage = useStage();
+  const first: 4 | 5 = stage >= 6 ? 5 : 4;
+  const [n, setN] = useState<4 | 5>(first);
+  const [puzzle, setPuzzle] = useState<Puzzle>(() => makeColorSquare(first));
   const [grid, setGrid] = useState<number[][]>(() => puzzle.given.map((row, r) => row.map((g, c) => (g ? puzzle.solution[r][c] : 0))));
   // pick=0 이면 ‘누를 때마다 색이 바뀜’, 색 칩을 고르면 그 색으로 칠함
   const [pick, setPick] = useState(0);
@@ -67,7 +70,7 @@ export default function ColorSquare() {
   // 다 맞추면 2.5초 뒤 자동으로 새 문제
   useEffect(() => {
     if (!done) return;
-    const t = window.setTimeout(() => start(n), 2500);
+    const t = window.setTimeout(() => stageClear(), 2500);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
@@ -206,9 +209,9 @@ export default function ColorSquare() {
           </p>
           {done && (
             <p className="gz-pop mt-2 rounded-2xl border-2 border-ok/40 bg-ok-soft p-3 text-lg font-semibold text-ok" role="status">
-              🎉 모든 줄과 두 대각선에 색이 하나씩! 완성했어요. 곧 새 문제로 넘어가요!
-              <button type="button" onClick={() => start(n)} className="font-game ml-3 min-h-[52px] rounded-full bg-accent px-6 text-xl text-accent-ink shadow-[0_5px_0_0_rgba(0,0,0,0.2)] hover:brightness-110">
-                새 문제 →
+              🎉 모든 줄과 두 대각선에 색이 하나씩! 완성했어요. 곧 다음 레벨로 넘어가요!
+              <button type="button" onClick={() => stageClear()} className="font-game ml-3 min-h-[52px] rounded-full bg-accent px-6 text-xl text-accent-ink shadow-[0_5px_0_0_rgba(0,0,0,0.2)] hover:brightness-110">
+                다음 레벨 →
               </button>
             </p>
           )}

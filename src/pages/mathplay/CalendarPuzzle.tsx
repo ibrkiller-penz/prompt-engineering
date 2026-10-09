@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import PolyBoard, { type CellKind, type PieceDef } from "./PolyBoard";
 import { solveFill } from "./poly";
+import { stageClear, useStage } from "./games/kit";
 
 const WEEK = ["월", "화", "수", "목", "금", "토", "일"];
 
@@ -34,7 +35,13 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const toInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 export default function CalendarPuzzle() {
-  const [value, setValue] = useState(() => toInput(new Date()));
+  // 레벨이 오를 때마다 하루씩 뒤 날짜(레벨 1 = 오늘)
+  const stage = useStage();
+  const [value, setValue] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + stage - 1);
+    return toInput(d);
+  });
   const date = useMemo(() => {
     const [y, m, d] = value.split("-").map(Number);
     const t = new Date(y, (m || 1) - 1, d || 1);
@@ -102,7 +109,7 @@ export default function CalendarPuzzle() {
           solution={solution}
           resetKey={value}
           doneText={`${month + 1}월 ${day}일 ${WEEK[week]}요일만 남기고 모두 덮었어요!`}
-          next={{ label: "내일 날짜로 →", onClick: () => { const d = new Date(date); d.setDate(d.getDate() + 1); setValue(toInput(d)); } }}
+          next={{ label: "다음 레벨 →", onClick: stageClear }}
           cellPx={46}
         />
       </div>

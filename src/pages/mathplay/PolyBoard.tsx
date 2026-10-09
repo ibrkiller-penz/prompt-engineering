@@ -472,7 +472,7 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
       </p>
       {done && (
         <div className="gz-pop mt-2 flex flex-wrap items-center gap-3 rounded-2xl border-2 border-ok/40 bg-ok-soft p-3 text-lg font-semibold text-ok" role="status">
-          <span className="min-w-0 flex-1">🎉 {doneText}{nextBtn && <span className="block text-sm font-normal">곧 다음 문제로 넘어가요!</span>}</span>
+          <span className="min-w-0 flex-1">🎉 {doneText}{nextBtn && <span className="block text-sm font-normal">곧 다음 레벨로 넘어가요!</span>}</span>
           {nextBtn && (
             <button type="button" onClick={nextBtn.onClick} className="font-game min-h-[52px] rounded-full bg-accent px-6 text-xl text-accent-ink shadow-[0_5px_0_0_rgba(0,0,0,0.2)] hover:brightness-110 active:translate-y-[3px]">
               {nextBtn.label}
