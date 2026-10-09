@@ -3,6 +3,7 @@ import type { PointerEvent as RPointerEvent, KeyboardEvent as RKeyboardEvent } f
 import { Board, GButton, Say, Stat, clamp, svgPoint, useFrame } from "./kit";
 
 // ==PURE==
+export const EASY_GOALS = [30, 45, 60, 90];
 export const GOALS = [30, 45, 60, 90, 120, 135];
 
 /** 경첩(hx,hy)에서 포인터(px,py)를 본 각도(0~180°). 화면 y는 아래로 늘어나므로 방 쪽(아래)이 +각도. */
@@ -18,13 +19,19 @@ export function starsFor(err: number): number {
   return e <= 4 ? 3 : e <= 10 ? 2 : 1;
 }
 
-export function pickGoals(n = 5): number[] {
-  const a = [...GOALS];
+export function pickGoals(hard = false, n = 5): number[] {
+  const pool = hard ? GOALS : EASY_GOALS;
+  const a = [...pool];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
-  return a.slice(0, n);
+  const out = a.slice(0, n);
+  while (out.length < n) {
+    const c = pool[Math.floor(Math.random() * pool.length)];
+    if (c !== out[out.length - 1]) out.push(c);
+  }
+  return out;
 }
 // ==END==
 
@@ -39,13 +46,14 @@ const starText = (n: number) => "★".repeat(n) + "☆".repeat(3 - n);
 export default function DoorAngleGame() {
   const svgRef = useRef<SVGSVGElement>(null);
   const drag = useRef(false);
-  const [goals, setGoals] = useState(() => pickGoals());
+  const [goals, setGoals] = useState(() => pickGoals(false));
   const [round, setRound] = useState(0);
   const [stars, setStars] = useState<number[]>([]);
   const [judged, setJudged] = useState(false);
   const [target, setTarget] = useState(0); // 내가 정한 각도
   const [cur, setCur] = useState(0); // 화면에 그려지는 각도(부드럽게 따라감)
-  const [prot, setProt] = useState(false);
+  const [prot, setProt] = useState(true);
+  const [hard, setHard] = useState(false);
   const [msg, setMsg] = useState<{ tone: "info" | "ok" | "bad"; text: string } | null>(null);
 
   useFrame((_, dt) => {
@@ -96,7 +104,8 @@ export default function DoorAngleGame() {
     setStars((a) => [...a, s]);
     setJudged(true);
     const diff = err === 0 ? "딱 맞았어요!" : `${Math.abs(err)}° ${err > 0 ? "더 열었어요" : "덜 열었어요"}.`;
-    setMsg({ tone: s >= 2 ? "ok" : "bad", text: `목표 ${goal}°, 내 문은 ${reading}° → ${diff} ${starText(s)}` });
+    const cheer = s === 3 ? "최고예요!" : s === 2 ? "아주 잘했어요!" : "괜찮아요. 다음엔 더 가까이 맞춰 봐요!";
+    setMsg({ tone: s >= 2 ? "ok" : "bad", text: `목표 ${goal}°, 내 문은 ${reading}° → ${diff} ${starText(s)} ${cheer}` });
   };
   const next = () => {
     setRound((r) => r + 1);
@@ -104,8 +113,8 @@ export default function DoorAngleGame() {
     setTarget(0);
     setMsg(null);
   };
-  const restart = () => {
-    setGoals(pickGoals());
+  const restart = (h = hard) => {
+    setGoals(pickGoals(h));
     setRound(0);
     setStars([]);
     setJudged(false);
@@ -124,14 +133,14 @@ export default function DoorAngleGame() {
       <div className="flex flex-wrap items-center gap-2">
         <Stat label="라운드" value={`${round + 1}/${goals.length}`} />
         <Stat label="별" value={`${total}/${goals.length * 3}`} tone="ok" />
-        {prot && <Stat label="모드" value="쉬운 모드" />}
+        <Stat label="모드" value={hard ? "어려운 도전" : "쉬운 모드"} />
       </div>
 
       <Board>
-        <p className="mb-2 text-center text-lg font-extrabold">
-          목표 각도 <span className="text-accent">{goal}°</span>
-          {!showProt && <span className="ml-2 text-sm font-semibold text-muted">(각도기를 숨겼어요. 눈대중으로!)</span>}
+        <p className="mb-2 text-center text-xl font-extrabold">
+          문을 <span className="text-accent">{goal}°</span> 만큼 열어요
         </p>
+        {!showProt && <p className="mb-2 text-center text-base font-semibold text-muted">각도기가 꺼져 있어요. 눈으로 어림해 봐요!</p>}
         <svg
           ref={svgRef}
           viewBox="0 0 420 215"
@@ -201,18 +210,18 @@ export default function DoorAngleGame() {
 
         <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {showProt ? (
-            <p className="text-base font-bold" aria-live="polite">
-              지금 문 각도: <span className="text-accent tabular-nums">{reading}°</span>
+            <p className="text-lg font-bold" aria-live="polite">
+              지금 문이 열린 각도: <span className="text-accent tabular-nums">{reading}°</span>
             </p>
           ) : (
-            <p className="text-sm text-muted">문을 끌어서 열어 보세요. (키보드: 화살표)</p>
+            <p className="text-base text-muted">문의 끝을 끌어서 열어 보세요. (키보드: 화살표)</p>
           )}
         </div>
       </Board>
 
       <div className="flex flex-wrap gap-2">
-        <GButton pressed={prot} onClick={() => setProt((p) => !p)} title="각도기를 켜면 지금 각도를 읽을 수 있어요">
-          각도 읽기 {prot ? "끄기" : "켜기"}
+        <GButton pressed={prot} onClick={() => setProt((p) => !p)} title="각도기를 켜면 눈금으로 각도를 읽을 수 있어요">
+          각도기 {prot ? "끄기" : "켜기"}
         </GButton>
         {!judged && (
           <GButton variant="primary" onClick={decide}>
@@ -224,16 +233,28 @@ export default function DoorAngleGame() {
             다음 라운드
           </GButton>
         )}
-        <GButton onClick={restart}>다시 하기</GButton>
+        <GButton onClick={() => restart()}>다시 하기</GButton>
+        <GButton
+          pressed={hard}
+          onClick={() => {
+            const h = !hard;
+            setHard(h);
+            setProt(!h);
+            restart(h);
+          }}
+          title="목표 각도가 더 다양해지고 각도기가 꺼져요"
+        >
+          더 어려운 도전
+        </GButton>
       </div>
 
       {msg && <Say tone={msg.tone}>{msg.text}</Say>}
       {judged && last && (
         <Say tone={total >= 12 ? "ok" : "info"}>
-          5라운드 끝! 모두 {total}점 / {goals.length * 3}점이에요. {total >= 12 ? "각도 눈대중 달인이에요!" : "각도기를 끄고 한 번 더 도전해 봐요."}
+          5번 다 했어요! 별 {total}개 / {goals.length * 3}개예요. {total >= 12 ? "대단해요! 각도 박사예요!" : "잘했어요! 한 번 더 하면 더 잘할 수 있어요."}
         </Say>
       )}
-      {!msg && <Say>문을 끌어 목표 각도에 맞추고 ‘정했어요’를 눌러요. 오차가 작을수록 별이 많아요. (3개: 4° 이내, 2개: 10° 이내)</Say>}
+      {!msg && <Say>문을 끌어서 목표 각도로 열고 ‘이 각도로 정했어요’를 눌러요. 가까울수록 별이 많아요! (각도기 눈금을 읽어 봐요.)</Say>}
     </div>
   );
 }

@@ -29,3 +29,18 @@ export const fib = (i: number): number => {
   return a;
 };
 export const popcount = (n: number) => n.toString(2).split("").filter((c) => c === "1").length;
+/** 정답과 헷갈리는 보기 3개를 섞어 4지선다로. 모두 서로 다르고 0보다 큼 */
+export function choices(truth: number, near: number[], rnd: () => number = Math.random): number[] {
+  const pool = [truth + 1, truth - 1, truth + 2, truth * 2, truth + 3, ...near].filter((x) => Number.isInteger(x) && x > 0 && x !== truth);
+  const uniq = [...new Set(pool)];
+  for (let i = uniq.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [uniq[i], uniq[j]] = [uniq[j], uniq[i]];
+  }
+  const out = [truth, ...uniq.slice(0, 3)];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}

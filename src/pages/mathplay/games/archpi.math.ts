@@ -39,3 +39,15 @@ export function minSidesForGap(tol: number, maxN = 2000): number {
 }
 
 export const fmt = (v: number, d = 5) => v.toFixed(d);
+
+/** 어린이용 표시: 아래 값은 내림, 위 값은 올림으로 소수 둘째 자리까지 (참인 말만 하도록) */
+export const floor2 = (v: number) => Math.floor(v * 100 + 1e-9) / 100;
+export const ceil2 = (v: number) => Math.ceil(v * 100 - 1e-9) / 100;
+
+/** 미션 5개: 위·아래 값의 차이를 gap 보다 작게, 마지막은 3.14 확정(아래 ≥ 3.14, 위 ≤ 3.15) */
+export const MISSIONS: { gap?: number; is314?: boolean }[] = [{ gap: 0.2 }, { gap: 0.05 }, { gap: 0.02 }, { gap: 0.005 }, { is314: true }];
+export function missionOk(i: number, n: number): boolean {
+  const m = MISSIONS[i];
+  if (m.is314) return inscribed(n) >= 3.14 && circumscribed(n) <= 3.15;
+  return gap(n) < (m.gap as number);
+}

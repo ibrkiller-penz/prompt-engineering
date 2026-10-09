@@ -30,6 +30,7 @@ export default function GamePage() {
         <Link to={`/mathplay/busan/${g.floor}`} className="inline-flex min-h-[44px] items-center rounded-full bg-accent-soft px-3 text-sm font-semibold text-accent">
           {FLOOR_LABEL[g.floor]} 체험
         </Link>
+        {g.level === "upper" && <span className="ml-2 rounded-full bg-line/60 px-3 py-1 text-sm font-semibold text-muted">중·고등 도전 게임</span>}
       </p>
       <p className="mt-3 rounded-card bg-bg p-3 text-[0.95rem]">
         <strong>하는 방법</strong> · {g.how}

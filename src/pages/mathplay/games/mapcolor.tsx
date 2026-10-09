@@ -62,6 +62,24 @@ export function conflicts(adj: boolean[][], colors: (number | null)[]): Set<numb
     }
   return s;
 }
+/** 이미 칠한 칸(fixed, null=아직)을 그대로 두고 k색으로 나머지를 칠할 수 있으면 전체 칠하기를, 아니면 null */
+export function solveFrom(adj: boolean[][], k: number, fixed: (number | null)[]): number[] | null {
+  const n = adj.length;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (adj[i][j] && fixed[i] !== null && fixed[i] === fixed[j]) return null;
+  const col: (number | null)[] = fixed.slice();
+  const go = (i: number): boolean => {
+    if (i === n) return true;
+    if (fixed[i] !== null) return go(i + 1);
+    for (let c = 0; c < k; c++) {
+      if (adj[i].some((v, j) => v && col[j] === c)) continue;
+      col[i] = c;
+      if (go(i + 1)) return true;
+      col[i] = null;
+    }
+    return false;
+  };
+  return go(0) ? (col as number[]) : null;
+}
 // ==PURE-END==
 
 type MapDef = { id: string; name: string; rows: string[]; why: string };

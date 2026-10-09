@@ -94,7 +94,7 @@ export default function FloorPage() {
   if (!f) return <Navigate to="/mathplay" replace />;
   const total = f.data.items.length;
   const withVideo = f.data.items.filter((x) => x.v).length;
-  const games = GAMES.filter((g) => g.floor === f.key).length;
+  const games = GAMES.filter((g) => g.floor === f.key && g.level === "elem").length;
 
   return (
     <Shell
@@ -182,7 +182,7 @@ export default function FloorPage() {
                         to={`/mathplay/game/${gameForExp(x.n)!.id}`}
                         className="inline-flex min-h-[44px] items-center justify-center rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110"
                       >
-                        🎮 게임으로 해 보기
+                        🎮 게임으로 해 보기{gameForExp(x.n)!.level === "upper" ? " (중·고)" : ""}
                       </Link>
                     )}
                     {x.v ? (

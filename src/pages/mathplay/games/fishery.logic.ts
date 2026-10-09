@@ -36,7 +36,7 @@ export function simulate(hs: number[]) {
 }
 
 /** 20년 안에 붕괴하지 않으면서 총 어획량을 가장 크게 하는 점수(동적계획법, 5 단위) */
-export function bestScore(): number {
+export function bestScore(years = YEARS): number {
   const G = 1000; // 물고기 수 칸(0..1000, 1 단위)
   const H = Array.from({ length: 61 }, (_, i) => i * 5);
   let V = new Float64Array(G + 1); // 남은 해가 0 일 때 가치 0
@@ -46,7 +46,7 @@ export function bestScore(): number {
       hi = Math.min(G, lo + 1);
     return arr[lo] + (arr[hi] - arr[lo]) * (c - lo);
   };
-  for (let y = 0; y < YEARS; y++) {
+  for (let y = 0; y < years; y++) {
     const nv = new Float64Array(G + 1);
     for (let n = 0; n <= G; n++) {
       let best = -1e9;

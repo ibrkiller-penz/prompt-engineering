@@ -11,13 +11,16 @@ type Filter = "all" | "2f" | "3f" | "4f";
 /** 온라인 수학 체험 첫 화면: 마우스로 하는 게임 + 층별 체험 목록(영상) + 퍼즐 놀이터 */
 export default function MathplayHome() {
   const [f, setF] = useState<Filter>("all");
-  const list = GAMES.filter((g) => f === "all" || g.floor === f);
+  const [more, setMore] = useState(false);
+  const elem = GAMES.filter((g) => g.level === "elem");
+  const upper = GAMES.filter((g) => g.level === "upper");
+  const list = elem.filter((g) => f === "all" || g.floor === f);
   return (
     <Shell
       title="온라인 수학 체험"
-      lead={<p>부산수학문화관의 체험을 마우스로 직접 해 볼 수 있는 게임으로 만들었어요. 끌고, 누르고, 돌려 보면서 수학을 만져 봐요.</p>}
+      lead={<p>수학체험관에서 하는 체험을 게임으로 만들었어요. 누르고, 끌고, 돌려 보면서 놀아 봐요!</p>}
     >
-      <h2 className="mt-8 text-xl font-extrabold">🎮 체험 게임 {GAMES.length}가지</h2>
+      <h2 className="mt-8 text-xl font-extrabold">🎮 체험 게임 {elem.length}가지</h2>
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="층 고르기">
         {(["all", "2f", "3f", "4f"] as Filter[]).map((k) => (
           <button
@@ -27,7 +30,7 @@ export default function MathplayHome() {
             aria-pressed={f === k}
             className={`min-h-[44px] rounded-full border px-4 text-sm font-semibold ${f === k ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface hover:bg-bg"}`}
           >
-            {k === "all" ? `전체 ${GAMES.length}` : `${FLOOR_NAME[k]} ${GAMES.filter((g) => g.floor === k).length}`}
+            {k === "all" ? `전체 ${elem.length}` : `${FLOOR_NAME[k]} ${elem.filter((g) => g.floor === k).length}`}
           </button>
         ))}
       </div>
@@ -43,6 +46,26 @@ export default function MathplayHome() {
           </li>
         ))}
       </ul>
+
+      <div className="mt-6 rounded-card border border-line bg-bg p-4">
+        <button type="button" onClick={() => setMore((o) => !o)} aria-expanded={more} className="min-h-[44px] w-full text-left font-bold">
+          {more ? "▼" : "▶"} 중·고등학생 도전 게임 {upper.length}가지 {more ? "접기" : "보기"}
+          <span className="block text-sm font-normal text-muted">암호, 접선, 로그 자 같은 조금 어려운 수학이에요.</span>
+        </button>
+        {more && (
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {upper.map((g) => (
+              <li key={g.id}>
+                <Link to={`/mathplay/game/${g.id}`} className="group block h-full rounded-card border border-line bg-surface p-4 hover:border-accent">
+                  <span className="inline-block rounded-full bg-line/60 px-2.5 py-0.5 text-xs font-semibold text-muted">{FLOOR_NAME[g.floor]} · 중·고</span>
+                  <h3 className="mt-2 font-extrabold leading-tight">{g.title}</h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted">{g.blurb}</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <h2 className="mt-10 text-xl font-extrabold">🧩 퍼즐 놀이터</h2>
       <Link to="/mathplay/puzzle" className="group mt-3 block rounded-card border-2 border-accent bg-surface p-5 transition hover:shadow-lg sm:p-6">
