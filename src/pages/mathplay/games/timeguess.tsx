@@ -17,10 +17,10 @@ type Phase = "idle" | "run" | "done";
 const f2 = (x: number) => x.toFixed(2);
 
 export default function TimeGuessGame() {
-  const [target, setTarget] = useState(10);
+  const [target, setTarget] = useState(5);
   const [phase, setPhase] = useState<Phase>("idle");
   const [elapsed, setElapsed] = useState(0);
-  const [always, setAlways] = useState(false);
+  const [always, setAlways] = useState(true);
   const [recs, setRecs] = useState<Rec[]>([]);
   const phaseRef = useRef<Phase>("idle");
   const t0 = useRef(0);
@@ -69,14 +69,15 @@ export default function TimeGuessGame() {
 
   let say: { tone: "info" | "ok" | "bad"; text: string };
   if (phase === "idle" && !last) {
-    say = { tone: "info", text: `‘시작’을 누르고 처음 1초 뒤부터는 속으로 세어요. ${target}초라고 느끼면 ‘멈춰’!` };
+    say = { tone: "info", text: `‘시작’을 누르고 마음속으로 ${target}초를 세어요. ${target}초가 됐다고 느끼면 ‘멈춰!’를 눌러요.` };
   } else if (phase === "run") {
-    say = { tone: "info", text: visible ? "시작했어요! 숫자는 곧 사라져요." : "속으로 세는 중이에요… 때가 되었다고 느끼면 ‘멈춰’를 눌러요." };
+    say = { tone: "info", text: visible ? (always ? "시간이 흐르고 있어요. 목표 시간에 ‘멈춰!’를 눌러요." : "숫자는 곧 사라져요. 속으로 세어 봐요!") : "속으로 세는 중이에요… 때가 되었다고 느끼면 ‘멈춰!’를 눌러요." };
   } else if (last) {
     const e = errOf(last);
     const a = Math.abs(e);
     const how = a < 0.005 ? "딱 맞았어요!" : `${f2(a)}초 ${e < 0 ? "일찍" : "늦게"} 멈췄어요.`;
-    say = { tone: a <= 0.5 ? "ok" : "bad", text: `목표 ${last.target}초, 내 기록 ${f2(last.t)}초 → ${how}${a <= 0.3 ? " 정말 정확해요!" : a <= 0.5 ? " 아주 가까워요." : " 한 번 더 해 봐요."}` };
+    const stars = a <= 0.3 ? "⭐⭐⭐" : a <= 0.5 ? "⭐⭐" : a <= 1 ? "⭐" : "";
+    say = { tone: a <= 0.5 ? "ok" : "bad", text: `목표 ${last.target}초, 내 기록 ${f2(last.t)}초 → ${how}${a <= 0.3 ? " 정말 정확해요! 대단해요!" : a <= 0.5 ? " 아주 가까워요! 잘했어요!" : " 괜찮아요! 한 번 더 해 봐요."} ${stars}` };
   } else {
     say = { tone: "info", text: "준비됐어요." };
   }
@@ -84,25 +85,25 @@ export default function TimeGuessGame() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold">목표 시간</span>
+        <span className="text-base font-semibold">목표 시간</span>
         {TARGETS.map((t) => (
           <GButton key={t} pressed={target === t} disabled={phase === "run"} onClick={() => setTarget(t)} className="min-w-[56px]">
             {t}초
           </GButton>
         ))}
         <GButton pressed={always} onClick={() => setAlways((a) => !a)} title="켜면 숫자가 계속 보여요(쉬운 모드)">
-          숫자 {always ? "계속 보임" : "숨기기"}
+          {always ? "숫자 숨기기 (더 어려운 도전)" : "숫자 다시 보기"}
         </GButton>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Stat label="횟수" value={recs.length} />
-        <Stat label="평균 오차" value={recs.length ? `${f2(avg)}초` : "-"} tone={recs.length && avg <= 0.5 ? "ok" : "plain"} />
-        <Stat label="가장 가까운 기록" value={best ? `${f2(Math.abs(errOf(best)))}초` : "-"} tone={best ? "ok" : "plain"} />
+        <Stat label="평균 차이" value={recs.length ? `${f2(avg)}초` : "-"} tone={recs.length && avg <= 0.5 ? "ok" : "plain"} />
+        <Stat label="제일 가까운 기록" value={best ? `${f2(Math.abs(errOf(best)))}초` : "-"} tone={best ? "ok" : "plain"} />
       </div>
 
       <Board className="text-center">
-        <p className="text-sm text-muted">목표</p>
+        <p className="text-base text-muted">목표</p>
         <p className="text-3xl font-extrabold text-accent">{target}초</p>
         <div className="my-3 flex h-24 items-center justify-center rounded-card bg-bg" aria-live="off">
           {phase === "run" ? (
@@ -117,7 +118,7 @@ export default function TimeGuessGame() {
           ) : phase === "done" && last ? (
             <span className="text-5xl font-extrabold tabular-nums">{f2(last.t)}<span className="ml-1 text-2xl">초</span></span>
           ) : (
-            <span className="text-xl font-bold text-muted">준비</span>
+            <span className="text-xl font-bold text-muted">‘시작’을 눌러요</span>
           )}
         </div>
         <button
@@ -134,8 +135,8 @@ export default function TimeGuessGame() {
 
       {recs.length > 0 && (
         <Board>
-          <h3 className="mb-2 text-sm font-bold">기록 (최근 순)</h3>
-          <ul className="space-y-1 text-sm">
+          <h3 className="mb-2 text-base font-bold">기록 (최근 순)</h3>
+          <ul className="space-y-1 text-base">
             {[...recs].reverse().slice(0, 8).map((r, i) => {
               const e = errOf(r);
               const idx = recs.length - i;
@@ -150,7 +151,7 @@ export default function TimeGuessGame() {
             })}
           </ul>
           {recs.length >= 3 && (
-            <p className="mt-2 text-sm">
+            <p className="mt-2 text-base">
               평균적으로 {Math.abs(bias) < 0.05 ? "거의 정확하게" : `${f2(Math.abs(bias))}초 ${bias < 0 ? "빨리(빠른 편)" : "늦게(느린 편)"}`} 멈추고 있어요.
             </p>
           )}
@@ -162,7 +163,7 @@ export default function TimeGuessGame() {
           다시 하기 (기록 지우기)
         </GButton>
       </div>
-      <p className="text-xs text-muted">화면과 손가락의 반응 시간 때문에 0.1~0.2초 정도 늦게 눌릴 수 있어서 완벽하게 0초 오차를 만들기는 어려워요. 오차의 +는 늦게, −는 일찍 멈췄다는 뜻이에요.</p>
+      <p className="text-base text-muted">손가락이 움직이는 시간 때문에 0.1~0.2초쯤 늦게 눌릴 수 있어요. 그래서 완벽하게 맞추기는 어려워요. (+는 늦게, −는 일찍 멈췄다는 뜻이에요.)</p>
     </div>
   );
 }

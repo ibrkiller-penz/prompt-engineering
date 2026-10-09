@@ -1,53 +1,62 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Shell from "./Shell";
-import { FLOORS } from "./FloorPage";
-import { GAMES } from "./games/registry";
+import { FLOORS, GAMES, floorInfo, type Floor } from "./games/registry";
 
-const ONLINE = "https://home.pen.go.kr/bmcm/cm/cntnts/cntntsView.do?mi=17620&cntntsId=3846";
-const FLOOR_NAME: Record<string, string> = { "2f": "2F 수학놀이관", "3f": "3F 진로탐색관", "4f": "4F 교과체험관" };
-type Filter = "all" | "2f" | "3f" | "4f";
-
-/** 온라인 수학 체험 첫 화면: 마우스로 하는 게임 + 층별 체험 목록(영상) + 퍼즐 놀이터 */
+/** 첫 화면: 생각 없이 바로 놀 수 있게 큰 시작 단추와 층별 게임 */
 export default function MathplayHome() {
-  const [f, setF] = useState<Filter>("all");
+  const [params, setParams] = useSearchParams();
+  const nav = useNavigate();
+  const q = params.get("f");
+  const f: Floor | "all" = FLOORS.some((x) => x.key === q) ? (q as Floor) : "all";
   const [more, setMore] = useState(false);
   const elem = GAMES.filter((g) => g.level === "elem");
   const upper = GAMES.filter((g) => g.level === "upper");
   const list = elem.filter((g) => f === "all" || g.floor === f);
+  const pick = (k: Floor | "all") => setParams(k === "all" ? {} : { f: k }, { replace: true });
+  const randomGame = () => nav(`/mathplay/game/${elem[Math.floor(Math.random() * elem.length)].id}`);
+
   return (
-    <Shell
-      title="온라인 수학 체험"
-      lead={<p>수학체험관에서 하는 체험을 게임으로 만들었어요. 누르고, 끌고, 돌려 보면서 놀아 봐요!</p>}
-    >
-      <h2 className="mt-8 text-xl font-extrabold">🎮 체험 게임 {elem.length}가지</h2>
-      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="층 고르기">
-        {(["all", "2f", "3f", "4f"] as Filter[]).map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => setF(k)}
-            aria-pressed={f === k}
-            className={`min-h-[44px] rounded-full border px-4 text-sm font-semibold ${f === k ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface hover:bg-bg"}`}
-          >
-            {k === "all" ? `전체 ${elem.length}` : `${FLOOR_NAME[k]} ${elem.filter((g) => g.floor === k).length}`}
+    <Shell title="온라인 수학 체험" lead={<p>생각 없이 놀다 보면 어느새 수학이 쏙쏙! 누르고, 끌고, 돌려 보세요.</p>}>
+      <button type="button" onClick={randomGame} className="mt-6 min-h-[64px] w-full rounded-card bg-accent px-6 text-xl font-extrabold text-accent-ink shadow transition hover:brightness-110 sm:w-auto">
+        🎲 아무 게임이나 시작!
+      </button>
+
+      <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="층 고르기">
+        <button type="button" onClick={() => pick("all")} aria-pressed={f === "all"} className={`min-h-[44px] rounded-full border px-4 font-semibold ${f === "all" ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface hover:bg-bg"}`}>
+          전체 {elem.length}
+        </button>
+        {FLOORS.map((x) => (
+          <button key={x.key} type="button" onClick={() => pick(x.key)} aria-pressed={f === x.key} className={`min-h-[44px] rounded-full border px-4 font-semibold ${f === x.key ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface hover:bg-bg"}`}>
+            {x.emoji} {x.label} {x.name} {elem.filter((g) => g.floor === x.key).length}
           </button>
         ))}
       </div>
+      {f !== "all" && <p className="mt-2 text-muted">{floorInfo(f).emoji} {floorInfo(f).desc}</p>}
+
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {list.map((g) => (
           <li key={g.id}>
             <Link to={`/mathplay/game/${g.id}`} className="group block h-full rounded-card border border-line bg-surface p-4 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg">
-              <span className="inline-block rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent">{FLOOR_NAME[g.floor]}</span>
+              <span className="inline-block rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent">
+                {floorInfo(g.floor).emoji} {floorInfo(g.floor).label} {floorInfo(g.floor).name}
+              </span>
               <h3 className="mt-2 text-lg font-extrabold leading-tight">{g.title}</h3>
               <p className="mt-1 line-clamp-2 text-sm text-muted">{g.blurb}</p>
-              <span className="mt-2 inline-block text-sm font-semibold text-accent group-hover:underline">게임 시작 →</span>
+              <span className="mt-2 inline-block text-sm font-semibold text-accent group-hover:underline">시작 →</span>
             </Link>
           </li>
         ))}
       </ul>
 
-      <div className="mt-6 rounded-card border border-line bg-bg p-4">
+      <h2 className="mt-10 text-xl font-extrabold">🧩 조각 맞추기 퍼즐</h2>
+      <Link to="/mathplay/puzzle" className="group mt-3 block rounded-card border-2 border-accent bg-surface p-5 transition hover:shadow-lg sm:p-6">
+        <h3 className="text-2xl font-extrabold">펜토미노 달력 · 테트로미노 · 색동 마방진</h3>
+        <p className="mt-1 text-muted">조각을 마우스로 끌어다 맞춰요. 오늘 날짜만 남기고 달력을 덮어 보세요!</p>
+        <span className="mt-3 inline-block font-semibold text-accent group-hover:underline">퍼즐 하러 가기 →</span>
+      </Link>
+
+      <div className="mt-8 rounded-card border border-line bg-bg p-4">
         <button type="button" onClick={() => setMore((o) => !o)} aria-expanded={more} className="min-h-[44px] w-full text-left font-bold">
           {more ? "▼" : "▶"} 중·고등학생 도전 게임 {upper.length}가지 {more ? "접기" : "보기"}
           <span className="block text-sm font-normal text-muted">암호, 접선, 로그 자 같은 조금 어려운 수학이에요.</span>
@@ -56,8 +65,8 @@ export default function MathplayHome() {
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {upper.map((g) => (
               <li key={g.id}>
-                <Link to={`/mathplay/game/${g.id}`} className="group block h-full rounded-card border border-line bg-surface p-4 hover:border-accent">
-                  <span className="inline-block rounded-full bg-line/60 px-2.5 py-0.5 text-xs font-semibold text-muted">{FLOOR_NAME[g.floor]} · 중·고</span>
+                <Link to={`/mathplay/game/${g.id}`} className="block h-full rounded-card border border-line bg-surface p-4 hover:border-accent">
+                  <span className="inline-block rounded-full bg-line/60 px-2.5 py-0.5 text-xs font-semibold text-muted">{floorInfo(g.floor).name} · 중·고</span>
                   <h3 className="mt-2 font-extrabold leading-tight">{g.title}</h3>
                   <p className="mt-1 line-clamp-2 text-sm text-muted">{g.blurb}</p>
                 </Link>
@@ -66,48 +75,6 @@ export default function MathplayHome() {
           </ul>
         )}
       </div>
-
-      <h2 className="mt-10 text-xl font-extrabold">🧩 퍼즐 놀이터</h2>
-      <Link to="/mathplay/puzzle" className="group mt-3 block rounded-card border-2 border-accent bg-surface p-5 transition hover:shadow-lg sm:p-6">
-        <span className="inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">펜토미노 · 테트로미노 · 마방진</span>
-        <h3 className="mt-2 text-2xl font-extrabold">조각을 끌어다 맞추는 퍼즐</h3>
-        <p className="mt-1 text-muted">
-          오늘 날짜만 남기고 10조각으로 덮는 <strong className="text-ink">펜토미노 달력</strong>, 5종 조각으로 빈틈없이 채우는 <strong className="text-ink">테트로미노 퍼즐</strong>, 가로·세로·대각선에 같은 색이 없게 채우는 <strong className="text-ink">색동 마방진</strong>. 조각을 마우스로 끌어다 놓아요.
-        </p>
-        <span className="mt-3 inline-block font-semibold text-accent group-hover:underline">퍼즐 하러 가기 →</span>
-      </Link>
-
-      <h2 className="mt-10 text-xl font-extrabold">📺 부산수학문화관 층별 체험 · 영상</h2>
-      <p className="mt-1 text-muted">전체 체험 목록과 실제 체험 영상이에요. 게임이 있는 체험에는 게임 단추가 붙어 있어요.</p>
-      <ul className="mt-4 grid gap-4 sm:grid-cols-3">
-        {FLOORS.map((fl) => (
-          <li key={fl.key}>
-            <Link to={`/mathplay/busan/${fl.key}`} className="group block h-full rounded-card border border-line bg-surface p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg">
-              <span className="inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">{fl.who}</span>
-              <div className="mt-2 flex items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-lg font-extrabold text-accent-ink" aria-hidden>
-                  {fl.label}
-                </span>
-                <h3 className="text-lg font-extrabold leading-tight">{fl.title}</h3>
-              </div>
-              <p className="mt-2 line-clamp-3 text-sm text-muted">{fl.desc}</p>
-              <p className="mt-3 text-sm text-muted">
-                체험 {fl.data.items.length}가지 · 영상 {fl.data.items.filter((x) => x.v).length}가지 · 게임 {GAMES.filter((g) => g.floor === fl.key).length}가지
-              </p>
-              <span className="mt-1 inline-block font-semibold text-accent group-hover:underline">체험 보러 가기 →</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-
-      <aside className="mt-8 rounded-card bg-bg p-4 text-[0.95rem] text-muted">
-        <p>
-          <strong className="text-ink">온라인 부산수학문화관(메타버스)</strong>은 부산수학문화관이 가상공간에 그대로 구현된 곳이에요. 윈도우 PC에서만 쓸 수 있는 프로그램이라서 이 사이트에서는 안내 페이지로 연결해요.
-        </p>
-        <a href={ONLINE} target="_blank" rel="noopener" className="mt-2 inline-flex min-h-[44px] items-center font-semibold text-accent underline underline-offset-4">
-          공식 안내 보기 ↗
-        </a>
-      </aside>
     </Shell>
   );
 }

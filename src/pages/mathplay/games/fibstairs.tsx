@@ -25,14 +25,16 @@ export function countWays(n: number): number {
 // ==PURE-END==
 
 const MAXN = 8;
+const BIG = "min-h-[48px]! text-base";
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
 
 export default function FibStairsGame() {
-  const [n, setN] = useState(4);
+  const [n, setN] = useState(3);
+  const [more, setMore] = useState(false);
   const [steps, setSteps] = useState<number[]>([]); // 지금 올라가는 중인 걸음들
   const [found, setFound] = useState<Record<number, string[]>>({});
   const [last, setLast] = useState<string | null>(null);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "‘한 칸’ 또는 ‘두 칸’을 눌러 꼭대기까지 올라가 보세요." });
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "‘한 칸’ 또는 ‘두 칸’ 단추로 깃발까지 올라가요!" });
 
   const total = countWays(n);
   const list = found[n] ?? [];
@@ -44,7 +46,7 @@ export default function FibStairsGame() {
     setSteps([]);
     setLast(null);
     const f = (found[k] ?? []).length;
-    setMsg({ tone: "info", text: f === countWays(k) ? `${k}칸 계단은 이미 모두 찾았어요!` : `${k}칸 계단이에요. 방법은 모두 몇 가지일까요?` });
+    setMsg({ tone: "info", text: f === countWays(k) ? `${k}칸 계단은 이미 다 찾았어요!` : `${k}칸 계단이에요. 오르는 방법은 모두 몇 가지일까요?` });
   };
 
   const go = (d: 1 | 2) => {
@@ -52,32 +54,32 @@ export default function FibStairsGame() {
     if (pos === n) base = []; // 꼭대기에서 누르면 새로 시작
     const np = base.reduce((a, b) => a + b, 0) + d;
     if (np > n) {
-      setMsg({ tone: "bad", text: "계단이 모자라요. 남은 칸은 한 칸뿐이에요." });
+      setMsg({ tone: "bad", text: "앗, 계단이 모자라요. 남은 칸은 한 칸뿐이에요." });
       return;
     }
     const ns = [...base, d];
     setSteps(ns);
     if (np < n) {
-      setMsg({ tone: "info", text: `${np}칸째에 서 있어요. 계속 올라가요.` });
+      setMsg({ tone: "info", text: `${np}칸째에 서 있어요. 계속 올라가요!` });
       return;
     }
     const key = ns.join("+");
     if (list.includes(key)) {
-      setMsg({ tone: "bad", text: `${key} 은(는) 이미 찾은 방법이에요. 다른 순서로 올라가 보세요.` });
+      setMsg({ tone: "bad", text: `아깝다! ${key} 는 이미 찾은 방법이에요. 다른 순서로 올라가 봐요.` });
       setLast(key);
       return;
     }
     const nl = [...list, key];
     setFound({ ...found, [n]: nl });
     setLast(key);
-    if (nl.length === total) setMsg({ tone: "ok", text: `대단해요! ${n}칸 계단의 방법 ${total}가지를 모두 찾았어요. 아래 표에서 규칙을 찾아봐요.` });
-    else setMsg({ tone: "ok", text: `새로운 방법이에요! ${key} (${nl.length}/${total})` });
+    if (nl.length === total) setMsg({ tone: "ok", text: `⭐ 대단해요! ${n}칸 계단의 방법 ${total}가지를 모두 찾았어요! 아래 표도 구경해 봐요.` });
+    else setMsg({ tone: "ok", text: `좋아요! 새로운 방법을 찾았어요: ${key} (${nl.length}/${total})` });
   };
 
   const undo = () => {
     if (steps.length === 0 || pos === n) return;
     setSteps(steps.slice(0, -1));
-    setMsg({ tone: "info", text: "한 걸음 되돌렸어요." });
+    setMsg({ tone: "info", text: "한 걸음 뒤로 갔어요." });
   };
 
   const restart = () => {
@@ -92,6 +94,15 @@ export default function FibStairsGame() {
     setMsg({ tone: "info", text: `${n}칸 계단의 기록을 지웠어요. 처음부터 찾아봐요.` });
   };
 
+  const hint = () => {
+    const rest = allWays(n).filter((w) => !list.includes(w));
+    if (rest.length === 0) {
+      setMsg({ tone: "ok", text: "이미 모두 찾았어요!" });
+      return;
+    }
+    setMsg({ tone: "info", text: `힌트: 이런 방법이 아직 남았어요 → ${rest[0]} (1은 한 칸, 2는 두 칸이에요)` });
+  };
+
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === "1") go(1);
     else if (e.key === "2") go(2);
@@ -102,25 +113,26 @@ export default function FibStairsGame() {
   const SW = 56;
   const SH = 32;
   const VW = 560;
-  const VH = MAXN * SH + 70;
+  const VH = Math.max(n, 4) * SH + 70;
   const x0 = (VW - n * SW) / 2;
   const base = VH - 24;
   const px = pos === 0 ? x0 - SW * 0.45 : x0 + (pos - 0.5) * SW;
   const py = base - pos * SH;
 
   return (
-    <div className="space-y-3" onKeyDown={onKey}>
+    <div className="space-y-3 text-base" onKeyDown={onKey}>
+      <p className="rounded-card bg-accent-soft px-3 py-2 font-bold">깃발까지 한 칸 또는 두 칸씩 올라가요. 서로 다른 방법을 모두 찾아봐요!</p>
       <Board>
         <div className="mb-2 flex flex-wrap items-center gap-2" role="group" aria-label="계단 칸 수 고르기">
-          <span className="text-sm font-semibold">계단 칸 수</span>
-          {Array.from({ length: MAXN }, (_, i) => i + 1).map((k) => (
+          <span className="font-semibold">계단 몇 칸?</span>
+          {Array.from({ length: more ? MAXN : 5 }, (_, i) => i + 1).map((k) => (
             <button
               key={k}
               type="button"
               onClick={() => changeN(k)}
               aria-pressed={k === n}
               aria-label={`${k}칸 계단`}
-              className={`h-11 w-11 rounded-card text-base font-bold ${k === n ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"} ${(found[k]?.length ?? 0) === countWays(k) ? "ring-2 ring-ok" : ""}`}
+              className={`h-12 w-12 rounded-card text-lg font-bold ${k === n ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"} ${(found[k]?.length ?? 0) === countWays(k) ? "ring-2 ring-ok" : ""}`}
             >
               {k}
             </button>
@@ -148,31 +160,33 @@ export default function FibStairsGame() {
         </svg>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <GButton variant="primary" onClick={() => go(1)} className="min-w-[7rem]">한 칸 (1)</GButton>
-          <GButton variant="primary" onClick={() => go(2)} disabled={n === 1 || (pos !== n && n - pos < 2)} className="min-w-[7rem]">두 칸 (2)</GButton>
-          <GButton onClick={undo} disabled={steps.length === 0 || pos === n}>↶ 한 걸음 뒤로</GButton>
-          <GButton onClick={restart} disabled={steps.length === 0}>↓ 아래로 내려가기</GButton>
+          <GButton variant="primary" onClick={() => go(1)} className="min-h-[56px]! min-w-[8rem] text-lg">한 칸 올라가기</GButton>
+          <GButton variant="primary" onClick={() => go(2)} disabled={n === 1 || (pos !== n && n - pos < 2)} className="min-h-[56px]! min-w-[8rem] text-lg">두 칸 올라가기</GButton>
+          <GButton onClick={undo} disabled={steps.length === 0 || pos === n} className={BIG}>↶ 한 걸음 뒤로</GButton>
+          <GButton onClick={restart} disabled={steps.length === 0} className={BIG}>↓ 다시 아래서 시작</GButton>
+          <GButton variant="soft" onClick={hint} className={BIG}>💡 힌트 보기</GButton>
+          <GButton pressed={more} onClick={() => { if (more && n > 5) changeN(3); setMore(!more); }} className={BIG}>{more ? "높은 계단 닫기" : "더 어려운 도전 (6~8칸)"}</GButton>
         </div>
-        <p className="mt-2 text-sm text-muted">지금까지 올라온 길: <strong className="text-ink">{steps.length ? steps.join(" + ") : "(아직 안 올랐어요)"}</strong></p>
+        <p className="mt-2 text-base text-muted">지금까지 올라온 길: <strong className="text-ink">{steps.length ? steps.join(" + ") : "(아직 안 올랐어요)"}</strong></p>
       </Board>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Stat label="찾은 방법" value={`${list.length}/${total}`} tone={complete ? "ok" : "plain"} />
+        <Stat label="⭐ 찾은 방법" value={`${list.length}/${total}`} tone={complete ? "ok" : "plain"} />
         <Stat label="지금 위치" value={`${pos}칸`} />
       </div>
       <Say tone={msg.tone}>{msg.text}</Say>
 
       <Board>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-bold">찾은 방법 목록</h3>
-          <GButton onClick={resetAll} className="min-h-[44px] text-sm" disabled={list.length === 0}>이 계단 다시 하기</GButton>
+          <h3 className="text-base font-bold">찾은 방법 목록</h3>
+          <GButton onClick={resetAll} className={BIG} disabled={list.length === 0}>↻ 이 계단 다시 하기</GButton>
         </div>
         {list.length === 0 ? (
-          <p className="text-sm text-muted">아직 찾은 방법이 없어요.</p>
+          <p className="text-base text-muted">아직 찾은 방법이 없어요. (1은 한 칸, 2는 두 칸)</p>
         ) : (
           <ul className="flex flex-wrap gap-2" aria-label="찾은 방법">
             {list.map((w, i) => (
-              <li key={w} className={`rounded-full px-3 py-1 text-sm font-semibold tabular-nums ${w === last ? "bg-ok-soft text-ok" : "bg-accent-soft text-accent"}`}>
+              <li key={w} className={`rounded-full px-3 py-1.5 text-base font-semibold tabular-nums ${w === last ? "bg-ok-soft text-ok" : "bg-accent-soft text-accent"}`}>
                 {i + 1}. {w}
               </li>
             ))}
@@ -182,9 +196,9 @@ export default function FibStairsGame() {
 
       {complete && (
         <Board>
-          <h3 className="mb-2 text-sm font-bold">칸 수별 방법의 수</h3>
+          <h3 className="mb-2 text-base font-bold">계단 칸 수마다 방법이 몇 가지일까?</h3>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[20rem] border-collapse text-center text-sm">
+            <table className="w-full min-w-[20rem] border-collapse text-center text-base">
               <thead>
                 <tr>
                   <th className="border border-line bg-bg px-2 py-1">계단 칸 수</th>
@@ -203,7 +217,7 @@ export default function FibStairsGame() {
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-muted">1, 2, 3, 5, 8, 13, 21, 34 … 앞의 두 수를 더하면 다음 수가 되는 피보나치 수가 나타나요. 왜 그럴까요? 마지막 걸음이 한 칸이었는지 두 칸이었는지로 나눠 생각해 봐요.</p>
+          <p className="mt-2 text-base leading-relaxed text-muted">1, 2, 3, 5, 8, 13, 21, 34 … 앞의 두 수를 더하면 다음 수가 돼요! (이런 수를 피보나치 수라고 불러요.) 왜 그럴까요? 마지막에 한 칸을 올랐는지, 두 칸을 올랐는지 나눠서 생각해 봐요.</p>
         </Board>
       )}
     </div>

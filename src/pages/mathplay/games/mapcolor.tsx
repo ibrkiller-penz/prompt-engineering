@@ -87,27 +87,27 @@ type MapDef = { id: string; name: string; rows: string[]; why: string };
 const MAPS: MapDef[] = [
   {
     id: "brick",
-    name: "벽돌 마을",
+    name: "지도 1",
     rows: ["AAAABBBBCCCC", "AAAABBBBCCCC", "DDEEEEFFFFGG", "DDEEEEFFFFGG", "HHHHIIIIJJJJ", "HHHHIIIIJJJJ"],
-    why: "서로 이웃한 세 나라가 있어서 2색으로는 안 돼요. 하지만 3색이면 충분해요.",
+    why: "서로 붙어 있는 나라 셋이 있어서 2색은 모자라요. 하지만 3색이면 돼요.",
   },
   {
     id: "village",
-    name: "마을 지도",
+    name: "지도 2",
     rows: ["AAAABBBBCCCC", "AAAABBBBCCCC", "DDDEEEEEFFCC", "DDDEEEEEFFGG", "HHHHEEEEFFGG", "HHHHIIIIIIGG", "HHHHIIIIIIGG"],
-    why: "이웃 관계를 따져 보면 3색으로는 어떻게 칠해도 꼭 막히는 곳이 생겨요. 컴퓨터로 모든 경우를 검사해서 4색이 필요하다는 것을 확인했어요.",
+    why: "3색으로 칠하다 보면 꼭 막히는 곳이 생겨요. 컴퓨터가 모든 경우를 해 봤더니 4색이 필요했어요.",
   },
   {
     id: "star",
-    name: "별 모양 나라",
+    name: "별 모양 지도",
     rows: ["AAAAABBBBBGG", "AAAAABBBBBGG", "AAEEEEEBBBCC", "FFEEEEECCCCC", "FFEEEEECCCCC", "FFFDDDDCCCCH", "FFFDDDDCCCHH", "FFFDDDDHHHHH"],
-    why: "가운데 나라 E를 다섯 나라(A, B, C, D, F)가 고리처럼 둘러싸고 있어요. 고리가 홀수 개라서 두 색만으로는 고리를 칠할 수 없고, E는 또 다른 색이 필요해서 4색이 필요해요.",
+    why: "가운데 나라 E를 다섯 나라가 빙 둘러싸고 있어요. 둘러싼 나라는 두 색만으로 번갈아 칠하면 마지막이 안 맞아서 3색이 필요하고, E는 또 다른 색이어야 해서 4색이 필요해요.",
   },
   {
     id: "k4",
-    name: "네 나라가 만나는 곳",
+    name: "네 나라 지도",
     rows: ["GGAAAAAABBHH", "GGAAAAAABBHH", "GGAAEEEEBBHH", "IICCEEEEBBJJ", "IICCCCCCBBJJ", "IICCCCCCCCJJ", "KKKKKKKKKKJJ"],
-    why: "A, B, C, E 네 나라가 모두 서로 이웃해요. 네 나라가 다 달라야 하니 4색이 필요해요.",
+    why: "A, B, C, E 네 나라가 모두 서로 붙어 있어요. 넷이 다 다른 색이어야 하니 4색이 필요해요.",
   },
 ];
 
@@ -160,15 +160,18 @@ function buildGeometry(rows: string[]) {
 }
 
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
+const BIG = "min-h-[48px]! text-base";
 
 export default function MapColorGame() {
-  const [mi, setMi] = useState(1);
+  const [mi, setMi] = useState(0);
   const [ncol, setNcol] = useState(4);
   const [tool, setTool] = useState(0); // 0..4 = 색, -1 = 지우개
   const [colors, setColors] = useState<(number | null)[]>([]);
   const [showHint, setShowHint] = useState(false);
+  const [more, setMore] = useState(false);
+  const [hintR, setHintR] = useState<number | null>(null);
   const [wins, setWins] = useState(0);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "색을 고르고 나라를 눌러 칠해 보세요. 끌면서 칠할 수도 있어요." });
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "색을 고르고 나라를 눌러요. 붙어 있는 나라는 다른 색으로 칠해요!" });
 
   const defs = MAPS[mi];
   const geo = useMemo(() => buildGeometry(defs.rows), [defs]);
@@ -179,12 +182,13 @@ export default function MapColorGame() {
   const painted = cur.filter((c) => c !== null).length;
   const usedColors = new Set(cur.filter((c) => c !== null)).size;
   const full = painted === n;
+  const shown = more ? MAPS : MAPS.slice(0, 2);
 
   const evaluate = (next: (number | null)[]) => {
     const cf = conflicts(p.adj, next);
     const pc = next.filter((c) => c !== null).length;
     if (pc < n) {
-      setMsg(cf.size ? { tone: "bad", text: `이웃한 나라가 같은 색이에요. 빨간 테두리를 찾아 색을 바꿔 보세요. (${pc}/${n}칠함)` } : { tone: "info", text: `${pc}/${n}개 나라를 칠했어요.` });
+      setMsg(cf.size ? { tone: "bad", text: "앗, 붙어 있는 나라가 같은 색이에요. 빨간 테두리를 다른 색으로 바꿔 봐요." } : { tone: "info", text: `좋아요! ${pc}/${n}개 칠했어요.` });
       return;
     }
     if (cf.size === 0) {
@@ -192,12 +196,12 @@ export default function MapColorGame() {
       setWins((w) => w + 1);
       setMsg({
         tone: "ok",
-        text: k <= geo.chi ? `성공! ${k}색으로 모두 칠했어요. 이 지도는 ${geo.chi}색이 최소라서 더 줄일 수 없어요.` : `성공! ${k}색으로 칠했어요. 이 지도는 ${geo.chi}색으로도 칠할 수 있어요. 색 수를 줄여 다시 해 볼까요?`,
+        text: k <= geo.chi ? `⭐ 대단해요! ${k}색으로 다 칠했어요. 이 지도는 ${geo.chi}색보다 적게는 안 돼요!` : `⭐ 성공! ${k}색으로 칠했어요. 이 지도는 ${geo.chi}색으로도 칠할 수 있어요. 더 적은 색으로 도전해 볼까요?`,
       });
     } else if (ncol < geo.chi) {
-      setMsg({ tone: "bad", text: `다 칠했지만 이웃끼리 같은 색이 있어요. 사실 이 지도는 ${ncol}색으로는 칠할 수 없어요(모든 경우를 검사했어요). 색 개수를 늘려 보세요.` });
+      setMsg({ tone: "bad", text: `아깝다! 사실 이 지도는 ${ncol}색으로는 칠할 수 없어요. 색을 더 늘려 볼까요?` });
     } else {
-      setMsg({ tone: "bad", text: "다 칠했지만 이웃끼리 같은 색인 곳이 있어요. 빨간 테두리를 고쳐 보세요." });
+      setMsg({ tone: "bad", text: "아깝다! 같은 색이 붙은 곳이 있어요. 빨간 테두리를 고쳐 봐요." });
     }
   };
 
@@ -207,27 +211,48 @@ export default function MapColorGame() {
     const next = cur.slice();
     next[r] = val;
     setColors(next);
+    setHintR(null);
     evaluate(next);
   };
 
-  const reset = (text = "새로 시작해요. 색을 고르고 칠해 보세요.") => {
+  const reset = () => {
     setColors(Array<number | null>(n).fill(null));
-    setMsg({ tone: "info", text });
+    setHintR(null);
+    setMsg({ tone: "info", text: "새로 시작해요. 색을 고르고 나라를 눌러 보세요!" });
   };
 
   const changeMap = (i: number) => {
     setMi(i);
     setColors([]);
     setShowHint(false);
-    setMsg({ tone: "info", text: "새 지도예요. 색을 고르고 나라를 눌러 칠해 보세요." });
+    setHintR(null);
+    setMsg({ tone: "info", text: "새 지도예요. 색을 고르고 나라를 눌러 보세요!" });
   };
 
   const changeNcol = (k: number) => {
     setNcol(k);
     if (tool >= k) setTool(0);
-    const next = cur.map((c) => (c !== null && c >= k ? null : c));
-    setColors(next);
-    setMsg({ tone: "info", text: `이제 ${k}색만 쓸 수 있어요.` });
+    setColors(cur.map((c) => (c !== null && c >= k ? null : c)));
+    setHintR(null);
+    setMsg({ tone: "info", text: `이제 ${k}색으로 칠해요.` });
+  };
+
+  const giveHint = () => {
+    if (bad.size) {
+      const r = [...bad][0];
+      setHintR(r);
+      setMsg({ tone: "info", text: `나라 ${p.names[r]}가 이웃과 같은 색이에요. 지우개로 지우거나 다른 색으로 칠해 봐요.` });
+      return;
+    }
+    const sol = solveFrom(p.adj, ncol, cur);
+    if (!sol) {
+      setMsg({ tone: "info", text: ncol < geo.chi ? `이 지도는 ${ncol}색으로는 안 돼요. 색을 늘려 봐요.` : "지금 칠한 색 때문에 막힐 것 같아요. 몇 개를 지우개로 지우고 다시 해 봐요." });
+      return;
+    }
+    const r = cur.findIndex((c) => c === null);
+    if (r < 0) return;
+    setHintR(r);
+    setMsg({ tone: "info", text: `나라 ${p.names[r]}에는 ${PALETTE[sol[r]].name}색을 칠해 보면 어때요? (보라색 점선이 그 나라예요)` });
   };
 
   const keyAct = (fn: () => void) => (e: React.KeyboardEvent) => {
@@ -238,11 +263,12 @@ export default function MapColorGame() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 text-base">
       <Board>
+        <p className="mb-2 rounded-card bg-accent-soft px-3 py-2 text-base font-bold">① 아래 색을 고르고 ② 나라를 눌러 칠해요. 붙은 나라는 다른 색!</p>
         <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="지도 고르기">
-          {MAPS.map((m, i) => (
-            <GButton key={m.id} variant={i === mi ? "soft" : "ghost"} pressed={i === mi} onClick={() => changeMap(i)} className="text-sm">
+          {shown.map((m, i) => (
+            <GButton key={m.id} variant={i === mi ? "soft" : "ghost"} pressed={i === mi} onClick={() => changeMap(i)} className={BIG}>
               {m.name}
             </GButton>
           ))}
@@ -275,8 +301,12 @@ export default function MapColorGame() {
           {geo.edges.map((e, i) =>
             bad.has(e.a) || bad.has(e.b) ? <line key={`r${i}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#dc2626" strokeWidth="5" strokeLinecap="round" pointerEvents="none" /> : null,
           )}
+          {hintR !== null &&
+            geo.edges.map((e, i) =>
+              e.a === hintR || e.b === hintR ? <line key={`h${i}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#7c3aed" strokeWidth="5" strokeDasharray="8 6" strokeLinecap="round" pointerEvents="none" /> : null,
+            )}
           {geo.labels.map(([x, y], r) => (
-            <text key={r} x={x * CELL} y={y * CELL + 6} textAnchor="middle" fontSize="18" fontWeight="800" fill="#1e293b" stroke="#ffffff" strokeWidth="3" paintOrder="stroke" pointerEvents="none">
+            <text key={r} x={x * CELL} y={y * CELL + 7} textAnchor="middle" fontSize="22" fontWeight="800" fill="#1e293b" stroke="#ffffff" strokeWidth="3" paintOrder="stroke" pointerEvents="none">
               {p.names[r]}
             </text>
           ))}
@@ -290,47 +320,52 @@ export default function MapColorGame() {
               onClick={() => setTool(i)}
               aria-label={`${c.name}색 고르기`}
               aria-pressed={tool === i}
-              className={`flex h-11 w-11 items-center justify-center rounded-full border-2 text-xs font-bold text-slate-800 ${tool === i ? "border-ink ring-2 ring-accent" : "border-line"}`}
+              className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-base font-bold text-slate-800 ${tool === i ? "border-ink ring-2 ring-accent" : "border-line"}`}
               style={{ background: c.fill, touchAction: "manipulation" }}
             >
               {i + 1}
             </button>
           ))}
-          <GButton variant="ghost" pressed={tool === -1} onClick={() => setTool(-1)} className="text-sm">
+          <GButton variant="ghost" pressed={tool === -1} onClick={() => setTool(-1)} className={BIG}>
             지우개
           </GButton>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <span className="font-semibold">쓸 수 있는 색</span>
-          {[3, 4, 5].map((k) => (
-            <GButton key={k} variant={ncol === k ? "soft" : "ghost"} pressed={ncol === k} onClick={() => changeNcol(k)} className="text-sm">
-              {k}색
-            </GButton>
-          ))}
         </div>
       </Board>
 
       <div className="flex flex-wrap items-center gap-2">
         <Stat label="칠한 나라" value={`${painted}/${n}`} tone={full && bad.size === 0 ? "ok" : "plain"} />
         <Stat label="쓴 색" value={usedColors} />
-        <Stat label="같은 색 이웃" value={bad.size ? `${bad.size}곳` : "없음"} tone={bad.size ? "bad" : "plain"} />
-        <Stat label="성공" value={wins} tone={wins ? "ok" : "plain"} />
+        <Stat label="같은 색이 붙은 곳" value={bad.size ? `${bad.size}곳` : "없음"} tone={bad.size ? "bad" : "plain"} />
+        <Stat label="⭐ 성공" value={wins} tone={wins ? "ok" : "plain"} />
       </div>
       <Say tone={msg.tone}>{msg.text}</Say>
 
       <div className="flex flex-wrap gap-2">
-        <GButton variant="primary" onClick={() => reset()}>다시 칠하기</GButton>
-        <GButton variant="soft" pressed={showHint} onClick={() => setShowHint(!showHint)}>{showHint ? "힌트 숨기기" : "이 지도는 몇 색이면 될까?"}</GButton>
+        <GButton variant="primary" onClick={reset} className={BIG}>↻ 다시 칠하기</GButton>
+        <GButton variant="soft" onClick={giveHint} className={BIG}>💡 힌트 보기</GButton>
+        <GButton pressed={more} onClick={() => setMore(!more)} className={BIG}>{more ? "어려운 도전 닫기" : "더 어려운 도전"}</GButton>
       </div>
 
-      {showHint && (
-        <Board className="text-sm leading-relaxed">
-          <p>
-            이 지도의 나라는 {n}개예요. 컴퓨터가 모든 경우를 검사해 보니 <strong>{geo.canThree ? "3색으로 칠할 수 있어요" : "3색으로는 칠할 수 없어요"}</strong>
-            {geo.canThree ? "." : ` (${geo.chi}색이면 가능해요).`}
-          </p>
-          <p className="mt-1 text-muted">{defs.why}</p>
+      {more && (
+        <Board className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">쓸 수 있는 색 (적을수록 어려워요)</span>
+            {[3, 4, 5].map((k) => (
+              <GButton key={k} variant={ncol === k ? "soft" : "ghost"} pressed={ncol === k} onClick={() => changeNcol(k)} className={BIG}>
+                {k}색
+              </GButton>
+            ))}
+          </div>
+          <GButton variant="soft" pressed={showHint} onClick={() => setShowHint(!showHint)} className={BIG}>{showHint ? "답 숨기기" : "이 지도는 몇 색이면 될까?"}</GButton>
+          {showHint && (
+            <div className="leading-relaxed">
+              <p>
+                이 지도는 <strong>{geo.canThree ? "3색으로 칠할 수 있어요" : "3색으로는 칠할 수 없어요"}</strong>
+                {geo.canThree ? "." : ` (${geo.chi}색이면 돼요).`}
+              </p>
+              <p className="mt-1 text-muted">{defs.why}</p>
+            </div>
+          )}
         </Board>
       )}
     </div>

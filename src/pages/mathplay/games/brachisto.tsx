@@ -1,24 +1,29 @@
 import { useMemo, useState } from "react";
-import { Board, GButton, Say, Slider, Stat, rand, useFrame } from "./kit";
-import { BOWL_H, BOWL_NAMES, RACE_NAMES, bowlOutline, bowlPath, buildTable, isSimultaneous, makeRace, posAt, type BowlId, type RaceId } from "./brachisto.math";
+import { Board, GButton, Say, Stat, rand, useFrame } from "./kit";
+import { BOWL_H, bowlOutline, bowlPath, buildTable, isSimultaneous, makeRace, posAt, type BowlId, type RaceId } from "./brachisto.math";
 
 type Msg = { t: "info" | "ok" | "bad"; s: string };
-type Tab = "race" | "bowl";
 type Phase = "ready" | "run" | "done";
 
 const IDS: RaceId[] = ["line", "cyc", "arc", "dip"];
 const COLORS: Record<RaceId, string> = { line: "#6b7280", cyc: "#e11d48", arc: "#2563eb", dip: "#16a34a" };
+const NAMES: Record<RaceId, string> = { line: "곧은 길", cyc: "처음에 확 내려가는 길", arc: "둥근 길", dip: "푹 꺼졌다 올라오는 길" };
 const THETAS = [2.2, 2.6, Math.PI, 3.4];
+const BOWL_KO: Record<BowlId, string> = { cyc: "특별한 곡선 그릇", arc: "둥근 그릇", line: "곧은 경사 그릇" };
+const HLIST = [1, 0.7, 0.4, 0.2];
+const ROUNDS = 5;
+const BIG = "!min-h-[48px] !text-base";
+const stars = (n: number) => (n ? "⭐".repeat(n) : "0");
 
 export default function BrachistoGame() {
-  const [tab, setTab] = useState<Tab>("race");
-  const [score, setScore] = useState(0);
-  const [hit, setHit] = useState(0);
-  const [tries, setTries] = useState(0);
+  const [view, setView] = useState<"race" | "bowl">("race");
   const [speed, setSpeed] = useState(0.5);
-  const [msg, setMsg] = useState<Msg>({ t: "info", s: "먼저 어느 길이 이길지 예측해 보세요. 길이나 아래 단추를 누르면 돼요." });
+  const [msg, setMsg] = useState<Msg>({ t: "info", s: "어느 길이 가장 빨리 도착할까요? 마음에 드는 길을 눌러 골라요." });
+  const [hint, setHint] = useState(false);
 
   // 경주
+  const [round, setRound] = useState(1);
+  const [star, setStar] = useState(0);
   const [ti, setTi] = useState(2);
   const [pred, setPred] = useState<RaceId | null>(null);
   const [phase, setPhase] = useState<Phase>("ready");
@@ -28,7 +33,9 @@ export default function BrachistoGame() {
   const Tmax = Math.max(...IDS.map((id) => tabs[id].T));
   const order = [...IDS].sort((a, b) => tabs[a].T - tabs[b].T);
 
-  // 그릇
+  // 그릇 (더 어려운 도전)
+  const [bround, setBround] = useState(1);
+  const [bstar, setBstar] = useState(0);
   const [bowl, setBowl] = useState<BowlId>("cyc");
   const [hA, setHA] = useState(1);
   const [hB, setHB] = useState(0.4);
@@ -39,15 +46,16 @@ export default function BrachistoGame() {
   const tB = useMemo(() => buildTable(bowlPath(bowl, hB * BOWL_H), 3000), [bowl, hB]);
   const outline = useMemo(() => bowlOutline(bowl), [bowl]);
 
+  const running = (view === "race" && phase === "run") || (view === "bowl" && bphase === "run");
   useFrame((_, dt) => {
-    if (tab === "race" && phase === "run") {
+    if (view === "race" && phase === "run") {
       const c = clock + dt * speed;
       if (c >= Tmax) {
         setClock(Tmax);
         finishRace();
       } else setClock(c);
     }
-    if (tab === "bowl" && bphase === "run") {
+    if (view === "bowl" && bphase === "run") {
       const c = bclock + dt * speed;
       const end = Math.max(tA.T, tB.T);
       if (c >= end) {
@@ -55,33 +63,28 @@ export default function BrachistoGame() {
         finishBowl();
       } else setBclock(c);
     }
-  }, (tab === "race" && phase === "run") || (tab === "bowl" && bphase === "run"));
+  }, running);
 
   function finishRace() {
     setPhase("done");
-    setTries((n) => n + 1);
     const win = order[0];
     if (pred === win) {
-      setScore((s) => s + 10);
-      setHit((h) => h + 1);
-      setMsg({ t: "ok", s: `맞혔어요! 가장 빨리 도착한 길은 ‘${RACE_NAMES[win]}’(${tabs[win].T.toFixed(3)}초)예요. +10점 🎉` });
+      setStar((s) => s + 1);
+      setMsg({ t: "ok", s: `와, 맞혔어요! ⭐ 가장 빨리 도착한 길은 ‘${NAMES[win]}’(${tabs[win].T.toFixed(2)}초)예요!` });
     } else {
-      setMsg({ t: "bad", s: `아쉬워요. 이긴 길은 ‘${RACE_NAMES[win]}’(${tabs[win].T.toFixed(3)}초)예요. 내가 고른 ‘${pred ? RACE_NAMES[pred] : ""}’은(는) ${pred ? tabs[pred].T.toFixed(3) : ""}초 걸렸어요.` });
+      setMsg({ t: "bad", s: `아쉽지만 괜찮아요! 이긴 길은 ‘${NAMES[win]}’(${tabs[win].T.toFixed(2)}초)였어요. 다음 판에는 꼭 맞혀 봐요!` });
     }
   }
   function finishBowl() {
     setBphase("done");
-    setTries((n) => n + 1);
     const same = isSimultaneous(bowl, hA * BOWL_H, hB * BOWL_H);
     const ok = (bpred === "same") === same;
-    const dt = Math.abs(tA.T - tB.T) * 1000;
-    const detail = `공 A ${tA.T.toFixed(3)}초, 공 B ${tB.T.toFixed(3)}초 (차이 ${dt.toFixed(1)} 밀리초)`;
+    const detail = `공 A ${tA.T.toFixed(2)}초, 공 B ${tB.T.toFixed(2)}초`;
     if (ok) {
-      setScore((s) => s + 10);
-      setHit((h) => h + 1);
-      setMsg({ t: "ok", s: `맞혔어요! ${detail}. ${same ? "사이클로이드 그릇에서는 어디서 놓아도 바닥에 같은 시간에 도착해요. +10점 🎉" : "높이에 따라 도착 시간이 달라요. +10점 🎉"}` });
+      setBstar((s) => s + 1);
+      setMsg({ t: "ok", s: `잘 맞혔어요! ⭐ ${detail}. ${same ? "특별한 곡선 그릇에서는 어디서 놓아도 바닥에 같이 닿아요. 신기하죠?" : "이 그릇에서는 높이에 따라 도착 시간이 달라요."}` });
     } else {
-      setMsg({ t: "bad", s: `아쉬워요. ${detail}. ${same ? "이 그릇에서는 같은 시간에 도착했어요." : "이 그릇에서는 도착 시간이 달라요."}` });
+      setMsg({ t: "bad", s: `괜찮아요, 이렇게 하나 배웠어요! ${detail}. ${same ? "이 그릇에서는 같이 닿았어요." : "이 그릇에서는 시간이 달랐어요."}` });
     }
   }
 
@@ -89,50 +92,42 @@ export default function BrachistoGame() {
     if (!pred) return;
     setClock(0);
     setPhase("run");
-    setMsg({ t: "info", s: "구슬이 굴러가요! 어느 길이 이길까요?" });
+    setMsg({ t: "info", s: "출발! 구슬이 굴러가요. 누가 먼저 도착할까요?" });
   };
-  const newRace = () => {
+  const nextRace = () => {
     setTi((i) => (i + 1 + rand(THETAS.length - 1)) % THETAS.length);
-    setPred(null);
-    setPhase("ready");
-    setClock(0);
-    setMsg({ t: "info", s: "새 경주판이에요(도착점 B 의 위치가 바뀌었어요). 이길 길을 예측해 보세요." });
+    setRound((r) => r + 1);
+    setPred(null); setPhase("ready"); setClock(0); setHint(false);
+    setMsg({ t: "info", s: "새 경주판이에요! 어느 길이 이길까요? 눌러서 골라요." });
   };
-  const resetAll = () => {
-    setScore(0); setHit(0); setTries(0);
-    if (tab === "race") {
-      setPred(null); setPhase("ready"); setClock(0);
-      setMsg({ t: "info", s: "처음부터 다시 해요. 이길 길을 예측해 보세요." });
-    } else {
-      setBpred(null); setBphase("ready"); setBclock(0);
-      setMsg({ t: "info", s: "처음부터 다시 해요. 두 공이 같이 도착할지 예측해 보세요." });
-    }
+  const resetRace = () => {
+    setRound(1); setStar(0); setPred(null); setPhase("ready"); setClock(0); setHint(false);
+    setMsg({ t: "info", s: "처음부터 다시 해요. 어느 길이 이길까요?" });
   };
   const startBowl = () => {
-    if (!bpred) return;
+    if (!bpred || hA === hB) return;
     setBclock(0);
     setBphase("run");
-    setMsg({ t: "info", s: "두 공을 놓았어요. 누가 먼저 바닥에 닿을까요?" });
+    setMsg({ t: "info", s: "두 공을 놓았어요! 바닥에 누가 먼저 닿을까요?" });
   };
   const newBowl = () => {
     const kinds: BowlId[] = ["cyc", "arc", "line"];
-    const k = kinds[rand(3)];
-    const a = 0.7 + rand(4) * 0.1;
-    const b = Math.round((0.15 + rand(3) * 0.1) * 100) / 100;
-    setBowl(k); setHA(Math.round(a * 100) / 100); setHB(b);
+    const a = HLIST[rand(4)];
+    let b = HLIST[rand(4)];
+    while (b === a) b = HLIST[rand(4)];
+    setBowl(kinds[rand(3)]); setHA(a); setHB(b);
+    setBround((r) => r + 1);
     setBpred(null); setBphase("ready"); setBclock(0);
-    setMsg({ t: "info", s: `${BOWL_NAMES[k]}이에요. 서로 다른 높이에서 놓은 두 공은 같이 도착할까요?` });
+    setMsg({ t: "info", s: "새 문제예요! 두 공이 바닥에 같이 닿을까요?" });
   };
-  const changeTab = (t: Tab) => {
-    setTab(t);
-    setScore(0); setHit(0); setTries(0);
-    if (t === "race") {
-      setPhase("ready"); setClock(0); setPred(null);
-      setMsg({ t: "info", s: "먼저 어느 길이 이길지 예측해 보세요. 길이나 아래 단추를 누르면 돼요." });
-    } else {
-      setBphase("ready"); setBclock(0); setBpred(null);
-      setMsg({ t: "info", s: "그릇 모양과 공을 놓는 높이를 정하고, 두 공이 같이 도착할지 예측해 보세요." });
-    }
+  const resetBowl = () => {
+    setBround(1); setBstar(0); setBpred(null); setBphase("ready"); setBclock(0); setBowl("cyc"); setHA(1); setHB(0.4);
+    setMsg({ t: "info", s: "처음부터 다시 해요. 두 공이 바닥에 같이 닿을까요?" });
+  };
+  const goView = (v: "race" | "bowl") => {
+    setView(v);
+    if (v === "race") setMsg({ t: "info", s: "어느 길이 가장 빨리 도착할까요? 눌러서 골라요." });
+    else setMsg({ t: "info", s: "높이가 다른 곳에서 공 두 개를 놓아요. 바닥에 같이 닿을까요?" });
   };
 
   // ───── 경주 그림 ─────
@@ -141,44 +136,32 @@ export default function BrachistoGame() {
     const maxD = Math.max(...samples.flat().map((p) => p.d));
     const maxX = Math.max(...samples.flat().map((p) => p.x));
     const s = Math.min(330 / maxX, 220 / maxD);
-    const ox = 34, oy = 30;
+    const ox = 34, oy = 36;
     const X = (x: number) => ox + x * s;
     const Y = (d: number) => oy + d * s;
     const H = Math.round(oy + maxD * s + 26);
     return (
-      <svg viewBox={`0 0 400 ${H}`} className="w-full select-none rounded-card bg-bg" role="group" aria-label="점 A 에서 점 B 까지 가는 네 가지 길">
-        <line x1={X(0)} x2={X(race.xb) + 6} y1={Y(0)} y2={Y(0)} stroke="var(--line)" strokeDasharray="4 4" />
-        <line x1={X(race.xb)} x2={X(race.xb)} y1={Y(0)} y2={Y(race.yb)} stroke="var(--line)" strokeDasharray="4 4" />
+      <svg viewBox={`0 0 400 ${H}`} className="w-full select-none rounded-card bg-bg" role="group" aria-label="출발점 A 에서 도착점 B 까지 가는 네 가지 길">
         {IDS.map((id, k) => {
           const d = samples[k].map((p, i) => `${i ? "L" : "M"}${X(p.x).toFixed(1)} ${Y(p.d).toFixed(1)}`).join("");
           const sel = pred === id;
           return (
             <g key={id}>
-              <path d={d} fill="none" stroke={COLORS[id]} strokeWidth={sel ? 5 : 3} strokeLinecap="round" opacity={pred && !sel ? 0.45 : 1} />
-              <path
-                d={d}
-                fill="none"
-                stroke="transparent"
-                strokeWidth={22}
-                style={{ cursor: phase === "ready" ? "pointer" : "default", touchAction: "manipulation" }}
-                onClick={() => phase === "ready" && setPred(id)}
-                role="button"
-                aria-label={`${RACE_NAMES[id]}이(가) 이길 거라고 예측하기`}
-                tabIndex={phase === "ready" ? 0 : -1}
-                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && phase === "ready" && (e.preventDefault(), setPred(id))}
-              />
+              <path d={d} fill="none" stroke={COLORS[id]} strokeWidth={sel ? 6 : 3.5} strokeLinecap="round" opacity={pred && !sel ? 0.4 : 1} />
+              <path d={d} fill="none" stroke="transparent" strokeWidth={24} style={{ cursor: phase === "ready" ? "pointer" : "default", touchAction: "manipulation" }}
+                onClick={() => phase === "ready" && setPred(id)} role="button" aria-label={`${NAMES[id]}이(가) 이길 거라고 고르기`} tabIndex={phase === "ready" ? 0 : -1}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && phase === "ready" && (e.preventDefault(), setPred(id))} />
             </g>
           );
         })}
-        <circle cx={X(0)} cy={Y(0)} r={6} fill="var(--ink)" />
-        <text x={X(0) + 10} y={Y(0) - 8} fontSize={14} fontWeight={800} fill="var(--ink)">A (출발)</text>
-        <circle cx={X(race.xb)} cy={Y(race.yb)} r={6} fill="var(--ink)" />
-        <text x={X(race.xb)} y={Y(race.yb) + 20} fontSize={14} fontWeight={800} fill="var(--ink)" textAnchor="end" stroke="var(--surface)" strokeWidth={4} paintOrder="stroke">B (도착)</text>
-        {phase !== "ready" &&
-          IDS.map((id) => {
-            const p = posAt(tabs[id], clock);
-            return <circle key={id} cx={X(p.x)} cy={Y(p.d)} r={8} fill={COLORS[id]} stroke="var(--surface)" strokeWidth={2.5} />;
-          })}
+        <circle cx={X(0)} cy={Y(0)} r={7} fill="var(--ink)" />
+        <text x={X(0) + 12} y={Y(0) - 8} fontSize={16} fontWeight={800} fill="var(--ink)">출발</text>
+        <circle cx={X(race.xb)} cy={Y(race.yb)} r={7} fill="var(--ink)" />
+        <text x={X(race.xb)} y={Y(race.yb) + 24} fontSize={16} fontWeight={800} fill="var(--ink)" textAnchor="end" stroke="var(--surface)" strokeWidth={4} paintOrder="stroke">도착</text>
+        {phase !== "ready" && IDS.map((id) => {
+          const p = posAt(tabs[id], clock);
+          return <circle key={id} cx={X(p.x)} cy={Y(p.d)} r={9} fill={COLORS[id]} stroke="var(--surface)" strokeWidth={2.5} />;
+        })}
       </svg>
     );
   })();
@@ -189,109 +172,127 @@ export default function BrachistoGame() {
   const by = (h: number) => BBASE - h * BS;
   const bowlSvg = (() => {
     const od = outline.map(([x, h], i) => `${i ? "L" : "M"}${bx(x).toFixed(1)} ${by(h).toFixed(1)}`).join("");
-    const ball = (tab_: ReturnType<typeof buildTable>, h0: number, color: string, label: string, dx: number) => {
+    const ball = (tb: ReturnType<typeof buildTable>, h0: number, color: string, label: string, dx: number) => {
       const started = bphase !== "ready";
-      const p = started ? posAt(tab_, bclock) : tab_.path(0);
+      const p = started ? posAt(tb, bclock) : tb.path(0);
       const h = h0 * BOWL_H - p.d;
-      const arrived = started && bclock >= tab_.T;
+      const arrived = started && bclock >= tb.T;
+      const x = bx(p.x) + (arrived ? dx : 0);
       return (
         <g>
-          <circle cx={bx(p.x) + (arrived ? dx : 0)} cy={by(h) - 9} r={9} fill={color} stroke="var(--surface)" strokeWidth={2.5} />
-          <text x={bx(p.x) + (arrived ? dx : 0)} y={by(h) - 6} fontSize={10} fontWeight={800} fill="#fff" textAnchor="middle">{label}</text>
+          <circle cx={x} cy={by(h) - 10} r={10} fill={color} stroke="var(--surface)" strokeWidth={2.5} />
+          <text x={x} y={by(h) - 5.5} fontSize={12} fontWeight={800} fill="#fff" textAnchor="middle">{label}</text>
         </g>
       );
     };
-    const rel = (h: number) => <line x1={bx(-1.9)} x2={bx(1.9)} y1={by(h * BOWL_H)} y2={by(h * BOWL_H)} stroke="var(--line)" strokeDasharray="3 4" />;
     return (
-      <svg viewBox="0 0 400 190" className="w-full select-none rounded-card bg-bg" role="img" aria-label={`${BOWL_NAMES[bowl]} 단면. 공 A 는 높이 ${Math.round(hA * 100)}센티미터, 공 B 는 ${Math.round(hB * 100)}센티미터에서 놓아요`}>
-        {rel(hA)}{rel(hB)}
+      <svg viewBox="0 0 400 190" className="w-full select-none rounded-card bg-bg" role="img" aria-label={`${BOWL_KO[bowl]}. 공 A 는 ${Math.round(hA * 100)}센티미터, 공 B 는 ${Math.round(hB * 100)}센티미터 높이에서 놓아요`}>
         <path d={od} fill="none" stroke="var(--ink)" strokeWidth={3.5} strokeLinejoin="round" />
-        <line x1={bx(0)} x2={bx(0)} y1={by(0) + 4} y2={by(0) + 24} stroke="var(--muted)" />
-        <text x={bx(0)} y={by(0) + 38} fontSize={12} fill="var(--muted)" textAnchor="middle">바닥</text>
-        {ball(tA, hA, "#e11d48", "A", -11)}
-        {ball(tB, hB, "#2563eb", "B", 11)}
+        <text x={bx(0)} y={by(0) + 30} fontSize={14} fill="var(--muted)" textAnchor="middle">바닥</text>
+        {ball(tA, hA, "#e11d48", "A", -12)}
+        {ball(tB, hB, "#2563eb", "B", 12)}
       </svg>
     );
   })();
 
-  const racing = phase === "run";
-  const bracing = bphase === "run";
+  const raceEnd = phase === "done" && round >= ROUNDS;
+  const bowlEnd = bphase === "done" && bround >= ROUNDS;
+  const Speed = (
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="구르는 속도">
+      <span className="text-base font-semibold">속도</span>
+      <GButton className={BIG} pressed={speed < 0.5} variant={speed < 0.5 ? "primary" : "ghost"} onClick={() => setSpeed(0.3)}>🐢 느리게</GButton>
+      <GButton className={BIG} pressed={speed >= 0.5} variant={speed >= 0.5 ? "primary" : "ghost"} onClick={() => setSpeed(0.6)}>🐇 보통</GButton>
+    </div>
+  );
 
   return (
     <Board>
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="놀이 방법">
-        <GButton variant={tab === "race" ? "primary" : "ghost"} pressed={tab === "race"} onClick={() => changeTab("race")}>구슬 경주</GButton>
-        <GButton variant={tab === "bowl" ? "primary" : "ghost"} pressed={tab === "bowl"} onClick={() => changeTab("bowl")}>높이가 달라도 같이 도착?</GButton>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Stat label="점수" value={score} />
-        <Stat label="맞힘/시도" value={`${hit}/${tries}`} />
-        <Stat label="시계" value={`${(tab === "race" ? clock : bclock).toFixed(2)}초`} />
-      </div>
-
-      {tab === "race" ? (
+      {view === "race" ? (
         <>
-          <p className="mt-3 text-[0.95rem]">A 에서 B 까지 구슬 네 개를 동시에 굴려요. 구슬은 가만히 놓아 출발하고, 중력만으로 내려와요.</p>
-          <div className="mt-2">{raceSvg}</div>
-          <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="이길 길 예측하기">
-            <span className="text-sm font-semibold">내 예측</span>
+          <h3 className="text-lg font-extrabold">🛝 미끄럼틀 달리기 경주</h3>
+          <p className="mt-1 text-base">구슬 4개가 같은 곳에서 출발해서 서로 다른 길로 내려가요. 어느 길이 가장 빨리 도착할까요?</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Stat label="판" value={`${round}/${ROUNDS}`} />
+            <Stat label="별" value={stars(star)} tone={star ? "ok" : "plain"} />
+          </div>
+          <p className="mt-3 text-base font-bold">{phase === "ready" ? "👆 이길 것 같은 길을 눌러 골라요!" : phase === "run" ? "🏁 달리는 중…" : "🏁 도착!"}</p>
+          <div className="mt-1">{raceSvg}</div>
+          <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="이길 길 고르기">
             {IDS.map((id) => (
-              <GButton key={id} variant={pred === id ? "primary" : "ghost"} pressed={pred === id} disabled={phase !== "ready"} onClick={() => setPred(id)}>
-                <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLORS[id] }} aria-hidden />
-                {RACE_NAMES[id]}
+              <GButton key={id} className={BIG} variant={pred === id ? "primary" : "ghost"} pressed={pred === id} disabled={phase !== "ready"} onClick={() => setPred(id)}>
+                <span className="inline-block h-3.5 w-3.5 rounded-full" style={{ background: COLORS[id] }} aria-hidden />
+                {NAMES[id]}
               </GButton>
             ))}
           </div>
           {phase === "done" && (
-            <ol className="mt-3 space-y-1 rounded-card bg-bg p-3 text-sm" aria-label="도착 순서">
+            <ol className="mt-3 space-y-1 rounded-card bg-bg p-3 text-base" aria-label="도착 순서">
               {order.map((id, i) => (
                 <li key={id} className="flex items-center gap-2">
-                  <span className="w-12 font-extrabold">{i + 1}등{i === 0 ? " 🏆" : ""}</span>
-                  <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLORS[id] }} aria-hidden />
-                  <span className="flex-1">{RACE_NAMES[id]}</span>
-                  <span className="tabular-nums">{tabs[id].T.toFixed(3)}초</span>
+                  <span className="w-14 font-extrabold">{i + 1}등{i === 0 ? " 🏆" : ""}</span>
+                  <span className="inline-block h-3.5 w-3.5 rounded-full" style={{ background: COLORS[id] }} aria-hidden />
+                  <span className="flex-1">{NAMES[id]}</span>
+                  <span className="tabular-nums">{tabs[id].T.toFixed(2)}초</span>
                 </li>
               ))}
             </ol>
           )}
-          <div className="mt-3"><Say tone={msg.t}>{msg.s}</Say></div>
-          <div className="mt-3"><Slider label="구르는 속도" value={speed} min={0.2} max={1} step={0.1} onChange={setSpeed} show={(v) => `×${v.toFixed(1)}`} /></div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <GButton variant="primary" onClick={startRace} disabled={!pred || phase !== "ready"}>출발!</GButton>
-            <GButton variant="soft" onClick={newRace} disabled={racing}>새 경주판</GButton>
-            <GButton onClick={resetAll}>다시 하기</GButton>
+          <div className="mt-3"><Say tone={msg.t}>{raceEnd ? `${msg.s} 5판을 모두 했어요! 별 ${star}개를 모았어요. 정말 잘했어요!` : msg.s}</Say></div>
+          {hint && <p className="mt-2 rounded-card bg-bg px-3 py-2 text-base">💡 구슬은 내려갈수록 점점 빨라져요. 처음에 가파르게 내려가서 빨리 달리기 시작하는 길이 유리해요. 하지만 너무 멀리 돌아가면 손해예요!</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <GButton variant="primary" className={BIG} onClick={startRace} disabled={!pred || phase !== "ready"}>🚀 출발!</GButton>
+            {phase === "done" && !raceEnd && <GButton variant="soft" className={BIG} onClick={nextRace}>다음 판 ▶</GButton>}
+            <GButton className={BIG} pressed={hint} onClick={() => setHint((v) => !v)}>💡 힌트</GButton>
+            <GButton className={BIG} onClick={resetRace} disabled={phase === "run"}>다시 하기</GButton>
           </div>
-          <p className="mt-3 text-xs text-muted">이동 시간은 에너지 보존(속도 v = √(2gh))으로 길을 따라 수치 적분해서 계산했어요. 화면은 실제 시간보다 느리게 보여 줘요.</p>
+          <div className="mt-3">{Speed}</div>
+          <p className="mt-3 text-sm text-muted">구슬은 가만히 놓으면 저절로 굴러 내려가요. 화면은 실제보다 천천히 보여 줘요.</p>
+          <div className="mt-4 border-t border-line pt-3">
+            <GButton className={BIG} onClick={() => goView("bowl")} disabled={phase === "run"}>🔥 더 어려운 도전 해 보기 ▶</GButton>
+          </div>
         </>
       ) : (
         <>
-          <p className="mt-3 text-[0.95rem]">그릇의 서로 다른 높이에서 공 두 개를 동시에 가만히 놓아요. 바닥에 닿는 시간은 같을까요?</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label="그릇 모양">
+          <h3 className="text-lg font-extrabold">🔥 더 어려운 도전: 높이가 달라도 같이 닿을까?</h3>
+          <p className="mt-1 text-base">그릇의 서로 다른 높이에서 공 두 개를 동시에 가만히 놓아요. 바닥에 같이 닿을까요, 따로 닿을까요?</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Stat label="문제" value={`${bround}/${ROUNDS}`} />
+            <Stat label="별" value={stars(bstar)} tone={bstar ? "ok" : "plain"} />
+          </div>
+          <p className="mt-3 text-base font-bold">{bphase === "ready" ? "👆 그릇과 높이를 고르고, 예측을 눌러요!" : bphase === "run" ? "⏳ 굴러가는 중…" : "🏁 도착!"}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2" role="group" aria-label="그릇 고르기">
+            <span className="text-base font-semibold">그릇</span>
             {(["cyc", "arc", "line"] as BowlId[]).map((k) => (
-              <GButton key={k} variant={bowl === k ? "primary" : "ghost"} pressed={bowl === k} disabled={bphase === "run"} onClick={() => { setBowl(k); setBphase("ready"); setBclock(0); }}>
-                {BOWL_NAMES[k]}
-              </GButton>
+              <GButton key={k} className={BIG} variant={bowl === k ? "primary" : "ghost"} pressed={bowl === k} disabled={bphase !== "ready"} onClick={() => setBowl(k)}>{BOWL_KO[k]}</GButton>
             ))}
           </div>
           <div className="mt-2">{bowlSvg}</div>
-          <div className="mt-2 grid gap-x-6 md:grid-cols-2">
-            <Slider label="공 A 높이" value={hA} min={0.1} max={1} step={0.05} onChange={(v) => { setHA(v); setBphase("ready"); setBclock(0); }} show={(v) => `${Math.round(v * 100)}cm`} />
-            <Slider label="공 B 높이" value={hB} min={0.1} max={1} step={0.05} onChange={(v) => { setHB(v); setBphase("ready"); setBclock(0); }} show={(v) => `${Math.round(v * 100)}cm`} />
+          {([["A", hA, setHA, "#e11d48"], ["B", hB, setHB, "#2563eb"]] as const).map(([name, val, set, color]) => (
+            <div key={name} className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={`공 ${name} 높이`}>
+              <span className="w-24 text-base font-semibold" style={{ color }}>공 {name} 높이</span>
+              {HLIST.map((h) => (
+                <GButton key={h} className={`${BIG} !min-w-[56px] !px-2`} variant={val === h ? "primary" : "ghost"} pressed={val === h} disabled={bphase !== "ready"} onClick={() => set(h)}>{Math.round(h * 100)}cm</GButton>
+              ))}
+            </div>
+          ))}
+          {hA === hB && <p className="mt-2 text-base font-semibold text-bad">두 공의 높이를 다르게 골라 주세요.</p>}
+          <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="내 예측">
+            <span className="text-base font-semibold">내 예측</span>
+            <GButton className={BIG} variant={bpred === "same" ? "primary" : "ghost"} pressed={bpred === "same"} disabled={bphase !== "ready"} onClick={() => setBpred("same")}>같이 닿아요</GButton>
+            <GButton className={BIG} variant={bpred === "diff" ? "primary" : "ghost"} pressed={bpred === "diff"} disabled={bphase !== "ready"} onClick={() => setBpred("diff")}>따로 닿아요</GButton>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label="도착 시간 예측하기">
-            <span className="text-sm font-semibold">내 예측</span>
-            <GButton variant={bpred === "same" ? "primary" : "ghost"} pressed={bpred === "same"} disabled={bphase !== "ready"} onClick={() => setBpred("same")}>같이 도착해요</GButton>
-            <GButton variant={bpred === "diff" ? "primary" : "ghost"} pressed={bpred === "diff"} disabled={bphase !== "ready"} onClick={() => setBpred("diff")}>시간이 달라요</GButton>
+          <div className="mt-3"><Say tone={msg.t}>{bowlEnd ? `${msg.s} 5문제를 모두 했어요! 별 ${bstar}개를 모았어요. 대단해요!` : msg.s}</Say></div>
+          {hint && <p className="mt-2 rounded-card bg-bg px-3 py-2 text-base">💡 높은 곳에서 놓으면 더 멀리 가야 하지만 더 빨라지기도 해요. 어느 쪽이 더 클지 생각해 봐요!</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <GButton variant="primary" className={BIG} onClick={startBowl} disabled={!bpred || bphase !== "ready" || hA === hB}>🚀 공 놓기!</GButton>
+            {bphase === "done" && !bowlEnd && <GButton variant="soft" className={BIG} onClick={newBowl}>다음 문제 ▶</GButton>}
+            <GButton className={BIG} pressed={hint} onClick={() => setHint((v) => !v)}>💡 힌트</GButton>
+            <GButton className={BIG} onClick={resetBowl} disabled={bphase === "run"}>다시 하기</GButton>
           </div>
-          <div className="mt-3"><Say tone={msg.t}>{msg.s}</Say></div>
-          <div className="mt-3"><Slider label="구르는 속도" value={speed} min={0.2} max={1} step={0.1} onChange={setSpeed} show={(v) => `×${v.toFixed(1)}`} /></div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <GButton variant="primary" onClick={startBowl} disabled={!bpred || bphase !== "ready" || Math.abs(hA - hB) < 0.05}>공 놓기!</GButton>
-            <GButton variant="soft" onClick={newBowl} disabled={bracing}>새 문제</GButton>
-            <GButton onClick={resetAll}>다시 하기</GButton>
+          <div className="mt-3">{Speed}</div>
+          <div className="mt-4 border-t border-line pt-3">
+            <GButton className={BIG} onClick={() => goView("race")} disabled={bphase === "run"}>◀ 쉬운 경주로 돌아가기</GButton>
           </div>
-          {Math.abs(hA - hB) < 0.05 && <p className="mt-2 text-xs text-bad">두 공의 높이를 서로 다르게 해 주세요.</p>}
-          <p className="mt-3 text-xs text-muted">같은 바닥 모양이라도 ‘사이클로이드 그릇’에서는 바닥까지 걸리는 시간이 π√(R/g) 로 놓는 높이와 상관이 없어요(등시곡선). 둥근 그릇은 아주 낮은 곳에서만 거의 같고, 곧은 경사는 높을수록 오래 걸려요.</p>
         </>
       )}
     </Board>
