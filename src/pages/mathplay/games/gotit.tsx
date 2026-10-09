@@ -247,9 +247,9 @@ export default function GotItGame() {
 
         <div className="relative mt-3">
           {!moved && phase === "play" && turn === "me" && (
-            <span className="gz-bob pointer-events-none absolute -top-8 left-2 text-3xl" aria-hidden>
-              👆
-            </span>
+            <p className="font-game gz-bob mb-1 text-center text-xl text-accent" aria-hidden>
+              👆 숫자 단추를 눌러요!
+            </p>
           )}
           <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${k}, minmax(0, 1fr))` }} role="group" aria-label="더할 수 고르기">
             {Array.from({ length: k }, (_, i) => i + 1).map((a) => {

@@ -181,16 +181,16 @@ export default function NimGame() {
         <div className="mb-2 flex items-center gap-3">
           <Robot mood={phase === "won" ? "sad" : phase === "lost" ? "happy" : turn === "cpu" ? "think" : "idle"} />
           <p className="font-game text-xl leading-snug">
-            {phase === "play" ? (turn === "me" ? "🐣 내 차례! 가져갈 돌을 눌러요" : "🤖 로봇이 생각 중이에요…") : phase === "won" ? "🎉 내가 이겼어요!" : "😅 로봇이 이겼어요"}
+            {phase === "play" ? (turn === "me" ? (moved ? "🐣 내 차례! 가져갈 돌을 눌러요" : "👆 내 차례! 가져갈 돌을 눌러요") : "🤖 로봇이 생각 중이에요…") : phase === "won" ? "🎉 내가 이겼어요!" : "😅 로봇이 이겼어요"}
           </p>
         </div>
 
         <div key={fx.n} className={fx.t === "ok" ? "am-pop" : fx.t === "bad" ? "am-shake" : ""}>
-          <div className="relative overflow-hidden rounded-card border-4 border-teal-700 px-3 pb-4 pt-3" style={{ background: "linear-gradient(180deg, #a5f3fc 0%, #bae6fd 28%, #fde68a 28%, #fcd34d 100%)" }}>
-            <div className="pointer-events-none absolute right-3 top-2 text-3xl" aria-hidden>☀️</div>
-            <div className="pointer-events-none absolute inset-x-0 top-[26%] h-3" style={{ background: "repeating-radial-gradient(circle at 10px 12px, #7dd3fc 0 6px, #38bdf8 7px 12px)" }} aria-hidden />
+          <div className="relative overflow-hidden rounded-card border-4 border-teal-700 px-3 pb-4 pt-3" style={{ background: "linear-gradient(180deg, #fde68a 0%, #fcd34d 100%)" }}>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-9" style={{ background: "linear-gradient(180deg, #a5f3fc, #38bdf8)", borderBottom: "4px dotted #e0f2fe" }} aria-hidden />
+            <div className="pointer-events-none absolute right-3 top-0 text-2xl leading-9" aria-hidden>☀️</div>
             <div className="pointer-events-none absolute bottom-1 right-3 text-2xl" aria-hidden>🦀</div>
-            <div className="relative space-y-1 pt-5">
+            <div className="relative space-y-1 pt-9">
               {init.map((cap, i) => {
                 const [lt, base, dk] = COLORS[i % COLORS.length];
                 const p = piles[i];
@@ -199,7 +199,7 @@ export default function NimGame() {
                     <p className="font-game text-base" style={{ color: "#78350f" }}>
                       {i + 1}번 줄 · 돌 {p}개
                     </p>
-                    <div className="flex gap-1" onPointerLeave={() => setHover(null)}>
+                    <div className="flex items-start gap-1" onPointerLeave={() => setHover(null)}>
                       {Array.from({ length: cap }, (_, j) => {
                         const present = j < p;
                         const c = p - j; // 오른쪽 끝에서부터 센 번호
@@ -238,11 +238,6 @@ export default function NimGame() {
                 );
               })}
             </div>
-            {!moved && phase === "play" && turn === "me" && (
-              <span className="gz-bob pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 text-3xl" aria-hidden>
-                👆
-              </span>
-            )}
           </div>
         </div>
         <p className="mt-2 text-base text-muted">돌에 적힌 수는 ‘오른쪽 끝에서부터 센 수’예요. 누른 돌과 그 오른쪽 돌을 모두 가져가요.</p>

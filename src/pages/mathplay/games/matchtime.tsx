@@ -230,12 +230,12 @@ function ClockFace({ t, showMinutes, grab, react, touched, interactive }: { t: T
           );
         })}
       {/* 얼굴 */}
-      <circle cx="122" cy="130" r="6" fill="#3b1d2a" />
-      <circle cx="178" cy="130" r="6" fill="#3b1d2a" />
-      <circle cx="120" cy="128" r="2" fill="#fff" />
-      <circle cx="176" cy="128" r="2" fill="#fff" />
-      <circle cx="108" cy="146" r="7" fill="#fb7185" opacity="0.55" />
-      <circle cx="192" cy="146" r="7" fill="#fb7185" opacity="0.55" />
+      <circle cx="133" cy="136" r="5.5" fill="#3b1d2a" />
+      <circle cx="167" cy="136" r="5.5" fill="#3b1d2a" />
+      <circle cx="131.5" cy="134" r="1.8" fill="#fff" />
+      <circle cx="165.5" cy="134" r="1.8" fill="#fff" />
+      <circle cx="118" cy="150" r="6" fill="#fb7185" opacity="0.55" />
+      <circle cx="182" cy="150" r="6" fill="#fb7185" opacity="0.55" />
       <path d={react === "bad" ? "M 138 208 Q 150 200 162 208" : "M 136 202 Q 150 216 164 202"} fill="none" stroke="#3b1d2a" strokeWidth="3.5" strokeLinecap="round" />
       {/* 시곗바늘: 짧은바늘(시)=주황빨강, 긴바늘(분)=파랑 */}
       <g>

@@ -27,7 +27,6 @@ export default function GeoboardGame() {
   const [wrongKey, setWrongKey] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef(false);
-  const cur = useRef<string>("");
   const pathRef = useRef<Pt[]>([]);
   const closedRef = useRef(false);
   pathRef.current = path;
@@ -40,14 +39,13 @@ export default function GeoboardGame() {
   const info = useMemo(() => (closed ? explain(path, N) : null), [closed, path, N]);
   const cells = useMemo(() => (closed ? fullCells(path, N) : []), [closed, path, N]);
 
-  function pinAt(e: React.PointerEvent): Pt | null {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const [px, py] = svgPoint(svg, e.clientX, e.clientY);
+  /** 그림 좌표 (px,py) 에서 가까운 못. r 은 못 사이의 몇 배까지 인정할지 */
+  function pinNear(px: number, py: number, r: number): Pt | null {
     const gx = Math.round((px - PAD) / GAP), gy = Math.round((py - PAD) / GAP);
     if (gx < 0 || gy < 0 || gx >= N || gy >= N) return null;
-    return Math.hypot(px - X(gx), py - Y(gy)) <= GAP * 0.5 ? [gx, gy] : null;
+    return Math.hypot(px - X(gx), py - Y(gy)) <= GAP * r ? [gx, gy] : null;
   }
+  const svgXY = (e: React.PointerEvent): [number, number] | null => (svgRef.current ? svgPoint(svgRef.current, e.clientX, e.clientY) : null);
 
   function finish(p: Pt[]) {
     setClosed(true);
@@ -104,30 +102,69 @@ export default function GeoboardGame() {
     setMsg({ t: "info", s: cp.length + 1 >= 3 ? "처음 못(깜빡이는 못)을 누르면 도형이 닫혀요!" : "좋아요! 다음 못을 눌러요." });
   }
 
+  const lastXY = useRef<[number, number] | null>(null);
+  const trail = useRef<[number, number][]>([]);
+  const cand = useRef<{ pin: Pt; trailIdx: number } | null>(null);
+  const resetGesture = () => {
+    gesture.current = false;
+    lastXY.current = null;
+    trail.current = [];
+    cand.current = null;
+  };
   const onDown = (e: React.PointerEvent<SVGSVGElement>) => {
     gesture.current = true;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const p = pinAt(e);
-    cur.current = p ? p.join(",") : "";
+    const xy = svgXY(e);
+    if (!xy) return;
+    lastXY.current = xy;
+    trail.current = [xy];
+    cand.current = null;
+    const p = pinNear(xy[0], xy[1], 0.5);
     if (p) press(p);
   };
-  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    const svg = svgRef.current;
-    if (svg && !closedRef.current && pathRef.current.length) {
-      const [px, py] = svgPoint(svg, e.clientX, e.clientY);
-      setMouse([(px - PAD) / GAP, (py - PAD) / GAP]);
+  /** 끌고 가다가 못 근처에서 방향이 꺾이면 그 못을 고무줄에 걸어요(곧게 지나가기만 하면 걸지 않아요) */
+  function checkTurn(x: number, y: number) {
+    const near = pinNear(x, y, 0.3);
+    if (near && (!cand.current || !eq(cand.current.pin, near))) cand.current = { pin: near, trailIdx: trail.current.length - 1 };
+    const c = cand.current;
+    if (!c) return;
+    const cx = X(c.pin[0]), cy = Y(c.pin[1]);
+    if (Math.hypot(x - cx, y - cy) <= GAP * 0.45) return;
+    cand.current = null; // 못 근처를 벗어났어요: 꺾였는지 살펴봐요
+    const tr = trail.current;
+    let a = tr[0];
+    for (let k = Math.min(c.trailIdx, tr.length - 1); k >= 0; k--) {
+      a = tr[k];
+      if (Math.hypot(a[0] - cx, a[1] - cy) >= GAP * 0.7) break;
     }
+    const v1: [number, number] = [cx - a[0], cy - a[1]], v2: [number, number] = [x - cx, y - cy];
+    const l1 = Math.hypot(...v1), l2 = Math.hypot(...v2);
+    if (l1 < 1 || l2 < 1) return;
+    const ang = (Math.acos(Math.max(-1, Math.min(1, (v1[0] * v2[0] + v1[1] * v2[1]) / (l1 * l2)))) * 180) / Math.PI;
+    if (ang > 30) press(c.pin);
+  }
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const xy = svgXY(e);
+    if (!xy) return;
+    if (!closedRef.current && pathRef.current.length) setMouse([(xy[0] - PAD) / GAP, (xy[1] - PAD) / GAP]);
     if (!gesture.current) return;
-    const p = pinAt(e);
-    const k = p ? p.join(",") : "";
-    if (p && k !== cur.current) {
-      cur.current = k;
-      press(p);
-    } else if (!p) cur.current = "";
+    const [x0, y0] = lastXY.current ?? xy;
+    const steps = Math.max(1, Math.ceil(Math.hypot(xy[0] - x0, xy[1] - y0) / 6));
+    for (let k = 1; k <= steps; k++) {
+      const x = x0 + ((xy[0] - x0) * k) / steps, y = y0 + ((xy[1] - y0) * k) / steps;
+      trail.current.push([x, y]);
+      checkTurn(x, y);
+    }
+    lastXY.current = xy;
   };
-  const onUp = () => {
-    gesture.current = false;
-    cur.current = "";
+  const onUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    // 손가락을 뗀 곳이 못 근처면 그 못까지 이어 줘요
+    const xy = svgXY(e);
+    if (gesture.current && xy) {
+      const p = pinNear(xy[0], xy[1], 0.5);
+      if (p) press(p);
+    }
+    resetGesture();
   };
 
   function undo() {
@@ -199,7 +236,7 @@ export default function GeoboardGame() {
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
-        onPointerCancel={onUp}
+        onPointerCancel={resetGesture}
         onPointerLeave={() => setMouse(null)}
         role="group"
         aria-label={`고무줄 판. 못 ${N}×${N}개. 못을 차례로 누르거나 끌어서 고무줄을 걸어요`}
