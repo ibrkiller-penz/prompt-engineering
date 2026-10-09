@@ -394,7 +394,7 @@ export default function BinaryClockGame() {
 }
 
 function startText(r: BRound): string {
-  if (r.kind === "make") return `불을 톡 눌러 켜요. 켜진 불의 숫자를 모두 더하면 풍선의 수 ${r.target}이 되게 해요!`;
+  if (r.kind === "make") return `불을 톡 눌러 켜요. 켜진 불의 숫자를 모두 더해서 풍선의 수(${r.target})를 만들어요!`;
   if (r.kind === "read") return "켜진 불의 숫자를 모두 더하면 얼마일까요?";
   return "위쪽 불은 시, 아래쪽 불은 분이에요. 몇 시 몇 분일까요?";
 }
