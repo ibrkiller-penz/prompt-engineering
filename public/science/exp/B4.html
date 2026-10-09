@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>지나가는 구급차 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.big{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}.hear{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-variant-numeric:tabular-nums}.hear b{font-size:18px}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"B4",
+ predict:{q:"사이렌을 울리는 구급차가 가만히 서 있는 나의 옆을 지나갈 때, 들리는 소리 높이는 어떻게 변할까요?",options:["다가올 때 더 높고, 멀어질 때 더 낮게 들린다","다가올 때 더 낮고, 멀어질 때 더 높게 들린다","계속 같게 들린다"],answer:0,
+  feedback:["맞아요! 이것을 도플러 효과라고 해요. 직접 확인해 보세요.","아쉬워요. 다가올 때 더 높고 멀어질 때 더 낮게 들려요. 직접 확인해 보세요.","실제로는 변해요. 다가올 때 더 높고 멀어질 때 더 낮게 들려요. 직접 확인해 보세요."]},
+ steps:["'구급차 출발'을 누르면 화면에서 구급차가 지나가요(소리는 아직 안 나요). 둥근 물결은 소리의 파면이에요.","'소리 켜기'를 눌러야 소리가 나요. 기기 볼륨은 작게 시작하세요. 구급차가 다가올 때와 멀어질 때를 비교해 들어 보세요.","구급차 속도 슬라이더와 '나의 위치' 슬라이더(← → 키)를 바꿔 보세요.","속도를 0으로 하면 소리 높이가 어떻게 되는지 확인해 보세요."],
+ observe:["구급차가 다가오는 쪽의 파면 간격과 멀어지는 쪽의 파면 간격은 어떻게 다른가요?","나와 길 사이 거리와 상관없이, 구급차가 정확히 내 앞을 지날 때 소리가 어떻게 바뀌나요?","속도를 올리면 높은 소리와 낮은 소리의 차이가 어떻게 되나요?"],
+ more:["지나가는 오토바이나 기차 소리를 직접 들으며 높낮이가 바뀌는지 귀 기울여 보세요(안전한 곳에서).","공을 던지는 사람 앞에서 공이 일정한 간격으로 나온다고 상상하고, 다가오는 쪽에서 더 자주 받게 되는 이유를 생각해 보세요."],
+ why:{easy:["구급차가 나를 향해 다가오면 소리 파면이 서로 가까이 붙어서 한꺼번에 더 자주 도착해요. 그래서 높은 소리로 들려요.","구급차가 멀어지면 파면 사이가 벌어져서 천천히 도착해요. 그래서 낮은 소리로 들려요.","구급차 안의 사람은 사이렌 높이가 계속 같게 들려요. 달라지는 건 내 귀에 도착하는 방식이에요."],
+  detail:["음원이 속도 v_s로 움직이고 관측자가 정지해 있을 때 관측 주파수는 f' = f·c / (c − v_r) 이에요. v_r은 음원 속도 중 관측자 방향 성분(다가오면 +)이고 c는 소리 속도(약 343m/s)예요.","이 체험은 소리가 도착하는 데 걸리는 시간을 반영해서(소리를 낸 시각의 위치를 기준으로) 계산해요. 그래서 내가 듣는 소리의 변화는 구급차가 지나가는 순간보다 소리가 도착하는 시간만큼 늦게 나타나요.","화면의 파면 간격은 보기 좋게 일부러 크게 그린 모식도이고, 속도 감각을 위해 시간은 4배 느리게 보여 줘요(근사). 소리 높이 계산은 실제 값(기본 440Hz)을 써요. 음원이 소리 속도에 가까워지면 충격파 등 다른 현상이 나타나지만 여기서는 최대 속도를 100m/s로 제한했어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="위에서 본 도로. 구급차가 왼쪽에서 오른쪽으로 지나가고 관측자(나)가 아래에 있으며, 구급차에서 둥근 소리 파면이 퍼져 나가는 그림"></canvas>'+
+   '<div class="hear" aria-live="off"><span>사이렌 원래 소리 <b>440 Hz</b></span><span>내가 듣는 소리 <b id="fo">440 Hz</b></span><span id="st"></span></div>'+
+   '<div class="controls"><label>구급차 속도 <input id="sp" type="range" min="0" max="100" step="5" value="60" aria-label="구급차 속도 0에서 100 미터 매 초"><span class="big" id="rs">60 m/s</span></label></div>'+
+   '<div class="controls"><label>나의 위치 <input id="ox" type="range" min="-100" max="100" step="5" value="0" aria-label="관측자 위치, 왼쪽 마이너스 100에서 오른쪽 100 미터"><span class="big" id="ro">0 m</span></label></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">▶ 구급차 출발</button><button id="pl" type="button">🔊 소리 켜기</button></div>'+
+   '<p class="note">화면은 소리 파면을 보기 좋게 그린 모식도(시간 4배 느리게)예요. 소리를 켜면 계산한 높이의 소리가 나요.</p>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var cv=el.querySelector("#cv"),sp=el.querySelector("#sp"),ox=el.querySelector("#ox"),fo=el.querySelector("#fo"),st=el.querySelector("#st"),msg=el.querySelector("#msg"),go=el.querySelector("#go"),pl=el.querySelector("#pl");
+  var C=343,F0=440,SLOW=.25,X0=-150,X1=150,OY=45,WORLDW=300,EMIT=.1;
+  var running=false,simT=0,last=0,waves=[],nextEmit=0,raf=0,ctx=null,osc=null,gn=null,passed=false,fcur=F0;
+  function sx(t){return X0+(+sp.value)*t}
+  /* 지연 시간(소리가 도착하는 시간)을 반영한 관측 주파수 */
+  function obsFreq(t){
+   var o=+ox.value,v=+sp.value,d=Math.abs(o-sx(t));
+   for(var i=0;i<8;i++){d=Math.sqrt(Math.pow(o-sx(t-d/C),2)+OY*OY)}
+   var te=t-d/C,x=sx(te),dx=o-x,dist=Math.sqrt(dx*dx+OY*OY),vr=v*dx/dist;
+   return F0*C/(C-vr)
+  }
+  function draw(){
+   var s=Sci.fit(cv,.8),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,brand=getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()||"#0076fb";
+   var k=w/WORLDW,yl=h*.25;
+   function X(m){return (m+WORLDW/2)*k}
+   c.clearRect(0,0,w,h);c.font="13px sans-serif";c.fillStyle=col;c.strokeStyle=col;
+   /* 도로 */
+   c.globalAlpha=.12;c.fillRect(0,yl-14,w,28);c.globalAlpha=.5;c.setLineDash([10,8]);c.lineWidth=1;c.beginPath();c.moveTo(0,yl);c.lineTo(w,yl);c.stroke();c.setLineDash([]);c.globalAlpha=1;
+   c.fillText("도로 (구급차는 왼쪽 → 오른쪽)",6,yl-20);
+   /* 파면 */
+   c.strokeStyle=brand;c.lineWidth=2;
+   waves.forEach(function(wv){var r=(simT-wv.t)*C*k;if(r<=0)return;c.globalAlpha=Math.max(.15,1-r/(w*1.1));c.beginPath();c.arc(X(wv.x),yl,r,0,6.2832);c.stroke()});
+   c.globalAlpha=1;
+   /* 구급차: 사각형 + 십자, 라벨 */
+   var ax=X(sx(simT));ax=Math.max(-20,Math.min(w+20,ax));
+   c.fillStyle="#d9480f";c.fillRect(ax-18,yl-10,36,20);c.fillStyle="#fff";c.fillRect(ax-2,yl-7,4,14);c.fillRect(ax-7,yl-2,14,4);
+   c.fillStyle=col;c.fillText("구급차",ax-18,yl+26);
+   /* 나 */
+   var px=X(+ox.value),py=yl+OY*k;
+   c.beginPath();c.arc(px,py,9,0,6.2832);c.fillStyle=col;c.fill();c.fillText("나",px-5,py+24);
+   c.globalAlpha=.4;c.setLineDash([4,5]);c.beginPath();c.moveTo(px,yl);c.lineTo(px,py-10);c.stroke();c.setLineDash([]);c.globalAlpha=1;
+   /* 주파수 막대 */
+   var bx=10,by=h-30,bw=w-20;c.globalAlpha=.3;c.fillStyle=col;c.fillRect(bx,by,bw,6);c.globalAlpha=1;
+   var fr=Math.max(0,Math.min(1,(fcur-300)/(600-300)));c.fillStyle=brand;c.beginPath();c.arc(bx+fr*bw,by+3,8,0,6.2832);c.fill();
+   c.fillStyle=col;c.fillText("낮음 300Hz",bx,by+22);c.fillText("600Hz 높음",bx+bw-70,by+22);
+   var bs=bx+(F0-300)/300*bw;c.fillRect(bs-1,by-6,2,18);c.fillText("원래",bs-10,by-9);
+  }
+  function setLabels(){
+   var v=+sp.value;el.querySelector("#rs").textContent=v+" m/s";el.querySelector("#ro").textContent=ox.value+" m";
+  }
+  function updateF(){
+   fcur=obsFreq(simT);fo.textContent=Math.round(fcur)+" Hz";
+   var o=+ox.value,x=sx(simT),sv=+sp.value;
+   st.textContent=sv===0?"":(fcur>F0+1?"▲ 원래보다 높아요(다가오는 중)":fcur<F0-1?"▼ 원래보다 낮아요(멀어지는 중)":"= 원래와 같아요");
+   if(osc)osc.frequency.setTargetAtTime(fcur,ctx.currentTime,.03);
+  }
+  function frame(ts){
+   if(!running){raf=0;return}
+   var dt=Math.min(.05,(ts-last)/1000)*SLOW*1;last=ts;simT+=dt;
+   if(simT>=nextEmit){waves.push({t:nextEmit,x:sx(nextEmit)});nextEmit+=EMIT;if(waves.length>40)waves.shift()}
+   if(!passed&&+sp.value>0&&sx(simT)>+ox.value){passed=true;Exp.reveal();msg.textContent="구급차가 내 위치를 지나갔어요. 지나기 전과 후의 소리 높이를 비교해 보세요."}
+   if(+sp.value>0&&simT>(X1-X0)/(+sp.value)+.6){simT=0;nextEmit=0;waves=[];passed=false}
+   updateF();draw();raf=requestAnimationFrame(frame)
+  }
+  function runToggle(){
+   running=!running;go.textContent=running?"⏸ 멈춤":"▶ 구급차 출발";
+   if(running){last=performance.now();if(simT===0){nextEmit=0;waves=[]}raf=requestAnimationFrame(frame)}
+  }
+  function stopSound(){
+   pl.textContent="🔊 소리 켜기";
+   if(ctx){var c=ctx,o=osc,g=gn;ctx=null;osc=null;gn=null;try{g.gain.setTargetAtTime(0,c.currentTime,.015)}catch(e){}
+    setTimeout(function(){try{o.stop()}catch(e){}try{c.close()}catch(e){}},120)}
+  }
+  function startSound(){
+   try{
+    var AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();osc=ctx.createOscillator();osc.type="triangle";osc.frequency.value=fcur;
+    gn=ctx.createGain();gn.gain.value=0;osc.connect(gn);gn.connect(ctx.destination);osc.start();gn.gain.setTargetAtTime(.07,ctx.currentTime,.03);
+    if(ctx.state==="suspended")ctx.resume();pl.textContent="🔇 소리 끄기";
+    if(!running)runToggle();
+    msg.textContent="소리가 나고 있어요. (삼각파 440Hz 사이렌 대신 쓴 단순한 소리)";
+   }catch(e){ctx=null;msg.textContent="이 기기에서는 소리를 낼 수 없어요. 화면의 숫자와 막대로 확인해요."}
+  }
+  go.addEventListener("click",runToggle);
+  pl.addEventListener("click",function(){ctx?stopSound():startSound()});
+  [sp,ox].forEach(function(i){i.addEventListener("input",function(){setLabels();if(i===sp){simT=0;nextEmit=0;waves=[];passed=false}updateF();draw()})});
+  document.addEventListener("visibilitychange",function(){if(document.hidden){stopSound();if(running)runToggle()}});
+  window.addEventListener("pagehide",function(){stopSound()});
+  setLabels();updateF();draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>체험 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+#cv{border:1px solid var(--line);border-radius:12px;touch-action:none;cursor:crosshair;max-width:520px;margin:0 auto}
+#cv:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.seg2{display:flex;gap:6px;flex-wrap:wrap}
+.hist{margin:6px 0 0;padding-left:20px}
+</style>
+</head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"D5",
+ predict:{q:"마우스나 손가락을 움직이면 선이 좌우(또는 상하) 반대로 그려져요. 도형을 따라 그리는 정확도는 어떻게 될까요?",options:["반전해도 정확도는 거의 같다","반전하면 더 부정확해진다","반전하면 더 정확해진다"],answer:1,
+  feedback:["직접 비교해 보세요. 보통은 차이가 느껴져요.","그렇게 예상한 사람이 많아요. 아래 오차로 확인해 보세요.","직접 비교해 보세요. 눈에 보이는 것과 손의 느낌이 어긋나요."]},
+ steps:["그리는 방식을 고르고(보통 / 좌우 반전 / 상하 반전), 따라 그릴 도형도 고르세요.","캔버스에서 점선 도형을 따라 한 바퀴 그려요(마우스·터치). 키보드는 캔버스에 초점을 두고 방향키로 움직이고, Space로 펜을 내리고 올려요.","'결과 보기'를 눌러 평균 오차와 따라 그린 비율을 확인하고, 방식을 바꿔 비교해요."],
+ observe:["손은 오른쪽으로 움직이는데 선이 왼쪽으로 가면 어떤 느낌이었나요?","보통 방식과 반전 방식에서 평균 오차는 얼마나 차이가 났나요?","연습하면 반전 방식도 점점 나아지나요?"],
+ more:["같은 도형을 3번 연속 그려서 점점 나아지는지 기록해 보세요.","거울을 보며 종이 위의 별을 따라 그려 보세요. 거울 속 손의 움직임과 실제 손이 달라요.","좌우 반전과 상하 반전 중 어느 쪽이 더 어려운지 비교해 보세요."],
+ why:{easy:["우리는 눈으로 본 것과 손의 느낌을 맞춰서 손을 움직여요. 평소엔 둘이 일치해서 자연스럽게 되지요.","그런데 화면이 반대로 움직이면 눈이 보는 것과 손의 느낌이 어긋나요. 뇌가 새로운 규칙으로 다시 배워야 해서 서툴러져요.","조금 연습하면 뇌가 새 규칙에 적응해서 점점 나아져요."],
+  detail:["시각-운동 협응(visuomotor coordination)에서 감각 예측(손의 고유수용감각)과 시각 피드백이 충돌하면 오차가 커져요. 거울 그리기(mirror drawing) 과제는 운동 학습 연구에 오래 쓰였어요.","뇌는 내부 모형(forward model)으로 운동의 결과를 예측해요. 좌표 변환이 바뀌면 이 모형을 갱신해야 하고, 반복하면서 적응이 일어나요.","여기서는 점들과 가장 가까운 도형 위의 점 사이 거리 평균을 '평균 오차'로 근사했어요(그린 선 길이, 속도는 반영하지 않아요)."]},
+ init:function(el){
+  el.innerHTML='<div class="seg2" role="group" aria-label="방식 선택" id="modes"><button type="button" data-m="n" aria-pressed="true">보통</button><button type="button" data-m="h" aria-pressed="false">좌우 반전</button><button type="button" data-m="v" aria-pressed="false">상하 반전</button></div>'+
+   '<div class="seg2" role="group" aria-label="도형 선택" id="shapes" style="margin:8px 0"><button type="button" data-s="star" aria-pressed="true">별 ☆</button><button type="button" data-s="circle" aria-pressed="false">원 ○</button><button type="button" data-s="house" aria-pressed="false">집 ⌂</button></div>'+
+   '<canvas id="cv" tabindex="0" role="application" aria-label="그리기 영역. 점선 도형을 따라 그려요. 방향키로 움직이고 Space로 펜을 내리고 올려요"></canvas>'+
+   '<div class="controls"><button type="button" class="primary" id="res">결과 보기</button><button type="button" id="clr">지우고 다시</button></div>'+
+   '<p class="note" id="msg" role="status" aria-live="polite" style="min-height:3em"></p><ul class="hist" id="hist" aria-label="이번 기록"></ul>';
+  var cv=el.querySelector("#cv"),msg=el.querySelector("#msg"),hist=el.querySelector("#hist");
+  var mode="n",shape="star",strokes=[],cur=null,down=false,hand={x:.5,y:.5},rec=[],t0=0,target=[];
+  var NAME={n:"보통",h:"좌우 반전",v:"상하 반전"},SNAME={star:"별",circle:"원",house:"집"};
+  function poly(){
+   if(shape==="circle"){var p=[];for(var i=0;i<=120;i++){var a=i/120*Math.PI*2;p.push([.5+.32*Math.cos(a),.5+.32*Math.sin(a)])}return p}
+   if(shape==="house")return [[.2,.82],[.2,.48],[.5,.18],[.8,.48],[.8,.82],[.2,.82]];
+   var q=[];for(var k=0;k<=10;k++){var r=k%2?.15:.36,a2=-Math.PI/2+k*Math.PI/5;q.push([.5+r*Math.cos(a2),.52+r*Math.sin(a2)])}return q}
+  function sample(P){var out=[],L=0,i;for(i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);
+   var step=L/240;for(i=1;i<P.length;i++){var a=P[i-1],b=P[i],d=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(d/step));for(var j=0;j<n;j++)out.push([a[0]+(b[0]-a[0])*j/n,a[1]+(b[1]-a[1])*j/n])}return out}
+  function map(p){return {x:mode==="h"?1-p.x:p.x,y:mode==="v"?1-p.y:p.y}}
+  function draw(){
+   var s=Sci.fit(cv,1),c=s.c,w=s.w,col=getComputedStyle(document.body).color;
+   c.clearRect(0,0,w,w);
+   c.strokeStyle=col;c.globalAlpha=.55;c.lineWidth=3;c.setLineDash([8,6]);c.beginPath();
+   poly().forEach(function(p,i){i?c.lineTo(p[0]*w,p[1]*w):c.moveTo(p[0]*w,p[1]*w)});c.stroke();c.setLineDash([]);c.globalAlpha=1;
+   c.strokeStyle="#0b57d0";c.lineWidth=3;c.lineCap="round";c.lineJoin="round";
+   if(matchMedia("(prefers-color-scheme: dark)").matches)c.strokeStyle="#6ea8ff";
+   strokes.forEach(function(st){c.beginPath();st.forEach(function(p,i){i?c.lineTo(p.x*w,p.y*w):c.moveTo(p.x*w,p.y*w)});if(st.length===1)c.lineTo(st[0].x*w+.1,st[0].y*w);c.stroke()});
+   var m=map(hand);c.beginPath();c.arc(m.x*w,m.y*w,6,0,7);c.fillStyle="#d9480f";c.fill();c.strokeStyle=col;c.lineWidth=2;c.stroke();
+   c.fillStyle=col;c.font="14px sans-serif";c.fillText("방식: "+NAME[mode]+(down?" (그리는 중)":""),8,18)}
+  function pos(e){var r=cv.getBoundingClientRect();return {x:Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),y:Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))}}
+  function add(p){var m=map(p);if(!cur)return;var l=cur[cur.length-1];
+   if(l){var d=Math.hypot(m.x-l.x,m.y-l.y),n=Math.ceil(d/.005);for(var i=1;i<=n;i++){var q={x:l.x+(m.x-l.x)*i/n,y:l.y+(m.y-l.y)*i/n};cur.push(q);rec.push(q)}}else{cur.push(m);rec.push(m)}}
+  function penDown(){if(down)return;down=true;cur=[];strokes.push(cur);if(!t0)t0=performance.now();add(hand)}
+  function penUp(){down=false;cur=null}
+  cv.addEventListener("pointerdown",function(e){e.preventDefault();cv.setPointerCapture(e.pointerId);hand=pos(e);penDown();draw()});
+  cv.addEventListener("pointermove",function(e){hand=pos(e);if(down)add(hand);draw()});
+  ["pointerup","pointercancel"].forEach(function(n){cv.addEventListener(n,function(){penUp();draw()})});
+  cv.addEventListener("keydown",function(e){var d=.012,k=e.key,h=false;
+   if(k==="ArrowLeft"){hand.x=Math.max(0,hand.x-d);h=true}else if(k==="ArrowRight"){hand.x=Math.min(1,hand.x+d);h=true}
+   else if(k==="ArrowUp"){hand.y=Math.max(0,hand.y-d);h=true}else if(k==="ArrowDown"){hand.y=Math.min(1,hand.y+d);h=true}
+   else if(k===" "||k==="Enter"){e.preventDefault();if(down)penUp();else penDown();draw();return}
+   if(h){e.preventDefault();if(down)add(hand);draw()}});
+  function clear(){strokes=[];cur=null;down=false;rec=[];t0=0;hand={x:.5,y:.5}}
+  function score(){
+   var T=sample(poly());if(rec.length<10)return null;
+   var sum=0,i,j;
+   rec.forEach(function(p){var m=1e9;for(j=0;j<T.length;j++){var d=Math.hypot(p.x-T[j][0],p.y-T[j][1]);if(d<m)m=d}sum+=m});
+   var cov=0,TH=.04;T.forEach(function(t){for(i=0;i<rec.length;i++)if(Math.hypot(rec[i].x-t[0],rec[i].y-t[1])<TH){cov++;return}});
+   return {err:sum/rec.length*100,cov:cov/T.length*100}}
+  el.querySelector("#res").addEventListener("click",function(){
+   var s=score();if(!s){msg.textContent="먼저 점선 도형을 따라 그려 보세요.";return}
+   var sec=Math.round((performance.now()-t0)/100)/10;
+   var L=document.createElement("li");L.textContent=SNAME[shape]+" / "+NAME[mode]+": 평균 오차 "+s.err.toFixed(1)+"%, 따라 그린 비율 "+Math.round(s.cov)+"%, "+sec+"초";hist.appendChild(L);
+   var base=null;[].forEach.call(hist.children,function(li){});
+   msg.textContent="평균 오차 "+s.err.toFixed(1)+"%(캔버스 너비 대비, 작을수록 정확), 도형을 따라 그린 비율 "+Math.round(s.cov)+"%예요. 방식을 바꿔 같은 도형을 다시 그려 비교해 보세요. (한 번의 값이라 오차가 커요)";
+   Exp.reveal()});
+  el.querySelector("#clr").addEventListener("click",function(){clear();msg.textContent="";draw()});
+  function pick(sel,attr,set){[].forEach.call(el.querySelectorAll(sel+" button"),function(b){b.addEventListener("click",function(){
+   set(b.dataset[attr]);[].forEach.call(el.querySelectorAll(sel+" button"),function(x){x.setAttribute("aria-pressed",x===b)});clear();msg.textContent=sel==="#modes"?"방식이 바뀌어 새로 시작해요: "+NAME[mode]:"";draw()})})}
+  pick("#modes","m",function(v){mode=v});pick("#shapes","s",function(v){shape=v});
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

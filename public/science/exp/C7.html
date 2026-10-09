@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>예측할 수 없는 진자 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+:root{--p-a:#0076fb;--p-b:#d9480f;--p-grid:#d9e0ec}
+@media (prefers-color-scheme:dark){:root{--p-a:#4da3ff;--p-b:#ff8a4c;--p-grid:#2c3649}}
+.c7-row{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:760px){.c7-row{grid-template-columns:1.2fr 1fr;align-items:start}}
+.c7-legend{font-size:14px;margin:4px 0 0}
+.c7-legend b{font-weight:600}
+.c7-seg{display:flex;gap:6px;flex-wrap:wrap}
+</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"C7",
+ predict:{q:"시작 각도가 0.1°만 다른 두 이중 진자를 동시에 놓으면 어떻게 움직일까요? (처음 각도 120°)",
+  options:["끝까지 거의 똑같이 움직인다","처음엔 같이 움직이다가 점점 완전히 달라진다","처음부터 완전히 다르게 움직인다"],answer:1,
+  feedback:["0.1°는 아주 작아서 그렇게 생각하기 쉬워요. 하지만 이중 진자는 작은 차이가 점점 커져요.","맞아요! 처음 몇 초는 겹쳐 보이지만 작은 차이가 빠르게 커져서 결국 전혀 다른 길로 움직여요.","처음에는 거의 겹쳐서 움직여요. 차이는 시간이 지나면서 커져요."]},
+ steps:["'처음 각도'를 정하세요(기본 120°). 두 진자 A와 B는 모두 이 각도에서 출발하고, B만 위쪽 막대가 조금(기본 0.1°) 더 기울어져 있어요.","'출발'을 눌러 두 진자를 동시에 놓아요. 다시 누르면 멈춰요.","아래 그래프에서 두 진자 끝(아래 추) 사이의 거리가 언제 커지는지 보세요.","처음 각도를 20°처럼 작게 바꾸고 다시 해 보세요."],
+ observe:["두 진자가 눈에 띄게 달라지기까지 몇 초가 걸렸나요?","차이를 0.01°로 줄이면 갈라지는 시간이 얼마나 늦춰지나요? 10배 늦춰지나요?","처음 각도가 작을 때(20°)와 클 때(120°) 어떤 차이가 있나요?","같은 조건으로 '처음으로'를 누르고 다시 출발하면 똑같은 움직임이 되풀이되나요?"],
+ more:["실 두 가닥과 작은 추 두 개로 이중 진자를 만들어(위 추 아래에 실을 하나 더 매달아) 같은 높이에서 여러 번 놓아 보세요. 매번 움직임이 달라지는 것을 볼 수 있어요.","날씨 예보가 며칠 뒤로 갈수록 덜 정확해지는 이유를 이 체험과 연결해 생각해 보세요.","같은 모양의 그네 두 개를 거의 같은 높이에서 밀면 오래도록 비슷하게 움직여요. 이중 진자와 무엇이 다를까요?"],
+ why:{easy:["이중 진자는 진자 끝에 진자가 하나 더 매달린 장치예요. 두 막대가 서로를 잡아당기고 밀면서 움직임이 복잡하게 바뀌어요.","이 진자는 정해진 규칙(운동 법칙)대로만 움직여요. 그래서 시작이 완전히 같으면 결과도 완전히 같아요. '처음으로'를 누르고 다시 해 보면 똑같이 움직여요.","그런데 시작이 아주 조금만 달라도, 그 차이가 움직일 때마다 조금씩 불어나요. 몇 번 크게 돌고 나면 처음의 작은 차이가 큰 차이가 되어 완전히 다른 움직임이 돼요.","이렇게 '규칙은 정해져 있는데 처음의 작은 차이 때문에 먼 미래를 알기 어려운' 현상을 카오스라고 해요. 흔들림이 작을 때는 카오스가 잘 나타나지 않아요."],
+  detail:["모델: 길이 1 m, 질량 1 kg인 두 점 질량을 무게 없는 단단한 막대로 이은 이상적인 이중 진자예요. 마찰과 공기 저항은 없다고 가정했어요(근사).","운동 방정식은 라그랑주 역학으로 얻은 두 개의 연립 2계 미분방정식이에요. 이를 4차 룽게-쿠타법(RK4)으로 Δt = 0.001초 간격으로 풀어요. 마찰이 없으니 전체 에너지가 보존되어야 하므로, 화면의 '에너지 오차'로 계산이 정확한지 확인할 수 있어요.","카오스계에서는 두 궤적의 차이 δ가 평균적으로 δ(t) ≈ δ₀·e^{λt}처럼 지수적으로 커져요(λ: 랴푸노프 지수). 그래서 처음 차이를 10배 줄여도 갈라지는 시간은 10배가 아니라 ln(10)/λ 만큼만 늦어져요.","처음 각도가 작으면 sinθ ≈ θ로 근사되는 선형 운동(두 가지 정상 모드의 합)에 가까워서 차이가 거의 커지지 않아요. 에너지가 커서 막대가 크게 휘돌 수 있을 때 카오스가 강하게 나타나요.","주의: 수치 계산도 반올림 오차가 있어서, 아주 오랜 시간 뒤의 정확한 모습은 컴퓨터로도 예측할 수 없어요. 이것 역시 카오스의 성질이에요."]},
+ init:function(el){
+  el.innerHTML='<div class="c7-row"><div><canvas id="cv" role="img" aria-label="같은 점에 매달린 두 이중 진자 A와 B, 그리고 아래 추가 지나간 자취"></canvas>'+
+   '<p class="c7-legend"><b style="color:var(--p-a)">● A</b> 실선·동그라미 추 &nbsp; <b style="color:var(--p-b)">■ B</b> 점선·네모 추 (A보다 위쪽 막대가 <span id="dLbl">0.1°</span> 더 기울어 출발)</p></div>'+
+   '<div><canvas id="gr" role="img" aria-label="시간에 따른 두 진자 아래 추 사이 거리 그래프"></canvas><p class="note" style="margin:2px 0 0">그래프: 가로축 시간(초), 세로축 A와 B의 아래 추 사이 거리(m)</p></div></div>'+
+   '<div class="controls"><label>처음 각도 <input id="ang" type="range" min="10" max="170" step="5" value="120" aria-label="처음 각도(도)"><span class="readout" id="angR"></span></label></div>'+
+   '<div class="controls"><span id="dl">B의 차이</span><div class="c7-seg" role="group" aria-labelledby="dl"><button type="button" data-d="0.01" aria-pressed="false">0.01°</button><button type="button" data-d="0.1" aria-pressed="true">0.1°</button><button type="button" data-d="1" aria-pressed="false">1°</button></div></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">출발</button><button id="rst" type="button">처음으로</button><label><input type="checkbox" id="trail" checked style="width:22px;height:22px"> 자취 보기</label></div>'+
+   '<p class="readout" id="stat" aria-live="off"></p>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>'+
+   '<p class="note">근사 모델: 마찰 없는 이상적인 이중 진자(막대 1 m, 추 1 kg)를 RK4 수치 적분으로 계산해요. 시간은 실제 빠르기로 흘러요.</p>';
+  var cv=el.querySelector("#cv"),gr=el.querySelector("#gr"),ang=el.querySelector("#ang"),stat=el.querySelector("#stat"),msg=el.querySelector("#msg"),goB=el.querySelector("#go"),trailC=el.querySelector("#trail");
+  var G=9.81,L1=1,L2=1,M1=1,M2=1,DT=0.001,TMAX=60,TH=0.2;
+  var dDeg=0.1,A,B,t,running=false,raf=0,last=0,hist,trA,trB,E0A,E0B,split=null,revealedHere=false,acc=0;
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+  /* 상태 [θ1, θ2, ω1, ω2] 의 도함수 (표준 이중 진자 방정식). 분모 2m1+m2−m2cos2Δ ≥ 2m1 > 0 이라 0이 되지 않음 */
+  function deriv(s){
+   var t1=s[0],t2=s[1],w1=s[2],w2=s[3],d=t1-t2,den=2*M1+M2-M2*Math.cos(2*d);
+   var a1=(-G*(2*M1+M2)*Math.sin(t1)-M2*G*Math.sin(t1-2*t2)-2*Math.sin(d)*M2*(w2*w2*L2+w1*w1*L1*Math.cos(d)))/(L1*den);
+   var a2=(2*Math.sin(d)*(w1*w1*L1*(M1+M2)+G*(M1+M2)*Math.cos(t1)+w2*w2*L2*M2*Math.cos(d)))/(L2*den);
+   return [w1,w2,a1,a2];
+  }
+  function rk4(s,h){
+   var k1=deriv(s),s2=[],s3=[],s4=[],i;
+   for(i=0;i<4;i++)s2[i]=s[i]+h/2*k1[i];var k2=deriv(s2);
+   for(i=0;i<4;i++)s3[i]=s[i]+h/2*k2[i];var k3=deriv(s3);
+   for(i=0;i<4;i++)s4[i]=s[i]+h*k3[i];var k4=deriv(s4);
+   return s.map(function(v,i){return v+h/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i])});
+  }
+  function energy(s){
+   var t1=s[0],t2=s[1],w1=s[2],w2=s[3];
+   var T=0.5*M1*L1*L1*w1*w1+0.5*M2*(L1*L1*w1*w1+L2*L2*w2*w2+2*L1*L2*w1*w2*Math.cos(t1-t2));
+   var V=-(M1+M2)*G*L1*Math.cos(t1)-M2*G*L2*Math.cos(t2);
+   return T+V;
+  }
+  function pos(s){var x1=L1*Math.sin(s[0]),y1=-L1*Math.cos(s[0]);return [x1,y1,x1+L2*Math.sin(s[1]),y1-L2*Math.cos(s[1])]}
+  function sep(){var p=pos(A),q=pos(B);return Math.hypot(p[2]-q[2],p[3]-q[3])}
+  function reset(){
+   var a=ang.value*Math.PI/180,d=dDeg*Math.PI/180;
+   A=[a,a,0,0];B=[a+d,a,0,0];t=0;hist=[[0,sep()]];trA=[];trB=[];E0A=energy(A);E0B=energy(B);split=null;acc=0;
+   stop();msg.textContent="";goB.textContent="출발";upd();draw();
+  }
+  function stop(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;goB.textContent=t>0?"계속":"출발"}
+  function upd(){
+   el.querySelector("#angR").textContent=ang.value+"°";el.querySelector("#dLbl").textContent=dDeg+"°";
+   var eA=Math.abs((energy(A)-E0A)/(Math.abs(E0A)+M1*G*L1)),eB=Math.abs((energy(B)-E0B)/(Math.abs(E0B)+M1*G*L1));
+   stat.textContent="시간 "+t.toFixed(1)+"초 · 두 추 사이 거리 "+sep().toFixed(3)+" m · 에너지 오차 "+(Math.max(eA,eB)*100).toExponential(1)+"%";
+  }
+  function step(dt){
+   acc+=dt;var n=Math.floor(acc/DT+1e-9);acc-=n*DT;
+   for(var i=0;i<n&&t<TMAX;i++){
+    A=rk4(A,DT);B=rk4(B,DT);t+=DT;
+    if(i%10===0){var p=pos(A),q=pos(B);trA.push([p[2],p[3]]);trB.push([q[2],q[3]]);if(trA.length>400){trA.shift();trB.shift()}}
+   }
+   var s=sep();hist.push([t,s]);
+   if(split==null&&s>TH){split=t;msg.textContent="약 "+t.toFixed(1)+"초 뒤에 두 진자의 아래 추가 "+(TH*100)+" cm 넘게 벌어졌어요. 처음 차이는 겨우 "+dDeg+"°였어요!";Exp.reveal()}
+   if(t>=TMAX){stop();goB.disabled=true;
+    if(split==null)msg.textContent=TMAX+"초 동안 두 진자가 거의 같이 움직였어요. 처음 각도가 작으면 차이가 잘 커지지 않아요.";Exp.reveal()}
+   if(split==null&&t>=30&&!revealedHere){revealedHere=true;msg.textContent="30초가 지났는데도 두 진자가 거의 같이 움직여요. 각도가 작으면 카오스가 잘 나타나지 않아요.";Exp.reveal()}
+  }
+  function loop(now){
+   var dt=Math.min(0.05,(now-last)/1000);last=now;step(dt);draw();upd();
+   if(running)raf=requestAnimationFrame(loop);
+  }
+  function draw(){
+   var s=Sci.fit(cv,.95),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,ca=css("--p-a"),cb=css("--p-b");
+   var cx=w/2,cy=h/2,sc=Math.min(w,h)/2/(L1+L2)*0.92;
+   c.clearRect(0,0,w,h);
+   c.strokeStyle=css("--p-grid");c.lineWidth=1;c.beginPath();c.arc(cx,cy,(L1+L2)*sc,0,7);c.stroke();
+   function trail(tr,col,dash){if(!trailC.checked||tr.length<2)return;c.save();c.strokeStyle=col;c.globalAlpha=.55;c.lineWidth=1.5;c.setLineDash(dash);c.beginPath();
+    tr.forEach(function(p,i){var X=cx+p[0]*sc,Y=cy-p[1]*sc;i?c.lineTo(X,Y):c.moveTo(X,Y)});c.stroke();c.restore()}
+   trail(trA,ca,[]);trail(trB,cb,[6,4]);
+   function pend(st,col,dash,sq){
+    var p=pos(st),x1=cx+p[0]*sc,y1=cy-p[1]*sc,x2=cx+p[2]*sc,y2=cy-p[3]*sc;
+    c.save();c.strokeStyle=col;c.fillStyle=col;c.lineWidth=3;c.setLineDash(dash);c.beginPath();c.moveTo(cx,cy);c.lineTo(x1,y1);c.lineTo(x2,y2);c.stroke();c.setLineDash([]);
+    [[x1,y1],[x2,y2]].forEach(function(q){c.beginPath();if(sq)c.rect(q[0]-8,q[1]-8,16,16);else c.arc(q[0],q[1],9,0,7);c.fill()});
+    c.restore();return [x2,y2];
+   }
+   var pb=pend(B,cb,[7,5],true),pa=pend(A,ca,[],false);
+   c.font="bold 13px sans-serif";c.fillStyle=ca;c.fillText("A",pa[0]+11,pa[1]-8);c.fillStyle=cb;c.fillText("B",pb[0]+11,pb[1]+16);
+   c.fillStyle=ink;c.beginPath();c.arc(cx,cy,4,0,7);c.fill();
+   c.font="12px sans-serif";c.fillText(t.toFixed(1)+" s",8,16);
+   drawGraph();
+  }
+  function drawGraph(){
+   var s=Sci.fit(gr,.55),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,pl=34,pb=20,pt=8,pr=8,gw=w-pl-pr,gh=h-pt-pb;
+   var tmax=Math.max(20,Math.ceil(t/10)*10),ymax=4;
+   c.clearRect(0,0,w,h);c.font="11px sans-serif";c.strokeStyle=css("--p-grid");c.fillStyle=ink;c.lineWidth=1;
+   for(var y=0;y<=ymax;y++){var Y=pt+gh-y/ymax*gh;c.beginPath();c.moveTo(pl,Y);c.lineTo(pl+gw,Y);c.stroke();c.fillText(y+"m",4,Y+4)}
+   for(var x=0;x<=tmax;x+=tmax>30?10:5){var X=pl+x/tmax*gw;c.beginPath();c.moveTo(X,pt);c.lineTo(X,pt+gh);c.stroke();c.fillText(x+"s",X-8,h-5)}
+   /* 기준선 */
+   var Yth=pt+gh-TH/ymax*gh;c.save();c.setLineDash([4,4]);c.strokeStyle=ink;c.globalAlpha=.6;c.beginPath();c.moveTo(pl,Yth);c.lineTo(pl+gw,Yth);c.stroke();c.restore();
+   c.fillText("20 cm",pl+gw-36,Yth-3);
+   c.strokeStyle=css("--p-b");c.lineWidth=2;c.beginPath();
+   hist.forEach(function(p,i){var X=pl+p[0]/tmax*gw,Y=pt+gh-Math.min(p[1],ymax)/ymax*gh;i?c.lineTo(X,Y):c.moveTo(X,Y)});c.stroke();
+   if(split!=null){var Xs=pl+split/tmax*gw;c.save();c.strokeStyle=ink;c.setLineDash([2,3]);c.beginPath();c.moveTo(Xs,pt);c.lineTo(Xs,pt+gh);c.stroke();c.restore();c.fillText("갈라짐 "+split.toFixed(1)+"s",Math.min(Xs+3,w-80),pt+12)}
+  }
+  goB.addEventListener("click",function(){if(running){stop();return}if(t>=TMAX)return;running=true;goB.textContent="멈춤";last=performance.now();raf=requestAnimationFrame(loop)});
+  el.querySelector("#rst").addEventListener("click",function(){goB.disabled=false;revealedHere=false;reset()});
+  ang.addEventListener("input",function(){goB.disabled=false;revealedHere=false;reset()});
+  el.querySelectorAll("[data-d]").forEach(function(b,_,all){b.addEventListener("click",function(){dDeg=+b.dataset.d;all.forEach(function(x){x.setAttribute("aria-pressed",x===b)});goB.disabled=false;revealedHere=false;reset()})});
+  trailC.addEventListener("change",draw);
+  document.addEventListener("visibilitychange",function(){if(document.hidden&&running)stop()});
+  window.addEventListener("resize",draw);
+  reset();
+ }
+};
+Sci.initExp();
+</script></body></html>

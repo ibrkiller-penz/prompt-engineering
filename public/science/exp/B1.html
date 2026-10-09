@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>소리를 만들어 보자 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.seg2{display:flex;gap:8px;flex-wrap:wrap}.freqbig{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"B1",
+ predict:{q:"소리의 '주파수(Hz)' 숫자를 크게 하면 들리는 소리는 어떻게 달라질까요?",options:["더 높은 소리가 된다","더 낮은 소리가 된다","높낮이는 그대로다"],answer:0,
+  feedback:["맞아요! 주파수가 클수록 높은 소리예요. 직접 들어 보며 확인해요.","아쉬워요. 주파수가 클수록 오히려 높은 소리예요. 직접 들어 보세요.","높낮이가 달라져요. 주파수가 클수록 높은 소리예요. 직접 들어 보세요."]},
+ steps:["'소리 켜기' 버튼을 눌러요. 소리는 이 버튼을 눌러야만 나요. 기기 볼륨은 작게 시작하세요.","주파수 슬라이더(또는 ← → 키)를 움직여 높은 소리와 낮은 소리를 비교해요. 화면의 물결 모양도 함께 보세요.","파형을 사인·사각·톱니로 바꿔 보고, 같은 높이인데 소리 느낌(음색)이 어떻게 달라지는지 들어 보세요.","다 했으면 '소리 끄기'를 눌러요."],
+ observe:["주파수를 두 배로 하면 물결 모양은 몇 배 촘촘해지나요?","사인파·사각파·톱니파는 같은 주파수에서 높낮이는 같은데 소리 느낌이 어떻게 다른가요?","100Hz 근처와 2000Hz 근처 소리는 각각 어떤 느낌인가요? (작은 스피커는 낮은 소리를 잘 못 내요.)"],
+ more:["빈 병에 물을 다르게 채우고 입으로 불어 소리 높이를 비교해 보세요.","플라스틱 자를 책상 끝에 대고 튕기며, 튀어나온 길이에 따라 떨리는 빠르기와 소리가 어떻게 달라지는지 관찰해 보세요."],
+ why:{easy:["소리는 공기가 앞뒤로 떨리는 것이에요. 1초에 떨리는 횟수가 주파수이고, 단위는 Hz(헤르츠)예요.","1초에 더 많이 떨릴수록 높은 소리, 적게 떨릴수록 낮은 소리로 들려요.","같은 높이라도 물결 모양이 다르면 소리 느낌(음색)이 달라요. 사각파는 딱딱하고, 사인파는 부드럽게 들려요."],
+  detail:["주파수 f는 1초당 주기 수이고 주기 T=1/f 예요. 440Hz이면 T≈2.27ms예요.","사인파는 한 가지 주파수 성분만 가져요. 사각파와 톱니파는 기본 주파수 f 외에 정수배 주파수(배음) 성분이 섞여 있어서 음색이 달라져요. 사각파는 홀수 배음, 톱니파는 모든 정수배 배음을 가져요.","그림은 약 0.01초 구간의 파형이에요. 높이가 같은 소리는 음높이(pitch)가 같고, 파형이 다르면 음색(timbre)이 달라요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="소리 파형 그래프. 가로는 약 0.01초 시간, 세로는 공기 압력의 변화"></canvas>'+
+   '<p class="note" id="info" aria-live="off"></p>'+
+   '<div class="controls"><div class="seg2" role="group" aria-label="파형 선택"><button type="button" data-t="sine" aria-pressed="true">〜 사인파</button><button type="button" data-t="square" aria-pressed="false">⊓ 사각파</button><button type="button" data-t="sawtooth" aria-pressed="false">◢ 톱니파</button></div></div>'+
+   '<div class="controls"><label>주파수 <input id="fr" type="range" min="100" max="2000" step="5" value="440" aria-label="주파수 100에서 2000 헤르츠"><span class="freqbig" id="rd">440 Hz</span></label></div>'+
+   '<div class="controls"><button class="primary" id="pl" type="button">🔊 소리 켜기</button><span class="note">볼륨 상한이 고정되어 있어요. 기기 볼륨은 작게 시작하세요.</span></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var cv=el.querySelector("#cv"),fr=el.querySelector("#fr"),rd=el.querySelector("#rd"),pl=el.querySelector("#pl"),msg=el.querySelector("#msg"),info=el.querySelector("#info");
+  var G={sine:.12,square:.05,sawtooth:.06};
+  var type="sine",ctx=null,osc=null,gain=null,an=null,buf=null,playing=false,raf=0;
+  function wave(t,p){p=p-Math.floor(p);return t==="sine"?Math.sin(2*Math.PI*p):t==="square"?(p<.5?1:-1):2*(p-Math.floor(p+.5))}
+  function draw(){
+   var s=Sci.fit(cv,.5),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,brand=getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()||"#0076fb";
+   var f=+fr.value,T=.01,mid=h/2,amp=h*.38;
+   c.clearRect(0,0,w,h);c.font="13px sans-serif";c.fillStyle=col;c.strokeStyle=col;c.globalAlpha=.3;c.lineWidth=1;
+   c.beginPath();c.moveTo(0,mid);c.lineTo(w,mid);c.stroke();
+   /* 0.01초 눈금 */
+   c.beginPath();for(var i=0;i<=10;i++){var x=i/10*w;c.moveTo(x,h-8);c.lineTo(x,h)}c.stroke();c.globalAlpha=1;
+   c.fillText("0",3,h-10);c.fillText("0.01초",w-46,h-10);c.fillText("+",4,14);c.fillText("−",4,h-24);
+   c.strokeStyle=brand;c.lineWidth=3;c.lineJoin="round";c.beginPath();
+   var live=playing&&an,off=0,sr=ctx?ctx.sampleRate:48000,n=Math.round(T*sr);
+   if(live){an.getFloatTimeDomainData(buf);for(var k=1;k<buf.length-n;k++){if(buf[k-1]<0&&buf[k]>=0){off=k;break}}}
+   var N=Math.min(w,400);
+   for(var j=0;j<=N;j++){var tt=j/N*T,y;
+    if(live){var idx=off+Math.round(tt*sr);y=(buf[Math.min(idx,buf.length-1)]||0)/G[type]}else y=wave(type,f*tt);
+    var px=j/N*w,py=mid-y*amp;if(j)c.lineTo(px,py);else c.moveTo(px,py)}
+   c.stroke();
+   info.textContent="이 구간(0.01초)에 물결이 약 "+(f*T).toFixed(1)+"번 반복돼요."+(live?" (지금 나는 소리의 실제 파형)":" (계산한 파형)");
+   rd.textContent=f+" Hz";
+  }
+  function loop(){draw();raf=playing?requestAnimationFrame(loop):0}
+  function stop(){
+   playing=false;pl.textContent="🔊 소리 켜기";
+   if(ctx){var c=ctx,o=osc,g=gain;ctx=null;osc=null;gain=null;an=null;
+    try{g.gain.setTargetAtTime(0,c.currentTime,.015)}catch(e){}
+    setTimeout(function(){try{o.stop()}catch(e){}try{c.close()}catch(e){}},120)}
+   draw();
+  }
+  function start(){
+   try{
+    var AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();
+    osc=ctx.createOscillator();osc.type=type;osc.frequency.value=+fr.value;
+    gain=ctx.createGain();gain.gain.value=0;
+    an=ctx.createAnalyser();an.fftSize=2048;buf=new Float32Array(an.fftSize);
+    osc.connect(gain);gain.connect(an);an.connect(ctx.destination);
+    osc.start();gain.gain.setTargetAtTime(G[type],ctx.currentTime,.02);
+    if(ctx.state==="suspended")ctx.resume();
+    playing=true;pl.textContent="🔇 소리 끄기";
+    msg.textContent="소리가 나고 있어요. 주파수를 바꿔 보세요.";Exp.reveal();loop();
+   }catch(e){msg.textContent="이 기기에서는 소리를 낼 수 없어요. 화면의 파형만 볼 수 있어요.";playing=false;ctx=null}
+  }
+  pl.addEventListener("click",function(){playing?stop():start()});
+  fr.addEventListener("input",function(){if(osc)osc.frequency.setTargetAtTime(+fr.value,ctx.currentTime,.02);if(!playing)draw()});
+  el.querySelectorAll("[data-t]").forEach(function(b){b.addEventListener("click",function(){
+   type=b.dataset.t;el.querySelectorAll("[data-t]").forEach(function(x){x.setAttribute("aria-pressed",x===b)});
+   if(osc){osc.type=type;gain.gain.setTargetAtTime(G[type],ctx.currentTime,.02)}if(!playing)draw()})});
+  document.addEventListener("visibilitychange",function(){if(document.hidden&&playing)stop()});
+  window.addEventListener("pagehide",function(){if(playing)stop()});
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

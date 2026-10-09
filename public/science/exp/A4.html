@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>같은 회색, 다른 회색? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>var EXP={
+ id:"A4",
+ predict:{q:"왼쪽은 어둡고 오른쪽은 밝은 배경 위에 놓인 가운데 회색 막대는 실제로 어떨까요?",options:["왼쪽이 더 밝은 회색이다","오른쪽이 더 밝은 회색이다","전체가 같은 회색이다"],answer:2,
+  feedback:["눈에는 그렇게 보일 수 있어요. 가려서 확인해 보세요.","눈에는 그렇게 보일 수 있어요. 가려서 확인해 보세요.","맞아요! 막대는 전체가 같은 회색인데도 달라 보여요."]},
+ steps:["가운데 회색 막대가 왼쪽·오른쪽에서 어떻게 보이는지 살펴보세요.","슬라이더(또는 ← → 키)로 배경의 어둡고 밝은 차이를 바꿔 보세요.","'배경 가리기'를 눌러 막대만 남기고, 보이는 모습이 어떻게 바뀌는지 보세요."],
+ observe:["배경 차이를 크게 하면 막대가 달라 보이는 정도가 어떻게 변하나요?","배경 차이를 0으로 하면 막대는 어떻게 보이나요?","배경을 가리면 막대는 정말 같은 회색으로 보이나요?"],
+ more:["회색 종이를 흰 종이와 검은 종이 위에 각각 올려 놓고 비교해 보세요.","손가락 두 개로 막대 둘레를 가려 막대만 보이게 해 보세요."],
+ why:{easy:["우리 눈과 뇌는 물건의 밝기를 '주변과 비교해서' 느껴요. 그래서 같은 회색도 어두운 배경 위에서는 더 밝게, 밝은 배경 위에서는 더 어둡게 보여요.","이 화면의 막대는 어디서나 정확히 같은 회색값(128)이에요. 달라 보이는 것은 눈속임이 아니라 뇌가 밝기를 해석하는 방식 때문이에요.","배경을 가리면 비교할 것이 사라져서 막대가 같은 색으로 보여요."],
+  detail:["동시 대비(simultaneous contrast) 효과예요. 망막 신경절세포의 중심-주변 길항(측면 억제)과 대뇌 피질의 밝기 처리가 관여한다고 알려져 있어요.","측면 억제만으로는 설명하기 어려운 변형(예: 화이트 착시)도 있어서, 밝기 지각은 여러 단계의 처리가 합쳐진 결과로 봐요.","이 체험의 막대 값은 sRGB 128로 고정이고, 실제 휘도는 화면 밝기와 감마에 따라 달라져요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="왼쪽이 어둡고 오른쪽이 밝은 배경 위의 회색 막대. 막대는 모든 곳이 같은 회색입니다"></canvas>'+
+   '<div class="controls"><label>배경 밝기 차이 <input id="d" type="range" min="0" max="127" value="100" aria-label="배경 밝기 차이"><span class="readout" id="rd"></span></label></div>'+
+   '<div class="controls"><button id="cov" type="button" aria-pressed="false">배경 가리기</button><button id="flip" type="button">배경 방향 바꾸기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3.2em"></p>';
+  var cv=el.querySelector("#cv"),d=el.querySelector("#d"),rd=el.querySelector("#rd"),msg=el.querySelector("#msg"),cov=el.querySelector("#cov");
+  var covered=false,dir=1;
+  function draw(){
+   var s=Sci.fit(cv,.55),c=s.c,w=s.w,h=s.h,k=w/600,D=+d.value,ink=getComputedStyle(document.body).color;
+   var bgc=getComputedStyle(el.closest(".stage")).backgroundColor;
+   var g=c.createLinearGradient(0,0,w,0),a=128-D*dir,b=128+D*dir;
+   g.addColorStop(0,"rgb("+a+","+a+","+a+")");g.addColorStop(1,"rgb("+b+","+b+","+b+")");
+   c.fillStyle=g;c.fillRect(0,0,w,h);
+   var y0=h*.4,y1=h*.6;
+   c.fillStyle="rgb(128,128,128)";c.fillRect(0,y0,w,y1-y0);
+   if(covered){c.fillStyle=bgc;c.fillRect(0,0,w,y0);c.fillRect(0,y1,w,h-y1)}
+   c.font=(14*Math.max(k,.85))+"px sans-serif";c.textAlign="left";c.fillStyle=ink;
+   if(covered){c.fillText("막대: 회색값 128 (어디서나 같음)",8,y0-8)}
+   else{c.fillStyle=(128-D*dir)<120?"#fff":"#000";c.fillText(dir>0?"어두운 배경":"밝은 배경",8,18);c.textAlign="right";c.fillStyle=(128+D*dir)<120?"#fff":"#000";c.fillText(dir>0?"밝은 배경":"어두운 배경",w-8,18)}
+   rd.textContent="차이 "+D;
+  }
+  d.addEventListener("input",function(){draw()});
+  cov.addEventListener("click",function(){covered=!covered;cov.setAttribute("aria-pressed",covered);cov.textContent=covered?"배경 다시 보이기":"배경 가리기";
+   msg.textContent=covered?"배경을 가리니 막대가 모두 같은 회색으로 보이죠? 막대는 처음부터 한 가지 회색값(128)이었어요.":"배경이 다시 보여요. 막대가 다시 달라 보이나요?";draw();if(covered)Exp.reveal()});
+  el.querySelector("#flip").addEventListener("click",function(){dir=-dir;msg.textContent="배경 방향을 바꿨어요. 막대의 밝아 보이는 쪽도 바뀌나요?";draw()});
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

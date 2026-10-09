@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>토끼와 여우 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;margin:6px 0 0}.legend span{display:inline-flex;align-items:center;gap:6px}.legend svg{width:34px;height:12px}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"E1",
+ predict:{q:"여우가 많아지면 토끼 수는 어떻게 될까요? (토끼는 풀을 먹고, 여우는 토끼만 먹는다고 해요.)",options:["토끼가 계속 줄어서 사라진다","토끼와 여우가 늘었다 줄었다를 되풀이한다","토끼 수는 변하지 않는다"],answer:1,
+  feedback:["여우가 늘면 토끼가 줄지만, 토끼가 줄면 여우도 먹이가 모자라 줄어요. 그래서 토끼가 다시 늘 수 있어요.","맞아요! 토끼가 줄면 여우가 굶어 줄고, 그러면 토끼가 다시 늘어요. 이 모습이 되풀이돼요.","여우가 토끼를 먹으니 토끼 수는 계속 바뀌어요. 그래프로 확인해 보세요."]},
+ steps:["'시작'을 눌러 토끼와 여우의 수가 시간에 따라 변하는 그래프를 봐요.","'처음 여우 수' 슬라이더(또는 ← → 키)로 처음 여우 수를 바꾸고 '다시 하기'를 눌러 비교해 보세요.","실행 중에 '여우 10마리 늘리기'를 눌러 여우가 갑자기 늘면 토끼가 어떻게 되는지 보세요."],
+ observe:["여우 수의 변화는 토끼 수의 변화보다 조금 늦게 따라오나요?","처음 여우를 많이 두면 토끼 수는 처음에 어떻게 되나요?","여우를 10마리 늘린 뒤 토끼 그래프는 어떻게 바뀌었나요?"],
+ more:["운동장에서 '토끼 술래'와 '여우 술래' 역할을 나누어, 잡히면 역할이 바뀌는 놀이로 수의 변화를 세어 보세요.","실제 자연에서는 풀의 양, 날씨, 질병 등 다른 요인도 있어요. 이 그래프에 없는 요인을 찾아 적어 보세요."],
+ why:{easy:["여우는 토끼를 먹고 살아요. 여우가 많아지면 토끼가 많이 잡혀서 토끼가 줄어요.","토끼가 줄면 여우는 먹을 것이 모자라서 줄어요. 여우가 줄면 토끼는 덜 잡혀서 다시 늘어요.","이런 식으로 서로의 수가 늘었다 줄었다를 되풀이해요. 이 화면은 실제 숲이 아니라 단순하게 만든 근사 모델이에요."],
+  detail:["로트카-볼테라 포식자-피식자 모델(근사)이에요. 토끼 x, 여우 y에 대해 dx/dt = a·x − b·x·y, dy/dt = d·x·y − c·y 로 나타내요.","여기서는 a=0.6(토끼 출생률), b=0.02(잡아먹힘), c=0.5(여우 사망률), d=0.01(먹이를 통한 여우 증가)을 썼고, 수치 적분(4차 룽게-쿠타)으로 계산했어요. 평형점은 토끼 c/d=50, 여우 a/b=30이에요.","이 모델은 풀의 양 한계, 숨을 곳, 계절, 개체 하나하나의 차이를 무시해요. 그래서 진동이 영원히 이어지지만, 실제 생태계는 더 복잡하고 진동의 크기가 달라지거나 안정될 수도 있어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" tabindex="0" role="img" aria-label="시간에 따른 토끼와 여우 수 그래프. 토끼는 실선, 여우는 점선"></canvas>'+
+   '<div class="legend" aria-hidden="true"><span><svg viewBox="0 0 34 12"><line x1="0" y1="6" x2="34" y2="6" stroke="currentColor" stroke-width="3"/><circle cx="17" cy="6" r="4" fill="currentColor"/></svg>토끼(실선, 동그라미)</span><span><svg viewBox="0 0 34 12"><line x1="0" y1="6" x2="34" y2="6" stroke="#d9480f" stroke-width="3" stroke-dasharray="6 4"/><rect x="13" y="2" width="8" height="8" fill="#d9480f"/></svg>여우(점선, 네모)</span></div>'+
+   '<div class="controls"><label>처음 여우 수 <input id="f0" type="range" min="5" max="60" value="15" aria-label="처음 여우 수"><span class="readout" id="f0v"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">시작</button><button id="add" type="button">여우 10마리 늘리기</button><button id="rst" type="button">다시 하기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3.2em"></p>';
+  var cv=el.querySelector("#cv"),f0=el.querySelector("#f0"),f0v=el.querySelector("#f0v"),msg=el.querySelector("#msg"),go=el.querySelector("#go");
+  var a=.6,b=.02,c=.5,d=.01,TMAX=40,SPEED=3,dt=.01;
+  var x,y,t,run=false,pts,raf=0,last=0,added=false,Y=140;
+  function f(x,y){return [a*x-b*x*y,d*x*y-c*y]}
+  function step(){var k1=f(x,y),k2=f(x+dt/2*k1[0],y+dt/2*k1[1]),k3=f(x+dt/2*k2[0],y+dt/2*k2[1]),k4=f(x+dt*k3[0],y+dt*k3[1]);
+   x+=dt/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]);y+=dt/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]);t+=dt;if(x<.01)x=.01;if(y<.01)y=.01}
+  function reset(){x=50;y=+f0.value;t=0;pts=[[0,x,y]];added=false;run=false;go.textContent="시작";msg.textContent="";f0v.textContent=f0.value+"마리";cancelAnimationFrame(raf);draw()}
+  function loop(ts){
+   if(!run)return;var el2=Math.min(.1,(ts-last)/1000);last=ts;
+   var target=t+el2*SPEED;while(t<target&&t<TMAX){step();if(Math.round(t*100)%10===0)pts.push([t,x,y])}
+   if(t>=TMAX){run=false;go.textContent="처음부터 다시";msg.textContent="40년치 변화를 모두 봤어요. 토끼가 늘면 조금 뒤에 여우가 늘고, 그 뒤에 토끼가 줄어드는 모습이 보이나요?"}
+   if(t>=25)Exp.reveal();
+   draw();if(run)raf=requestAnimationFrame(loop)}
+  function draw(){
+   var s=Sci.fit(cv,.7),g=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,k=Math.max(w/600,.7);
+   g.clearRect(0,0,w,h);g.font=(13*Math.max(k,.9))+"px sans-serif";g.fillStyle=col;g.strokeStyle=col;
+   var L=44*Math.max(k,.9),R=10,T=14,B=34*Math.max(k,.9),pw=w-L-R,ph=h-T-B;
+   function X(v){return L+v/TMAX*pw}function Yp(v){return T+ph-Math.min(v,Y)/Y*ph}
+   g.globalAlpha=.25;g.lineWidth=1;for(var i=0;i<=4;i++){var yy=T+ph*i/4;g.beginPath();g.moveTo(L,yy);g.lineTo(L+pw,yy);g.stroke()}g.globalAlpha=1;
+   g.beginPath();g.moveTo(L,T);g.lineTo(L,T+ph);g.lineTo(L+pw,T+ph);g.lineWidth=1.5;g.stroke();
+   g.textAlign="right";for(i=0;i<=4;i++)g.fillText(Math.round(Y*(4-i)/4),L-5,T+ph*i/4+4);
+   g.textAlign="center";for(i=0;i<=4;i++)g.fillText(i*10,X(i*10),T+ph+16*Math.max(k,.9));
+   g.fillText("시간(년)",L+pw/2,h-3);
+   g.save();g.translate(11,T+ph/2);g.rotate(-Math.PI/2);g.fillText("마리 수",0,0);g.restore();
+   g.lineWidth=3;g.lineJoin="round";
+   g.beginPath();pts.forEach(function(p,i){i?g.lineTo(X(p[0]),Yp(p[1])):g.moveTo(X(p[0]),Yp(p[1]))});g.stroke();
+   g.save();g.strokeStyle=g.fillStyle="#d9480f";g.setLineDash([8,5]);g.beginPath();pts.forEach(function(p,i){i?g.lineTo(X(p[0]),Yp(p[2])):g.moveTo(X(p[0]),Yp(p[2]))});g.stroke();g.restore();
+   var p=pts[pts.length-1];
+   g.beginPath();g.arc(X(p[0]),Yp(p[1]),5,0,7);g.fill();
+   g.fillStyle="#d9480f";g.fillRect(X(p[0])-5,Yp(p[2])-5,10,10);
+   g.fillStyle=col;g.textAlign="left";
+   g.fillText("토끼 "+Math.round(p[1]),L+6,T+14);g.fillStyle="#d9480f";g.fillText("여우 "+Math.round(p[2]),L+6,T+30*Math.max(k,.9));
+  }
+  go.addEventListener("click",function(){
+   if(t>=TMAX){reset()}
+   run=!run;go.textContent=run?"멈춤":"계속";if(run){last=performance.now();raf=requestAnimationFrame(loop);msg.textContent="변화를 지켜보세요. 토끼 수가 줄어든 뒤 여우도 줄어드나요?"}else cancelAnimationFrame(raf)});
+  el.querySelector("#add").addEventListener("click",function(){y+=10;added=true;pts.push([t,x,y]);msg.textContent="여우 10마리를 늘렸어요. 곧 토끼가 줄기 시작할 거예요."+(run?"":" ('시작'을 눌러 계속해 보세요)");draw()});
+  el.querySelector("#rst").addEventListener("click",reset);
+  f0.addEventListener("input",reset);
+  window.addEventListener("resize",draw);
+  window.addEventListener("pagehide",function(){run=false;cancelAnimationFrame(raf)});
+  reset();
+ }
+};
+Sci.initExp();
+</script></body></html>

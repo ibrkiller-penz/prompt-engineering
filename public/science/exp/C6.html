@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>물결이 만나면 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.seg2{display:flex;gap:6px;flex-wrap:wrap}.stat{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 0}.stat div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:14px}.stat b{font-variant-numeric:tabular-nums}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"C6",
+ predict:{q:"물 위의 두 곳에서 같은 물결이 동시에 퍼져 나가요. 두 물결이 만나는 곳은 어떻게 될까요?",options:["모든 곳에서 물결이 더 커진다","어떤 곳은 커지고, 어떤 곳은 거의 사라진다","서로 부딪혀서 모두 사라진다"],answer:1,
+  feedback:["확인해 보세요. 커지는 곳도 있지만 그게 전부는 아니에요.","좋아요! 마루와 마루가 만나면 커지고, 마루와 골이 만나면 서로 지워 줘요. 그래서 줄무늬가 생겨요.","확인해 보세요. 물결은 지나간 뒤에 서로 영향을 남기지 않고 그대로 계속 퍼져요."]},
+ steps:["'물결 보기'에서 두 파원(S1, S2)이 만드는 물결을 봐요. 멈춤 버튼으로 순간을 고정할 수 있어요.","'간섭 무늬 보기'를 눌러 평균 세기를 봐요. 밝은 줄은 강해지는 곳, 어두운 줄은 약해지는 곳이에요.","두 파원 사이 간격(d)과 파장(λ)을 슬라이더(← → 키)로 바꾸고 오른쪽 화면의 줄무늬 간격이 어떻게 달라지는지 보세요."],
+ observe:["파원 사이 간격 d를 넓히면 줄무늬 간격은 넓어지나요, 좁아지나요?","파장 λ를 길게 하면 줄무늬 간격은 어떻게 되나요?","두 파원의 한가운데 선에서는 강해지나요, 약해지나요?"],
+ more:["물이 담긴 얕은 쟁반에 연필 두 개를 나란히 톡톡 일정하게 두드려 보세요(또는 손가락 두 개). 물결이 만나는 모양을 관찰해요.","스피커 두 개를 나란히 놓고 같은 소리를 틀어 걸으면서 소리가 크고 작아지는 곳을 찾아보세요. 소리도 파동이라 비슷한 일이 생겨요."],
+ why:{easy:["물결은 마루(높은 곳)와 골(낮은 곳)이 번갈아 있어요. 두 물결이 만나는 곳에서 마루와 마루가 만나면 더 높아지고, 마루와 골이 만나면 서로 지워 줘서 잔잔해져요. 이것이 간섭이에요.","두 파원에서 어떤 점까지의 거리 차이가 파장의 정수배면 강해지고, 반 파장만큼 어긋나면 약해져요. 그래서 강한 줄과 약한 줄이 번갈아 나타나요.","물결은 만난 뒤에도 서로를 그대로 지나쳐 계속 퍼져요."],
+  detail:["같은 위상의 두 점파원에서 점 P까지의 거리를 r₁, r₂라 하면 경로차 Δ = |r₁ − r₂| 예요. Δ = nλ 이면 보강 간섭(강함), Δ = (n+½)λ 이면 상쇄 간섭(약함)이에요.","시간 평균 세기는 I ∝ a₁² + a₂² + 2a₁a₂ cos(2πΔ/λ) 이고, 여기서 진폭 a는 거리가 멀어질수록 √(1/r)로 줄어든다고 놓았어요(2차원 물결 근사).","멀리 있는 화면(거리 L ≫ d)에서 이웃한 밝은 줄 사이 간격은 근사적으로 Δy ≈ λL/d 예요. 아래에 표시되는 '측정값'은 이 체험의 그림에서 찾은 값이고, L이 아주 크지는 않아서 식과 조금 차이가 나요.","보강 간섭이 일어나는 선(밝은 줄)의 개수는 d/λ 가 클수록 늘어나요."]},
+ init:function(el){
+  var $=function(s){return el.querySelector(s)};
+  el.innerHTML='<canvas id="cv" role="img" aria-label="두 파원 S1과 S2에서 퍼지는 물결의 간섭을 위에서 본 그림. 오른쪽 끝에 화면에서의 세기 그래프"></canvas>'+
+   '<div class="controls"><div class="seg2" role="group" aria-label="보기 방식"><button type="button" data-m="wave" aria-pressed="true">물결 보기</button><button type="button" data-m="avg" aria-pressed="false">간섭 무늬 보기</button></div><button id="pz" type="button">멈춤</button></div>'+
+   '<div class="controls"><label>파원 사이 간격 d <input id="D" type="range" min="2" max="8" step="0.5" value="4"><span class="readout" id="Dr"></span></label></div>'+
+   '<div class="controls"><label>파장 λ <input id="W" type="range" min="0.6" max="2" step="0.1" value="1"><span class="readout" id="Wr"></span></label></div>'+
+   '<div class="stat" aria-live="polite"><div>오른쪽 화면의 밝은 줄 간격(측정) <b id="sm">-</b></div><div>근사식 λL/d <b id="sf">-</b></div><div>강해지는 줄 개수 <b id="sc">-</b></div></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em">위에서 내려다본 물결판이에요. 밝기: 물결 보기에서는 마루=밝음, 골=어두움 / 간섭 무늬에서는 세기가 클수록 밝아요. 오른쪽 그래프는 세기, ▶ 표시는 강한 곳이에요.</p>';
+  var cv=$("#cv"),sD=$("#D"),sW=$("#W"),mode="wave",paused=false,t=0,raf=0,last=0,FW=16,FH=12,PW=4,SX=1.5,off=document.createElement("canvas"),GX=128,GY=96,reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  off.width=GX;off.height=GY;var octx=off.getContext("2d"),img=octx.createImageData(GX,GY);
+  function par(){return {d:+sD.value,l:+sW.value}}
+  function lab(){var p=par();$("#Dr").textContent=p.d.toFixed(1)+" cm";$("#Wr").textContent=p.l.toFixed(1)+" cm"}
+  function amp(r){return 1/Math.sqrt(r+.6)}
+  function inten(x,y,p){var y1=FH/2-p.d/2,y2=FH/2+p.d/2,r1=Math.hypot(x-SX,y-y1),r2=Math.hypot(x-SX,y-y2),a1=amp(r1),a2=amp(r2);
+   return a1*a1+a2*a2+2*a1*a2*Math.cos(2*Math.PI*(r1-r2)/p.l)}
+  function analyze(p){var N=400,v=[],pk=[],i;for(i=0;i<N;i++)v.push(inten(FW,i/(N-1)*FH,p));
+   for(i=1;i<N-1;i++)if(v[i]>v[i-1]&&v[i]>=v[i+1]&&v[i]>.35*Math.max.apply(null,v))pk.push(i/(N-1)*FH);
+   var sp=null;if(pk.length>=2){sp=(pk[pk.length-1]-pk[0])/(pk.length-1)}
+   var n=2*Math.floor(p.d/p.l)+1;return {v:v,pk:pk,sp:sp,n:n}}
+  function frame(ts){var dt=Math.min(.05,(ts-last)/1000||0);last=ts;if(!paused&&mode==="wave")t+=dt;draw();raf=requestAnimationFrame(frame)}
+  function draw(){
+   var p=par(),s=Sci.fit(cv,FH/(FW+PW)),c=s.c,w=s.w,h=s.h,k=w/(FW+PW),col=getComputedStyle(document.body).color,y1=FH/2-p.d/2,y2=FH/2+p.d/2,kk=2*Math.PI/p.l,om=2*Math.PI*.5,mx=0,i,j,d=img.data;
+   if(mode==="avg"){mx=(2*amp(0)*2)*1}
+   for(j=0;j<GY;j++)for(i=0;i<GX;i++){var x=(i+.5)/GX*FW,y=(j+.5)/GY*FH,g,o=(j*GX+i)*4;
+    if(mode==="wave"){var r1=Math.hypot(x-SX,y-y1),r2=Math.hypot(x-SX,y-y2),u=amp(r1)*Math.cos(kk*r1-om*t)+amp(r2)*Math.cos(kk*r2-om*t);g=Math.max(0,Math.min(1,.5+u/(2*1.6)))}
+    else{g=Math.min(1,inten(x,y,p)/ (2*1.6*1.6*1.0))}
+    g=Math.round(255*g);d[o]=Math.round(g*.55);d[o+1]=Math.round(g*.8);d[o+2]=g;d[o+3]=255}
+   octx.putImageData(img,0,0);c.clearRect(0,0,w,h);c.imageSmoothingEnabled=true;c.drawImage(off,0,0,FW*k,h);
+   var A=analyze(p);
+   /* 화면 그래프 */
+   c.fillStyle=getComputedStyle(document.body).backgroundColor||"#fff";c.fillRect(FW*k,0,PW*k,h);
+   var mv=Math.max.apply(null,A.v);c.strokeStyle=col;c.lineWidth=2;c.beginPath();
+   A.v.forEach(function(v,n){var yy=n/(A.v.length-1)*h,xx=FW*k+6+(v/mv)*(PW*k-14);(n?c.lineTo:c.moveTo).call(c,xx,yy)});c.stroke();
+   c.beginPath();c.moveTo(FW*k,0);c.lineTo(FW*k,h);c.lineWidth=3;c.strokeStyle="#d9480f";c.stroke();
+   c.fillStyle=col;c.font="bold 12px sans-serif";c.textAlign="left";c.textBaseline="middle";
+   A.pk.forEach(function(yv){var yy=yv/FH*h;c.beginPath();c.moveTo(FW*k-10,yy-6);c.lineTo(FW*k,yy);c.lineTo(FW*k-10,yy+6);c.closePath();c.fillStyle="#fff";c.fill();c.strokeStyle="#000";c.lineWidth=1.5;c.stroke()});
+   [y1,y2].forEach(function(yy,n){c.beginPath();c.arc(SX*k,yy/FH*h,7,0,7);c.fillStyle="#d9480f";c.fill();c.strokeStyle="#fff";c.lineWidth=2;c.stroke();c.fillStyle="#fff";c.font="bold 13px sans-serif";c.fillText("S"+(n+1),SX*k+10,yy/FH*h)});
+   c.fillStyle=col;c.font="12px sans-serif";c.textAlign="center";c.textBaseline="alphabetic";c.fillText("화면 세기",(FW+PW/2)*k,14);
+   var L=FW-SX;$("#sf").textContent=(p.l*L/p.d).toFixed(1)+" cm (근사)";$("#sm").textContent=A.sp?A.sp.toFixed(1)+" cm":"화면에 줄이 2개 미만";$("#sc").textContent=A.n+"개 (근사)"}
+  el.querySelectorAll("[data-m]").forEach(function(b){b.addEventListener("click",function(){mode=b.dataset.m;el.querySelectorAll("[data-m]").forEach(function(x){x.setAttribute("aria-pressed",x===b)});
+   if(mode==="avg")Exp.reveal();$("#msg").textContent=mode==="avg"?"시간 평균 세기예요. 밝은 줄은 마루끼리 또는 골끼리 만나 강해지는 곳, 어두운 줄은 서로 지워지는 곳이에요. d나 λ를 바꿔 보세요.":"물결이 퍼지는 모습이에요. 밝기가 번갈아 변하는 곳이 많아요."})});
+  $("#pz").addEventListener("click",function(){paused=!paused;this.textContent=paused?"계속":"멈춤"});
+  [sD,sW].forEach(function(x){x.addEventListener("input",lab)});
+  lab();if(reduce){paused=true;$("#pz").textContent="계속"}
+  raf=requestAnimationFrame(frame);window.addEventListener("pagehide",function(){cancelAnimationFrame(raf)});
+ }
+};
+Sci.initExp();
+</script></body></html>

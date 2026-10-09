@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>체험 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+.sbox{background:#1c1f26;border-radius:12px;min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;text-align:center;padding:10px}
+.sword{font-size:64px;font-weight:800;line-height:1.1}
+.sshape{font-size:22px;color:#e8edf6}
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ans button{min-height:56px;font-size:18px;font-weight:700;gap:8px}
+.sw{display:inline-block;width:22px;height:22px;border-radius:5px;border:2px solid var(--ink);text-align:center;line-height:18px;font-size:14px}
+.res2 table{border-collapse:collapse;margin-top:8px}
+.res2 td,.res2 th{border:1px solid var(--line);padding:6px 12px;text-align:center}
+</style>
+</head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"D2",
+ predict:{q:"글자의 '뜻'과 글자를 칠한 '색'이 서로 다를 때(예: 파란색으로 쓴 '빨강'), 색을 말하는 반응은 어떻게 될까요?",options:["일치할 때와 거의 같다","불일치할 때 더 느려진다","불일치할 때 더 빨라진다"],answer:1,
+  feedback:["아래 결과에서 두 평균이 정말 비슷한지 확인해 보세요.","잘 예측했어요! 아래 평균으로 확인해 보세요.","직접 확인해 보세요. 읽기가 방해되는지 살펴보세요."]},
+ steps:["'시작'을 누르면 글자가 하나씩 나와요. 글자의 '뜻'이 아니라 글자가 칠해진 '색'을 골라요.","아래 4개 버튼(또는 키보드 1~4)으로 대답해요. 버튼에는 색 이름과 모양이 함께 쓰여 있어요. 모두 16번이에요.","끝나면 '일치'와 '불일치'의 평균 반응시간을 비교해요."],
+ observe:["글자 뜻과 색이 같을 때와 다를 때, 어느 쪽이 더 힘들게 느껴졌나요?","틀린 횟수는 어느 쪽이 더 많았나요?","'읽지 않으려고' 해도 저절로 읽혔나요?"],
+ more:["친구에게 시켜 보고 내 평균과 비교해 보세요.","글자를 색 이름이 아닌 일반 낱말(예: '의자')로 바꿔 상상해 보세요. 방해가 줄어들까요?","소리 내어 대답하는 것과 버튼으로 누르는 것 중 무엇이 더 느려질지 예상해 보세요."],
+ why:{easy:["글을 읽는 일은 연습을 많이 해서 거의 자동으로 일어나요. 글자를 보면 뜻이 저절로 떠올라요.","그런데 이번에는 '색'을 말해야 해서, 자동으로 떠오른 글자 뜻과 색이 서로 부딪쳐요. 뇌가 그 충돌을 정리하느라 시간이 더 걸려요.","이런 현상은 누구에게나 나타나지만 정도는 사람마다 달라요."],
+  detail:["스트룹 효과(Stroop effect)예요. 일치(congruent) 조건보다 불일치(incongruent) 조건에서 반응시간이 길고 오류가 늘어요.","자동화된 과정(단어 읽기)이 통제 과정(색 이름 말하기)과 간섭을 일으킨다는 설명이 대표적이에요. 반응 선택 단계의 갈등 때문이라는 설명 등 여러 모형이 있어요.","여기서는 반응 시간을 평균내는 간단한 체험이라 시행 수가 적어 개인 값은 오차가 커요."]},
+ init:function(el){
+  var C=[{n:"빨강",c:"#ff6b6b",s:"●"},{n:"파랑",c:"#6ea8ff",s:"▲"},{n:"초록",c:"#46d98a",s:"■"},{n:"노랑",c:"#ffd93d",s:"◆"}];
+  el.innerHTML='<div class="sbox" id="box" role="img" aria-label="시작 전"><div class="sword" id="word">?</div><div class="sshape" id="shp" aria-hidden="true"></div></div>'+
+   '<div class="ans" id="ans">'+C.map(function(x,i){return '<button type="button" data-i="'+i+'" aria-label="'+x.n+' (키 '+(i+1)+')"><span class="sw" aria-hidden="true" style="background:'+x.c+';color:#000">'+x.s+'</span>'+(i+1)+'. '+x.n+'</button>'}).join("")+'</div>'+
+   '<div class="controls"><button type="button" class="primary" id="go">시작</button><span class="readout" id="cnt"></span></div>'+
+   '<div class="res2" id="res" aria-live="polite"></div>'+
+   '<p class="note">각 글자 아래의 모양(●▲■◆)은 색의 뜻을 알려 주는 보조 표시예요. 같은 모양의 버튼이 같은 색이에요.</p>';
+  var box=el.querySelector("#box"),word=el.querySelector("#word"),shp=el.querySelector("#shp"),btns=[].slice.call(el.querySelectorAll("#ans button")),res=el.querySelector("#res"),cnt=el.querySelector("#cnt"),go=el.querySelector("#go");
+  var N=16,seq=[],idx=0,t0=0,active=false,rec,timer=null;
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+  function build(){
+   var a=[];
+   for(var k=0;k<N/2;k++){var w=k%4;a.push({w:w,c:w,cong:true})}
+   for(var k2=0;k2<N/2;k2++){var w2=k2%4,c2=(w2+1+Math.floor(k2/4)%3)%4;a.push({w:w2,c:c2,cong:false})}
+   return shuffle(a)}
+  function setBtns(on){btns.forEach(function(b){b.disabled=!on})}
+  function next(){
+   if(idx>=N){return finish()}
+   var t=seq[idx];cnt.textContent=(idx+1)+" / "+N;
+   word.textContent="";shp.textContent="";box.setAttribute("aria-label","잠깐 비어 있음");
+   timer=setTimeout(function(){
+    word.textContent=C[t.w].n;word.style.color=C[t.c].c;shp.textContent=C[t.c].s+" (색 모양)";
+    box.setAttribute("aria-label","글자 '"+C[t.w].n+"'이(가) "+C[t.c].n+"색으로 칠해져 있음");
+    t0=performance.now();active=true},500)}
+  function answer(i){
+   if(!active)return;active=false;var rt=performance.now()-t0,t=seq[idx],ok=i===t.c;
+   rec.push({cong:t.cong,rt:rt,ok:ok});idx++;word.textContent=ok?"○":"×";word.style.color="#fff";shp.textContent="";
+   timer=setTimeout(next,250)}
+  function mean(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0}
+  function finish(){
+   setBtns(false);go.disabled=false;go.textContent="다시 하기";cnt.textContent="끝!";word.textContent="끝";word.style.color="#fff";shp.textContent="";box.setAttribute("aria-label","끝");
+   var cg=rec.filter(function(r){return r.cong&&r.ok}),ic=rec.filter(function(r){return !r.cong&&r.ok});
+   var ce=rec.filter(function(r){return r.cong&&!r.ok}).length,ie=rec.filter(function(r){return !r.cong&&!r.ok}).length;
+   var a=mean(cg.map(function(r){return r.rt})),b=mean(ic.map(function(r){return r.rt}));
+   res.innerHTML='<table><tr><th></th><th>평균 반응시간</th><th>틀린 횟수</th></tr><tr><th>일치(뜻=색)</th><td>'+Math.round(a)+'ms</td><td>'+ce+' / '+N/2+'</td></tr><tr><th>불일치(뜻≠색)</th><td>'+Math.round(b)+'ms</td><td>'+ie+' / '+N/2+'</td></tr></table>'+
+    '<p>'+(cg.length&&ic.length?(b>a?"불일치가 일치보다 평균 "+Math.round(b-a)+"ms 더 걸렸어요.":"이번에는 불일치가 더 느리지 않았어요(차이 "+Math.round(b-a)+"ms). 시행 수가 적어 우연이 크니 다시 해 보세요."):"맞힌 시행이 부족해요. 다시 해 보세요.")+" (맞힌 시행만 평균에 넣었어요.)</p>";
+   Exp.reveal()}
+  function begin(){clearTimeout(timer);seq=build();idx=0;rec=[];res.innerHTML="";go.disabled=true;go.textContent="진행 중";setBtns(true);next()}
+  btns.forEach(function(b){b.addEventListener("click",function(){answer(+b.dataset.i)})});
+  document.addEventListener("keydown",function(e){var k=+e.key;if(k>=1&&k<=4&&active&&!e.repeat)answer(k-1)});
+  go.addEventListener("click",begin);
+  window.addEventListener("pagehide",function(){clearTimeout(timer)});
+  setBtns(false);
+ }
+};
+Sci.initExp();
+</script></body></html>

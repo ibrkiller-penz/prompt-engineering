@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>쾅! 충돌 실험 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.seg2{display:flex;gap:6px;flex-wrap:wrap}.res{margin-top:10px}.brow{display:grid;grid-template-columns:minmax(110px,32%) 1fr;gap:8px;align-items:center;font-size:14px;margin:4px 0}.bar{height:18px;background:var(--brand);border-radius:4px;min-width:2px;position:relative}.bar.ke{background:var(--warn)}.bar span{position:absolute;left:6px;top:-1px;font-size:12px;color:#fff;white-space:nowrap;font-weight:600}.bar.neg{background:repeating-linear-gradient(45deg,var(--brand),var(--brand) 6px,#fff6 6px,#fff6 8px)}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"C3",
+ predict:{q:"마찰 없는 레일 위에서 두 수레가 부딪혀요. 부딪힌 뒤 두 수레의 '운동량의 합(질량×속도를 더한 값)'은 부딪히기 전과 비교해 어떨까요?",options:["부딪히기 전보다 커진다","부딪히기 전과 같다","부딪히기 전보다 작아진다"],answer:1,
+  feedback:["확인해 보세요. 서로 밀어 주고받을 뿐 운동량이 새로 생기지는 않아요.","좋아요! 바깥에서 힘이 없으면 운동량의 합은 변하지 않아요(보존).","확인해 보세요. 달라붙어도 운동량의 합은 줄지 않아요."]},
+ steps:["수레 1(파랑)과 수레 2(주황)의 질량과 속도를 슬라이더(또는 ← → 키)로 정해요. 오른쪽이 +방향이에요.","충돌 종류를 골라요: '튕겨 나감(탄성)' 또는 '달라붙음(완전 비탄성)'.","'충돌 시작'을 누르고, 아래 막대로 충돌 전후의 운동량과 운동 에너지를 비교해요."],
+ observe:["두 종류 충돌 모두에서 운동량의 합은 어땠나요?","운동 에너지의 합은 어느 쪽에서 줄어들었나요?","질량이 같은 수레가 부딪힐 때 튕겨 나가면 속도는 어떻게 바뀌나요?"],
+ more:["당구공이나 구슬 두 개를 책상 위에서 굴려 부딪혀 보세요. 멈춰 있던 공이 움직이는 모습을 관찰해요.","찰흙을 붙인 구슬과 그냥 구슬의 충돌을 비교해 보세요."],
+ why:{easy:["수레 둘을 하나의 팀으로 보면, 바깥에서 밀거나 당기는 힘이 없을 때 서로 주고받는 힘의 크기는 같고 방향은 반대예요. 그래서 한 수레가 얻은 운동량만큼 다른 수레는 잃어요. 합은 그대로예요.","달라붙는 충돌에서는 움직임(운동 에너지)의 일부가 소리, 열, 찌그러짐으로 바뀌어요. 튕겨 나가는 이상적인 충돌에서는 움직임의 에너지도 그대로 남아요.","운동량은 방향이 있어서, 오른쪽은 +, 왼쪽은 −로 더해요."],
+  detail:["운동량 p = mv. 외력이 없으면 m₁v₁ + m₂v₂ = m₁v₁' + m₂v₂' 예요(운동량 보존).","완전 탄성 충돌: v₁' = ((m₁−m₂)v₁ + 2m₂v₂)/(m₁+m₂), v₂' = ((m₂−m₁)v₂ + 2m₁v₁)/(m₁+m₂). 운동 에너지 ½mv²의 합도 보존돼요.","완전 비탄성 충돌: 두 수레가 같은 속도 v' = (m₁v₁ + m₂v₂)/(m₁+m₂) 로 움직이고, 운동 에너지는 줄어들어요. 줄어든 만큼은 열·소리·변형 에너지로 바뀌어요(총 에너지는 보존).","이 체험은 마찰과 공기 저항이 없는 1차원 이상적인 모델(근사)이에요. 실제 충돌은 대개 그 중간이에요."]},
+ init:function(el){
+  var $=function(s){return el.querySelector(s)};
+  el.innerHTML='<canvas id="cv" role="img" aria-label="레일 위의 두 수레가 부딪히는 그림. 파란 수레 1과 주황 수레 2"></canvas>'+
+   '<div class="controls"><label>수레 1 질량 <input id="m1" type="range" min="1" max="5" step="0.5" value="2"><span class="readout" id="m1r"></span></label></div>'+
+   '<div class="controls"><label>수레 1 속도 <input id="v1" type="range" min="1" max="5" step="0.5" value="3"><span class="readout" id="v1r"></span></label></div>'+
+   '<div class="controls"><label>수레 2 질량 <input id="m2" type="range" min="1" max="5" step="0.5" value="1"><span class="readout" id="m2r"></span></label></div>'+
+   '<div class="controls"><label>수레 2 속도 <input id="v2" type="range" min="-4" max="0" step="0.5" value="0"><span class="readout" id="v2r"></span></label></div>'+
+   '<div class="controls"><div class="seg2" role="group" aria-label="충돌 종류"><button type="button" data-k="el" aria-pressed="true">튕겨 나감 (탄성)</button><button type="button" data-k="in" aria-pressed="false">달라붙음 (완전 비탄성)</button></div></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">충돌 시작</button><button id="rst" type="button">처음으로</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em">마찰 없는 레일, 한 줄 위의 움직임이에요(근사). 단위: kg, m/s.</p>'+
+   '<div class="res" id="res" aria-live="polite"></div>';
+  var cv=$("#cv"),kind="el",x1,x2,u1,u2,w1,w2,state="ready",tAfter=0,raf=0,last=0,after=null,reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var W=12;
+  function P(){return {m1:+$("#m1").value,v1:+$("#v1").value,m2:+$("#m2").value,v2:+$("#v2").value}}
+  function hw(m){return .35+.1*m}
+  function lab(){var p=P();$("#m1r").textContent=p.m1+" kg";$("#v1r").textContent="+"+p.v1+" m/s";$("#m2r").textContent=p.m2+" kg";$("#v2r").textContent=p.v2+" m/s"}
+  function reset(){var p=P();x1=2.5;x2=8.5;u1=p.v1;u2=p.v2;state="ready";after=null;$("#res").innerHTML="";$("#msg").textContent="마찰 없는 레일, 한 줄 위의 움직임이에요(근사). 단위: kg, m/s."}
+  function outcome(p){if(kind==="el"){return {a:((p.m1-p.m2)*p.v1+2*p.m2*p.v2)/(p.m1+p.m2),b:((p.m2-p.m1)*p.v2+2*p.m1*p.v1)/(p.m1+p.m2)}}var v=(p.m1*p.v1+p.m2*p.v2)/(p.m1+p.m2);return {a:v,b:v}}
+  function fmt(x){return (Math.abs(x)<.005?0:x).toFixed(2)}
+  function showRes(p,o){
+   var pb=p.m1*p.v1+p.m2*p.v2,pa=p.m1*o.a+p.m2*o.b,kb=.5*p.m1*p.v1*p.v1+.5*p.m2*p.v2*p.v2,ka=.5*p.m1*o.a*o.a+.5*p.m2*o.b*o.b;
+   var mp=Math.max(Math.abs(pb),Math.abs(pa),.01),mk=Math.max(kb,ka,.01);
+   function row(t,v,mx,cls){return '<div class="brow"><div>'+t+'</div><div class="bar '+cls+(v<0?" neg":"")+'" style="width:'+Math.max(1,Math.abs(v)/mx*100)+'%"><span>'+fmt(v)+'</span></div></div>'}
+   $("#res").innerHTML='<p><b>충돌 전</b> 수레 1: '+p.v1+' m/s, 수레 2: '+p.v2+' m/s → <b>충돌 후</b> 수레 1: '+fmt(o.a)+' m/s, 수레 2: '+fmt(o.b)+' m/s</p>'+
+    row("운동량 합 (충돌 전)",pb,mp,"")+row("운동량 합 (충돌 후)",pa,mp,"")+row("운동 에너지 합 (충돌 전)",kb,mk,"ke")+row("운동 에너지 합 (충돌 후)",ka,mk,"ke")+
+    '<p class="note">운동량 p=mv (kg·m/s), 운동 에너지 ½mv² (J). 운동량 합은 '+(Math.abs(pb-pa)<1e-9?"변하지 않았어요":"약간 다르게 보여요")+'. 운동 에너지 합은 '+(Math.abs(kb-ka)<1e-9?"그대로예요":(fmt(kb-ka)+" J 줄었어요. 줄어든 만큼은 열·소리·찌그러짐으로 바뀌었어요"))+'.</p>';
+   $("#msg").textContent=(kind==="el"?"튕겨 나가는 충돌":"달라붙는 충돌")+": 운동량의 합은 "+fmt(pb)+" → "+fmt(pa)+" 로 같아요."}
+  function collide(){var p=P(),o=outcome(p);u1=o.a;u2=o.b;state="after";tAfter=0;after=o;showRes(p,o);Exp.reveal()}
+  function frame(ts){var dt=Math.min(.04,(ts-last)/1000||0);last=ts;
+   if(state==="run"||state==="after"){var p=P(),k=reduce?0:1;
+    if(reduce&&state==="run"){x1=x2-hw(p.m1)-hw(p.m2);collide()}
+    else{ x1+=u1*dt;x2+=u2*dt;
+     if(state==="run"&&x2-x1<=hw(p.m1)+hw(p.m2)){var ov=hw(p.m1)+hw(p.m2)-(x2-x1);x1-=ov/2;x2+=ov/2;collide()}
+     else if(state==="after"){tAfter+=dt;if(tAfter>2.2||x1<=hw(p.m1)||x2>=W-hw(p.m2)){x1=Math.max(hw(p.m1),x1);x2=Math.min(W-hw(p.m2),x2);state="done"}}}}
+   draw();raf=requestAnimationFrame(frame)}
+  function arrow(c,x,y,v,col){if(Math.abs(v)<.01)return;var L=v*14,e=x+L;c.strokeStyle=col;c.lineWidth=3;c.beginPath();c.moveTo(x,y);c.lineTo(e,y);var s=v>0?-1:1;c.moveTo(e,y);c.lineTo(e+s*8,y-6);c.moveTo(e,y);c.lineTo(e+s*8,y+6);c.stroke()}
+  function draw(){
+   var s=Sci.fit(cv,.58),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,p=P(),k=w/W,ty=h*.86;
+   c.clearRect(0,0,w,h);c.strokeStyle=col;c.fillStyle=col;c.lineWidth=3;c.beginPath();c.moveTo(0,ty);c.lineTo(w,ty);c.stroke();
+   var joined=kind==="in"&&(state==="after"||state==="done");
+   function cart(x,m,color,name,v,sq){var lo=name==="②"?16:0;var ww=hw(m)*2*k,hh=34+6*m,l=x*k-ww/2;c.fillStyle=color;c.fillRect(l,ty-hh-8,ww,hh);c.strokeStyle=col;c.lineWidth=2;c.strokeRect(l,ty-hh-8,ww,hh);
+    c.fillStyle=col;[l+ww*.2,l+ww*.8].forEach(function(cx){c.beginPath();c.arc(cx,ty-4,5,0,7);c.fill()});
+    c.fillStyle="#fff";c.font="bold 14px sans-serif";c.textAlign="center";c.fillText(name,x*k,ty-hh/2-2);
+    var tx=Math.max(48,Math.min(w-48,x*k));c.fillStyle=col;arrow(c,x*k,ty-hh-40-lo,v,col);c.font="12px sans-serif";c.fillText(m+"kg · v="+fmt(v),tx,ty-hh-52-lo)}
+   cart(x1,p.m1,"#0b5fc4","①",u1);cart(x2,p.m2,"#b45309","②",u2);
+   c.fillStyle=col;c.font="12px sans-serif";c.textAlign="left";c.fillText("← −   + →",6,h-6);
+   if(joined){c.textAlign="center";c.fillText("달라붙었어요",w/2,18)}}
+  $("#go").addEventListener("click",function(){reset();state="run";$("#msg").textContent="수레가 가고 있어요..."});
+  $("#rst").addEventListener("click",function(){reset()});
+  ["m1","v1","m2","v2"].forEach(function(i){$("#"+i).addEventListener("input",function(){lab();reset()})});
+  el.querySelectorAll("[data-k]").forEach(function(b){b.addEventListener("click",function(){kind=b.dataset.k;el.querySelectorAll("[data-k]").forEach(function(x){x.setAttribute("aria-pressed",x===b)});reset()})});
+  lab();reset();raf=requestAnimationFrame(frame);window.addEventListener("pagehide",function(){cancelAnimationFrame(raf)});
+ }
+};
+Sci.initExp();
+</script></body></html>

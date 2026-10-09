@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>완두콩 교배 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.cnt{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px}.cnt div{border:1px solid var(--line);border-radius:10px;padding:8px;font-size:14px;text-align:center}.cnt b{font-size:22px;display:block}
+.punn{border-collapse:collapse;margin:10px 0;font-size:16px}.punn td,.punn th{border:1px solid var(--line);padding:6px 12px;text-align:center;min-width:56px}.controls select{min-height:44px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);padding:0 6px}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"E3",
+ predict:{q:"노란 완두(Yy)끼리 교배해서 자손을 많이 얻으면 노란색:초록색 비율은 어떻게 될까요? (Y=노란색이 우성, y=초록색)",options:["1 : 1 에 가까워진다","3 : 1 에 가까워진다","모두 노란색이다"],answer:1,
+  feedback:["두 부모의 유전자를 표로 만들면 노란색이 더 많이 나와요. 확인해 보세요.","맞아요! 횟수가 많아질수록 3 : 1에 가까워져요.","초록색도 가끔 나와요. 부모가 y를 하나씩 가지고 있기 때문이에요."]},
+ steps:["부모 유전자형(Yy 등)을 고르고, '1번 교배'를 눌러 자손 한 개를 만들어 보세요.","'10번', '100번'을 눌러 횟수를 늘리고 아래 그래프에서 비율의 변화를 봐요.","부모를 YY×yy 같은 다른 조합으로 바꾸고 표(퍼네트 사각형)의 예상과 결과를 비교해요."],
+ observe:["교배를 몇 번 안 했을 때와 많이 했을 때 비율이 어떻게 달랐나요?","10번만 했을 때 정확히 3 : 1이 나오지 않아도 이상한 걸까요?","YY×yy를 교배하면 자손은 어떤 색인가요? 표와 같았나요?"],
+ more:["동전 2개를 던져 (앞=Y, 뒤=y)로 정하고 100번 던져서 'YY, Yy, yy' 개수를 세어 보세요.","횟수가 적을 때와 많을 때, 노란색:초록색 비율이 어떻게 다른지 친구와 비교해 보세요."],
+ why:{easy:["완두콩의 색은 부모에게서 받은 유전자 두 개로 정해져요. 노란색 유전자(Y)는 초록색 유전자(y)보다 힘이 세서, Y가 하나라도 있으면 노란색이에요.","Yy인 부모는 자손에게 Y 또는 y를 같은 확률로 줘요. 그래서 YY, Yy, Yy, yy가 1:2:1로 나오고, 노란색:초록색은 3:1이 돼요.","한 번 한 번은 우연이라서 비율이 조금씩 달라요. 하지만 많이 하면 확률에 가까워져요."],
+  detail:["멘델의 분리 법칙이에요. Yy × Yy에서 배우자(생식세포)는 각각 Y, y를 1/2씩 가져요. 자손의 유전자형 확률은 YY 1/4, Yy 1/2, yy 1/4이고, 표현형은 우성 3/4, 열성 1/4이에요.","이 화면은 각 교배마다 부모에게서 배우자를 난수로 하나씩 뽑는 시뮬레이션이에요. 큰 수의 법칙에 의해 시행 횟수가 늘수록 상대도수가 확률에 가까워져요. 시행이 적을 때의 흔들림은 정상이에요.","실제 완두 실험에서는 한 쌍의 유전자만 보는 단순한 경우(단일 유전자, 완전 우성)를 가정했어요. 여러 유전자가 관여하거나 불완전 우성인 형질은 비율이 달라질 수 있어요."]},
+ init:function(el){
+  var GT=["YY","Yy","yy"];
+  el.innerHTML='<div class="controls"><label>부모 1 <select id="p1" aria-label="부모 1 유전자형"><option>YY</option><option selected>Yy</option><option>yy</option></select></label><label>부모 2 <select id="p2" aria-label="부모 2 유전자형"><option>YY</option><option selected>Yy</option><option>yy</option></select></label></div>'+
+   '<div id="punn" aria-live="polite"></div>'+
+   '<div class="controls"><button class="primary" id="b1" type="button">1번 교배</button><button id="b10" type="button">10번</button><button id="b100" type="button">100번</button><button id="rst" type="button">다시 하기</button></div>'+
+   '<canvas id="cv" role="img" aria-label="교배한 자손들과 노란색 대 초록색 비율 그래프"></canvas>'+
+   '<div class="cnt" aria-live="polite"><div>전체<b id="n">0</b></div><div>● 노란색(우성)<b id="cy">0</b></div><div>■ 초록색(열성)<b id="cg">0</b></div><div>노란:초록<b id="rt">-</b></div></div>'+
+   '<p class="note" id="gt"></p><p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var p1=el.querySelector("#p1"),p2=el.querySelector("#p2"),cv=el.querySelector("#cv");
+  var geno,dom,rec,hist,seq;
+  function reset(){geno={YY:0,Yy:0,yy:0};dom=0;rec=0;hist=[];seq=[];el.querySelector("#msg").textContent="";punn();upd();draw()}
+  function gam(g){return g.split("")}
+  function punn(){var a=gam(p1.value),b=gam(p2.value),cells=[],e={YY:0,Yy:0,yy:0};
+   var h='<table class="punn"><caption class="note" style="caption-side:top;text-align:left">퍼네트 사각형: 부모의 배우자 조합 (예상)</caption><tr><th></th><th>'+b[0]+"</th><th>"+b[1]+"</th></tr>";
+   a.forEach(function(x){h+="<tr><th>"+x+"</th>";b.forEach(function(y){var g=(x<y?x+y:y+x);g=g==="Yy"||g==="yY"?"Yy":g;if(x==="y"&&y==="Y")g="Yy";e[g]++;h+="<td>"+g+(g==="yy"?" ■":" ●")+"</td>"});h+="</tr>"});
+   h+="</table>";el.querySelector("#punn").innerHTML=h;
+   exp_=e;el.querySelector("#gt").textContent="표에서 예상: 노란색(●) "+(e.YY+e.Yy)+"/4, 초록색(■) "+e.yy+"/4"+(e.yy?" → 비율 "+((e.YY+e.Yy)/e.yy)+" : 1":" → 초록색은 나오지 않아요.")}
+  var exp_;
+  function one(){var a=gam(p1.value),b=gam(p2.value),x=a[Math.random()<.5?0:1],y=b[Math.random()<.5?0:1],g=(x===y)?x+y:"Yy";geno[g]++;var isD=g!=="yy";if(isD)dom++;else rec++;seq.push(isD);
+   hist.push(rec?dom/rec:null)}
+  function run(n){for(var i=0;i<n;i++)one();upd();draw();if(dom+rec>=30){Exp.reveal();var N=dom+rec;el.querySelector("#msg").textContent=N+"번 교배: 노란색 "+dom+", 초록색 "+rec+(rec?" → "+(dom/rec).toFixed(2)+" : 1":"")+". 많이 할수록 예상 비율에 가까워지는지 보세요."}}
+  function upd(){var N=dom+rec;el.querySelector("#n").textContent=N;el.querySelector("#cy").textContent=dom;el.querySelector("#cg").textContent=rec;el.querySelector("#rt").textContent=rec?(dom/rec).toFixed(2)+" : 1":(dom?"초록 없음":"-")}
+  function draw(){
+   var s=Sci.fit(cv,.95),g=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,k=Math.max(w/600,.8);
+   g.clearRect(0,0,w,h);g.font=(13*Math.max(k,.9))+"px sans-serif";g.fillStyle=col;g.strokeStyle=col;
+   /* 위: 자손 점 (최근 100개) */
+   var topH=h*.38,cols=Math.floor(w/ (18*k)),sz=Math.min(16*k,w/ (cols+1)*.9),show=seq.slice(-100);
+   g.textAlign="left";g.fillText("최근 자손 (● 노란색 / ■ 초록색)",4,14);
+   show.forEach(function(d,i){var cx=10+(i%20)*(w-20)/20+sz/2,cy=24+Math.floor(i/20)*(sz+5)+sz/2;
+    if(d){g.fillStyle="#e6b800";g.beginPath();g.arc(cx,cy,sz/2,0,7);g.fill();g.strokeStyle="#6b5400";g.lineWidth=1.2;g.stroke()}
+    else{g.fillStyle="#2f8f46";g.fillRect(cx-sz/2,cy-sz/2,sz,sz);g.strokeStyle="#14501f";g.lineWidth=1.2;g.strokeRect(cx-sz/2,cy-sz/2,sz,sz)}});
+   /* 아래: 비율 그래프 */
+   var L=40*Math.max(k,.9),T=topH+14,B=30*Math.max(k,.9),Rr=12,pw=w-L-Rr,ph=h-T-B,YM=6;
+   g.strokeStyle=col;g.fillStyle=col;g.lineWidth=1.5;g.beginPath();g.moveTo(L,T);g.lineTo(L,T+ph);g.lineTo(L+pw,T+ph);g.stroke();
+   g.textAlign="right";for(var y=0;y<=YM;y+=2)g.fillText(y,L-5,T+ph-y/YM*ph+4);
+   g.save();g.translate(11,T+ph/2);g.rotate(-Math.PI/2);g.textAlign="center";g.fillText("노란 ÷ 초록",0,0);g.restore();
+   var N=Math.max(hist.length,20);g.textAlign="center";g.fillText("교배 횟수: "+N+"번까지",L+pw/2,h-4);
+   function X(i){return L+(i+1)/N*pw}function Y(v){return T+ph-Math.min(v,YM)/YM*ph}
+   var e=exp_;if(e&&e.yy){var tv=(e.YY+e.Yy)/e.yy;if(tv<=YM){g.save();g.setLineDash([6,5]);g.strokeStyle="#d9480f";g.fillStyle="#d9480f";g.lineWidth=2;g.beginPath();g.moveTo(L,Y(tv));g.lineTo(L+pw,Y(tv));g.stroke();g.restore();g.fillStyle="#d9480f";g.textAlign="right";g.fillText("예상 "+tv+" : 1 (점선)",L+pw-4,Y(tv)-5)}}
+   g.strokeStyle=col;g.lineWidth=2.5;g.beginPath();var st=false;hist.forEach(function(v,i){if(v==null)return;var px=X(i),py=Y(v);st?g.lineTo(px,py):g.moveTo(px,py);st=true});g.stroke();
+   g.fillStyle=col;g.textAlign="left";g.fillText("실제 결과(실선)",L+6,T+14);
+  }
+  el.querySelector("#b1").addEventListener("click",function(){run(1)});
+  el.querySelector("#b10").addEventListener("click",function(){run(10)});
+  el.querySelector("#b100").addEventListener("click",function(){run(100)});
+  el.querySelector("#rst").addEventListener("click",reset);
+  p1.addEventListener("change",reset);p2.addEventListener("change",reset);
+  reset();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

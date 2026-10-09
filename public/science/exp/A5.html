@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>그림자가 색을 가졌어요 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>var EXP={
+ id:"A5",
+ predict:{q:"빨강 램프와 초록 램프를 함께 켜고 물체를 놓았어요. 빨강 램프의 빛이 막혀서 생긴 그림자 자리는 무슨 색일까요?",options:["검정","초록","빨강"],answer:1,
+  feedback:["그 자리에는 초록 램프의 빛이 아직 닿아요. 직접 확인해 보세요.","맞아요! 빨강 빛만 막히고 초록 빛은 닿아서 초록으로 보여요.","빨강 빛이 막힌 자리라서 빨강은 아니에요. 직접 확인해 보세요."]},
+ steps:["빨강·초록·파랑 램프 버튼으로 램프를 켜고 꺼 보세요. 처음엔 빨강과 초록이 켜져 있어요.","램프 위치 슬라이더(또는 ← → 키)와 '물체 위치'를 움직여 그림자가 벽에서 어디에 생기는지 보세요.","'그림자 색 읽기'를 눌러 벽의 각 구간이 무슨 색인지 확인하세요."],
+ observe:["램프를 하나만 켰을 때 그림자는 무슨 색인가요?","램프를 둘 이상 켰을 때 그림자는 몇 개이고, 각각 무슨 색인가요?","세 램프를 모두 켰을 때 그림자가 겹치는 자리는 무슨 색인가요?"],
+ more:["어두운 방에서 색 셀로판을 씌운 손전등 두 개로 벽에 손 그림자를 만들어 보세요(눈에 직접 비추지 마세요).","램프를 서로 가깝게 또는 멀리 놓으면 그림자 사이 간격이 어떻게 바뀌는지 관찰해 보세요."],
+ why:{easy:["그림자는 빛이 막혀서 생기는 '빛이 덜 닿는 자리'예요. 색 램프가 여러 개면 램프마다 자기 그림자를 만들어요.","한 램프의 그림자 자리에도 다른 램프의 빛은 닿아요. 그 빛들이 더해져서 그림자가 색을 가져요.","예를 들어 빨강·초록 램프만 켜면, 빨강 그림자 자리는 초록, 초록 그림자 자리는 빨강으로 보이고, 둘 다 닿는 곳은 노랑이에요."],
+  detail:["벽의 한 지점의 색은 그 점에 닿는 램프들의 빛을 더한 것이에요(가산혼합). 램프 i가 닿으면 e_i=1, 막히면 0이라고 할 때 색 = Σ e_i·C_i 예요. 빨강+초록=노랑, 초록+파랑=청록, 빨강+파랑=자홍, 셋 모두=흰색, 아무것도 없으면 검정이에요.","이 시뮬레이션은 근사 모형이에요. 램프는 점광원, 세기는 모두 같고 거리에 따른 약해짐과 그림자 가장자리의 흐림(반그림자)은 무시했어요. 물체의 그림자 폭은 원의 지름을 그대로 투영한 것으로 계산해요.","그림자 위치는 램프 중심에서 물체의 양 끝을 지나는 직선이 벽과 만나는 점으로 정해요(상사비)."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="위에서 본 그림. 위쪽에 색 램프, 가운데 물체, 아래쪽 벽과 벽에 비친 색 띠"></canvas>'+
+   '<div id="lampRows"></div>'+
+   '<div class="controls"><label>물체 위치(벽과의 거리) <input id="od" type="range" min="10" max="75" value="45" aria-label="물체와 벽 사이 거리"></label></div>'+
+   '<div class="controls"><label>물체 좌우 <input id="ox" type="range" min="25" max="75" value="50" aria-label="물체의 좌우 위치"></label></div>'+
+   '<div class="controls"><button class="primary" id="read" type="button">그림자 색 읽기</button><button id="rst" type="button">다시 하기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3.2em"></p>'+
+   '<p class="note">근사: 점광원·같은 세기·그림자 가장자리 흐림 무시.</p>';
+  var cv=el.querySelector("#cv"),msg=el.querySelector("#msg"),rowsEl=el.querySelector("#lampRows");
+  var L=[{n:"빨강",t:"빨",c:[1,0,0],x:25,on:true,d:[]},{n:"초록",t:"초",c:[0,1,0],x:50,on:true,d:[7,4]},{n:"파랑",t:"파",c:[0,0,1],x:75,on:false,d:[2,4]}];
+  var od=el.querySelector("#od"),ox=el.querySelector("#ox");
+  rowsEl.innerHTML=L.map(function(l,i){return '<div class="controls"><button type="button" data-i="'+i+'" aria-pressed="'+l.on+'" style="min-width:150px"></button><label>'+l.n+' 램프 위치 <input type="range" data-s="'+i+'" min="5" max="95" value="'+l.x+'" aria-label="'+l.n+' 램프 위치"></label></div>'}).join("");
+  var btns=[].slice.call(rowsEl.querySelectorAll("button")),sls=[].slice.call(rowsEl.querySelectorAll("input"));
+  function btnText(){btns.forEach(function(b,i){b.textContent=L[i].n+" 램프 "+(L[i].on?"켜짐":"꺼짐");b.setAttribute("aria-pressed",L[i].on)})}
+  var NM={"000":"어두움(검정)","100":"빨강","010":"초록","001":"파랑","110":"노랑","011":"청록","101":"자홍","111":"흰색"};
+  var COL={"000":"#111","100":"#ff0000","010":"#00ff00","001":"#0000ff","110":"#ffff00","011":"#00ffff","101":"#ff00ff","111":"#ffffff"};
+  var geo;
+  function calc(W,H){
+   var lampY=H*.1,wallY=H*.6,odist=(+od.value)/100*(wallY-lampY)*.85,oy=wallY-odist,oxp=(+ox.value)/100*W,r=W*.07;
+   var iv=L.map(function(l){var lx=l.x/100*W,f=(wallY-lampY)/(oy-lampY),a=lx+(oxp-r-lx)*f,b=lx+(oxp+r-lx)*f;return [Math.min(a,b),Math.max(a,b),lx]});
+   geo={lampY:lampY,wallY:wallY,oy:oy,ox:oxp,r:r,iv:iv};
+   var segs=[],prev=null;
+   for(var x=0;x<=W;x++){var m=L.map(function(l,i){return l.on&&!(x>=iv[i][0]&&x<=iv[i][1])?1:0}).join("");
+    if(prev&&prev.m===m)prev.x1=x;else{prev={m:m,x0:x,x1:x};segs.push(prev)}}
+   return segs;
+  }
+  var segsCache=[];
+  function draw(){
+   var s=Sci.fit(cv,.95),c=s.c,w=s.w,h=s.h,k=w/600,ink=getComputedStyle(document.body).color;
+   c.clearRect(0,0,w,h);
+   var segs=calc(w,h);segsCache=segs;var g=geo;
+   c.fillStyle="#1a1a22";c.fillRect(0,0,w,g.wallY+4);
+   /* 광선 */
+   L.forEach(function(l,i){if(!l.on)return;var col=["#ff5a5a","#4cff4c","#6a8cff"][i];c.strokeStyle=col;c.lineWidth=1.5;c.setLineDash(l.d);
+    var lx=g.iv[i][2];
+    [g.iv[i][0],g.iv[i][1]].forEach(function(xx,j){c.beginPath();c.moveTo(lx,g.lampY);c.lineTo(xx,g.wallY);c.stroke()});c.setLineDash([])});
+   /* 물체 */
+   c.fillStyle="#bbb";c.strokeStyle="#fff";c.lineWidth=2;c.beginPath();c.arc(g.ox,g.oy,g.r,0,7);c.fill();c.stroke();
+   c.fillStyle="#222";c.font=(12*Math.max(k,.85))+"px sans-serif";c.textAlign="center";c.fillText("물체",g.ox,g.oy+4);
+   /* 램프 */
+   L.forEach(function(l,i){var lx=g.iv[i][2],col=["#ff3030","#20e020","#3050ff"][i];
+    c.fillStyle=l.on?col:"#444";c.strokeStyle="#fff";c.lineWidth=2;c.beginPath();c.arc(lx,g.lampY,14*Math.max(k,.9),0,7);c.fill();c.stroke();
+    c.fillStyle=l.on?"#000":"#ddd";c.font="bold "+(13*Math.max(k,.9))+"px sans-serif";c.fillText(l.t,lx,g.lampY+4.5)});
+   /* 벽(위에서 본 선) */
+   segs.forEach(function(sg){c.fillStyle=COL[sg.m];c.fillRect(sg.x0,g.wallY,sg.x1-sg.x0+1,6)});
+   c.fillStyle=ink;c.textAlign="left";c.font=(13*Math.max(k,.85))+"px sans-serif";c.fillText("▲ 위에서 본 모습 (램프·물체·벽)",6,g.wallY+24);
+   c.fillText("▼ 벽을 정면에서 본 모습",6,g.wallY+h*.065+22);
+   /* 벽 정면 띠 */
+   var y0=g.wallY+h*.065+30,bh=h-y0-8;
+   segs.forEach(function(sg){c.fillStyle=COL[sg.m];c.fillRect(sg.x0,y0,sg.x1-sg.x0+1,bh)});
+   c.strokeStyle=ink;c.lineWidth=2;c.strokeRect(1,y0,w-2,bh);
+   c.textAlign="center";c.font="bold "+(13*Math.max(k,.85))+"px sans-serif";
+   segs.forEach(function(sg){var wd=sg.x1-sg.x0;if(wd<34)return;var m=sg.m;var lum=(m==="000"||m==="001"||m==="100"||m==="101")?0:1;
+    c.fillStyle=lum?"#000":"#fff";c.fillText(NM[m].replace("(검정)",""),(sg.x0+sg.x1)/2,y0+bh/2+4)});
+  }
+  function readOut(){
+   var out=[];segsCache.forEach(function(sg){if(sg.x1-sg.x0<3)return;var n=NM[sg.m];if(out[out.length-1]!==n)out.push(n)});
+   var on=L.filter(function(l){return l.on}).map(function(l){return l.n}).join("·")||"없음";
+   msg.textContent="켜진 램프: "+on+". 벽의 색을 왼쪽부터 읽으면 "+out.join(" → ")+" 이에요."+(out.length>1?" 램프마다 닿는 빛이 달라서 구간마다 색이 달라요.":"");
+   Exp.reveal()}
+  btns.forEach(function(b){b.addEventListener("click",function(){var i=+b.dataset.i;L[i].on=!L[i].on;btnText();draw();msg.textContent=L[i].n+" 램프를 "+(L[i].on?"켰어요.":"껐어요.")})});
+  sls.forEach(function(s){s.addEventListener("input",function(){L[+s.dataset.s].x=+s.value;draw()})});
+  od.addEventListener("input",draw);ox.addEventListener("input",draw);
+  el.querySelector("#read").addEventListener("click",readOut);
+  el.querySelector("#rst").addEventListener("click",function(){L[0].on=true;L[1].on=true;L[2].on=false;[25,50,75].forEach(function(v,i){L[i].x=v;sls[i].value=v});od.value=45;ox.value=50;btnText();msg.textContent="";draw()});
+  btnText();draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

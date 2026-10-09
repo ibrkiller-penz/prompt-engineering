@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관이 노래해요 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.big{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}.seg2{display:flex;gap:8px;flex-wrap:wrap}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"B5",
+ predict:{q:"양쪽이 뚫린 관의 길이를 길게 하면 관이 내는 소리(공명음)는 어떻게 될까요?",options:["더 높아진다","더 낮아진다","변하지 않는다"],answer:1,
+  feedback:["아쉬워요. 관이 길수록 소리는 낮아져요. 그래프에서 확인해 보세요.","맞아요! 관이 길수록 낮은 소리가 나요. 그래프에서 확인해 보세요.","아쉬워요. 길이가 바뀌면 소리 높이도 바뀌어요. 그래프에서 확인해 보세요."]},
+ steps:["'관 길이' 슬라이더(또는 ← → 키)를 움직이며 그래프의 점과 소리 높이(Hz) 숫자를 보세요.","관 모양(양쪽 열림 / 한쪽 닫힘)과 몇 번째 공명인지 바꿔 보세요.","'소리 켜기'를 누르면 그 공명 주파수의 소리가 나요. 소리는 버튼을 눌러야만 나요. 기기 볼륨은 작게 시작하세요.","관을 짧게, 길게 바꾸면서 소리가 어떻게 달라지는지 들어 보세요."],
+ observe:["길이를 두 배로 하면 소리 높이(Hz)는 어떻게 되나요?","양쪽이 열린 관과 한쪽이 닫힌 관 중 같은 길이에서 더 낮은 소리가 나는 것은 어느 쪽인가요?","그림 속 공기가 크게 움직이는 곳(배)과 거의 안 움직이는 곳(마디)은 어디에 생기나요?"],
+ more:["빈 페트병이나 빨대를 입술에 대고 불어 보고, 빨대를 잘라 짧게 만들면 소리가 어떻게 바뀌는지 들어 보세요.","물이 든 병에 물을 더 채우면 공기 기둥이 짧아져 소리가 높아지는지 확인해 보세요."],
+ why:{easy:["관 속의 공기는 크기에 맞는 방식으로 흔들릴 때 소리가 크게 울려요. 이것을 공명이라고 해요.","관이 길면 흔들림이 한 번 오가는 데 시간이 오래 걸려서 낮은 소리가 나요. 관이 짧으면 빨리 흔들려서 높은 소리가 나요.","한쪽이 막힌 관은 같은 길이의 양쪽 열린 관보다 한 옥타브 낮은 소리를 내요."],
+  detail:["양쪽이 열린 관의 공명 주파수는 fₙ = n·v/(2L) (n=1,2,3,…) 예요. 한쪽이 닫힌 관은 fₙ = (2n−1)·v/(4L) 으로 홀수 배 성분만 나타나요. v는 소리 속도(이 체험에서는 약 343m/s, 20℃ 근사).","열린 끝은 공기 움직임(변위)이 큰 배, 닫힌 끝은 공기가 움직이지 못하는 마디예요. 그림은 변위 크기를 나타낸 거예요.","실제 관은 열린 끝 바깥까지 공기가 약간 함께 움직여서 관을 약간 더 긴 것처럼 계산해야 해요(끝 보정). 이 체험은 그것을 무시한 근사예요. 낮은 주파수는 작은 스피커에서 잘 안 들릴 수 있어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cp" role="img" aria-label="관 모양과 공기 움직임의 정상파 그림"></canvas>'+
+   '<canvas id="cg" role="img" aria-label="관 길이에 따른 첫 번째 공명 주파수 그래프. 길이가 길수록 주파수가 낮아짐"></canvas>'+
+   '<div class="controls"><div class="seg2" role="group" aria-label="관 모양"><button type="button" data-k="open" aria-pressed="true">양쪽 열림</button><button type="button" data-k="closed" aria-pressed="false">한쪽 닫힘</button></div>'+
+   '<div class="seg2" role="group" aria-label="몇 번째 공명"><button type="button" data-n="1" aria-pressed="true">1번째</button><button type="button" data-n="2" aria-pressed="false">2번째</button><button type="button" data-n="3" aria-pressed="false">3번째</button></div></div>'+
+   '<div class="controls"><label>관 길이 <input id="len" type="range" min="10" max="200" step="1" value="60" aria-label="관 길이 10에서 200 센티미터"><span class="big" id="rl"></span></label></div>'+
+   '<div class="controls"><span>소리 높이 <span class="big" id="rf"></span></span><button class="primary" id="pl" type="button">🔊 소리 켜기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var cp=el.querySelector("#cp"),cg=el.querySelector("#cg"),len=el.querySelector("#len"),rl=el.querySelector("#rl"),rf=el.querySelector("#rf"),pl=el.querySelector("#pl"),msg=el.querySelector("#msg");
+  var V=343,kind="open",nn=1,ctx=null,osc=null,gn=null,moved=false;
+  function freq(L,n,k){k=k||kind;n=n||nn;return k==="open"?n*V/(2*L):(2*n-1)*V/(4*L)}
+  function F(){return freq(+len.value/100)}
+  function playable(f){return f>=60&&f<=2500}
+  function draw(){
+   var cl=getComputedStyle(document.body).color,br=getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()||"#0076fb";
+   var L=+len.value/100,f=F();
+   /* 관 */
+   var s=Sci.fit(cp,.38),c=s.c,w=s.w,h=s.h;c.clearRect(0,0,w,h);c.font="13px sans-serif";c.fillStyle=cl;c.strokeStyle=cl;
+   var x0=24,pw=(w-48)*(.15+.85*L/2),px1=x0+pw,cy=h*.5,ph=h*.5;
+   c.lineWidth=3;c.beginPath();c.moveTo(x0,cy-ph/2);c.lineTo(px1,cy-ph/2);c.moveTo(x0,cy+ph/2);c.lineTo(px1,cy+ph/2);
+   if(kind==="closed"){c.moveTo(px1,cy-ph/2);c.lineTo(px1,cy+ph/2)}c.stroke();
+   c.fillText(kind==="closed"?"닫힌 끝(마디)":"열린 끝(배)",px1-(kind==="closed"?80:70),h-6);c.fillText("열린 끝(배)",x0-14,h-6);
+   /* 변위 크기 포락선 (위상 애니메이션 없이 정적으로 두 모양 표시) */
+   c.strokeStyle=br;c.lineWidth=2;
+   [1,-1].forEach(function(sg){c.beginPath();for(var i=0;i<=120;i++){var u=i/120,e=kind==="open"?Math.abs(Math.cos(nn*Math.PI*u)):Math.abs(Math.cos((2*nn-1)*Math.PI*u/2));
+     var x=x0+u*pw,y=cy-sg*e*ph*.45;i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke()});
+   c.setLineDash([4,5]);c.strokeStyle=cl;c.globalAlpha=.4;c.beginPath();c.moveTo(x0,cy);c.lineTo(px1,cy);c.stroke();c.setLineDash([]);c.globalAlpha=1;
+   c.fillStyle=cl;c.fillText("파란 선: 공기가 움직이는 크기",x0,14);
+   /* 그래프: f1 vs L */
+   var g=Sci.fit(cg,.6),d=g.c,W=g.w,H=g.h;d.clearRect(0,0,W,H);d.font="12px sans-serif";d.fillStyle=cl;d.strokeStyle=cl;
+   var l=44,r=10,t=12,b=34,gw=W-l-r,gh=H-t-b,fmax=2000;
+   function X(Lm){return l+(Lm-.1)/1.9*gw}function Y(ff){return t+gh-Math.min(ff,fmax)/fmax*gh}
+   d.globalAlpha=.25;d.lineWidth=1;for(var q=0;q<=4;q++){var yy=t+gh-q/4*gh;d.beginPath();d.moveTo(l,yy);d.lineTo(l+gw,yy);d.stroke()}d.globalAlpha=1;
+   for(q=0;q<=4;q++)d.fillText(q*500,4,t+gh-q/4*gh+4);
+   for(q=0;q<=4;q++){var Lm=.1+q*.475;d.fillText(Lm.toFixed(1),X(Lm)-8,H-18)}
+   d.fillText("관 길이 (m)",l+gw/2-30,H-3);d.save();d.translate(10,t+gh/2);d.rotate(-Math.PI/2);d.fillText("Hz",0,0);d.restore();
+   d.strokeStyle=br;d.lineWidth=2.5;d.beginPath();var first=true;
+   for(var i=0;i<=160;i++){var Lm2=.1+i/160*1.9,ff=freq(Lm2);if(ff>fmax*1.2&&!first){}d.lineTo(X(Lm2),Y(ff));if(first){d.moveTo(X(Lm2),Y(ff));first=false}}
+   d.stroke();
+   var pxx=X(L),pyy=Y(f);d.setLineDash([4,4]);d.strokeStyle=cl;d.lineWidth=1;d.beginPath();d.moveTo(pxx,pyy);d.lineTo(pxx,t+gh);d.moveTo(pxx,pyy);d.lineTo(l,pyy);d.stroke();d.setLineDash([]);
+   d.fillStyle="#d9480f";d.beginPath();d.rect(pxx-6,pyy-6,12,12);d.fill();d.fillStyle=cl;
+   d.fillText(Math.round(f)+"Hz",Math.min(pxx+10,W-52),Math.max(pyy-10,t+12));
+   rl.textContent=(L).toFixed(2)+" m";rf.textContent=Math.round(f)+" Hz";
+   msg.textContent=playable(f)?"":"이 높이는 "+(f<60?"너무 낮아서":"너무 높아서")+" 소리로 내지 않아요(60~2500Hz만 재생). 그래프로만 확인해요.";
+  }
+  function stop(){
+   pl.textContent="🔊 소리 켜기";
+   if(ctx){var c=ctx,o=osc,g=gn;ctx=null;osc=null;gn=null;try{g.gain.setTargetAtTime(0,c.currentTime,.015)}catch(e){}
+    setTimeout(function(){try{o.stop()}catch(e){}try{c.close()}catch(e){}},120)}
+  }
+  function start(){
+   var f=F();if(!playable(f)){msg.textContent="이 높이는 소리로 낼 수 없어요. 길이나 공명 번호를 바꿔 보세요.";return}
+   try{
+    var AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();osc=ctx.createOscillator();osc.type="sine";osc.frequency.value=f;
+    gn=ctx.createGain();gn.gain.value=0;osc.connect(gn);gn.connect(ctx.destination);osc.start();gn.gain.setTargetAtTime(.1,ctx.currentTime,.03);
+    if(ctx.state==="suspended")ctx.resume();pl.textContent="🔇 소리 끄기";Exp.reveal();
+   }catch(e){ctx=null;msg.textContent="이 기기에서는 소리를 낼 수 없어요. 그래프로 확인해요."}
+  }
+  function retune(){
+   var f=F();if(ctx){if(playable(f))osc.frequency.setTargetAtTime(f,ctx.currentTime,.03);else stop()}draw()
+  }
+  pl.addEventListener("click",function(){ctx?stop():start()});
+  len.addEventListener("input",function(){if(!moved){moved=true;Exp.reveal()}retune()});
+  el.querySelectorAll("[data-k]").forEach(function(b){b.addEventListener("click",function(){kind=b.dataset.k;el.querySelectorAll("[data-k]").forEach(function(x){x.setAttribute("aria-pressed",x===b)});retune()})});
+  el.querySelectorAll("[data-n]").forEach(function(b){b.addEventListener("click",function(){nn=+b.dataset.n;el.querySelectorAll("[data-n]").forEach(function(x){x.setAttribute("aria-pressed",x===b)});retune()})});
+  document.addEventListener("visibilitychange",function(){if(document.hidden)stop()});
+  window.addEventListener("pagehide",stop);
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

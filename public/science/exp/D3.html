@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>체험 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+.q{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.q h3{margin:0 0 6px;font-size:16px}
+.stp{display:flex;gap:10px;align-items:center}
+.stp output{min-width:44px;text-align:center;font-size:24px;font-weight:700}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"D3",
+ predict:{q:"작은 공들의 움직임을 집중해서 세는 동안 화면에 다른 것이 나타나 지나가면, 알아챌까요?",options:["누구나 알아챈다","대부분 알아챈다","일부는 알아채지 못한다"],answer:2,
+  feedback:["한번 확인해 보세요. 집중하면 시야가 좁아질 수 있어요.","확인해 보세요. 사람마다 달라요.","맞아요. 집중하면 눈앞의 것도 놓치는 일이 실제로 있어요(부주의맹)."]},
+ steps:["'시작'을 누르면 약 20초 동안 공들이 움직여요. 속이 찬 파란 공(●)이 바닥에 닿아 튕기는 횟수를 마음속으로 세어요. 속이 빈 공(○)은 세지 않아요.","끝나면 센 횟수를 입력하고, 세는 동안 다른 변화를 보았는지 골라요.","'정답 확인'으로 실제 횟수를 보고, '세지 않고 다시 보기'로 같은 장면을 한 번 더 봐요."],
+ observe:["세는 데 집중하는 동안 화면의 다른 부분이 눈에 들어왔나요?","다시 볼 때는 무엇이 달라졌나요? 처음에는 왜 눈에 안 띄었을까요?","센 횟수와 실제 횟수는 얼마나 차이가 났나요?"],
+ more:["일상에서 한 가지에 집중하다가 다른 것을 놓친 경험을 떠올려 보세요(예: 걸으며 휴대폰을 볼 때).","친구와 함께 하고, 서로 본 것을 비교해 보세요. 사람마다 다를 수 있어요.","세는 대상을 '속이 빈 공'으로 바꾸면 결과가 달라질지 생각해 보세요."],
+ why:{easy:["우리 눈은 한꺼번에 많은 것이 들어오지만, 뇌는 '주의'를 기울인 곳만 잘 처리해요. 한 가지를 열심히 세면 나머지는 덜 처리돼요.","그래서 눈앞을 지나가도 알아채지 못할 수 있어요. 눈이 고장난 게 아니라 주의가 다른 곳에 있었기 때문이에요.","이건 누구에게나 일어날 수 있고, 알아채지 못했다고 해서 능력이 부족한 게 아니에요."],
+  detail:["부주의맹(inattentional blindness)이에요. 과제에 주의 자원이 쓰일 때 예상하지 못한 자극을 의식적으로 지각하지 못하는 현상이에요.","예상 밖 자극이 과제 대상과 비슷할수록 알아채기 쉽고, 다를수록 놓치기 쉽다고 알려져 있어요. 그래서 여기서는 대상과 다른 모양·움직임의 물체를 사용했어요.","발견 비율은 과제 난이도와 개인에 따라 크게 달라요. 이 체험은 한 번의 시행이라 통계적 결론을 내릴 수 없어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="공들이 상자 안에서 움직이는 짧은 애니메이션. 속이 찬 파란 공이 바닥에 닿는 횟수를 세는 과제"></canvas>'+
+   '<div class="controls"><button type="button" class="primary" id="go">시작 (20초)</button><button type="button" id="stop" disabled>중지</button><span class="readout" id="tm" aria-hidden="true"></span></div>'+
+   '<div class="q" id="q" hidden><h3>1. 속이 찬 파란 공(●)이 바닥에 닿은 횟수는?</h3><div class="stp"><button type="button" id="mi" aria-label="하나 줄이기">−</button><output id="n" aria-live="polite">0</output><button type="button" id="pl" aria-label="하나 늘리기">+</button></div>'+
+   '<h3 style="margin-top:12px">2. 세는 동안 공 말고 다른 것이 보였나요?</h3><div class="row" id="yn" role="group" aria-label="다른 것을 보았나요"><button type="button" data-v="y" aria-pressed="false">네, 보였어요</button><button type="button" data-v="n" aria-pressed="false">아니요, 못 봤어요</button></div>'+
+   '<div class="controls"><button type="button" class="primary" id="chk">정답 확인</button></div></div>'+
+   '<p class="note" id="msg" role="status" aria-live="polite" style="min-height:3em"></p>'+
+   '<div class="controls"><button type="button" id="again" hidden>세지 않고 다시 보기 (표시 켜기)</button></div>'+
+   '<p class="note">눈이 아픈 깜빡임은 없어요. 공이 단단한 바닥에 닿을 때만 방향이 바뀌어요.</p>';
+  var cv=el.querySelector("#cv"),go=el.querySelector("#go"),stop=el.querySelector("#stop"),tm=el.querySelector("#tm"),q=el.querySelector("#q"),msg=el.querySelector("#msg"),nOut=el.querySelector("#n"),again=el.querySelector("#again");
+  var DUR=20,balls,t,hits,raf=null,last=0,acc=0,run=false,mode="idle",guess=0,saw=null,showMark=false;
+  /* 공 상태: 단위 좌표(0~1, 가로 폭 기준), 고정 시작값으로 결정론적 */
+  function mk(){var d=[[.12,.15,.23,.19,1],[.45,.3,-.2,.26,1],[.7,.1,.17,-.22,1],[.3,.55,-.25,-.15,1],[.85,.45,-.21,.12,0],[.2,.3,.18,.2,0],[.6,.6,.24,-.18,0],[.5,.15,-.16,.24,0]];
+   return d.map(function(a){return {x:a[0],y:a[1],vx:a[2],vy:a[3],solid:!!a[4]}})}
+  var H=.62,R=.028;
+  function reset(){balls=mk();t=0;hits=0;acc=0}
+  function step(dt){
+   t+=dt;
+   balls.forEach(function(b){b.x+=b.vx*dt;b.y+=b.vy*dt;
+    if(b.x<R){b.x=R;b.vx=Math.abs(b.vx)}if(b.x>1-R){b.x=1-R;b.vx=-Math.abs(b.vx)}
+    if(b.y<R){b.y=R;b.vy=Math.abs(b.vy)}
+    if(b.y>H-R){b.y=H-R;b.vy=-Math.abs(b.vy);if(b.solid)hits++}})}
+  /* 예상 밖 물체: 6~14초에 가운데 근처를 천천히 가로지르는 ✚ 모양(깜빡임 없음) */
+  function odd(){if(t<6||t>14)return null;var p=(t-6)/8;return {x:-.05+1.1*p,y:.31+.05*Math.sin(p*3)}}
+  function draw(){
+   var s=Sci.fit(cv,H),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,dark=matchMedia("(prefers-color-scheme: dark)").matches;
+   c.clearRect(0,0,w,h);c.fillStyle=dark?"#0e1522":"#f0f4fb";c.fillRect(0,0,w,h);
+   c.strokeStyle=col;c.lineWidth=4;c.beginPath();c.moveTo(0,h-2);c.lineTo(w,h-2);c.stroke();
+   c.font="14px sans-serif";c.fillStyle=col;c.fillText("바닥",6,h-8);
+   var r=R*w;
+   balls.forEach(function(b){c.beginPath();c.arc(b.x*w,b.y*w,r,0,7);
+    if(b.solid){c.fillStyle=dark?"#6ea8ff":"#0b57d0";c.fill()}else{c.lineWidth=3;c.strokeStyle=dark?"#c9d3e6":"#4a5568";c.stroke()}});
+   var o=odd();
+   if(o&&(mode==="run"||mode==="replay")){var x=o.x*w,y=o.y*w,a=r*1.3;c.fillStyle="#b4237a";c.fillRect(x-a,y-a*.35,2*a,a*.7);c.fillRect(x-a*.35,y-a,a*.7,2*a);
+    if(showMark){c.strokeStyle="#d9480f";c.lineWidth=3;c.setLineDash([6,4]);c.beginPath();c.arc(x,y,a*1.6,0,7);c.stroke();c.setLineDash([]);c.fillStyle=col;c.fillText("← 이것!",x+a*1.8,y+5)}}
+   tm.textContent=mode==="run"||mode==="replay"?Math.ceil(DUR-t)+"초":""}
+  function loop(ts){
+   if(!run)return;var dt=Math.min(.1,(ts-last)/1000);last=ts;acc+=dt;
+   while(acc>=1/60){step(1/60);acc-=1/60;if(t>=DUR){end();return}}
+   draw();raf=requestAnimationFrame(loop)}
+  function halt(){run=false;if(raf)cancelAnimationFrame(raf);raf=null}
+  function end(){halt();var was=mode;stop.disabled=true;go.disabled=false;
+   if(was==="run"){mode="done";q.hidden=false;draw();msg.textContent="끝! 센 횟수와 다른 것을 보았는지 답해 주세요."}
+   else{mode="done";draw();msg.textContent="다시 보기가 끝났어요. 분홍색 ✚ 물체가 6~14초 사이에 지나갔어요."}}
+  function play(m){halt();reset();mode=m;stop.disabled=false;go.disabled=true;q.hidden=m==="replay"?q.hidden:true;msg.textContent=m==="run"?"세는 중… 속이 찬 파란 공이 바닥에 닿는 횟수를 세세요.":"세지 않고 편하게 보세요.";run=true;last=performance.now();raf=requestAnimationFrame(loop)}
+  go.addEventListener("click",function(){guess=0;nOut.textContent=0;saw=null;showMark=false;again.hidden=true;[].forEach.call(el.querySelectorAll("#yn button"),function(b){b.setAttribute("aria-pressed","false")});play("run")});
+  stop.addEventListener("click",function(){halt();mode="idle";stop.disabled=true;go.disabled=false;msg.textContent="중지했어요. 다시 시작할 수 있어요."});
+  el.querySelector("#mi").addEventListener("click",function(){guess=Math.max(0,guess-1);nOut.textContent=guess});
+  el.querySelector("#pl").addEventListener("click",function(){guess=Math.min(99,guess+1);nOut.textContent=guess});
+  [].forEach.call(el.querySelectorAll("#yn button"),function(b){b.addEventListener("click",function(){saw=b.dataset.v;[].forEach.call(el.querySelectorAll("#yn button"),function(x){x.setAttribute("aria-pressed",x===b)})})});
+  el.querySelector("#chk").addEventListener("click",function(){
+   if(saw==null){msg.textContent="2번 질문에도 답해 주세요.";return}
+   var d=guess-hits,t1="실제로 속이 찬 공이 바닥에 닿은 횟수는 "+hits+"번, 내가 센 횟수는 "+guess+"번"+(d===0?"(정확해요!)":"(차이 "+Math.abs(d)+")")+"이에요. ";
+   t1+="사실 6~14초 사이에 분홍색 ✚ 물체가 화면을 가로질렀어요. "+(saw==="y"?"알아챘군요! 사람마다 다르고, 알아챘다고 더 뛰어난 건 아니에요.":"못 봤더라도 이상한 게 아니에요. 세는 일에 주의가 쓰이면 이런 일이 생길 수 있어요.");
+   msg.textContent=t1;again.hidden=false;Exp.reveal()});
+  again.addEventListener("click",function(){showMark=true;play("replay")});
+  window.addEventListener("pagehide",halt);
+  reset();mode="idle";draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

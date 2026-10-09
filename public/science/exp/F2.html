@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>달은 왜 모양이 변할까 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.stat{display:flex;gap:8px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:15px}.stat b{font-variant-numeric:tabular-nums}#cvO{cursor:grab}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"F2",
+ predict:{q:"달의 모양(초승달, 반달, 보름달 등)이 날마다 달라지는 가장 알맞은 이유는 무엇일까요?",options:["지구의 그림자가 달을 조금씩 가려서","달이 해빛을 받는 면을 우리가 보는 각도가 달라져서","달이 실제로 커졌다 작아졌다 해서"],answer:1,
+  feedback:["지구 그림자가 달을 가리는 건 '월식'이고 아주 드물어요. 달의 모양 변화는 다른 이유예요. 아래에서 확인해 보세요.","맞아요! 달은 늘 반쪽이 해빛을 받고, 우리가 그 밝은 쪽을 얼마나 보느냐가 달라져요.","달의 크기는 거의 그대로예요. 아래에서 확인해 보세요."]},
+ steps:["아래 위쪽 그림(우주에서 내려다본 모습)에서 달을 끌어 지구 둘레로 돌리거나, 슬라이더(← → 키)를 움직이세요. 햇빛은 왼쪽에서 와요.","아래쪽 그림은 지구에서 본 달의 모양이에요. 위쪽 그림의 달 위치와 비교해 보세요.","'삭·상현·보름·하현' 버튼으로 대표 위치로 바로 가 보세요.","'한 바퀴 돌려 보기'로 달의 한 달 변화를 이어서 봐요."],
+ observe:["달이 어느 위치에 있을 때 보름달로 보이나요? 해, 지구, 달은 어떤 순서로 놓여 있나요?","달이 해와 지구 사이에 있을 때는 어떻게 보이나요?","위쪽 그림에서 달의 밝은 반쪽은 늘 어느 쪽을 향하고 있나요?","달이 차오르는 동안(삭 → 보름) 밝은 부분은 달의 어느 쪽에서 커지나요?"],
+ more:["공과 손전등(또는 스탠드 하나만 켠 어두운 방)으로 해보세요. 내가 지구가 되어 공(달)을 팔 길이만큼 들고 천천히 한 바퀴 돌며 밝은 부분을 관찰해요.","실제 하늘에서 한 주 동안 같은 시각에 달의 모양과 위치를 그려 보세요. 날마다 달이 뜨는 시각도 달라져요.","보름달이 뜨는 때와 초승달이 보이는 때를 달력과 비교해 보세요."],
+ why:{easy:["달은 스스로 빛나지 않고, 해빛을 받아 반사해서 빛나 보여요. 해빛을 받는 쪽은 언제나 달의 반쪽이에요.","달이 지구 둘레를 도는 동안, 우리가 지구에서 보는 달의 '밝은 쪽'의 양이 달라져요.","달이 해와 지구 사이쯤에 있으면 밝은 쪽이 반대편을 향해서 거의 안 보이고(삭), 지구 뒤쪽에 있으면 밝은 쪽이 우리를 향해서 둥글게 보여요(보름).","달 모양이 변하는 건 지구 그림자 때문이 아니에요. 지구 그림자가 달을 가리는 건 월식이고 훨씬 드물게 일어나요."],
+  detail:["해-지구-달이 이루는 각도(위상각)에 따라 지구에서 보이는 밝은 면의 비율이 달라져요. 달의 위치각을 θ(삭을 0°)라 하면 보이는 밝은 부분의 비율은 약 (1 − cos θ)/2 예요.","달이 지구 둘레를 도는 방향은 북극 쪽에서 내려다볼 때 반시계 방향이에요. 그래서 북반구에서는 차오르는 달은 오른쪽이 밝고, 기우는 달은 왼쪽이 밝아요. 남반구에서는 좌우가 반대로 보여요.","달이 지구를 한 바퀴 도는 시간(약 27.3일)보다 위상이 한 번 순환하는 시간(삭에서 삭까지, 약 29.5일)이 더 길어요. 그동안 지구도 태양 둘레를 움직이기 때문이에요.","달의 공전 궤도는 지구 공전 궤도면에서 약 5° 기울어 있어서, 매달 일식이나 월식이 일어나지는 않아요.","이 그림에서 거리와 크기의 비율은 실제와 달라요(실제 달-지구 거리는 지구 지름의 약 30배). 햇빛은 평행한 빛으로 근사했어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cvO" role="img" aria-label="해, 지구, 달의 위치를 위에서 본 그림"></canvas>'+
+   '<canvas id="cvV" role="img" aria-label="지구에서 본 달의 모양"></canvas>'+
+   '<div class="controls"><label>달의 위치 <input id="an" type="range" min="0" max="360" step="1" value="45" aria-label="달의 위치(삭을 0도로 한 각도)"><span class="readout" id="rd"></span></label></div>'+
+   '<div class="controls" role="group" aria-label="대표 위치"><button type="button" data-a="0">삭(신월)</button><button type="button" data-a="90">상현</button><button type="button" data-a="180">보름</button><button type="button" data-a="270">하현</button></div>'+
+   '<div class="controls"><button class="primary" id="pl" type="button" aria-pressed="false">한 바퀴 돌려 보기</button></div>'+
+   '<p class="stat" id="st" aria-live="off"></p><p class="note">그림은 실제 크기·거리 비율이 아닌 모식도(근사)예요. 달 그림을 끌어도 돼요.</p>';
+  var cvO=el.querySelector("#cvO"),cvV=el.querySelector("#cvV"),an=el.querySelector("#an"),rd=el.querySelector("#rd"),st=el.querySelector("#st"),pl=el.querySelector("#pl");
+  var RAD=Math.PI/180,played=false,raf=0,last=0;
+  function phaseName(a){
+   a=((a%360)+360)%360;
+   if(a<6||a>354)return"삭(신월): 거의 안 보여요";
+   if(a<84)return"초승달 (차오르는 가는 달)";
+   if(a<96)return"상현달 (오른쪽 반달)";
+   if(a<174)return"차오르는 볼록한 달";
+   if(a<186)return"보름달";
+   if(a<264)return"기우는 볼록한 달";
+   if(a<276)return"하현달 (왼쪽 반달)";
+   return"그믐달 (기우는 가는 달)";
+  }
+  function drawO(){
+   var s=Sci.fit(cvO,.8),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,a=+an.value*RAD,cx=w*.55,cy=h/2,R=w*.27,er=w*.07,mr=w*.045;
+   c.clearRect(0,0,w,h);c.fillStyle=col;c.strokeStyle=col;c.font=Math.max(12,w*.037)+"px sans-serif";
+   c.save();c.fillStyle="#ffd43b";c.strokeStyle="#e8890c";c.lineWidth=3;c.beginPath();c.arc(w*.09,cy,w*.065,0,7);c.fill();c.stroke();c.restore();
+   c.fillText("태양",w*.09-14,cy+w*.065+16);
+   /* 햇빛 화살표 */
+   c.save();c.strokeStyle="#e8890c";c.fillStyle="#e8890c";c.lineWidth=2;
+   [-.36,-.2,.2,.36].forEach(function(f){var y=cy+f*h,x0=w*.2,x1=w*.37;c.beginPath();c.moveTo(x0,y);c.lineTo(x1,y);c.stroke();c.beginPath();c.moveTo(x1,y);c.lineTo(x1-7,y-4);c.lineTo(x1-7,y+4);c.fill()});
+   c.restore();c.fillText("햇빛",w*.2,cy-.36*h-8);
+   c.save();c.setLineDash([5,5]);c.lineWidth=1.5;c.globalAlpha=.6;c.beginPath();c.arc(cx,cy,R,0,7);c.stroke();c.restore();
+   /* 지구 */
+   c.save();c.fillStyle="#4da3ff";c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(cx,cy,er,0,7);c.fill();c.stroke();c.restore();
+   c.textAlign="center";c.fillText("지구",cx,cy+er+16);
+   var mx=cx-R*Math.cos(a),my=cy+R*Math.sin(a);
+   c.save();c.globalAlpha=.5;c.setLineDash([3,4]);c.beginPath();c.moveTo(cx,cy);c.lineTo(mx,my);c.stroke();c.restore();
+   /* 달: 어두운 원 + 해 쪽(왼쪽) 반원이 밝음 */
+   c.save();c.fillStyle="#5b6478";c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(mx,my,mr,0,7);c.fill();c.stroke();
+   c.fillStyle="#fff3bf";c.beginPath();c.arc(mx,my,mr,Math.PI/2,Math.PI*1.5);c.closePath();c.fill();c.beginPath();c.arc(mx,my,mr,0,7);c.stroke();c.restore();
+   var ty=my+(my>cy?mr+16:-mr-8);c.fillText("달",mx,ty);c.textAlign="left";
+   c.fillText("달의 밝은 반쪽은 늘 해 쪽",6,h-8);
+  }
+  function drawV(){
+   var s=Sci.fit(cvV,.5),c=s.c,w=s.w,h=s.h,a=+an.value*RAD,r=Math.min(h*.38,w*.2),cx=w/2,cy=h*.46;
+   c.clearRect(0,0,w,h);c.fillStyle="#0f1627";c.beginPath();if(c.roundRect)c.roundRect(0,0,w,h,12);else c.rect(0,0,w,h);c.fill();
+   c.fillStyle="#3a4258";c.beginPath();c.arc(cx,cy,r,0,7);c.fill();
+   var k=Math.cos(a),sg=a<=Math.PI?1:-1,i,y,x,N=48;
+   c.fillStyle="#fff3bf";c.beginPath();
+   for(i=0;i<=N;i++){y=-r+2*r*i/N;x=sg*Math.sqrt(Math.max(0,r*r-y*y));if(i==0)c.moveTo(cx+x,cy+y);else c.lineTo(cx+x,cy+y)}
+   for(i=N;i>=0;i--){y=-r+2*r*i/N;x=sg*k*Math.sqrt(Math.max(0,r*r-y*y));c.lineTo(cx+x,cy+y)}
+   c.closePath();c.fill();
+   c.strokeStyle="#aab4c8";c.lineWidth=2;c.beginPath();c.arc(cx,cy,r,0,7);c.stroke();
+   c.fillStyle="#e8edf6";c.font=Math.max(12,w*.037)+"px sans-serif";c.textAlign="center";c.fillText("지구에서 본 달 (북반구) — "+phaseName(+an.value),cx,h-8);c.textAlign="left";
+  }
+  function upd(){
+   var a=+an.value,f=(1-Math.cos(a*RAD))/2;
+   rd.textContent=a+"°";an.setAttribute("aria-valuetext",phaseName(a)+", 밝은 부분 약 "+Math.round(f*100)+"퍼센트");
+   st.innerHTML='<span><b>'+phaseName(a)+'</b></span><span>보이는 밝은 부분 약 <b>'+Math.round(f*100)+'%</b></span><span>삭 이후 약 <b>'+(a/360*29.5).toFixed(1)+'</b>일</span>';
+   drawO();drawV();
+  }
+  function touched(){if(!played){played=true;Exp.reveal()}}
+  an.addEventListener("input",function(){touched();upd()});
+  [].forEach.call(el.querySelectorAll("[data-a]"),function(b){b.addEventListener("click",function(){an.value=b.dataset.a;touched();upd()})});
+  /* 달 끌기 */
+  var drag=false;
+  function pt(e){var r=cvO.getBoundingClientRect(),w=r.width,cx=w*.55,cy=r.height/2,dx=e.clientX-r.left-cx,dy=e.clientY-r.top-cy,a=Math.atan2(dy,-dx)/RAD;if(a<0)a+=360;an.value=Math.round(a)%361;touched();upd()}
+  cvO.addEventListener("pointerdown",function(e){drag=true;cvO.setPointerCapture(e.pointerId);pt(e)});
+  cvO.addEventListener("pointermove",function(e){if(drag)pt(e)});
+  cvO.addEventListener("pointerup",function(){drag=false});cvO.addEventListener("pointercancel",function(){drag=false});
+  /* 자동 */
+  function tick(ts){if(!last)last=ts;var dt=(ts-last)/1000;last=ts;var v=(+an.value+dt*24);if(v>360)v-=360;an.value=Math.round(v*10)/10;upd();raf=requestAnimationFrame(tick)}
+  function stop(){if(raf)cancelAnimationFrame(raf);raf=0;last=0;pl.setAttribute("aria-pressed","false");pl.textContent="한 바퀴 돌려 보기"}
+  pl.addEventListener("click",function(){if(raf){stop();return}touched();pl.setAttribute("aria-pressed","true");pl.textContent="멈추기";raf=requestAnimationFrame(tick)});
+  window.addEventListener("pagehide",stop);document.addEventListener("visibilitychange",function(){if(document.hidden&&raf)stop()});
+  upd();window.addEventListener("resize",upd);
+ }
+};
+Sci.initExp();
+</script></body></html>

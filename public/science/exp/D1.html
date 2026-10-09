@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>체험 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+.pad{width:100%;min-height:240px;font-size:22px;font-weight:700;border-width:3px;flex-direction:column;gap:6px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.pad .big{font-size:40px;line-height:1}
+.pad[data-s=idle]{background:var(--soft);border-color:var(--brand)}
+.pad[data-s=wait]{background:#8a1c1c;border-color:#fff;color:#fff}
+.pad[data-s=go]{background:#0b6b3a;border-color:#fff;color:#fff}
+.tr{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;padding:0;list-style:none}
+.tr li{border:1px solid var(--line);border-radius:10px;padding:6px 10px;min-width:74px;text-align:center;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"D1",
+ predict:{q:"화면이 바뀐 것을 보고 버튼을 누를 때까지 걸리는 시간(반응시간)은 보통 얼마쯤일까요?",options:["0.1초(100ms) 이하","0.1~0.2초","0.2~0.3초","0.3초 이상"],answer:2,
+  feedback:["많은 사람이 이보다는 느려요. 아래 측정 결과와 비교해 보세요.","빠른 편이에요. 평균과 비교해 보세요.","시각 자극에 대한 단순 반응시간은 보통 0.2초 안팎이에요.","조금 느리게 예상했네요. 측정 결과와 비교해 보세요."]},
+ steps:["큰 버튼을 눌러(또는 Space/Enter 키) 시작해요. 버튼이 빨간색('기다려요')일 때는 누르지 마세요.","초록색('지금!')으로 바뀌면 최대한 빨리 눌러요. 모두 5번 측정해요.","너무 일찍 누르면 그 회는 무효이고 다시 해요. 5번이 끝나면 평균을 예측과 비교해요."],
+ observe:["5번의 반응시간이 모두 비슷했나요, 들쑥날쑥했나요?","첫 번째와 마지막 측정 중 어느 쪽이 빨랐나요?","예측한 범위와 내 평균은 얼마나 달랐나요?"],
+ more:["다른 손(또는 발)로 눌러 보고 평균이 달라지는지 비교해 보세요.","친구와 번갈아 5번씩 측정해 평균을 비교해 보세요. 기기마다 화면 지연이 달라 절대값보다 같은 기기에서의 비교가 더 의미 있어요.","소리가 나면 누르는 방식으로 바꾼다면 시간이 어떻게 달라질지 예상해 보세요."],
+ why:{easy:["눈으로 본 정보가 뇌로 가고, 뇌가 '누르자'고 결정하고, 그 신호가 팔과 손가락 근육까지 가야 해요. 이 모든 과정에 시간이 걸려서 반응은 즉시가 아니에요.","보통 0.2초 안팎이지만, 졸리거나 집중이 흩어지면 느려지고 연습하면 조금 빨라질 수 있어요.","이 측정에는 화면이 바뀌는 시간과 기기가 입력을 받는 시간도 조금 더해져요."],
+  detail:["단순 반응시간(simple reaction time)은 자극 감지, 중추 처리, 운동 명령 전달, 근육 수축 개시의 합이에요. 시각 자극에서 성인 평균은 대략 200~270ms로 보고돼요.","무작위 대기 시간(여기서는 1.5~4초)을 두는 것은 사용자가 타이밍을 미리 예측해 누르는 것을 막기 위해서예요.","웹 측정에는 모니터 갱신, 입력 장치 지연 등 수십 ms의 오차가 섞여요. 이 값은 의학적 진단용이 아니라 체험용 근사값이에요."]},
+ init:function(el){
+  el.innerHTML='<button type="button" class="pad" id="pad" data-s="idle" aria-live="off"></button>'+
+   '<p class="note" id="msg" role="status" aria-live="polite" style="min-height:3em"></p>'+
+   '<ul class="tr" id="tr" aria-label="측정 기록"></ul>'+
+   '<div class="controls"><button type="button" id="rst">다시 하기</button></div>';
+  var pad=el.querySelector("#pad"),msg=el.querySelector("#msg"),tr=el.querySelector("#tr");
+  var N=5,rts=[],state="idle",timer=null,t0=0,RANGES=[[0,100],[100,200],[200,300],[300,1e9]],NAMES=["0.1초 이하","0.1~0.2초","0.2~0.3초","0.3초 이상"];
+  function set(s,big,txt){state=s;pad.dataset.s=s==="go"?"go":s==="wait"?"wait":"idle";pad.innerHTML='<span class="big" aria-hidden="true">'+big+'</span><span>'+txt+'</span>'}
+  function list(){tr.innerHTML=rts.map(function(v,i){return "<li>"+(i+1)+"회<br><b>"+Math.round(v)+"ms</b></li>"}).join("")}
+  function ready(){set("idle","▶","눌러서 "+(rts.length?(rts.length+1)+"번째 ":"")+"시작 (남은 횟수 "+(N-rts.length)+")")}
+  function start(){
+   set("wait","✋","기다려요… (빨간색)");msg.textContent="버튼이 초록색 '지금!'으로 바뀔 때까지 누르지 마세요.";
+   timer=setTimeout(function(){timer=null;set("go","👆","지금! 누르세요! (초록색)");t0=performance.now()},1500+Math.random()*2500)}
+  function finish(){
+   var avg=rts.reduce(function(a,b){return a+b},0)/N,best=Math.min.apply(null,rts);
+   set("idle","✔","끝! 평균 "+Math.round(avg)+"ms");
+   var c=Exp.choice,t="평균 "+Math.round(avg)+"ms("+(avg/1000).toFixed(2)+"초), 가장 빠른 기록 "+Math.round(best)+"ms예요. ";
+   if(c!=null)t+="내 예측은 '"+NAMES[c]+"'였고, 평균은 "+(avg>=RANGES[c][0]&&avg<RANGES[c][1]?"그 범위 안이에요.":"그 범위 밖이에요.")+" ";
+   msg.textContent=t+"이 값에는 화면·기기의 지연이 조금 포함돼요.";Exp.reveal()}
+  function act(){
+   if(state==="wait"){clearTimeout(timer);timer=null;set("idle","⚠","너무 일찍 눌렀어요! 눌러서 이번 회를 다시 시작해요");msg.textContent="초록색으로 바뀐 뒤에 눌러야 해요. 이번 회는 기록되지 않았어요.";return}
+   if(state==="go"){var rt=performance.now()-t0;rts.push(rt);list();
+     if(rts.length>=N){finish()}else{ready();msg.textContent="방금 반응시간은 "+Math.round(rt)+"ms였어요."}return}
+   if(rts.length>=N)return;
+   start()}
+  pad.addEventListener("pointerdown",function(e){e.preventDefault();act()});
+  pad.addEventListener("keydown",function(e){if(e.key===" "||e.key==="Enter"){e.preventDefault();if(!e.repeat)act()}});
+  pad.addEventListener("click",function(e){e.preventDefault()});
+  el.querySelector("#rst").addEventListener("click",function(){clearTimeout(timer);timer=null;rts=[];list();ready();msg.textContent="";});
+  window.addEventListener("pagehide",function(){clearTimeout(timer)});
+  ready();
+ }
+};
+Sci.initExp();
+</script></body></html>

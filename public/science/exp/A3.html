@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>사라진 그림이 나타나요 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>var EXP={
+ id:"A3",
+ predict:{q:"빨간 원을 오래 쳐다본 뒤 흰 화면을 보면, 그 자리에 어떤 색이 보일까요?",options:["빨강이 그대로 보인다","청록(하늘색에 가까운 색)이 보인다","아무것도 안 보인다"],answer:1,
+  feedback:["빨강이 아니라 반대쪽 색이 보여요. 직접 확인해 보세요.","맞아요! 반대쪽 색(보색)이 희미하게 떠올라요.","사람마다 달라도 대부분 희미한 색이 보여요. 직접 확인해 보세요."]},
+ steps:["'응시 시작'을 누르고 가운데 검은 점만 30초 동안 보세요. 눈을 움직이지 말고 편하게 보세요.","시간이 끝나면 흰 화면이 나와요. 가운데 점을 계속 보면서 어떤 색이 떠오르는지 살펴보세요.","눈이 불편하면 언제든 '지금 흰 화면 보기'나 '그림 다시 보기'를 누르세요. 10초 모드도 있어요."],
+ observe:["빨강·초록·파랑 원이 있던 자리에 각각 어떤 색이 보였나요?","눈을 깜빡이거나 시선을 옮기면 잔상은 어떻게 되나요?","응시 시간을 10초로 줄이면 잔상은 더 진해지나요, 옅어지나요?"],
+ more:["밝은 방에서 색종이를 20초쯤 보다가 흰 벽을 보아 보세요.","국기 그림의 색을 반대 색으로 칠한 그림을 응시하면 진짜 색의 국기가 떠오르는지 해 보세요."],
+ why:{easy:["눈 속에는 색을 느끼는 세포가 있어요. 한 색을 오래 보면 그 색에 반응하는 세포가 지쳐서 반응이 약해져요.","그 상태로 흰 화면을 보면 흰빛에는 모든 색이 들어 있지만, 지친 세포는 약하게 반응하고 쉬던 다른 세포는 더 강하게 반응해요. 그래서 반대쪽 색이 떠올라요.","빨강은 청록, 초록은 자홍(분홍빛 보라), 파랑은 노랑 잔상이 생기는 것이 보통이에요."],
+  detail:["이것은 음성 색 잔상(negative afterimage)이에요. 원뿔세포의 순응(적응)으로 한 파장대의 신호가 약해진 채로 흰빛이 들어오면, 약해진 쪽 신호가 빠진 색으로 지각돼요.","망막 단계의 순응과 시각 경로의 반대색(opponent) 처리가 함께 관여한다고 알려져 있고, 각각의 기여도는 지금도 연구되고 있어요.","여기서 나오는 보색 쌍은 사람의 반대색 체계(빨강-초록, 파랑-노랑)와 관련이 있어요. 화면의 색 재현 방식 때문에 정확한 잔상 색은 사람과 화면마다 조금 달라요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="빨강, 초록, 파랑 원과 가운데 응시점. 시간이 지나면 흰 화면으로 바뀝니다"></canvas>'+
+   '<div class="controls"><button class="primary" id="go" type="button">응시 시작</button><button id="skip" type="button">지금 흰 화면 보기</button><button id="back" type="button">그림 다시 보기</button><button id="dur" type="button" aria-pressed="false">10초 모드</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3.2em">그림이 준비됐어요. 눈이 편한 밝기와 거리에서 해 보세요. 불편하면 언제든 멈추세요. 화면이 깜빡이지 않고 한 번만 바뀌어요.</p>'+
+   '<p class="readout" id="cnt" role="timer" aria-live="off"></p>';
+  var cv=el.querySelector("#cv"),msg=el.querySelector("#msg"),cnt=el.querySelector("#cnt"),dur=el.querySelector("#dur");
+  var phase="ready",timer=null,left=0,T=30;
+  function stop(){if(timer){clearInterval(timer);timer=null}}
+  function draw(){
+   var s=Sci.fit(cv,.62),c=s.c,w=s.w,h=s.h,k=w/600,ink=getComputedStyle(document.body).color;
+   if(phase==="white"){c.fillStyle="#fff";c.fillRect(0,0,w,h);c.strokeStyle="#bbb";c.lineWidth=1;c.strokeRect(.5,.5,w-1,h-1);
+    c.fillStyle="#444";c.beginPath();c.arc(w/2,h/2,5*Math.max(k,.8),0,7);c.fill();return}
+   c.fillStyle="#d8d8d8";c.fillRect(0,0,w,h);
+   var R=h*.2,ds=[[w*.22,h*.5,"#e00000","빨강"],[w*.78,h*.5,"#00b000","초록"],[w*.5,h*.2,"#0020ff","파랑"]];
+   c.font=(15*Math.max(k,.85))+"px sans-serif";c.textAlign="center";
+   ds.forEach(function(d,i){c.fillStyle=d[2];c.beginPath();c.arc(d[0],d[1],R*(i===2?.8:1),0,7);c.fill();c.fillStyle="#111";c.fillText(d[3],d[0],d[1]+R*(i===2?.8:1)+18)});
+   c.fillStyle="#000";c.beginPath();c.arc(w/2,h*.55,6*Math.max(k,.8),0,7);c.fill();
+   c.strokeStyle="#fff";c.lineWidth=2;c.stroke();
+  }
+  function white(){stop();phase="white";cnt.textContent="";msg.textContent="가운데 점을 계속 보세요. 빨강 자리에는 청록, 초록 자리에는 자홍(분홍빛 보라), 파랑 자리에는 노랑이 희미하게 떠오를 수 있어요. 잔상은 금방 사라지고 사람마다 달라요.";draw();Exp.reveal()}
+  function start(){stop();phase="stare";left=T;cnt.textContent="남은 시간: "+left+"초 — 가운데 검은 점만 보세요";msg.textContent="";draw();
+   timer=setInterval(function(){left--;if(left<=0){white()}else cnt.textContent="남은 시간: "+left+"초 — 가운데 검은 점만 보세요"},1000)}
+  el.querySelector("#go").addEventListener("click",start);
+  el.querySelector("#skip").addEventListener("click",white);
+  el.querySelector("#back").addEventListener("click",function(){stop();phase="ready";cnt.textContent="";msg.textContent="그림으로 돌아왔어요. 다시 해 볼 수 있어요.";draw()});
+  dur.addEventListener("click",function(){T=T===30?10:30;dur.setAttribute("aria-pressed",T===10);dur.textContent=T===10?"10초 모드 켜짐":"10초 모드";msg.textContent="응시 시간은 "+T+"초예요."});
+  window.addEventListener("pagehide",stop);
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

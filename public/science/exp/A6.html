@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>거꾸로 도는 바퀴 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>var EXP={
+ id:"A6",
+ predict:{q:"바퀴 살이 8개이고 프레임 사이에 바퀴가 살 한 칸(45도)만큼 정확히 돌았다면, 영상에서 바퀴는 어떻게 보일까요?",options:["멈춘 것처럼 보인다","뒤로 도는 것처럼 보인다","앞으로 아주 빠르게 돈다"],answer:0,
+  feedback:["맞아요! 살이 모두 똑같아서 한 칸 돌아도 같은 모양이라 멈춘 듯 보여요.","한 칸보다 조금 덜 돌 때 뒤로 돌아 보여요. 직접 확인해 보세요.","살이 똑같아서 한 칸 돈 것과 안 돈 것이 구별되지 않아요. 직접 확인해 보세요."]},
+ steps:["'바퀴 회전 속도'와 '프레임 속도(초당 찍는 장수)'를 슬라이더(또는 ← → 키)로 정해요.","'다음 프레임'을 눌러 한 장씩 넘기거나, '자동 재생(초당 2장)'을 켜서 지켜보세요. 왼쪽은 실제 바퀴(★ 살 하나에 표시), 오른쪽은 카메라 화면이에요.","'멈추게 맞추기'와 '뒤로 돌게 맞추기' 버튼도 눌러 보고, 살 개수도 바꿔 보세요."],
+ observe:["카메라 화면(오른쪽)에서 바퀴는 앞으로, 뒤로, 정지 중 어떻게 보이나요?","프레임 속도를 올리면 같은 회전 속도에서 보이는 모습이 어떻게 달라지나요?","살 개수를 바꾸면 멈춰 보이는 회전 속도가 어떻게 바뀌나요?"],
+ more:["자동차 영상에서 바퀴가 뒤로 돌거나 멈춘 것처럼 보이는 장면을 찾아 보세요.","선풍기를 휴대폰 카메라로 찍어 날개가 멈추거나 거꾸로 도는 순간이 있는지 보세요(손은 넣지 마세요)."],
+ why:{easy:["영상은 사진을 연속으로 보여 주는 거예요. 한 장 찍고 다음 장을 찍는 사이에 바퀴가 얼마나 돌았는지는 영상에 남지 않고, 두 장만 비교해요.","바퀴 살은 모두 똑같이 생겼어요. 그래서 우리 눈(뇌)은 '가장 조금 움직인 것'으로 짝을 지어 생각해요.","살 한 칸보다 조금 덜 돌았으면 '한 칸 조금 덜'이 아니라 '뒤로 조금'으로 보여서 바퀴가 뒤로 도는 것처럼 보여요."],
+  detail:["이것은 시간 에일리어싱(temporal aliasing), 흔히 '마차바퀴 효과'예요. 살이 N개면 모양은 360/N도마다 반복돼요. 한 프레임 동안 실제로 돈 각도 Δ = 360·f/fps (f는 초당 회전수) 예요.","보이는 이동각은 Δ를 −180/N ~ +180/N 범위로 접은 값 δ 예요. δ>0이면 앞으로, δ<0이면 뒤로, δ=0이면 정지로 보여요. 정지 조건은 f·N 이 fps의 정수배일 때예요.","이 체험은 화면을 실제로 깜빡이지 않고, 프레임 사이의 위치만 그림으로 보여 주는 시뮬레이션이에요. 일정한 빛 아래의 맨눈에서도 비슷한 착시가 보고되지만 원인은 영상 촬영만큼 단순하지 않아요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="왼쪽은 실제 바퀴, 오른쪽은 카메라 화면 속 바퀴. 이전 프레임 위치와 움직인 각도를 보여 줍니다"></canvas>'+
+   '<div class="controls"><label>바퀴 회전 속도 <input id="f" type="range" min="0" max="12" step="0.05" value="2" aria-label="초당 바퀴 회전수"><span class="readout" id="rf"></span></label></div>'+
+   '<div class="controls"><label>프레임 속도 <input id="fps" type="range" min="4" max="30" step="1" value="24" aria-label="초당 프레임 수"><span class="readout" id="rfps"></span></label></div>'+
+   '<div class="controls"><span>살 개수</span><div class="seg" role="group" aria-label="살 개수"><button type="button" data-n="6" aria-pressed="false">6</button><button type="button" data-n="8" aria-pressed="true">8</button><button type="button" data-n="12" aria-pressed="false">12</button></div></div>'+
+   '<div class="controls"><button class="primary" id="nx" type="button">다음 프레임</button><button id="auto" type="button" aria-pressed="false">자동 재생(초당 2장)</button><button id="st" type="button">멈추게 맞추기</button><button id="bk" type="button">뒤로 돌게 맞추기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:4.8em"></p>'+
+   '<p class="note">이 화면은 실제로 깜빡이지 않아요. 프레임 사이의 위치만 한 장씩 보여 주는 시뮬레이션이에요.</p>';
+  var cv=el.querySelector("#cv"),msg=el.querySelector("#msg"),F=el.querySelector("#f"),P=el.querySelector("#fps"),N=8,frame=0,timer=null;
+  var nb=[].slice.call(el.querySelectorAll("[data-n]")),auto=el.querySelector("#auto");
+  function params(){var f=+F.value,fps=+P.value,sp=360/N,D=360*f/fps,r=((D%sp)+sp)%sp;if(r>sp/2)r-=sp;return {f:f,fps:fps,sp:sp,D:D,d:r}}
+  function arc(c,cx,cy,rad,a0,a1,col,lw,dash){
+   if(Math.abs(a1-a0)<.01)return;c.save();c.strokeStyle=col;c.fillStyle=col;c.lineWidth=lw;c.setLineDash(dash||[]);
+   c.beginPath();c.arc(cx,cy,rad,a0-Math.PI/2,a1-Math.PI/2,a1<a0);c.stroke();c.setLineDash([]);
+   var e=a1-Math.PI/2,dir=a1<a0?-1:1,px=cx+rad*Math.cos(e),py=cy+rad*Math.sin(e),tx=-Math.sin(e)*dir,ty=Math.cos(e)*dir,nx=Math.cos(e),ny=Math.sin(e);
+   c.beginPath();c.moveTo(px+tx*9,py+ty*9);c.lineTo(px-nx*6,py-ny*6);c.lineTo(px+nx*6,py+ny*6);c.closePath();c.fill();c.restore()}
+  function wheel(c,cx,cy,R,th,marked,ink){
+   c.save();c.strokeStyle=ink;c.lineWidth=3;c.beginPath();c.arc(cx,cy,R,0,7);c.stroke();
+   for(var i=0;i<N;i++){var a=th+i*2*Math.PI/N-Math.PI/2;c.lineWidth=(marked&&i===0)?5:3;c.strokeStyle=(marked&&i===0)?"#d9480f":ink;
+    c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));c.stroke();
+    if(marked&&i===0){c.fillStyle="#d9480f";c.beginPath();c.arc(cx+R*.82*Math.cos(a),cy+R*.82*Math.sin(a),7,0,7);c.fill()}}
+   c.fillStyle=ink;c.beginPath();c.arc(cx,cy,5,0,7);c.fill();c.restore()}
+  function draw(){
+   var s=Sci.fit(cv,.62),c=s.c,w=s.w,h=s.h,k=w/600,ink=getComputedStyle(document.body).color,p=params();
+   c.clearRect(0,0,w,h);var R=Math.min(w*.2,h*.36),cy=h*.5,rad=R*.55;
+   var cur=frame*p.D*Math.PI/180,prv=(frame-1)*p.D*Math.PI/180,sp=p.sp*Math.PI/180;
+   c.font=(13*Math.max(k,.85))+"px sans-serif";c.textAlign="center";c.fillStyle=ink;
+   /* 왼쪽: 실제 */
+   var x1=w*.26,x2=w*.74;
+   wheel(c,x1,cy,R,cur,true,ink);
+   if(frame>0){c.save();c.strokeStyle="#d9480f";c.fillStyle="#fff";c.lineWidth=2;var a=prv-Math.PI/2;c.beginPath();c.arc(x1+R*.82*Math.cos(a),cy+R*.82*Math.sin(a),7,0,7);c.stroke();c.restore();
+    arc(c,x1,cy,rad,prv,prv+Math.min(p.D*Math.PI/180,2*Math.PI-.05),"#d9480f",3)}
+   c.fillStyle=ink;c.fillText("실제 바퀴 (★ 표시 살)",x1,h*.08);c.fillText("프레임 "+(frame+1)+"번",x1,h*.97);
+   /* 오른쪽: 카메라 */
+   if(frame>0){wheel(c,x2,cy,R,prv,false,"rgba(150,150,150,.55)")}
+   wheel(c,x2,cy,R,cur,false,ink);
+   if(frame>0)arc(c,x2,cy,rad,prv,prv+p.d*Math.PI/180,"#0a7d4f",4);
+   c.fillStyle=ink;c.fillText("카메라 화면 (살이 모두 같음)",x2,h*.08);
+   c.fillText(frame===0?"첫 장":"초록 화살표 = 눈이 느끼는 움직임",x2,h*.97);
+   c.fillText("▶",w/2,cy+5);
+   if(frame>0){c.fillText("연한 선: 이전 프레임",x2,h*.14)}
+  }
+  function text(){
+   var p=params(),Dm=p.D.toFixed(1),dd=p.d.toFixed(1),tx;
+   if(Math.abs(p.d)<.5)tx="카메라 화면에서는 바퀴가 멈춘 것처럼 보여요.";
+   else if(Math.abs(Math.abs(p.d)-p.sp/2)<.5)tx="한 칸의 딱 절반이라 앞인지 뒤인지 헷갈려요.";
+   else tx=p.d>0?"카메라 화면에서는 바퀴가 앞으로 돌아요(실제보다 느리게).":"카메라 화면에서는 바퀴가 뒤로 도는 것처럼 보여요.";
+   var apparent=(p.d*p.fps/360);
+   msg.textContent="한 프레임 사이에 실제로 "+Dm+"도 돌고(살 한 칸은 "+p.sp.toFixed(1)+"도), 눈은 가장 가까운 살로 짝지어 "+dd+"도(초당 약 "+apparent.toFixed(2)+"바퀴)로 느껴요. "+tx
+  }
+  function redraw(){frame=0;fillLabels();text();draw()}
+  function fillLabels(){el.querySelector("#rf").textContent="초당 "+(+F.value).toFixed(2)+"바퀴";el.querySelector("#rfps").textContent="초당 "+P.value+"장"}
+  function step(){frame++;if(frame>60)frame=0;text();draw();Exp.reveal()}
+  function stopAuto(){if(timer){clearInterval(timer);timer=null}auto.setAttribute("aria-pressed",false)}
+  F.addEventListener("input",redraw);P.addEventListener("input",redraw);
+  nb.forEach(function(b){b.addEventListener("click",function(){N=+b.dataset.n;nb.forEach(function(x){x.setAttribute("aria-pressed",x===b)});redraw()})});
+  el.querySelector("#nx").addEventListener("click",step);
+  auto.addEventListener("click",function(){if(timer){stopAuto();return}auto.setAttribute("aria-pressed",true);timer=setInterval(step,500);step()});
+  el.querySelector("#st").addEventListener("click",function(){F.value=Math.min(12,Math.round(+P.value/N*20)/20);redraw();step()});
+  el.querySelector("#bk").addEventListener("click",function(){F.value=Math.min(12,Math.round(+P.value/N*.9*20)/20);redraw();step()});
+  window.addEventListener("pagehide",stopAuto);
+  fillLabels();text();draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

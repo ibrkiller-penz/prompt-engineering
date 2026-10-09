@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>휘어지는 공 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+:root{--s-now:#0076fb;--s-old1:#d9480f;--s-old2:#7048e8;--s-old3:#0a7d4f;--s-ref:#5a6577;--s-grass:#d3f0dc}
+@media (prefers-color-scheme:dark){:root{--s-now:#4da3ff;--s-old1:#ff8a4c;--s-old2:#b197fc;--s-old3:#4cc38a;--s-ref:#9aa7bd;--s-grass:#163323}}
+.c5-log{margin:8px 0 0;padding-left:0;list-style:none;font-size:14px}
+.c5-log li{margin:2px 0}
+.c5-seg{display:flex;gap:6px;flex-wrap:wrap}
+</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"C5",
+ predict:{q:"공의 아랫부분이 앞으로 굴러가듯 돌게(백스핀) 차면, 회전 없이 찬 공과 비교해 어떻게 날아갈까요?",
+  options:["더 높이 떠서 멀리 간다","더 빨리 아래로 떨어진다","회전과 상관없이 똑같이 날아간다"],answer:0,
+  feedback:["맞아요! 백스핀 공은 위쪽으로 힘(마그누스 힘)을 받아 더 오래 떠 있어요.","반대예요. 그렇게 되는 건 위쪽이 앞으로 도는 톱스핀일 때예요. 백스핀은 공을 위로 밀어 올려요.","공기 속에서는 회전이 날아가는 길을 바꿔요. 회전 없음과 비교해 보세요."]},
+ steps:["'회전 방향'에서 백스핀, 회전 없음, 톱스핀 중 하나를 고르세요.","공의 속력과 회전 빠르기를 슬라이더(또는 ← → 키)로 정하세요.","'공 차기'를 눌러 날아가는 길을 보세요. 회색 점선은 같은 속력에서 회전이 없을 때의 길이에요.","방향과 빠르기를 바꿔 여러 번 차 보고, 아래 기록에서 날아간 거리와 최고 높이를 비교하세요."],
+ observe:["백스핀 공과 톱스핀 공은 회전 없는 점선과 비교해 어느 쪽으로 휘었나요?","회전을 더 빠르게 하면 휘는 정도는 어떻게 달라지나요?","공 옆의 '마그누스 힘' 화살표는 공이 날아가는 방향과 어떤 각도를 이루나요?","속력을 바꾸면 같은 회전이라도 휘는 정도가 달라지나요?"],
+ more:["가벼운 종이컵 두 개의 바닥을 테이프로 붙이고, 고무줄을 감아 튕기듯 회전시키며 날려 보세요. 회전 방향에 따라 위로 떠오르거나 아래로 꺾여요.","탁구공을 라켓으로 깎아 치거나(백스핀) 덮어 치면서(톱스핀) 공이 떨어지는 위치를 비교해 보세요.","축구의 '감아 차기'는 공을 옆으로 돌게(세로축 회전) 해서 옆으로 휘게 해요. 이 화면을 위에서 본 모습이라고 상상해 보세요."],
+ why:{easy:["공이 날아가면 공 주위로 공기가 지나가요. 공이 돌고 있으면 한쪽 표면은 공기와 같은 방향으로, 반대쪽 표면은 공기와 맞서는 방향으로 움직여요.","공기와 같은 방향으로 움직이는 쪽에서는 공기가 표면을 더 오래 따라 흐르다가 공 뒤쪽에서 비스듬히 휘어 나가요. 공이 공기를 한쪽으로 밀어내면, 공기도 공을 반대쪽으로 밀어요(작용과 반작용).","그래서 백스핀 공은 공기를 아래로 밀어 내고 자신은 위로 떠오르고, 톱스핀 공은 아래로 꺾여요. 이렇게 회전 때문에 생기는 힘을 '마그누스 힘'이라고 해요.","회전이 빠를수록, 공이 빠를수록 이 힘이 커져서 더 많이 휘어요."],
+  detail:["마그누스 효과: 회전하는 물체가 유체 속을 움직일 때 회전축과 속도 모두에 수직인 방향(ω × v 방향)으로 힘을 받는 현상이에요.","원리: 회전하는 표면이 경계층(표면 가까이의 얇은 공기층)을 끌고 가요. 표면이 흐름과 같은 방향인 쪽은 흐름이 늦게 떨어지고, 반대쪽은 일찍 떨어져서 뒤쪽 후류가 한쪽으로 기울어요. 공기의 운동량이 한쪽으로 바뀌므로 공은 반대쪽으로 힘을 받아요. 이는 공 위아래의 압력 차이로도 나타나요.","이 화면의 계산(근사 모델): 축구공 크기(반지름 0.11 m, 질량 0.43 kg)로 정하고, 공기 저항 F<sub>D</sub> = ½ρC<sub>D</sub>Av²(C<sub>D</sub> = 0.25로 고정), 마그누스 힘 F<sub>M</sub> = ½ρC<sub>L</sub>Av²를 써요. 양력 계수는 회전 비율 S = rω/v를 이용해 C<sub>L</sub> ≈ S(최대 0.35)로 근사했어요. 시간 간격 0.002초로 수치 적분해요.","실제 공은 회전이 점점 느려지고, C<sub>D</sub>와 C<sub>L</sub>이 속력·표면(솔기, 무늬)에 따라 변해요. 아주 매끈한 공은 특정 속력에서 반대로 휘는 '역마그누스 효과'가 나타나기도 해요. 그래서 이 화면의 숫자는 실제 경기의 정확한 값이 아니라 경향을 보여 주는 근사예요.","흔히 '베르누이 원리 때문'이라고만 설명하는데, 압력 차이는 결과로 나타나는 모습이고, 왜 흐름이 비대칭이 되는지는 경계층과 흐름 떨어짐(박리)까지 생각해야 해요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="옆에서 본 운동장. 왼쪽에서 찬 공이 오른쪽으로 날아가는 길과, 회전이 없을 때의 점선 길"></canvas>'+
+   '<div class="controls"><span id="spinLbl">회전 방향</span><div class="c5-seg" role="group" aria-labelledby="spinLbl">'+
+    '<button type="button" data-s="1" aria-pressed="true">⟲ 백스핀</button><button type="button" data-s="0" aria-pressed="false">○ 회전 없음</button><button type="button" data-s="-1" aria-pressed="false">⟳ 톱스핀</button></div></div>'+
+   '<div class="controls"><label>속력 <input id="spd" type="range" min="10" max="30" step="1" value="20" aria-label="공의 속력(초속 미터)"><span class="readout" id="spdR"></span></label></div>'+
+   '<div class="controls"><label>회전 빠르기 <input id="rps" type="range" min="0" max="10" step="1" value="6" aria-label="1초에 도는 횟수"><span class="readout" id="rpsR"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">공 차기</button><button id="clr" type="button">기록 지우기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>'+
+   '<ul class="c5-log" id="log" aria-label="찬 공 기록"></ul>'+
+   '<p class="note">근사 모델이에요: 축구공 크기, 처음 각도 12°, 공기 저항과 마그누스 힘의 계수는 단순화한 값이에요. 공의 회전 모습은 보기 쉽게 느리게 그렸어요.</p>';
+  var cv=el.querySelector("#cv"),spd=el.querySelector("#spd"),rps=el.querySelector("#rps"),msg=el.querySelector("#msg"),log=el.querySelector("#log");
+  var segB=el.querySelectorAll("[data-s]"),spin=1;
+  var M=0.43,R=0.11,A=Math.PI*R*R,RHO=1.2,CD=0.25,G=9.81,ANG=12*Math.PI/180,DT=0.002;
+  var shots=[],cur=null,t0=0,raf=0,ref=null;
+  var NAMES={"1":"백스핀","0":"회전 없음","-1":"톱스핀"};
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+  /* 궤적 계산(반-암시적 오일러, dt=0.002 s). 힘은 v에 비례해 커지지만 dt가 작아 안정적. */
+  function simulate(v0,n,s){
+   var x=0,y=R,vx=v0*Math.cos(ANG),vy=v0*Math.sin(ANG),w=2*Math.PI*n,pts=[[0,x,y,vx,vy]],t=0,maxY=y;
+   while(t<12){
+    var v=Math.hypot(vx,vy)||1e-9,S=R*w/v,CL=s===0?0:Math.min(0.35,S);
+    var kd=0.5*RHO*CD*A*v/M,km=0.5*RHO*CL*A*v/M*s;
+    var ax=-kd*vx+km*(-vy),ay=-G-kd*vy+km*vx;
+    vx+=ax*DT;vy+=ay*DT;x+=vx*DT;y+=vy*DT;t+=DT;
+    if(y>maxY)maxY=y;
+    if(y<=R){/* 땅에 닿는 지점 보간 */var f=(pts[pts.length-1][2]-R)/((pts[pts.length-1][2]-y)||1e-9);x=pts[pts.length-1][1]+(x-pts[pts.length-1][1])*f;pts.push([t,x,R,vx,vy]);break}
+    pts.push([t,x,y,vx,vy]);
+   }
+   return {pts:pts,range:x,maxY:maxY,v0:v0,n:n,s:s,T:t};
+  }
+  function readouts(){el.querySelector("#spdR").textContent=spd.value+" m/s (시속 "+Math.round(spd.value*3.6)+" km)";el.querySelector("#rpsR").textContent=(spin===0?"— (회전 없음)":"1초에 "+rps.value+"바퀴");rps.disabled=spin===0}
+  function view(w,h){
+   var xmax=45,ymax=6;
+   shots.concat(cur?[cur]:[]).concat(ref?[ref]:[]).forEach(function(p){xmax=Math.max(xmax,p.range+2);ymax=Math.max(ymax,p.maxY+1)});
+   var padL=28,padB=24,padT=10,padR=10,sc=Math.min((w-padL-padR)/xmax,(h-padB-padT)/ymax);
+   return {sc:sc,ox:padL,oy:h-padB,xmax:(w-padL-padR)/sc,ymax:(h-padB-padT)/sc};
+  }
+  function drawPath(c,V,p,color,dash,upto,label){
+   c.save();c.strokeStyle=color;c.lineWidth=dash?1.5:2.5;c.setLineDash(dash?[5,5]:[]);c.beginPath();
+   var last=null;
+   for(var i=0;i<p.pts.length;i+=3){var q=p.pts[i];if(upto!=null&&q[0]>upto)break;var X=V.ox+q[1]*V.sc,Y=V.oy-q[2]*V.sc;if(!last)c.moveTo(X,Y);else c.lineTo(X,Y);last=q}
+   if(upto==null){var e=p.pts[p.pts.length-1];c.lineTo(V.ox+e[1]*V.sc,V.oy-e[2]*V.sc);last=e}
+   c.stroke();c.restore();
+   if(label&&last){c.fillStyle=color;c.fillText(label,Math.min(V.ox+last[1]*V.sc+4,V.ox+V.xmax*V.sc-40),V.oy-last[2]*V.sc-6)}
+   return last;
+  }
+  function arrow(c,x,y,dx,dy,color,label){
+   var L=Math.hypot(dx,dy);if(L<3)return;c.save();c.strokeStyle=color;c.fillStyle=color;c.lineWidth=2.5;c.beginPath();c.moveTo(x,y);c.lineTo(x+dx,y+dy);c.stroke();
+   var a=Math.atan2(dy,dx);c.beginPath();c.moveTo(x+dx,y+dy);c.lineTo(x+dx-9*Math.cos(a-.45),y+dy-9*Math.sin(a-.45));c.lineTo(x+dx-9*Math.cos(a+.45),y+dy-9*Math.sin(a+.45));c.closePath();c.fill();
+   c.font="bold 12px sans-serif";c.fillText(label,x+dx+(dx>=0?4:-c.measureText(label).width-4),y+dy+(dy>0?12:-4));c.restore();
+  }
+  function draw(now){
+   var s=Sci.fit(cv,.6),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,V=view(w,h);
+   c.clearRect(0,0,w,h);c.font="12px sans-serif";
+   c.fillStyle=css("--s-grass");c.fillRect(0,V.oy,w,h-V.oy);
+   c.strokeStyle=ink;c.lineWidth=1;c.beginPath();c.moveTo(0,V.oy);c.lineTo(w,V.oy);c.stroke();
+   /* 눈금 */
+   c.fillStyle=ink;c.globalAlpha=.75;
+   for(var m=0;m<=V.xmax;m+=10){var X=V.ox+m*V.sc;c.beginPath();c.moveTo(X,V.oy);c.lineTo(X,V.oy+5);c.stroke();c.fillText(m+"m",X-8,V.oy+18)}
+   for(var k=5;k<V.ymax;k+=5){var Y=V.oy-k*V.sc;c.fillText(k+"m",2,Y+4);c.save();c.setLineDash([2,6]);c.beginPath();c.moveTo(V.ox,Y);c.lineTo(w,Y);c.stroke();c.restore()}
+   c.globalAlpha=1;
+   var cols=[css("--s-old1"),css("--s-old2"),css("--s-old3")];
+   shots.forEach(function(p,i){drawPath(c,V,p,cols[i%3],false,null,"①②③④⑤⑥⑦⑧⑨"[p.no-1]||String(p.no))});
+   if(ref)drawPath(c,V,ref,css("--s-ref"),true,null,"회전 없음");
+   if(cur){
+    var tt=now!=null?(now-t0)/1000*0.6:cur.T,col=css("--s-now"),q=drawPath(c,V,cur,col,false,Math.min(tt,cur.T),"");
+    if(q){
+     var X=V.ox+q[1]*V.sc,Y=V.oy-q[2]*V.sc,r=Math.max(7,R*V.sc),ang=-cur.s*tt*2*Math.PI*cur.n*0.15;
+     c.fillStyle="#fff";c.strokeStyle=ink;c.lineWidth=1.5;c.beginPath();c.arc(X,Y,r,0,7);c.fill();c.stroke();
+     c.strokeStyle="#222";c.beginPath();c.moveTo(X-r*Math.cos(ang),Y-r*Math.sin(ang));c.lineTo(X+r*Math.cos(ang),Y+r*Math.sin(ang));c.stroke();
+     c.fillStyle="#222";c.beginPath();c.arc(X+r*.6*Math.cos(ang),Y+r*.6*Math.sin(ang),2.2,0,7);c.fill();
+     /* 힘 화살표(길이는 중력 기준 비율, 근사) */
+     var vx=q[3],vy=q[4],v=Math.hypot(vx,vy),CL=cur.s===0?0:Math.min(0.35,R*2*Math.PI*cur.n/v),fm=0.5*RHO*CL*A*v*v,unit=30/(M*G);
+     arrow(c,X,Y,0,M*G*unit,ink,"중력");
+     if(fm>0.02)arrow(c,X,Y,cur.s*(-vy/v)*fm*unit,-cur.s*(vx/v)*fm*unit,col,"마그누스 힘");
+    }
+   }
+  }
+  function loop(now){draw(now);if(cur&&(now-t0)/1000*0.6<cur.T)raf=requestAnimationFrame(loop);else{raf=0;finish()}}
+  function finish(){
+   if(!cur||cur.done)return;cur.done=true;
+   var d=cur.range-ref.range,txt=NAMES[cur.s]+(cur.s?" "+cur.n+"바퀴/초":"")+", "+cur.v0+" m/s → 거리 "+cur.range.toFixed(1)+" m, 최고 높이 "+cur.maxY.toFixed(1)+" m";
+   cur.no=(shots.length?shots[shots.length-1].no:0)+1;
+   log.insertAdjacentHTML("beforeend","<li>"+("①②③④⑤⑥⑦⑧⑨"[cur.no-1]||cur.no+".")+" "+Sci.esc(txt)+"</li>");
+   while(log.children.length>3)log.removeChild(log.firstChild);
+   msg.textContent=cur.s===0?"회전이 없으면 점선과 같은 길로 날아가요.":(NAMES[cur.s]+" 공은 회전 없는 공보다 "+Math.abs(d).toFixed(1)+" m "+(d>0?"더 멀리":"덜")+" 날아갔어요. 최고 높이는 "+cur.maxY.toFixed(1)+" m (회전 없음 "+ref.maxY.toFixed(1)+" m).");
+   shots.push(cur);if(shots.length>3)shots.shift();cur=null;draw();
+   Exp.reveal();
+  }
+  function go(){
+   if(raf){cancelAnimationFrame(raf);raf=0;finish()}
+   var v0=+spd.value;ref=simulate(v0,0,0);cur=simulate(v0,spin===0?0:+rps.value,spin);t0=performance.now();msg.textContent="공이 날아가는 중…";
+   if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){draw();finish()}else raf=requestAnimationFrame(loop);
+  }
+  segB.forEach(function(b){b.addEventListener("click",function(){spin=+b.dataset.s;segB.forEach(function(x){x.setAttribute("aria-pressed",x===b)});readouts()})});
+  [spd,rps].forEach(function(i){i.addEventListener("input",readouts)});
+  el.querySelector("#go").addEventListener("click",go);
+  el.querySelector("#clr").addEventListener("click",function(){if(raf){cancelAnimationFrame(raf);raf=0}shots=[];cur=null;ref=null;log.innerHTML="";msg.textContent="";draw()});
+  readouts();draw();window.addEventListener("resize",function(){if(!raf)draw()});
+ }
+};
+Sci.initExp();
+</script></body></html>
