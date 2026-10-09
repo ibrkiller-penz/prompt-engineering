@@ -74,11 +74,12 @@ const CSS = `
 .pa-shake{animation:pa-shake .45s ease-in-out;transform-box:fill-box;transform-origin:center}
 .pa-spark{animation:pa-spark 1s ease-out both;transform-box:fill-box;transform-origin:center}
 .pa-wob{animation:pa-wob 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.pa-flowbadge{animation:pa-bob 1s ease-in-out infinite}
 .pa-sway{animation:pa-sway 2.2s ease-in-out infinite;transform-origin:50% 100%}
 .pa-flow{animation:pa-flow .7s linear infinite}
 .pa-pop{animation:pa-pop .5s ease-out;transform-box:fill-box;transform-origin:center}
 .pa-bob{display:inline-block;animation:pa-bob 1s ease-in-out infinite}
-@media (prefers-reduced-motion:reduce){.pa-flow,.pa-pop,.pa-bob,.pa-shake,.pa-spark,.pa-wob,.pa-sway{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.pa-flow,.pa-pop,.pa-bob,.pa-shake,.pa-spark,.pa-wob,.pa-sway,.pa-flowbadge{animation:none!important}}
 `;
 
 /** 진짜 풍선 모양: 반사광, 매듭, 줄 */
@@ -434,20 +435,12 @@ export default function PascalGame() {
                 <stop offset="1" stopColor={p.base} />
               </linearGradient>
             ))}
-            <marker id="pa-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M0 0 L10 5 L0 10 z" fill="#f59e0b" />
-            </marker>
           </defs>
           <rect x={-EXT} width={VBW} height={vh} fill="url(#pa-sky)" />
           <rect x={-EXT} width={VBW} height={vh - FLOOR} fill="url(#pa-dots)" />
           <rect x={-EXT} y={vh - FLOOR} width={VBW} height={FLOOR} fill="url(#pa-wood)" />
           <rect x={-EXT} y={vh - FLOOR} width={VBW} height={4} fill="#b9773f" opacity={0.55} />
           <ellipse cx={LM + W / 2} cy={vh - FLOOR + 3} rx={W / 2 + 6} ry={6} fill="#000" opacity={0.08} />
-          {sel.n >= 1 &&
-            sel.n < rows &&
-            [sel.k - 1, sel.k]
-              .filter((k) => k >= 0 && k <= sel.n - 1)
-              .map((k) => <line key={k} x1={cx(sel.n - 1, k)} y1={cy(sel.n - 1) + BH / 2 - 4} x2={cx(sel.n, sel.k) + (k === sel.k ? 8 : -8)} y2={cy(sel.n) - BH / 2 + 2} stroke="#f59e0b" strokeWidth={4} strokeLinecap="round" strokeDasharray="7 7" className="pa-flow" markerEnd="url(#pa-arrow)" />)}
           {T.map((row, n) => (
             <g key={n}>
               <text x={LM - 4} y={cy(n)} textAnchor="end" dominantBaseline="central" fontSize={10} fill="#a78bfa" style={FONT}>{n}</text>
@@ -511,6 +504,13 @@ export default function PascalGame() {
               )}
             </g>
           ))}
+          {sel.n >= 2 && sel.n < rows && sel.k >= 1 && sel.k <= sel.n - 1 && (
+            <g transform={`translate(${cx(sel.n, sel.k)},${cy(sel.n - 1) + BH / 2 + 2})`} style={{ pointerEvents: "none" }}><g className="pa-flowbadge">
+              <path d="M-7 8 L7 8 L0 17 Z" fill="#f59e0b" stroke="#b45309" strokeWidth={1.5} strokeLinejoin="round" />
+              <circle r={12} fill="#fde047" stroke="#b45309" strokeWidth={2.5} />
+              <text textAnchor="middle" dominantBaseline="central" y={1} fontSize={20} fill="#92400e" style={FONT}>+</text>
+            </g></g>
+          )}
         </svg>
       </div>
 
