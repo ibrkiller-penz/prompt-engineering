@@ -4,9 +4,9 @@ import { useEffect, useRef, type ReactNode } from "react";
 /** 누르는 단추. primary=강조, ghost=테두리 */
 export function GButton({ children, onClick, variant = "ghost", disabled, pressed, className = "", title }: { children: ReactNode; onClick?: () => void; variant?: "primary" | "ghost" | "soft"; disabled?: boolean; pressed?: boolean; className?: string; title?: string }) {
   const style = {
-    primary: "bg-accent text-accent-ink hover:brightness-110",
-    soft: "bg-accent-soft text-accent hover:brightness-95",
-    ghost: "border border-line bg-surface hover:bg-bg",
+    primary: "bg-accent text-accent-ink shadow-[0_4px_0_0_rgba(0,0,0,0.22)] hover:brightness-110",
+    soft: "bg-accent-soft text-accent shadow-[0_4px_0_0_rgba(0,0,0,0.10)] hover:brightness-95",
+    ghost: "border-2 border-line bg-surface shadow-[0_4px_0_0_rgba(0,0,0,0.08)] hover:bg-bg",
   }[variant];
   return (
     <button
@@ -15,7 +15,7 @@ export function GButton({ children, onClick, variant = "ghost", disabled, presse
       disabled={disabled}
       aria-pressed={pressed}
       title={title}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-card px-4 font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${style} ${pressed ? "ring-2 ring-accent" : ""} ${className}`}
+      className={`font-game inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl px-4 text-[1.05rem] transition active:translate-y-[3px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 ${style} ${pressed ? "ring-4 ring-accent/40" : ""} ${className}`}
     >
       {children}
     </button>
@@ -24,21 +24,23 @@ export function GButton({ children, onClick, variant = "ghost", disabled, presse
 
 /** 점수·상태를 보여 주는 작은 알약 */
 export function Stat({ label, value, tone = "plain" }: { label: string; value: ReactNode; tone?: "plain" | "ok" | "bad" }) {
-  const c = tone === "ok" ? "bg-ok-soft text-ok" : tone === "bad" ? "bg-bad-soft text-bad" : "bg-bg text-ink";
+  const c = tone === "ok" ? "border-ok/30 bg-ok-soft text-ok" : tone === "bad" ? "border-bad/30 bg-bad-soft text-bad" : "border-line bg-surface text-ink";
   return (
-    <span className={`inline-flex items-baseline gap-1.5 rounded-full px-3 py-1 text-sm ${c}`}>
-      <span className="text-xs opacity-70">{label}</span>
-      <strong className="text-base font-extrabold tabular-nums">{value}</strong>
+    <span className={`inline-flex items-baseline gap-1.5 rounded-full border-2 px-3 py-1 text-sm shadow-[0_2px_0_0_rgba(0,0,0,0.05)] ${c}`}>
+      <span className="text-xs opacity-75">{label}</span>
+      <strong className="font-game text-lg tabular-nums">{value}</strong>
     </span>
   );
 }
 
 /** 안내·결과 말풍선. tone=ok 성공, bad 아쉬움, info 안내 */
 export function Say({ children, tone = "info" }: { children: ReactNode; tone?: "info" | "ok" | "bad" }) {
-  const c = tone === "ok" ? "bg-ok-soft text-ok" : tone === "bad" ? "bg-bad-soft text-bad" : "bg-accent-soft/70 text-ink";
+  const c = tone === "ok" ? "border-ok/40 bg-ok-soft text-ok" : tone === "bad" ? "border-bad/30 bg-bad-soft text-bad" : "border-accent/25 bg-surface text-ink";
+  const face = tone === "ok" ? "🥳" : tone === "bad" ? "😅" : "🙂";
   return (
-    <p className={`rounded-card px-3 py-2 text-[0.95rem] font-semibold ${c}`} role="status" aria-live="polite">
-      {children}
+    <p className={`gz-pop flex items-start gap-2 rounded-2xl border-2 px-3 py-2 text-[0.98rem] font-semibold shadow-[0_3px_0_0_rgba(0,0,0,0.05)] ${c}`} role="status" aria-live="polite">
+      <span aria-hidden className="text-xl leading-none">{face}</span>
+      <span className="min-w-0 flex-1">{children}</span>
     </p>
   );
 }
@@ -100,7 +102,7 @@ export function fitCanvas(c: HTMLCanvasElement, w: number, h: number) {
 
 /** 게임 판을 감싸는 상자 */
 export function Board({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-card border border-line bg-surface p-3 sm:p-4 ${className}`}>{children}</div>;
+  return <div className={`rounded-3xl border-2 border-line bg-surface p-3 shadow-[0_5px_0_0_rgba(0,0,0,0.05)] sm:p-4 ${className}`}>{children}</div>;
 }
 
 export const rand = (n: number) => Math.floor(Math.random() * n);

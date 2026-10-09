@@ -3,21 +3,23 @@ import type { ReactNode } from "react";
 
 /** 16px 이상 말풍선 */
 export function Talk({ children, tone = "info" }: { children: ReactNode; tone?: "info" | "ok" | "bad" }) {
-  const c = tone === "ok" ? "bg-ok-soft text-ok" : tone === "bad" ? "bg-bad-soft text-bad" : "bg-accent-soft/70 text-ink";
+  const c = tone === "ok" ? "border-ok/40 bg-ok-soft text-ok" : tone === "bad" ? "border-bad/30 bg-bad-soft text-bad" : "border-accent/25 bg-surface text-ink";
+  const face = tone === "ok" ? "🥳" : tone === "bad" ? "😅" : "🙂";
   return (
-    <p className={`rounded-card px-4 py-3 text-base font-semibold leading-relaxed ${c}`} role="status" aria-live="polite">
-      {children}
+    <p className={`gz-pop flex items-start gap-2 rounded-2xl border-2 px-4 py-3 text-base font-semibold leading-relaxed shadow-[0_3px_0_0_rgba(0,0,0,0.05)] ${c}`} role="status" aria-live="polite">
+      <span aria-hidden className="text-xl leading-none">{face}</span>
+      <span className="min-w-0 flex-1">{children}</span>
     </p>
   );
 }
 
 /** 큰 숫자 알약 */
 export function Pill({ label, value, tone = "plain" }: { label: string; value: ReactNode; tone?: "plain" | "ok" | "bad" }) {
-  const c = tone === "ok" ? "bg-ok-soft text-ok" : tone === "bad" ? "bg-bad-soft text-bad" : "bg-bg text-ink";
+  const c = tone === "ok" ? "border-ok/30 bg-ok-soft text-ok" : tone === "bad" ? "border-bad/30 bg-bad-soft text-bad" : "border-line bg-surface text-ink";
   return (
-    <span className={`inline-flex items-baseline gap-1.5 rounded-full px-3 py-1 text-base ${c}`}>
+    <span className={`inline-flex items-baseline gap-1.5 rounded-full border-2 px-3 py-1 text-base shadow-[0_2px_0_0_rgba(0,0,0,0.05)] ${c}`}>
       <span>{label}</span>
-      <strong className="text-lg font-extrabold tabular-nums">{value}</strong>
+      <strong className="font-game text-xl tabular-nums">{value}</strong>
     </span>
   );
 }

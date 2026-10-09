@@ -2,11 +2,48 @@
 export type Floor = "play" | "future" | "classic";
 
 /** 층별 분위기: 놀이 마당(몸으로 놀듯), 미래 연구소(세상에 쓰이는 수학), 수학 박물관(도형·함수·옛 수학) */
-export const FLOORS: { key: Floor; label: string; name: string; emoji: string; desc: string }[] = [
-  { key: "play", label: "1층", name: "놀이 마당", emoji: "🎈", desc: "누르고 끌며 놀듯이" },
-  { key: "future", label: "2층", name: "미래 연구소", emoji: "🚀", desc: "세상을 움직이는 수학" },
-  { key: "classic", label: "3층", name: "수학 박물관", emoji: "🏛️", desc: "도형·수·옛 수학 이야기" },
+export const FLOORS: { key: Floor; label: string; name: string; emoji: string; desc: string; zone: string; grad: [string, string] }[] = [
+  { key: "play", label: "1층", name: "놀이 마당", emoji: "🎈", desc: "누르고 끌며 놀듯이", zone: "#e8552f", grad: ["#ff9a5a", "#ff5e7e"] },
+  { key: "future", label: "2층", name: "미래 연구소", emoji: "🚀", desc: "세상을 움직이는 수학", zone: "#2563eb", grad: ["#4fc3ff", "#6a5cff"] },
+  { key: "classic", label: "3층", name: "수학 박물관", emoji: "🏛️", desc: "도형·수·옛 수학 이야기", zone: "#7c3aed", grad: ["#b78cff", "#ff6fb5"] },
 ];
+
+/** 게임 썸네일: 큰 그림 문자와 배경 그라데이션 */
+export const ART: Record<string, { e: string; e2?: string; c: [string, string] }> = {
+  bridges: { e: "🌉", e2: "🚶", c: ["#7dd3fc", "#0ea5e9"] },
+  mapcolor: { e: "🗺️", e2: "🖍️", c: ["#6ee7b7", "#10b981"] },
+  fibstairs: { e: "🪜", e2: "🐰", c: ["#fde047", "#f59e0b"] },
+  binaryclock: { e: "💡", e2: "✨", c: ["#c4b5fd", "#7c3aed"] },
+  wheel: { e: "🛞", e2: "💨", c: ["#fdba74", "#f97316"] },
+  doorangle: { e: "🚪", e2: "📐", c: ["#f9a8d4", "#ec4899"] },
+  lever: { e: "⚖️", e2: "🐘", c: ["#93c5fd", "#3b82f6"] },
+  timeguess: { e: "⏱️", e2: "🙈", c: ["#fca5a5", "#ef4444"] },
+  inside: { e: "🐾", e2: "🔍", c: ["#5eead4", "#14b8a6"] },
+  mirror: { e: "🪞", e2: "🧸", c: ["#d8b4fe", "#a855f7"] },
+  pizza: { e: "🍕", e2: "😋", c: ["#fed7aa", "#fb923c"] },
+  epidemic: { e: "💉", e2: "🦠", c: ["#bbf7d0", "#22c55e"] },
+  fishery: { e: "🐟", e2: "🎣", c: ["#7dd3fc", "#0284c7"] },
+  hash: { e: "🔐", e2: "🧩", c: ["#64748b", "#1e293b"] },
+  rsa: { e: "🗝️", e2: "✉️", c: ["#94a3b8", "#334155"] },
+  regression: { e: "📈", e2: "🌡️", c: ["#6ee7b7", "#047857"] },
+  cycloid: { e: "🎡", e2: "✏️", c: ["#fda4af", "#f43f5e"] },
+  parabolamul: { e: "✖️", e2: "🏹", c: ["#a5b4fc", "#4f46e5"] },
+  monty: { e: "🎁", e2: "🚪", c: ["#fde68a", "#f59e0b"] },
+  galton: { e: "🎱", e2: "⬇️", c: ["#c4b5fd", "#8b5cf6"] },
+  goldbach: { e: "🎈", e2: "➕", c: ["#fecaca", "#ef4444"] },
+  slope: { e: "🎢", e2: "📍", c: ["#93c5fd", "#1d4ed8"] },
+  lissajous: { e: "🌀", e2: "🎵", c: ["#f0abfc", "#a21caf"] },
+  chaos: { e: "🦋", e2: "🌪️", c: ["#67e8f9", "#0e7490"] },
+  brachisto: { e: "🛝", e2: "🏁", c: ["#fde68a", "#ea580c"] },
+  archpi: { e: "🥧", e2: "⭕", c: ["#fed7aa", "#c2410c"] },
+  sliderule: { e: "📏", e2: "✖️", c: ["#d9f99d", "#4d7c0f"] },
+  factortree: { e: "🌳", e2: "🍏", c: ["#bbf7d0", "#15803d"] },
+  conic: { e: "🪐", e2: "🔦", c: ["#c7d2fe", "#4338ca"] },
+  pascal: { e: "🔺", e2: "🎈", c: ["#fecdd3", "#e11d48"] },
+  calendar: { e: "📅", e2: "🧩", c: ["#bfdbfe", "#2563eb"] },
+  tetromino: { e: "🧱", e2: "🟪", c: ["#fecaca", "#dc2626"] },
+  colorsquare: { e: "🎨", e2: "🌈", c: ["#fde68a", "#ec4899"] },
+};
 export const floorInfo = (k: Floor) => FLOORS.find((f) => f.key === k)!;
 
 export type GameDef = {

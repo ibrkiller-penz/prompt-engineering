@@ -136,3 +136,49 @@ a.btn {
 .aimath-root :is(h1, h2, h3, h4) { text-wrap: balance; }
 .aimath-root :is(p, li) { text-wrap: pretty; }
 .aimath-root :is(pre, code, textarea, input, .katex) { word-break: normal; }
+
+/* ───── 온라인 수학 체험(게임) 테마: .gamezone 안에서만 적용 ───── */
+.font-game {
+  font-family: "Jua", "Pretendard Variable", Pretendard, sans-serif;
+  letter-spacing: 0.01em;
+}
+.gamezone {
+  --zone: #7c3aed;
+  --bg: #fffaf3;
+  --surface: #ffffff;
+  --ink: #2b2340;
+  --muted: #6b6280;
+  --line: #ece4ff;
+  --accent: var(--zone);
+  --accent-ink: #ffffff;
+  --accent-soft: color-mix(in srgb, var(--zone) 14%, white);
+  --radius: 20px;
+  /* Tailwind 색 이름이 이 상자 안에서 다시 계산되도록 한 번 더 적어 준다 */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --radius-card: var(--radius);
+}
+@keyframes gz-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
+@keyframes gz-pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes gz-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+.gz-bob { animation: gz-bob 2.4s ease-in-out infinite; }
+.gz-pop { animation: gz-pop 0.28s cubic-bezier(.2,1.4,.4,1) both; }
+.gz-float { animation: gz-float 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .gz-bob, .gz-pop, .gz-float { animation: none; }
+}
