@@ -20,6 +20,51 @@ const CLASSIC: Bridge[] = [
   B(6, "D", "B", "M 460 320 L 460 230", [460, 275]),
 ];
 
+/** 레벨용 다리 자리 12곳 (0~7은 위와 같고, 8~11을 더 놓을 수 있어요) */
+export const SLOTS: Bridge[] = [
+  ...CLASSIC,
+  B(7, "C", "D", "M 620 60 C 690 130 690 250 620 320", [672, 190]),
+  B(8, "C", "B", "M 522 60 L 522 166", [522, 108]),
+  B(9, "D", "B", "M 522 320 L 522 204", [522, 266]),
+  B(10, "A", "B", "M 236 160 Q 323 112 410 160", [323, 136]),
+  B(11, "A", "B", "M 236 214 Q 323 262 410 214", [323, 238]),
+];
+/** 레벨별 다리 수 */
+export const LEVEL_K = [4, 5, 5, 6, 6, 7, 8, 9, 10, 11];
+/** 모든 땅에 다리가 있고, 이어져 있고, 홀수 땅이 0곳 또는 2곳인 지도 = 한 번에 건너는 길이 있는 지도 */
+export function solvable(bs: Bridge[]): boolean {
+  const d = degrees(bs);
+  if (LAND_IDS.some((l) => d[l] === 0)) return false;
+  const seen = new Set<LandId>(["A"]);
+  const st: LandId[] = ["A"];
+  while (st.length) {
+    const l = st.pop()!;
+    for (const b of bs) if (touches(b, l) && !seen.has(other(b, l))) {
+      seen.add(other(b, l));
+      st.push(other(b, l));
+    }
+  }
+  return seen.size === 4 && oddLands(bs).length <= 2;
+}
+const cache: Record<number, Bridge[][]> = {};
+/** 다리 k개짜리 풀 수 있는 지도 모두 */
+export function mapsWith(k: number): Bridge[][] {
+  if (cache[k]) return cache[k];
+  const out: Bridge[][] = [];
+  for (let m = 0; m < 1 << SLOTS.length; m++) {
+    let c = 0;
+    for (let i = 0; i < SLOTS.length; i++) if (m & (1 << i)) c++;
+    if (c !== k) continue;
+    const bs = SLOTS.filter((_, i) => m & (1 << i));
+    if (solvable(bs)) out.push(bs);
+  }
+  return (cache[k] = out);
+}
+export function levelMap(level: number, rnd: () => number = Math.random): Bridge[] {
+  const all = mapsWith(LEVEL_K[Math.min(10, Math.max(1, level)) - 1]);
+  return all[Math.floor(rnd() * all.length)];
+}
+
 export const MAPS: Record<MapId, { name: string; note: string; bridges: Bridge[] }> = {
   classic: { name: "옛날 지도 (아주 어려워요)", note: "옛날 독일 도시의 유명한 다리 지도예요. 모든 다리를 딱 한 번씩 건너는 길이 없는 것으로 유명해요. 그래도 도전해 볼까요?", bridges: CLASSIC },
   minus: { name: "쉬운 지도 1", note: "다리가 6개 있어요. 모든 다리를 딱 한 번씩만 건너 보세요.", bridges: CLASSIC.filter((b) => b.id !== 4) },
@@ -71,7 +116,11 @@ export function samplePath(d: string, n = 12): [number, number][] {
   const out: [number, number][] = [];
   for (let i = 0; i <= n; i++) {
     const t = i / n;
-    if (d.includes("C")) {
+    if (d.includes("Q")) {
+      const [x0, y0, x1, y1, x2, y2] = v;
+      const u = 1 - t;
+      out.push([u * u * x0 + 2 * u * t * x1 + t * t * x2, u * u * y0 + 2 * u * t * y1 + t * t * y2]);
+    } else if (d.includes("C")) {
       const [x0, y0, x1, y1, x2, y2, x3, y3] = v;
       const u = 1 - t;
       out.push([u * u * u * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3, u * u * u * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3]);

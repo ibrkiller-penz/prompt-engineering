@@ -87,13 +87,21 @@ export function shuffled(n: number, rnd: () => number): number[] {
   return a;
 }
 
-/** 판 종류: 쉬움(작은 마을·아픈 친구 1명) / 어려운 도전(큰 마을·아픈 친구 3명) */
-export const LEVELS = {
-  easy: { size: 10, starts: 1, budget: 12 },
-  hard: { size: 14, starts: 3, budget: 24 },
-} as const;
-export type Level = keyof typeof LEVELS;
+/** 레벨 1~10: 마을 크기·처음 아픈 친구·백신 수·목표(아팠던 친구 비율 상한)·가까이 지내는 정도.
+ *  백신은 항상 '아픈 친구마다 둘레 8칸'을 막을 만큼은 있어요(8×아픈 친구 수 이상). */
+export const LEVEL_TABLE = [
+  { size: 10, starts: 1, budget: 12, target: 0.2, p: 0.15 },
+  { size: 10, starts: 1, budget: 10, target: 0.2, p: 0.15 },
+  { size: 11, starts: 2, budget: 19, target: 0.18, p: 0.16 },
+  { size: 11, starts: 2, budget: 17, target: 0.16, p: 0.16 },
+  { size: 12, starts: 2, budget: 16, target: 0.15, p: 0.17 },
+  { size: 12, starts: 3, budget: 26, target: 0.14, p: 0.18 },
+  { size: 13, starts: 3, budget: 25, target: 0.12, p: 0.19 },
+  { size: 13, starts: 3, budget: 24, target: 0.12, p: 0.2 },
+  { size: 14, starts: 3, budget: 24, target: 0.1, p: 0.21 },
+  { size: 14, starts: 4, budget: 32, target: 0.1, p: 0.22 },
+] as const;
+export const levelCfg = (lv: number) => LEVEL_TABLE[Math.max(1, Math.min(10, lv)) - 1];
 export const DURATION = 4;
-export const DEFAULT_P = 0.15;
-/** 별: 아팠던 친구 비율이 5% 미만 3개, 10% 미만 2개, 20% 미만 1개 */
-export const starsFor = (ratio: number) => (ratio < 0.05 ? 3 : ratio < 0.1 ? 2 : ratio < 0.2 ? 1 : 0);
+/** 별: 목표의 1/4 미만 3개, 1/2 미만 2개, 목표 미만 1개 */
+export const starsFor = (ratio: number, target: number) => (ratio < target / 4 ? 3 : ratio < target / 2 ? 2 : ratio < target ? 1 : 0);

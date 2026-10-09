@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
-import { Board, GButton, Slider, Stat, cheer, oops, rand, tick } from "./kit";
-import { choices, shallowDiagonal, triangle } from "./pascal.logic";
+import { Board, GButton, Slider, Stat, cheer, oops, rand, stageClear, tick, useStage } from "./kit";
+import { choices, oddCount, pascalLevel, pickHiddenCells, shallowDiagonal, triangle } from "./pascal.logic";
 
 const CW = 60;
 const RH = 52;
@@ -10,8 +10,6 @@ const RM_SUM = 64;
 const BIG = "min-h-[48px]! px-3 text-base";
 type Mode = "blank" | "sumq" | "parity" | "rowsum" | "basic" | "mod3" | "diag";
 const MORE: { id: Mode; label: string }[] = [
-  { id: "blank", label: "빈칸 채우기" },
-  { id: "sumq", label: "줄 합 맞히기" },
   { id: "parity", label: "홀수 색칠" },
   { id: "rowsum", label: "줄 합 보기" },
   { id: "basic", label: "그냥 보기" },
@@ -20,7 +18,7 @@ const MORE: { id: Mode; label: string }[] = [
 ];
 const GUIDE: Record<Mode, string> = {
   blank: "노란 두 수를 더하면 ? 가 돼요. 알맞은 풍선을 ? 칸으로 끌어다 놓아요.",
-  sumq: "노란 줄의 수를 모두 더하면 얼마일까요?",
+  sumq: "노란 줄을 잘 보고 알맞은 풍선을 골라요.",
   parity: "홀수인 칸이 색칠돼요. 어떤 무늬가 보이나요? 칸을 눌러 봐요.",
   rowsum: "칸을 누르면 그 줄의 합이 나와요. 오른쪽에 모든 줄의 합이 있어요.",
   basic: "칸을 누르면 위의 두 수가 보여요. 두 수를 더하면 그 칸의 수가 돼요.",
@@ -105,29 +103,23 @@ function Balloon({ v, color }: { v: number; color: string }) {
 }
 
 function pickHidden(rows: number, count = 2): Set<string> {
-  for (let tries = 0; tries < 200; tries++) {
-    const cells: [number, number][] = [];
-    while (cells.length < count) {
-      const n = 2 + rand(rows - 2);
-      const k = 1 + rand(n - 1);
-      if (!cells.some(([a, b]) => a === n && b === k)) cells.push([n, k]);
-    }
-    const rel = (a: [number, number], b: [number, number]) => b[0] === a[0] + 1 && (b[1] === a[1] || b[1] === a[1] + 1);
-    if (cells.every((a) => cells.every((b) => !rel(a, b)))) return new Set(cells.map(([n, k]) => key(n, k)));
-  }
-  return new Set([key(rows - 1, 1)]);
+  return new Set(pickHiddenCells(rows, count).map(([n, k]) => key(n, k)));
 }
 
-function initial() {
-  const t = triangle(6);
-  const h = pickHidden(6, 1);
+function initial(level: number) {
+  const cfg = pascalLevel(level);
+  const t = triangle(cfg.rows);
+  const h = pickHidden(cfg.rows, cfg.hidden);
   const f = [...h][0].split(",").map(Number);
   return { h, sel: { n: f[0], k: f[1] }, opts: choices(t[f[0]][f[1]], [t[f[0] - 1][f[1] - 1], t[f[0] - 1][f[1]]]) };
 }
 
 export default function PascalGame() {
-  const [init] = useState(initial);
-  const [rows, setRows] = useState(6);
+  const stage = useStage();
+  const cfg = pascalLevel(stage);
+  const [init] = useState(() => initial(stage));
+  const [rows, setRows] = useState(cfg.rows);
+  const [qkind, setQkind] = useState<"sum" | "odd">("sum");
   const [mode, setMode] = useState<Mode>("blank");
   const [more, setMore] = useState(false);
   const [popCell, setPopCell] = useState("");
@@ -159,10 +151,12 @@ export default function PascalGame() {
   const T = useMemo(() => triangle(rows), [rows]);
   const quest = mode === "blank" || mode === "sumq";
   const roundDone = mode === "blank" ? hidden.size === 0 : sumDone;
-  const finished = quest && round >= 5;
+  const finished = quest && round >= 3;
   useEffect(() => {
     if (!quest || !roundDone || finished) return;
-    const id = setTimeout(nextRound, mode === "blank" ? 1700 : 2600);
+    // 마지막 라운드면 축하 뒤 다음 레벨로, 아니면 다음 라운드로
+    const last = round >= 2;
+    const id = setTimeout(last ? stageClear : nextRound, last ? 1200 : mode === "blank" ? 1700 : 2400);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quest, roundDone, finished, round, mode]);
@@ -170,21 +164,40 @@ export default function PascalGame() {
   const diagCells = mode === "diag" ? shallowDiagonal(dN) : [];
 
   const blankOpts = (n: number, k: number) => setOpts(choices(T[n][k], [T[n - 1][k - 1], T[n - 1][k]]));
-  const setupBlank = (rws: number, t = triangle(rws), r = 0) => {
-    const h = pickHidden(rws, r < 2 ? 1 : 2);
+  const setupBlank = (rws: number, t = triangle(rws)) => {
+    const h = pickHidden(rws, cfg.hidden);
     setHidden(h);
     const f = [...h][0].split(",").map(Number);
     setSel({ n: f[0], k: f[1] });
     setOpts(choices(t[f[0]][f[1]], [t[f[0] - 1][f[1] - 1], t[f[0] - 1][f[1]]]));
     setWrong([]);
   };
-  const setupSum = (rws: number, t = triangle(rws)) => {
-    const n = 2 + rand(rws - 2);
+  const setupSum = (rws: number, t: number[][], kind: "sum" | "odd") => {
+    // 높은 레벨일수록 아래쪽(큰 수) 줄
+    const lo = stage >= 7 ? Math.max(2, rws - 4) : 2;
+    const n = lo + rand(rws - lo);
     setSumRow(n);
     setSumDone(false);
-    setOpts(choices(2 ** n, [2 ** n - 1, 2 ** (n - 1)]));
+    setQkind(kind);
+    if (kind === "sum") setOpts(choices(2 ** n, [2 ** n - 1, 2 ** (n - 1)]));
+    else {
+      const o = oddCount(t[n]);
+      setOpts(choices(o, [n + 1, o - 1, o + 1]));
+    }
     setWrong([]);
-    void t;
+  };
+  const setupRound = (r: number, rws = rows, t = triangle(rws)) => {
+    const kind = cfg.kinds[r];
+    setSel(SEL);
+    setHidden(new Set());
+    setSumDone(false);
+    if (kind === "blank") {
+      setMode("blank");
+      setupBlank(rws, t);
+    } else {
+      setMode("sumq");
+      setupSum(rws, t, kind);
+    }
   };
 
   const begin = (md: Mode, rws: number) => {
@@ -196,21 +209,15 @@ export default function PascalGame() {
     setHidden(new Set());
     setWrong([]);
     setSumDone(false);
-    if (md === "blank") setupBlank(rws, undefined, 0);
-    else if (md === "sumq") setupSum(rws);
+    setupRound(0, rws);
+    void md;
   };
   const nextRound = () => {
     const r = round + 1;
     setRound(r);
-    if (r >= 5) {
-      setSel(SEL);
-      setMsg({ t: "ok", s: `끝까지 해냈어요! ⭐ ${stars}개를 모았어요. 정말 잘했어요!` });
-      cheer();
-      return;
-    }
-    setMsg({ t: "info", s: `${r + 1}번째 판이에요. 해 봐요!` });
-    if (mode === "blank") setupBlank(rows, T, r);
-    else setupSum(rows, T);
+    if (r >= 3) return;
+    setMsg({ t: "info", s: `라운드 ${r + 1}! 해 봐요!` });
+    setupRound(r, rows, T);
   };
   const pickAnswer = (v: number, cell?: { n: number; k: number }) => {
     if (mode === "blank") {
@@ -250,17 +257,18 @@ export default function PascalGame() {
         setMsg({ t: "bad", s: `괜찮아요, 다시 해 봐요! 노란 두 칸은 ${T[n - 1][k - 1]} 와(과) ${T[n - 1][k]} 예요. 두 수를 더해요.` });
       }
     } else if (mode === "sumq") {
-      const truth = 2 ** sumRow;
+      const odd = qkind === "odd";
+      const truth = odd ? oddCount(T[sumRow]) : 2 ** sumRow;
       if (v === truth) {
         const first = wrong.length === 0;
         if (first) setStars((s) => s + 1);
         setSumDone(true);
         cheer();
-        setMsg({ t: "ok", s: `${first ? "⭐ " : ""}맞아요! ${T[sumRow].join(" + ")} = ${truth}` });
+        setMsg({ t: "ok", s: `${first ? "⭐ " : ""}맞아요! ` + (odd ? `${T[sumRow].filter((x) => x % 2 === 1).join(", ")} → 홀수 ${truth}개` : `${T[sumRow].join(" + ")} = ${truth}`) });
       } else {
         setWrong((w) => [...w, v]);
         oops();
-        setMsg({ t: "bad", s: `괜찮아요, 다시 해 봐요! ${T[sumRow].join(" + ")} 를 차례로 더해 봐요.` });
+        setMsg({ t: "bad", s: odd ? "괜찮아요, 다시 해 봐요! 노란 줄에서 2로 나누어떨어지지 않는 수를 하나씩 세어 봐요." : `괜찮아요, 다시 해 봐요! ${T[sumRow].join(" + ")} 를 차례로 더해 봐요.` });
       }
     }
   };
@@ -317,7 +325,10 @@ export default function PascalGame() {
           target = { n, k };
         }
       }
-      if (!target) return; // 엉뚱한 곳에 놓으면 풍선은 제자리로
+      if (mode === "sumq") {
+        const b = svgRef.current?.getBoundingClientRect();
+        if (!b || e.clientX < b.left || e.clientX > b.right || e.clientY - 24 < b.top || e.clientY - 24 > b.bottom) return;
+      } else if (!target) return; // 엉뚱한 곳에 놓으면 풍선은 제자리로
     }
     pickAnswer(v, target);
   };
@@ -351,7 +362,7 @@ export default function PascalGame() {
     const { n, k } = sel;
     const has = n >= 0;
     if (mode === "blank") return { t: "info", s: hidden.size ? "노란 두 칸을 더한 수예요. 풍선을 ? 칸에 놓아요." : "잘했어요! 곧 다음 판이 나와요." };
-    if (mode === "sumq") return { t: "info", s: "보기 중에서 답을 골라요." };
+    if (mode === "sumq") return { t: "info", s: qkind === "odd" ? "홀수는 1, 3, 5, 7… 처럼 2로 나누어떨어지지 않는 수예요." : "노란 줄의 수를 하나씩 더해 봐요." };
     if (mode === "diag") {
       const parts = diagCells.map(([a, b]) => T[a][b]);
       return { t: "info", s: `초록 칸을 더하면 ${parts.join(" + ")} = ${parts.reduce((a, b) => a + b, 0)} 이에요. 1, 1, 2, 3, 5, 8, 13… 순서에 나오는 수예요.` };
@@ -374,18 +385,28 @@ export default function PascalGame() {
 
   const showOpts = quest && !finished && !roundDone && opts.length > 0 && (mode === "sumq" || (sel.n >= 0 && hidden.has(key(sel.n, sel.k))));
   const goMode = (m: Mode) => (m === "blank" || m === "sumq" ? begin(m, rows) : (setMode(m), setSel(SEL), setMsg(null), setHidden(new Set())));
+  const backToLevel = () => {
+    setRows(cfg.rows);
+    setRound(0);
+    setStars(0);
+    setMsg(null);
+    setWrong([]);
+    setupRound(0, cfg.rows);
+  };
 
   return (
     <Board>
       <style>{CSS}</style>
       <div className="flex flex-wrap items-center gap-2">
-        {quest && (
+        {quest ? (
           <>
-            <Stat label="판" value={finished ? "끝" : `${round + 1} / 5`} />
+            <Stat label={`레벨 ${stage}`} value={`라운드 ${Math.min(round + 1, 3)}/3`} />
             <Stat label="별" value={"⭐".repeat(Math.min(stars, 10)) || "0"} tone={stars ? "ok" : "plain"} />
           </>
+        ) : (
+          <GButton variant="primary" className={BIG} onClick={backToLevel}>◀ 레벨 {stage} 놀이로</GButton>
         )}
-        <GButton variant="soft" pressed={more} className={`${BIG} ml-auto`} onClick={() => setMore((m) => !m)}>🔥 더 어려운 도전 {more ? "▲" : "▼"}</GButton>
+        <GButton variant="soft" pressed={more} className="min-h-[48px]! ml-auto px-3 text-sm" onClick={() => setMore((m) => !m)}>🔍 둘러보기 {more ? "▲" : "▼"}</GButton>
       </div>
       {more && (
         <div className="mt-2 rounded-card bg-bg p-3">
@@ -404,7 +425,7 @@ export default function PascalGame() {
               onChange={(v) => {
                 setRows(v);
                 setSel(SEL);
-                if (quest) begin(mode, v);
+                if (quest) setMode("basic");
               }}
             />
             <p className="text-sm text-muted">줄이 많아지면 칸이 작아져요.</p>

@@ -44,3 +44,40 @@ export function choices(truth: number, near: number[], rnd: () => number = Math.
   }
   return out;
 }
+
+export type RoundKind = "blank" | "sum" | "odd";
+/** 레벨(1~10)별 설정: 줄 수, ? 칸 수, 세 라운드의 종류 */
+export function pascalLevel(level: number): { rows: number; hidden: number; kinds: RoundKind[] } {
+  const L = Math.min(10, Math.max(1, Math.round(level)));
+  const rows = [5, 6, 6, 7, 7, 8, 8, 8, 9, 9][L - 1];
+  const hidden = [1, 1, 2, 2, 2, 3, 3, 3, 3, 4][L - 1];
+  const kinds: RoundKind[][] = [
+    ["blank", "blank", "blank"],
+    ["blank", "blank", "blank"],
+    ["blank", "blank", "blank"],
+    ["blank", "blank", "sum"],
+    ["blank", "sum", "blank"],
+    ["blank", "sum", "blank"],
+    ["blank", "odd", "sum"],
+    ["blank", "sum", "odd"],
+    ["blank", "odd", "blank"],
+    ["blank", "sum", "odd"],
+  ];
+  return { rows, hidden, kinds: kinds[L - 1] };
+}
+/** ? 칸 고르기: 서로 위·아래로 이어지지 않게(두 윗칸은 늘 보이게) */
+export function pickHiddenCells(rows: number, count: number, rnd: () => number = Math.random): [number, number][] {
+  const r = (n: number) => Math.floor(rnd() * n);
+  for (let tries = 0; tries < 500; tries++) {
+    const cells: [number, number][] = [];
+    while (cells.length < count) {
+      const n = 2 + r(rows - 2);
+      const k = 1 + r(n - 1);
+      if (!cells.some(([a, b]) => a === n && b === k)) cells.push([n, k]);
+    }
+    const rel = (a: [number, number], b: [number, number]) => b[0] === a[0] + 1 && (b[1] === a[1] || b[1] === a[1] + 1);
+    if (cells.every((a) => cells.every((b) => !rel(a, b)))) return cells;
+  }
+  return [[rows - 1, 1]];
+}
+export const oddCount = (row: number[]) => row.filter((x) => x % 2 === 1).length;

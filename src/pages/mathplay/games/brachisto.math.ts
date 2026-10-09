@@ -52,7 +52,8 @@ export const RACE_NAMES: Record<RaceId, string> = { line: "곧은 길", cyc: "�
 export type Race = { xb: number; yb: number; theta: number; paths: Record<RaceId, PathFn> };
 
 /** 사이클로이드(반지름 1)의 θ 지점을 B 로 삼는 경주판 */
-export function makeRace(theta: number): Race {
+/** kf: ‘깊이 처진 길’이 얼마나 깊이 처지는지(도착점 높이의 몇 배) */
+export function makeRace(theta: number, kf = 2.2): Race {
   const xb = theta - Math.sin(theta);
   const yb = 1 - Math.cos(theta);
   const line: PathFn = (u) => ({ x: xb * u, d: yb * u, dx: xb, dd: yb });
@@ -67,7 +68,7 @@ export function makeRace(theta: number): Race {
     const p = phiB * u;
     return { x: R - R * Math.cos(p), d: R * Math.sin(p), dx: R * Math.sin(p) * phiB, dd: R * Math.cos(p) * phiB };
   };
-  const k = 2.2 * yb;
+  const k = kf * yb;
   const dip: PathFn = (u) => ({ x: xb * u, d: yb * u + k * u * (1 - u), dx: xb, dd: yb + k * (1 - 2 * u) });
   return { xb, yb, theta, paths: { line, cyc, arc, dip } };
 }
@@ -131,3 +132,50 @@ export function bowlOutline(kind: BowlId, n = 120): [number, number][] {
 
 export const SAME_TOL = 0.005; // 5 ms 보다 작은 차이는 ‘동시’
 export const isSimultaneous = (kind: BowlId, h1: number, h2: number) => Math.abs(bowlTime(kind, h1) - bowlTime(kind, h2)) < SAME_TOL;
+
+// ───────── 레벨(1~10) 문제 만들기 ─────────
+export type Ask = "first" | "second" | "last";
+export type RoundSpec = { kind: "race"; theta: number; kf: number; ask: Ask } | { kind: "bowl"; bowl: BowlId; hA: number; hB: number };
+
+/** 레벨마다 라운드 3개의 질문 종류 */
+export const LEVEL_PLAN: (Ask | "bowl")[][] = [
+  ["first", "first", "first"],
+  ["first", "first", "last"],
+  ["first", "last", "last"],
+  ["last", "first", "second"],
+  ["second", "last", "first"],
+  ["bowl", "second", "last"],
+  ["second", "last", "bowl"],
+  ["second", "bowl", "last"],
+  ["bowl", "second", "last"],
+  ["second", "bowl", "second"],
+];
+export const RACE_GAP = 0.02; // 등수끼리 시간이 이만큼(초) 이상 벌어진 판만 낸다
+
+/** 도착 순서(빠른 것부터)와 시간 */
+export function raceOrder(theta: number, kf: number, K = 3000) {
+  const T = raceTimes(makeRace(theta, kf), K);
+  const order = (Object.keys(T) as RaceId[]).sort((a, b) => T[a] - T[b]);
+  return { T, order };
+}
+export const answerOf = (order: RaceId[], ask: Ask): RaceId => (ask === "first" ? order[0] : ask === "second" ? order[1] : order[order.length - 1]);
+
+export function makeRound(level: number, idx: number, rnd: () => number): RoundSpec {
+  const L = Math.max(1, Math.min(10, level));
+  const kind = LEVEL_PLAN[L - 1][idx % 3];
+  if (kind === "bowl") {
+    const kinds: BowlId[] = L < 8 ? ["cyc", "arc"] : ["cyc", "arc", "line"];
+    const hA = Math.round((0.7 + 0.25 * rnd()) * 100) / 100;
+    const hB = Math.round((0.15 + 0.3 * rnd()) * 100) / 100;
+    return { kind: "bowl", bowl: kinds[Math.floor(rnd() * kinds.length)], hA, hB };
+  }
+  for (let tries = 0; tries < 200; tries++) {
+    const theta = L === 1 ? [Math.PI, 2.6, 3.4][idx % 3] : 2.0 + 1.6 * rnd();
+    const kf = L <= 2 ? 2.2 : Math.round((0.8 + 2.8 * rnd()) * 10) / 10;
+    const { T, order } = raceOrder(theta, kf, 1500);
+    let ok = true;
+    for (let i = 0; i + 1 < order.length; i++) if (T[order[i + 1]] - T[order[i]] < RACE_GAP) ok = false;
+    if (ok) return { kind: "race", theta: Math.round(theta * 1000) / 1000, kf, ask: kind };
+  }
+  return { kind: "race", theta: Math.PI, kf: 2.2, ask: kind };
+}

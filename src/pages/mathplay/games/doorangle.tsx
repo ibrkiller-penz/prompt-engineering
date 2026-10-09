@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, cheer, clamp, oops, svgPoint, tick, useFrame } from "./kit";
+import { Board, GButton, Say, Stat, cheer, clamp, oops, stageClear, svgPoint, tick, useFrame, useStage } from "./kit";
 import { BIG, Stars } from "./easykit";
 
 // ==PURE==
-export const EASY_GOALS = [30, 45, 60, 90];
-export const GOALS = [30, 45, 60, 90, 120, 135];
-
 /** 경첩(hx,hy)에서 포인터(px,py)를 본 각도(0~180°). 화면 y는 아래로 늘어나므로 방 쪽(아래)이 +각도. */
 export function angleFromPoint(hx: number, hy: number, px: number, py: number): number {
   const a = (Math.atan2(py - hy, px - hx) * 180) / Math.PI;
@@ -13,28 +10,33 @@ export function angleFromPoint(hx: number, hy: number, px: number, py: number): 
   return a < -90 ? 180 : 0;
 }
 
-/** 오차(도)에 따른 별 개수: 4° 이내 3개, 10° 이내 2개, 그 밖은 1개 */
-export function starsFor(err: number): number {
-  const e = Math.abs(err);
-  return e <= 4 ? 3 : e <= 10 ? 2 : 1;
+const range = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
+
+/** 레벨(1~10)별 규칙: 목표 각도 모음, 각도기를 쓸 수 있는지, 목표 별 표시, 통과 오차(도) */
+export function levelSpec(level: number): { pool: number[]; prot: boolean; marker: boolean; tol: number } {
+  const L = Math.max(1, Math.min(10, level));
+  const pool =
+    L <= 2 ? [30, 45, 60, 90] : L === 3 ? range(15, 90, 15) : L === 4 ? range(15, 165, 15) : L <= 6 ? range(10, 170, 10) : range(5, 175, 5);
+  const tol = [10, 10, 9, 8, 7, 6, 14, 12, 10, 8][L - 1];
+  return { pool, prot: L <= 6, marker: L <= 4, tol };
 }
 
-export function pickGoals(hard = false, n = 5): number[] {
-  const pool = hard ? GOALS : EASY_GOALS;
-  const a = [...pool];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+/** 오차에 따른 별: 통과 오차의 1/3 이내 3개, 통과 오차 이내 2개(통과), 그 밖은 1개(다시) */
+export function starsFor(err: number, tol: number): number {
+  const e = Math.abs(err);
+  return e <= tol / 3 ? 3 : e <= tol ? 2 : 1;
+}
+
+export function pickGoal(level: number, prev: number, rnd: () => number = Math.random): number {
+  const { pool } = levelSpec(level);
+  for (;;) {
+    const g = pool[Math.floor(rnd() * pool.length)];
+    if (g !== prev || pool.length === 1) return g;
   }
-  const out = a.slice(0, n);
-  while (out.length < n) {
-    const c = pool[Math.floor(Math.random() * pool.length)];
-    if (c !== out[out.length - 1]) out.push(c);
-  }
-  return out;
 }
 // ==END==
 
+const ROUNDS = 3;
 const HX = 210;
 const HY = 40;
 const L = 150; // 문 길이
@@ -61,15 +63,16 @@ export default function DoorAngleGame() {
   const svgRef = useRef<SVGSVGElement>(null);
   const drag = useRef(false);
   const timer = useRef(0);
-  const [hard, setHard] = useState(false);
-  const [goals, setGoals] = useState(() => pickGoals(false));
-  const [round, setRound] = useState(0);
+  const level = useStage();
+  const spec = levelSpec(level);
+  const [goal, setGoal] = useState(() => pickGoal(level, -1));
+  const [round, setRound] = useState(0); // 깬 라운드 수(0~3)
   const [stars, setStars] = useState<number[]>([]);
   const [judged, setJudged] = useState(false);
   const [touched, setTouched] = useState(false);
   const [target, setTarget] = useState(0); // 내가 정한 각도
   const [cur, setCur] = useState(0); // 화면에 그려지는 각도(부드럽게 따라감)
-  const [prot, setProt] = useState(true);
+  const [prot, setProt] = useState(spec.prot);
   const [msg, setMsg] = useState<{ tone: "info" | "ok" | "bad"; text: string } | null>(null);
   const [react, setReact] = useState<{ kind: "" | "ok" | "bad"; n: number }>({ kind: "", n: 0 });
 
@@ -81,11 +84,9 @@ export default function DoorAngleGame() {
     });
   }, Math.abs(cur - target) > 0.05);
 
-  const goal = goals[round];
-  const last = round === goals.length - 1;
   const total = stars.reduce((a, b) => a + b, 0);
   const reading = Math.round(target);
-  const showProt = prot || judged;
+  const showProt = (spec.prot && prot) || judged;
   const lastStar = judged ? stars[stars.length - 1] : 0;
 
   const setFromPointer = (e: React.PointerEvent) => {
@@ -96,23 +97,28 @@ export default function DoorAngleGame() {
   };
   const decide = (a = reading) => {
     const err = a - goal;
-    const s = starsFor(err);
+    const s = starsFor(err, spec.tol);
+    const pass = s >= 2;
     setStars((v) => [...v, s]);
     setJudged(true);
-    if (s >= 2) cheer();
+    if (pass) cheer();
     else oops();
-    setReact((r) => ({ kind: s >= 2 ? "ok" : "bad", n: r.n + 1 }));
+    setReact((r) => ({ kind: pass ? "ok" : "bad", n: r.n + 1 }));
     const diff = err === 0 ? "딱 맞았어요!" : `${Math.abs(err)}° ${err > 0 ? "더 열었어요" : "덜 열었어요"}.`;
-    const cheerTxt = s === 3 ? "최고예요!" : s === 2 ? "아주 잘했어요!" : "괜찮아요. 다음엔 더 가까이 맞춰 봐요!";
-    setMsg({ tone: s >= 2 ? "ok" : "bad", text: `목표 ${goal}°, 내 문은 ${a}° → ${diff} ${cheerTxt}` });
-    if (round < goals.length - 1) {
-      timer.current = window.setTimeout(() => {
-        setRound((r) => r + 1);
-        setJudged(false);
-        setTarget(0);
-        setMsg(null);
-      }, 2200);
+    const cheerTxt = s === 3 ? "최고예요!" : s === 2 ? "아주 잘했어요!" : `괜찮아요! ${spec.tol}° 안으로 맞추면 통과예요. 다시 해 봐요!`;
+    setMsg({ tone: pass ? "ok" : "bad", text: `목표 ${goal}°, 내 문은 ${a}° → ${diff} ${cheerTxt}` });
+    const done = round + (pass ? 1 : 0);
+    if (pass) setRound(done);
+    if (done >= ROUNDS) {
+      timer.current = window.setTimeout(stageClear, 1200);
+      return;
     }
+    timer.current = window.setTimeout(() => {
+      if (pass) setGoal((g) => pickGoal(level, g));
+      setJudged(false);
+      setTarget(0);
+      setMsg(null);
+    }, pass ? 2000 : 2400);
   };
   const down = (e: React.PointerEvent<SVGSVGElement>) => {
     if (judged) return;
@@ -148,17 +154,6 @@ export default function DoorAngleGame() {
     }
   };
 
-  const restart = (h = hard) => {
-    window.clearTimeout(timer.current);
-    setGoals(pickGoals(h));
-    setRound(0);
-    setStars([]);
-    setJudged(false);
-    setTarget(0);
-    setCur(0);
-    setMsg(null);
-  };
-
   const a = clamp(cur, 0, 179.99);
   const tip = pol(L, a);
   const ticks: number[] = [];
@@ -168,9 +163,9 @@ export default function DoorAngleGame() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Stat label="라운드" value={`${Math.min(round + 1, goals.length)}/${goals.length}`} />
-        <Stat label="별" value={`${total}/${goals.length * 3}`} tone="ok" />
-        <Stat label="모드" value={hard ? "어려운 도전" : "쉬운 모드"} />
+        <Stat label={`레벨 ${level}`} value={`라운드 ${Math.min(round + (judged && round >= ROUNDS ? 0 : 1), ROUNDS)}/${ROUNDS}`} />
+        <Stat label="별" value={total} tone="ok" />
+        <Stat label="통과" value={`±${spec.tol}°`} />
       </div>
 
       <Board>
@@ -266,7 +261,7 @@ export default function DoorAngleGame() {
             </g>
           )}
           {/* 목표: 반짝이는 별 */}
-          {showProt && (
+          {((showProt && spec.marker) || judged) && (
             <g aria-hidden="true">
               <line x1={HX} y1={HY} x2={gm[0]} y2={gm[1]} stroke="#16a34a" strokeWidth="2.5" strokeDasharray="5 4" />
               <g transform={`translate(${gm[0]} ${gm[1]})`}>
@@ -309,45 +304,19 @@ export default function DoorAngleGame() {
           )}
         </svg>
         <p className="mt-2 text-center text-base text-muted">
-          {judged ? <Stars n={lastStar} /> : showProt ? "초록 점까지 문을 끌고, 손을 떼면 점수가 나와요!" : "각도기가 꺼져 있어요. 문을 끌고 손을 떼면 점수가 나와요!"}
+          {judged ? <Stars n={lastStar} /> : showProt && spec.marker ? "별까지 문을 끌고, 손을 떼면 점수가 나와요!" : showProt ? "눈금을 읽으며 문을 끌고, 손을 떼면 점수가 나와요!" : "각도기가 꺼져 있어요. 문을 끌고 손을 떼면 점수가 나와요!"}
         </p>
       </Board>
 
       {msg && <Say tone={msg.tone}>{msg.text}</Say>}
-      {judged && last && (
-        <Say tone={total >= 12 ? "ok" : "info"}>
-          5번 다 했어요! 별 {total}개 / {goals.length * 3}개예요. {total >= 12 ? "대단해요! 각도 박사예요!" : "잘했어요! 한 번 더 하면 더 잘할 수 있어요."}
-        </Say>
+      {spec.prot && (
+        <div className="flex flex-wrap gap-2">
+          <GButton pressed={prot} onClick={() => setProt((p) => !p)} className={BIG} title="각도기를 켜면 눈금으로 각도를 읽을 수 있어요">
+            각도기 {prot ? "끄기" : "켜기"}
+          </GButton>
+        </div>
       )}
-
-      <div className="flex flex-wrap gap-2">
-        {judged && last && (
-          <GButton variant="primary" onClick={() => restart()} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
-        <GButton pressed={prot} onClick={() => setProt((p) => !p)} className={BIG} title="각도기를 켜면 눈금으로 각도를 읽을 수 있어요">
-          각도기 {prot ? "끄기" : "켜기"}
-        </GButton>
-        <GButton
-          pressed={hard}
-          className={BIG}
-          onClick={() => {
-            const h = !hard;
-            setHard(h);
-            setProt(!h);
-            restart(h);
-          }}
-          title="목표 각도가 더 다양해지고 각도기가 꺼져요"
-        >
-          더 어려운 도전
-        </GButton>
-        {!(judged && last) && (
-          <GButton onClick={() => restart()} className={BIG}>
-            다시 하기
-          </GButton>
-        )}
-      </div>
+      {!spec.prot && <p className="text-base text-muted">이 레벨은 각도기 없이 눈으로 어림해요. 직각(90°)과 일직선(180°)을 떠올려 봐요!</p>}
     </div>
   );
 }
