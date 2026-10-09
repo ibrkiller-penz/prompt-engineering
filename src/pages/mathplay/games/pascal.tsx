@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Board, GButton, Slider, Stat, rand } from "./kit";
-import { choices, fib, shallowDiagonal, triangle } from "./pascal.logic";
+import { choices, shallowDiagonal, triangle } from "./pascal.logic";
 
 const CW = 60;
 const RH = 52;
@@ -226,11 +226,11 @@ export default function PascalGame() {
     if (msg) return msg;
     const { n, k } = sel;
     const has = n >= 0;
-    if (mode === "blank") return { t: "info", s: "? 칸을 눌러 보세요." };
+    if (mode === "blank") return { t: "info", s: hidden.size ? "아래 보기에서 답을 골라요. 노란 칸이 위의 두 수예요." : "다음 판으로 가 봐요." };
     if (mode === "sumq") return { t: "info", s: "보기 중에서 답을 골라요." };
     if (mode === "diag") {
       const parts = diagCells.map(([a, b]) => T[a][b]);
-      return { t: "info", s: `초록 칸을 더하면 ${parts.join(" + ")} = ${parts.reduce((a, b) => a + b, 0)} 이에요. 1, 1, 2, 3, 5, 8, 13… 순서에 나오는 수예요. (${fib(dN + 1)})` };
+      return { t: "info", s: `초록 칸을 더하면 ${parts.join(" + ")} = ${parts.reduce((a, b) => a + b, 0)} 이에요. 1, 1, 2, 3, 5, 8, 13… 순서에 나오는 수예요.` };
     }
     if (mode === "rowsum") {
       if (!has) return { t: "info", s: "아무 칸이나 눌러 봐요." };

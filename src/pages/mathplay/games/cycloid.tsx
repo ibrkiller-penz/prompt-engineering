@@ -144,7 +144,7 @@ export default function CycloidGame() {
           width="100%"
           role="img"
           aria-label="수평선 위를 굴러가는 바퀴와 바퀴 위 빨간 점이 그리는 길"
-          className="block w-full select-none rounded-card bg-bg"
+          className="mx-auto block w-full max-w-[560px] select-none rounded-card bg-bg"
           style={{ touchAction: "none", cursor: "ew-resize" }}
           onPointerDown={(e) => {
             dragging.current = true;
