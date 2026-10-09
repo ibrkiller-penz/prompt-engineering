@@ -13,6 +13,7 @@ const PATCHES = [
   ["aibasic-termgrid", "app.js", "'--tgc'"],
   ["aibasic-circle", "app.js", "okCircle"],
   ["aibasic-ogimage", "index.html", "og:image:width"],
+  ["aibasic-content", "lessons.js", "검토 패치 aibasic-content"], // 1~4단원 내용 검토(정답 근거·사실·용어 풀이) — lessons.js 본문 수정
 ];
 const HAPPY = "public/happy/HappyMpX.zip";
 const HAPPY_URL = "https://github.com/ibrkiller-penz/happymp3/releases/download/files-2026-10-08/HappyMpX.zip";
@@ -31,7 +32,7 @@ if (!fs.existsSync(`${AIBASIC}/index.html`)) {
 
 // 2) 패치 적용(이미 적용됐으면 건너뜀)
 // 윈도우에서 받거나 적용하면 줄바꿈이 CRLF 가 되어 패치가 안 맞으므로, 패치 대상 파일은 먼저 LF 로 통일한다.
-for (const f of ["index.html", "style.css", "app.js"]) {
+for (const f of ["index.html", "style.css", "app.js", "lessons.js"]) {
   const path = `${AIBASIC}/${f}`;
   const txt = fs.readFileSync(path, "utf8");
   if (txt.includes("\r\n")) fs.writeFileSync(path, txt.replace(/\r\n/g, "\n"));
