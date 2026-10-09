@@ -173,7 +173,7 @@ export default function BrachistoGame() {
         <circle cx={X(0)} cy={Y(0)} r={6} fill="var(--ink)" />
         <text x={X(0) + 10} y={Y(0) - 8} fontSize={14} fontWeight={800} fill="var(--ink)">A (출발)</text>
         <circle cx={X(race.xb)} cy={Y(race.yb)} r={6} fill="var(--ink)" />
-        <text x={X(race.xb)} y={Y(race.yb) + 20} fontSize={14} fontWeight={800} fill="var(--ink)" textAnchor="end">B (도착)</text>
+        <text x={X(race.xb)} y={Y(race.yb) + 20} fontSize={14} fontWeight={800} fill="var(--ink)" textAnchor="end" stroke="var(--surface)" strokeWidth={4} paintOrder="stroke">B (도착)</text>
         {phase !== "ready" &&
           IDS.map((id) => {
             const p = posAt(tabs[id], clock);
