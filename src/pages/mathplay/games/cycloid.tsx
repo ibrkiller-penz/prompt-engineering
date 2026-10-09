@@ -38,6 +38,16 @@ const X0 = 60;
 const GY = 140;
 const TH_MAX = 2 * Math.PI;
 const BIG = "!min-h-[48px] !text-base";
+const GF = "Jua, Pretendard Variable, sans-serif";
+function starPath(x: number, y: number, r1: number, r2: number) {
+  let d = "";
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const r = i % 2 ? r2 : r1;
+    d += `${i ? "L" : "M"}${(x + r * Math.cos(a)).toFixed(1)} ${(y + r * Math.sin(a)).toFixed(1)}`;
+  }
+  return d + "Z";
+}
 
 export default function CycloidGame() {
   const [th, setTh] = useState(0);
@@ -52,6 +62,7 @@ export default function CycloidGame() {
   const [stars, setStars] = useState(0);
   const [hint, setHint] = useState(false);
   const [hard, setHard] = useState(false);
+  const [fx, setFx] = useState<{ k: number; t: "ok" | "bad" | "" }>({ k: 0, t: "" });
   const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "바퀴를 손가락으로 옆으로 끌어 굴려 봐요!" });
   const svgRef = useRef<SVGSVGElement>(null);
   const mode = useRef<"wheel" | "pen" | null>(null);
@@ -165,12 +176,14 @@ export default function CycloidGame() {
     if (v === q.answer) {
       setSolved(true);
       cheer();
+      setFx((f) => ({ k: f.k + 1, t: "ok" }));
       if (wrong.length === 0) {
         setStars((s) => s + 1);
         setMsg({ t: "ok", s: `맞아요! ⭐ 잘했어요! ${q.why}` });
       } else setMsg({ t: "ok", s: `맞아요! 끝까지 해냈어요. ${q.why}` });
     } else {
       oops();
+      setFx((f) => ({ k: f.k + 1, t: "bad" }));
       setWrong((w) => [...w, v]);
       setMsg({ t: "bad", s: "아쉬워요. 괜찮아요, 다시 해 봐요! 힌트를 눌러도 돼요." });
     }
@@ -195,10 +208,11 @@ export default function CycloidGame() {
           <Stat label="별" value={stars > 0 ? "⭐".repeat(stars) : "0"} tone={stars > 0 ? "ok" : "plain"} />
         </div>
         {!finished ? (
-          <p className="mb-2 text-lg font-bold">{q.text}</p>
+          <p className="font-game mb-2 text-xl">{q.text}</p>
         ) : (
           <p className="mb-2 text-lg font-bold">모두 풀었어요! 별 {stars}개 {"⭐".repeat(stars)}</p>
         )}
+        <div key={fx.k} className={fx.t === "ok" ? "am-pop" : fx.t === "bad" ? "am-shake" : ""}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
@@ -209,30 +223,112 @@ export default function CycloidGame() {
           aria-valuemin={0}
           aria-valuemax={TH_MAX}
           aria-valuenow={Math.round(th * 100) / 100}
-          className="mx-auto block w-full max-w-[560px] select-none rounded-card bg-bg"
-          style={{ touchAction: "none", cursor: "ew-resize" }}
+          className="mx-auto block w-full max-w-[560px] select-none overflow-hidden rounded-card shadow-[0_6px_0_rgba(76,29,149,0.18)]"
+          style={{ touchAction: "none", cursor: "ew-resize", fontFamily: GF }}
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={() => (mode.current = null)}
           onPointerCancel={() => (mode.current = null)}
           onKeyDown={onKey}
         >
-          <line x1={10} y1={GY} x2={W - 10} y2={GY} stroke="#64748b" strokeWidth={2} />
-          {[0, 1].map((i) => (
-            <g key={i}>
-              <line x1={X0 + i * barW} y1={GY - 4} x2={X0 + i * barW} y2={GY + 6} stroke="#64748b" strokeWidth={2} />
-              <text x={X0 + i * barW} y={GY + 26} textAnchor="middle" fontSize={20} fill="#64748b">
-                {i === 0 ? "출발" : "한 바퀴"}
+          <defs>
+            <linearGradient id="cy-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#a5d8ff" />
+              <stop offset="1" stopColor="#ffe3f1" />
+            </linearGradient>
+            <linearGradient id="cy-grass" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#86efac" />
+              <stop offset="1" stopColor="#34d399" />
+            </linearGradient>
+            <linearGradient id="cy-rainbow" gradientUnits="userSpaceOnUse" x1={X0 - R} y1="0" x2={X0 + barW + R} y2="0">
+              <stop offset="0" stopColor="#f43f5e" />
+              <stop offset="0.2" stopColor="#fb923c" />
+              <stop offset="0.4" stopColor="#facc15" />
+              <stop offset="0.6" stopColor="#22c55e" />
+              <stop offset="0.8" stopColor="#3b82f6" />
+              <stop offset="1" stopColor="#a855f7" />
+            </linearGradient>
+            <linearGradient id="cy-tape" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fde047" />
+              <stop offset="1" stopColor="#f59e0b" />
+            </linearGradient>
+            <radialGradient id="cy-hub" cx="0.35" cy="0.35" r="0.8">
+              <stop offset="0" stopColor="#fff7ad" />
+              <stop offset="1" stopColor="#f59e0b" />
+            </radialGradient>
+          </defs>
+          {/* 하늘·해·구름·언덕 */}
+          <rect width={W} height={GY} fill="url(#cy-sky)" />
+          <g aria-hidden>
+            <circle cx={W - 46} cy={38} r={22} fill="#fde047" stroke="#f59e0b" strokeWidth={3} />
+            <circle cx={W - 53} cy={35} r={2.2} fill="#92400e" />
+            <circle cx={W - 39} cy={35} r={2.2} fill="#92400e" />
+            <path d={`M${W - 54} ${44} Q${W - 46} ${51} ${W - 38} ${44}`} stroke="#92400e" strokeWidth={2} fill="none" strokeLinecap="round" />
+            {[
+              [110, 34, 1],
+              [270, 24, 0.8],
+            ].map(([x, y, s]) => (
+              <g key={x} transform={`translate(${x} ${y}) scale(${s})`} fill="#fff">
+                <ellipse cx={0} cy={6} rx={30} ry={11} />
+                <circle cx={-12} cy={0} r={12} />
+                <circle cx={8} cy={-4} r={15} />
+              </g>
+            ))}
+            <path d={`M0 ${GY} Q 90 ${GY - 54} 190 ${GY} Q 290 ${GY - 44} 360 ${GY} Q 410 ${GY - 30} ${W} ${GY} Z`} fill="#bbf7d0" stroke="#4ade80" strokeWidth={2} />
+            {/* 작은 놀이공원 천막 */}
+            <g transform={`translate(${W - 92} ${GY - 44})`}>
+              <rect x={0} y={20} width={44} height={24} fill="#fff" stroke="#db2777" strokeWidth={2} />
+              <path d="M-4 22 L22 0 L48 22 Z" fill="#f472b6" stroke="#db2777" strokeWidth={2} strokeLinejoin="round" />
+              <path d="M22 0 L13 22 M22 0 L31 22" stroke="#fff" strokeWidth={3} />
+              <line x1={22} y1={0} x2={22} y2={-10} stroke="#db2777" strokeWidth={2} />
+              <path d="M22 -10 L32 -6 L22 -2 Z" fill="#facc15" />
+            </g>
+          </g>
+          {/* 길·풀밭 */}
+          <rect x={0} y={GY} width={W} height={34} fill="#fbcfe8" />
+          <line x1={0} y1={GY} x2={W} y2={GY} stroke="#db2777" strokeWidth={3} />
+          <line x1={0} y1={GY + 20} x2={W} y2={GY + 20} stroke="#fff" strokeWidth={3} strokeDasharray="12 10" />
+          <rect x={0} y={GY + 34} width={W} height={H - GY - 34} fill="url(#cy-grass)" />
+          <rect x={X0} y={GY + 3} width={rollDist} height={8} rx={4} fill="#38bdf8" stroke="#0369a1" strokeWidth={1.5} />
+          {[
+            [X0, "출발"],
+            [X0 + R * Math.PI, "반"],
+            [X0 + barW, "한 바퀴"],
+          ].map(([x, label]) => (
+            <g key={label as string}>
+              <path d={`M${x} ${GY} l-6 10 h12 Z`} fill="#7c3aed" />
+              <text x={x as number} y={GY + 30} textAnchor="middle" fontSize={label === "반" ? 14 : 17} fill="#fff" stroke="#9d174d" strokeWidth={3} paintOrder="stroke">
+                {label}
               </text>
             </g>
           ))}
-          <line x1={X0 + R * Math.PI} y1={GY - 6} x2={X0 + R * Math.PI} y2={GY + 6} stroke="#94a3b8" strokeWidth={2} />
-          <line x1={X0} y1={GY} x2={X0 + rollDist} y2={GY} stroke="#0ea5e9" strokeWidth={5} strokeLinecap="round" />
-          <polyline points={pts.join(" ")} fill="none" stroke="#ef4444" strokeWidth={3} strokeLinejoin="round" />
-          <circle cx={cx} cy={cy} r={R} fill="#38bdf8" fillOpacity={0.18} stroke="#0284c7" strokeWidth={2} />
-          <line x1={cx} y1={cy} x2={penX} y2={penY} stroke="#0284c7" strokeWidth={1.5} strokeDasharray="4 3" />
-          <circle cx={cx} cy={cy} r={3} fill="#0284c7" />
-          <circle cx={penX} cy={penY} r={7} fill="#ef4444" stroke="#fff" strokeWidth={2} />
+          {/* 무지개 자취 */}
+          <polyline points={pts.join(" ")} fill="none" stroke="#fff" strokeOpacity={0.85} strokeWidth={9} strokeLinejoin="round" strokeLinecap="round" />
+          <polyline points={pts.join(" ")} fill="none" stroke="url(#cy-rainbow)" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round" />
+          {/* 바퀴 */}
+          <ellipse cx={cx} cy={GY + 2} rx={R * 0.8} ry={5} fill="#9d174d" opacity={0.25} />
+          <g transform={`rotate(${(th * 180) / Math.PI} ${cx} ${cy})`}>
+            {Array.from({ length: 8 }, (_, i) => {
+              const a0 = (i * Math.PI) / 4;
+              const a1 = ((i + 1) * Math.PI) / 4;
+              const rr = R - 8;
+              const cols = ["#fecdd3", "#fef08a", "#bbf7d0", "#bae6fd"];
+              return <path key={i} d={`M${cx} ${cy} L${cx + rr * Math.cos(a0)} ${cy + rr * Math.sin(a0)} A${rr} ${rr} 0 0 1 ${cx + rr * Math.cos(a1)} ${cy + rr * Math.sin(a1)} Z`} fill={cols[i % 4]} />;
+            })}
+            {Array.from({ length: 8 }, (_, i) => {
+              const a = (i * Math.PI) / 4;
+              return <line key={i} x1={cx} y1={cy} x2={cx + (R - 8) * Math.cos(a)} y2={cy + (R - 8) * Math.sin(a)} stroke="#f472b6" strokeWidth={2.5} strokeLinecap="round" />;
+            })}
+            <circle cx={cx} cy={cy} r={R - 4} fill="none" stroke="#6d28d9" strokeWidth={8} />
+            <circle cx={cx} cy={cy} r={R - 4} fill="none" stroke="#a78bfa" strokeWidth={3} strokeDasharray="5 7" />
+          </g>
+          <line x1={cx} y1={cy} x2={penX} y2={penY} stroke="#6d28d9" strokeWidth={2} strokeDasharray="4 3" />
+          <circle cx={cx} cy={cy} r={8} fill="url(#cy-hub)" stroke="#b45309" strokeWidth={2} />
+          {/* 반짝이 별 스티커 */}
+          <g transform={`rotate(${(th * 180) / Math.PI} ${penX} ${penY})`}>
+            <path d={starPath(penX, penY, 12, 5.5)} fill="#fde047" stroke="#ea580c" strokeWidth={2.5} strokeLinejoin="round" />
+            <circle cx={penX - 3} cy={penY - 3} r={2} fill="#fff" />
+          </g>
           {!touched && th === 0 && (
             <text fontSize={34} y={cy + 10} textAnchor="middle" aria-hidden>
               👉
@@ -240,15 +336,20 @@ export default function CycloidGame() {
             </text>
           )}
 
-          <text x={X0} y={H - 56} fontSize={20} fill="#64748b">
-            바퀴 둘레를 쭉 펴면
+          {/* 줄자: 바퀴 둘레를 편 길이 */}
+          <text x={X0} y={H - 58} fontSize={18} fill="#065f46" stroke="#fff" strokeWidth={4} paintOrder="stroke">
+            바퀴 둘레를 쭉 펴면 📏
           </text>
-          <rect x={X0} y={H - 46} width={barW} height={12} rx={6} fill="none" stroke="#0284c7" strokeWidth={1.5} />
-          <rect x={X0} y={H - 46} width={Math.min(barW, rollDist)} height={12} rx={6} fill="#0ea5e9" />
-          <text x={X0} y={H - 8} fontSize={20} fill="#64748b">
+          <rect x={X0} y={H - 50} width={barW} height={16} rx={8} fill="#fffbeb" stroke="#b45309" strokeWidth={2} />
+          <rect x={X0} y={H - 50} width={Math.min(barW, rollDist)} height={16} rx={8} fill="url(#cy-tape)" />
+          {Array.from({ length: 11 }, (_, i) => (
+            <line key={i} x1={X0 + (barW * i) / 10} y1={H - 50} x2={X0 + (barW * i) / 10} y2={H - 44} stroke="#b45309" strokeWidth={1.5} />
+          ))}
+          <text x={X0} y={H - 10} fontSize={19} fill="#fff" stroke="#047857" strokeWidth={4} paintOrder="stroke">
             {(th / (2 * Math.PI)).toFixed(1)}바퀴 굴렀어요
           </text>
         </svg>
+        </div>
 
         {!finished && !reached && (
           <p className="mt-2 text-base font-semibold text-accent">👆 바퀴를 옆으로 끌어서 {q.need === "half" ? "반 바퀴" : "한 바퀴"} 굴려 보세요. (‘철컥’ 하고 붙는 곳까지!)</p>

@@ -40,6 +40,21 @@ const HY = 40;
 const L = 150; // 문 길이
 const R = 118; // 각도기 반지름
 const rad = (d: number) => (d * Math.PI) / 180;
+const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+/** 별 모양 경로(가운데 0,0) */
+const starPath = (ro: number, ri: number) =>
+  Array.from({ length: 10 }, (_, i) => {
+    const r = i % 2 ? ri : ro;
+    const t = -Math.PI / 2 + (i * Math.PI) / 5;
+    return `${i ? "L" : "M"} ${(r * Math.cos(t)).toFixed(2)} ${(r * Math.sin(t)).toFixed(2)}`;
+  }).join(" ") + " Z";
+const CSS = `
+@keyframes dg-bounce { 0%,100% { transform: translateY(0) scale(1); } 30% { transform: translateY(-12px) scale(1.12); } 60% { transform: translateY(0) scale(.96); } 80% { transform: translateY(-4px); } }
+@keyframes dg-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+.dg-bounce { animation: dg-bounce .8s ease-out; transform-box: fill-box; transform-origin: center bottom; }
+.dg-shake { animation: dg-shake .45s ease-in-out; }
+@media (prefers-reduced-motion: reduce) { .dg-bounce, .dg-shake { animation: none; } }
+`;
 const pol = (r: number, d: number): [number, number] => [HX + r * Math.cos(rad(d)), HY + r * Math.sin(rad(d))];
 
 export default function DoorAngleGame() {
@@ -56,6 +71,7 @@ export default function DoorAngleGame() {
   const [cur, setCur] = useState(0); // 화면에 그려지는 각도(부드럽게 따라감)
   const [prot, setProt] = useState(true);
   const [msg, setMsg] = useState<{ tone: "info" | "ok" | "bad"; text: string } | null>(null);
+  const [react, setReact] = useState<{ kind: "" | "ok" | "bad"; n: number }>({ kind: "", n: 0 });
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
   useFrame((_, dt) => {
@@ -85,6 +101,7 @@ export default function DoorAngleGame() {
     setJudged(true);
     if (s >= 2) cheer();
     else oops();
+    setReact((r) => ({ kind: s >= 2 ? "ok" : "bad", n: r.n + 1 }));
     const diff = err === 0 ? "딱 맞았어요!" : `${Math.abs(err)}° ${err > 0 ? "더 열었어요" : "덜 열었어요"}.`;
     const cheerTxt = s === 3 ? "최고예요!" : s === 2 ? "아주 잘했어요!" : "괜찮아요. 다음엔 더 가까이 맞춰 봐요!";
     setMsg({ tone: s >= 2 ? "ok" : "bad", text: `목표 ${goal}°, 내 문은 ${a}° → ${diff} ${cheerTxt}` });
@@ -157,13 +174,14 @@ export default function DoorAngleGame() {
       </div>
 
       <Board>
-        <p className="mb-2 text-center text-xl font-extrabold">
+        <style>{CSS}</style>
+        <p className="font-game mb-2 text-center text-2xl">
           문을 <span className="text-accent">{goal}°</span> 만큼 열어요
         </p>
         <svg
           ref={svgRef}
           viewBox="0 0 420 215"
-          className="mx-auto block w-full max-w-[640px] touch-none select-none rounded-card bg-bg"
+          className="mx-auto block w-full max-w-[640px] touch-none select-none overflow-hidden rounded-card"
           style={{ touchAction: "none", cursor: judged ? "default" : "grab" }}
           role="slider"
           tabIndex={0}
@@ -177,68 +195,116 @@ export default function DoorAngleGame() {
           onPointerCancel={cancel}
           onKeyDown={key}
         >
-          <rect x="0" y={HY} width="420" height="175" fill="#f1ead9" />
-          <path d={`M ${HX + L} ${HY} A ${L} ${L} 0 0 1 ${HX - L} ${HY}`} fill="none" stroke="#b9a77a" strokeWidth="1" strokeDasharray="3 4" />
-          <rect x="0" y={HY - 12} width={HX} height="12" fill="#6b7280" />
-          <rect x={HX + L} y={HY - 12} width={420 - HX - L} height="12" fill="#6b7280" />
-          <rect x={HX - 4} y={HY - 12} width="8" height="20" fill="#374151" />
-          <rect x={HX + L - 4} y={HY - 12} width="8" height="20" fill="#374151" />
+          <defs>
+            <linearGradient id="dg-floor" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f8d9a8" />
+              <stop offset="1" stopColor="#eab676" />
+            </linearGradient>
+            <linearGradient id="dg-wall" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#c4b5fd" />
+              <stop offset="1" stopColor="#8b5cf6" />
+            </linearGradient>
+            <linearGradient id="dg-door" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#38bdf8" />
+              <stop offset="1" stopColor="#0284c7" />
+            </linearGradient>
+            <radialGradient id="dg-knob" cx="0.35" cy="0.35" r="0.7">
+              <stop offset="0" stopColor="#fff7c2" />
+              <stop offset="1" stopColor="#f59e0b" />
+            </radialGradient>
+          </defs>
+          {/* 마룻바닥 */}
+          <rect x="0" y={HY} width="420" height="175" fill="url(#dg-floor)" />
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <line key={i} x1="0" y1={HY + 14 + i * 28} x2="420" y2={HY + 14 + i * 28} stroke="#d39b5c" strokeWidth="1.5" opacity="0.55" />
+          ))}
+          {[30, 120, 260, 350, 80, 190, 310].map((x, i) => (
+            <line key={`v${i}`} x1={x} y1={HY + 14 + (i % 6) * 28} x2={x} y2={HY + 42 + (i % 6) * 28} stroke="#d39b5c" strokeWidth="1.5" opacity="0.55" />
+          ))}
+          {/* 동그란 러그 */}
+          <ellipse cx="370" cy="178" rx="38" ry="22" fill="#fda4af" stroke="#e11d48" strokeWidth="2.5" />
+          <ellipse cx="370" cy="178" rx="24" ry="13" fill="#fecdd3" />
+          <path d={`M ${HX + L} ${HY} A ${L} ${L} 0 0 1 ${HX - L} ${HY}`} fill="none" stroke="#b7793a" strokeWidth="1.5" strokeDasharray="4 5" />
+          {/* 벽 */}
+          <rect x="-6" y={HY - 16} width={HX + 6} height="16" rx="4" fill="url(#dg-wall)" stroke="#6d28d9" strokeWidth="2.5" />
+          <rect x={HX + L} y={HY - 16} width={420 - HX - L + 6} height="16" rx="4" fill="url(#dg-wall)" stroke="#6d28d9" strokeWidth="2.5" />
+          {[20, 60, 100, 140, 180, 385].map((x) => (
+            <circle key={x} cx={x} cy={HY - 8} r="2.5" fill="#fff" opacity="0.8" />
+          ))}
+          {/* 문틀 */}
+          <rect x={HX - 6} y={HY - 18} width="12" height="24" rx="4" fill="#f472b6" stroke="#be185d" strokeWidth="2" />
+          <rect x={HX + L - 6} y={HY - 18} width="12" height="24" rx="4" fill="#f472b6" stroke="#be185d" strokeWidth="2" />
+          {/* 고양이 친구: 맞히면 통통 */}
+          <text key={`cat${react.n}`} x="34" y="200" fontSize="30" textAnchor="middle" className={react.kind === "ok" ? "dg-bounce" : react.kind === "bad" ? "dg-shake" : ""}>
+            🐱
+          </text>
+          <text x="400" y="80" fontSize="24" textAnchor="middle">🪴</text>
 
           {showProt && (
             <g aria-hidden="true">
-              <path d={`M ${HX + R} ${HY} A ${R} ${R} 0 0 1 ${HX - R} ${HY} Z`} fill="rgba(56,189,248,0.18)" stroke="#0284c7" strokeWidth="1.2" />
+              <path d={`M ${HX + R} ${HY} A ${R} ${R} 0 0 1 ${HX - R} ${HY} Z`} fill="rgba(255,255,255,0.72)" />
+              {["#ef4444", "#f97316", "#facc15", "#22c55e", "#3b82f6", "#8b5cf6"].map((c, i) => {
+                const r = R - 3 - i * 5;
+                return <path key={c} d={`M ${HX + r} ${HY} A ${r} ${r} 0 0 1 ${HX - r} ${HY}`} fill="none" stroke={c} strokeWidth="5" opacity="0.85" />;
+              })}
               {ticks.map((d) => {
-                const len = d % 10 === 0 ? 10 : 5;
+                const len = d % 10 === 0 ? 12 : 6;
                 const [x1, y1] = pol(R, d);
                 const [x2, y2] = pol(R - len, d);
-                return <line key={d} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#0369a1" strokeWidth={d % 30 === 0 ? 1.6 : 0.9} />;
+                return <line key={d} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#3b0764" strokeWidth={d % 30 === 0 ? 2 : 1} strokeLinecap="round" />;
               })}
               {[0, 30, 60, 90, 120, 150, 180].map((d) => {
-                const [x, y] = pol(R - 22, d);
+                const [x, y] = pol(R - 44, d);
                 return (
-                  <text key={d} x={x} y={y + 5} fontSize="13" fontWeight="700" textAnchor="middle" fill="#0369a1">
+                  <text key={d} x={x} y={y + 5} fontSize="15" textAnchor="middle" fill="#3b0764" style={GF}>
                     {d}
                   </text>
                 );
               })}
-              {a > 0.5 && <path d={`M ${HX} ${HY} L ${pol(44, 0)[0]} ${pol(44, 0)[1]} A 44 44 0 0 1 ${pol(44, a)[0]} ${pol(44, a)[1]} Z`} fill="rgba(250,204,21,0.45)" stroke="#ca8a04" strokeWidth="1" />}
+              <path d={`M ${HX + R} ${HY} A ${R} ${R} 0 0 1 ${HX - R} ${HY}`} fill="none" stroke="#7c3aed" strokeWidth="2.5" />
+              {a > 0.5 && <path d={`M ${HX} ${HY} L ${pol(30, 0)[0]} ${pol(30, 0)[1]} A 30 30 0 0 1 ${pol(30, a)[0]} ${pol(30, a)[1]} Z`} fill="rgba(250,204,21,0.75)" stroke="#ca8a04" strokeWidth="1.5" />}
             </g>
           )}
-          {/* 목표 표시: 각도기가 켜져 있을 때(또는 결과를 보여 줄 때) 초록 점 */}
+          {/* 목표: 반짝이는 별 */}
           {showProt && (
             <g aria-hidden="true">
-              <line x1={HX} y1={HY} x2={gm[0]} y2={gm[1]} stroke="#16a34a" strokeWidth="2" strokeDasharray="4 3" />
-              <circle cx={gm[0]} cy={gm[1]} r="9" fill="#16a34a" stroke="#fff" strokeWidth="2" />
-              <text x={gm[0]} y={gm[1] + 4} fontSize="11" fontWeight="800" textAnchor="middle" fill="#fff">목표</text>
+              <line x1={HX} y1={HY} x2={gm[0]} y2={gm[1]} stroke="#16a34a" strokeWidth="2.5" strokeDasharray="5 4" />
+              <g transform={`translate(${gm[0]} ${gm[1]})`}>
+                <path d={starPath(13, 6)} fill="#facc15" stroke="#b45309" strokeWidth="2" strokeLinejoin="round">
+                  <animateTransform attributeName="transform" type="scale" values="1;1.18;1" dur="1.4s" repeatCount="indefinite" />
+                </path>
+              </g>
             </g>
           )}
 
-          <g>
-            <line x1={HX} y1={HY} x2={tip[0]} y2={tip[1]} stroke="#92400e" strokeWidth="9" strokeLinecap="round" />
-            <line x1={HX} y1={HY} x2={tip[0]} y2={tip[1]} stroke="#b45309" strokeWidth="5" strokeLinecap="round" />
-            <circle cx={pol(L - 14, a)[0]} cy={pol(L - 14, a)[1]} r="4" fill="#fcd34d" stroke="#92400e" />
-            <circle cx={tip[0]} cy={tip[1]} r="13" fill="#fff" fillOpacity="0.7" stroke="#92400e" strokeWidth="2" />
+          {/* 문 */}
+          <g key={`door${react.n}`} className={react.kind === "bad" ? "dg-shake" : ""}>
+            <g transform={`rotate(${a} ${HX} ${HY})`}>
+              <rect x={HX + 2} y={HY + 3} width={L - 2} height="12" rx="6" fill="rgba(0,0,0,0.15)" />
+              <rect x={HX} y={HY - 6} width={L} height="13" rx="6" fill="url(#dg-door)" stroke="#075985" strokeWidth="2.5" />
+              <rect x={HX + 18} y={HY - 3} width={L - 40} height="6" rx="3" fill="#bae6fd" opacity="0.8" />
+              <circle cx={HX + L - 16} cy={HY} r="7" fill="url(#dg-knob)" stroke="#b45309" strokeWidth="2" />
+            </g>
+            <circle cx={tip[0]} cy={tip[1]} r="14" fill="#fff" fillOpacity="0.55" stroke="#075985" strokeWidth="2" />
             {!touched && !judged && (
               <g aria-hidden="true">
-                <circle cx={tip[0]} cy={tip[1]} r="13" fill="none" stroke="#ef4444" strokeWidth="3">
-                  <animate attributeName="r" values="13;26;13" dur="1.6s" repeatCount="indefinite" />
+                <circle cx={tip[0]} cy={tip[1]} r="14" fill="none" stroke="#e8552f" strokeWidth="3">
+                  <animate attributeName="r" values="14;28;14" dur="1.6s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="1;0;1" dur="1.6s" repeatCount="indefinite" />
                 </circle>
-                <text x={tip[0] - 4} y={tip[1] + 40} fontSize="20" textAnchor="middle">
+                <text x={tip[0] - 4} y={tip[1] + 40} fontSize="22" textAnchor="middle">
                   👆
                   <animateTransform attributeName="transform" type="translate" values="0,0;-70,50;0,0" dur="2.4s" repeatCount="indefinite" />
                 </text>
               </g>
             )}
           </g>
-          <circle cx={HX} cy={HY} r="6" fill="#1f2937" />
-          <circle cx={HX} cy={HY} r="2" fill="#fbbf24" />
-          <text x={HX + 9} y={HY - 14} fontSize="12" fill="#374151">경첩</text>
-          {/* 지금 각도: 손가락에 가려지지 않는 왼쪽 위 */}
+          <circle cx={HX} cy={HY} r="7" fill="#fbbf24" stroke="#92400e" strokeWidth="2" />
+          <text x={HX + 12} y={HY - 22} fontSize="13" fill="#5b21b6" style={GF}>경첩</text>
           {(showProt || judged) && (
-            <g aria-hidden="true">
-              <rect x="10" y="52" width="66" height="34" rx="9" fill="#fff" stroke="#0284c7" />
-              <text x="43" y="76" fontSize="22" fontWeight="800" textAnchor="middle" fill="#0369a1">{reading}°</text>
+            <g aria-hidden="true" key={`badge${react.n}`} className={react.kind === "ok" ? "dg-bounce" : ""}>
+              <rect x="8" y="54" width="76" height="40" rx="14" fill="#e8552f" stroke="#9a2d14" strokeWidth="2.5" />
+              <text x="46" y="83" fontSize="26" textAnchor="middle" fill="#fff" style={GF}>{reading}°</text>
             </g>
           )}
         </svg>
