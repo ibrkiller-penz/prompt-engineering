@@ -323,7 +323,7 @@ function SetRound({ level, task, onResult }: { level: number; task: Task; onResu
     const mp = pt(MIN_LEN, an.minute);
     const dm = Math.hypot(x - mp[0], y - mp[1]);
     const dh = Math.hypot(x - hp[0], y - hp[1]);
-    const which: "hour" | "minute" = dm < 40 ? "minute" : dh < 36 ? "hour" : a.r < 66 ? "hour" : "minute";
+    const which: "hour" | "minute" = dh < 22 ? "hour" : dm < 30 ? "minute" : a.r < 66 ? "hour" : "minute";
     e.currentTarget.setPointerCapture(e.pointerId);
     grab.current = which;
     setG(which);

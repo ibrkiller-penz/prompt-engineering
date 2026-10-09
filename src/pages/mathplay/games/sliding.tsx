@@ -221,8 +221,8 @@ export default function SlidingGame() {
                       pointerEvents: "none",
                     }}
                   >
-                    <span aria-hidden className="absolute right-1.5 top-0.5 text-[1.5rem] leading-none sm:text-3xl">{ANIMALS[(v - 1) % ANIMALS.length]}</span>
-                    <span className="font-game text-[2.4rem] leading-none text-white sm:text-6xl" style={{ WebkitTextStroke: "2.5px rgba(60,20,50,.75)", paintOrder: "stroke fill" }}>{v}</span>
+                    <span aria-hidden className={`absolute right-1 top-0.5 leading-none ${cols >= 4 ? "text-[1.05rem] sm:text-2xl" : "text-[1.5rem] sm:text-3xl"}`}>{ANIMALS[(v - 1) % ANIMALS.length]}</span>
+                    <span className={`font-game leading-none text-white ${cols >= 4 ? "mt-3 text-[2rem] sm:text-5xl" : "text-[2.4rem] sm:text-6xl"}`} style={{ WebkitTextStroke: "2.5px rgba(60,20,50,.75)", paintOrder: "stroke fill" }}>{v}</span>
                     {right && <span aria-hidden className="absolute bottom-0.5 left-1.5 text-sm">✅</span>}
                   </button>
                   {handPos === p && <span aria-hidden className="gz-bob pointer-events-none absolute -bottom-3 left-1/2 -translate-x-1/2 text-4xl">👆</span>}

@@ -60,6 +60,38 @@ export function makeProblem(rnd: (n: number) => number, level = 1): { fixed: Wt[
   }
   return { fixed: [{ slot: -2, w: 2 }], T: 4 };
 }
+
+export type Problem = { fixed: Wt[]; T: number; mystery?: { slot: number; q: number }; opts?: number[] };
+
+/** 라운드 종류: 레벨 4~6은 두 번째, 7~10은 첫째·셋째가 ‘모르는 무게(❓)’ 라운드 */
+export function roundKind(level: number, r: number): "balance" | "mystery" {
+  if (level < 4) return "balance";
+  if (level <= 6) return r === 1 ? "mystery" : "balance";
+  return r === 1 ? "balance" : "mystery";
+}
+
+/** ❓ 문제: 왼쪽 칸 s 에 ❓(정수 1~5kg), 레벨 7부터는 아는 추도 하나 더. 오른쪽에 추를 놓아 수평이 되는 방법이 꼭 있고, 수평이면 ❓의 무게가 정수로 정해져요. */
+export function makeMysteryProblem(rnd: (n: number) => number, level: number): Problem {
+  const sp = levelSpec(level);
+  for (let t = 0; t < 3000; t++) {
+    const s = 1 + rnd(sp.maxSlot);
+    const q = 1 + rnd(5);
+    let fixed: Wt[] = [];
+    let T = q * s;
+    if (level >= 7) {
+      let s2 = 1 + rnd(sp.maxSlot);
+      while (s2 === s) s2 = 1 + rnd(sp.maxSlot);
+      const w = sp.weights[rnd(sp.weights.length)];
+      fixed = [{ slot: -s2, w }];
+      T += w * s2;
+    }
+    if (T < 4 || solutions(T, sp.maxSlot, sp.weights).length === 0) continue;
+    const opts = new Set<number>([q]);
+    while (opts.size < 3) opts.add(1 + rnd(6));
+    return { fixed, T, mystery: { slot: -s, q }, opts: [...opts].sort((a, b) => a - b) };
+  }
+  return { fixed: [], T: 6, mystery: { slot: -2, q: 3 }, opts: [2, 3, 4] };
+}
 // ==END==
 
 const CX = 220;
@@ -82,11 +114,12 @@ const LOOK: Record<number, { body: string; line: string }> = {
   4: { body: "#c4b5fd", line: "#6d28d9" }, // 하마
 };
 /** 무게가 몸에 적힌 동물 친구(바닥 가운데 cx, 바닥 높이 bottom) */
-function Critter({ cx, bottom, w, team, mood }: { cx: number; bottom: number; w: number; team?: boolean; mood: "happy" | "calm" }) {
+function Critter({ cx, bottom, w: wReal, team, mood, mystery }: { cx: number; bottom: number; w: number; team?: boolean; mood: "happy" | "calm"; mystery?: boolean }) {
+  const w = mystery ? 3 : wReal; // ❓는 몸집으로 무게를 짐작하지 못하게 늘 같은 크기
   const h = blockH(w);
   const rx = 13 + w * 2.5;
   const cy = bottom - h / 2;
-  const c = team ? { body: "#93c5fd", line: "#1d4ed8" } : LOOK[w];
+  const c = mystery ? { body: "#f5d0fe", line: "#a21caf" } : team ? { body: "#93c5fd", line: "#1d4ed8" } : LOOK[w];
   const ex = rx * 0.38;
   const ey = cy - h * 0.16;
   return (
@@ -120,7 +153,7 @@ function Critter({ cx, bottom, w, team, mood }: { cx: number; bottom: number; w:
       )}
       <rect x={cx - 16} y={cy + h / 2 - 17} width="32" height="14" rx="7" fill="#fff" stroke={c.line} strokeWidth="1.5" />
       <text x={cx} y={cy + h / 2 - 6} fontSize="12" textAnchor="middle" fill="#1e1b4b" style={GF}>
-        {w}kg
+        {mystery ? "❓" : `${w}kg`}
       </text>
     </g>
   );
@@ -139,7 +172,10 @@ export default function LeverGame() {
   const SLOTS = [...Array.from({ length: sp.maxSlot }, (_, i) => -(sp.maxSlot - i)), ...Array.from({ length: sp.maxSlot }, (_, i) => i + 1)];
   const SHELF_X: Record<number, number> = Object.fromEntries(sp.weights.map((w, i) => [w, 220 + (i - (sp.weights.length - 1) / 2) * (sp.weights.length > 3 ? 98 : 110)]));
   const [mode, setMode] = useState<Mode>("problem");
-  const [prob, setProb] = useState(() => makeProblem(rand, level));
+  const genProblem = (r: number): Problem => (roundKind(level, r) === "mystery" ? makeMysteryProblem(rand, level) : makeProblem(rand, level));
+  const [prob, setProb] = useState<Problem>(() => genProblem(0));
+  const [asking, setAsking] = useState(false); // 수평을 만들었고 ❓의 무게를 고르는 중
+  const [wrongOpts, setWrongOpts] = useState<number[]>([]);
   const [mine, setMine] = useState<Wt[]>([]);
   const [pick, setPick] = useState<number | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -154,8 +190,11 @@ export default function LeverGame() {
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
-  const fixed = mode === "problem" ? prob.fixed : [];
+  const myst = mode === "problem" ? prob.mystery : undefined;
+  const mystWt: Wt[] = myst ? [{ slot: myst.slot, w: myst.q }] : [];
+  const fixed = mode === "problem" ? [...prob.fixed, ...mystWt] : [];
   const all = [...fixed, ...mine];
+  const mystHidden = !!myst && !done;
   const net = netTorque(all);
   const left = sideTorque(all, -1);
   const right = sideTorque(all, 1);
@@ -196,30 +235,47 @@ export default function LeverGame() {
     });
   }, Math.abs(ang - tgt) > 0.03);
 
+  const finishRound = () => {
+    setDone(true);
+    cheer();
+    setHopKey((k) => k + 1);
+    setSolved((v) => v + 1);
+    const n = round + 1;
+    setRound(n);
+    if (n >= ROUNDS) timer.current = window.setTimeout(stageClear, 1200);
+    else timer.current = window.setTimeout(() => newProblem(n), 2200);
+  };
   const place = (list: Wt[]) => {
     setMine(list);
     tick();
-    if (mode === "problem" && !done && netTorque([...prob.fixed, ...list]) === 0 && list.length > 0) {
-      setDone(true);
-      cheer();
-      setHopKey((k) => k + 1);
-      setSolved((v) => v + 1);
-      const n = round + 1;
-      setRound(n);
-      if (n >= ROUNDS) timer.current = window.setTimeout(stageClear, 1200);
-      else timer.current = window.setTimeout(() => newProblem(), 2200);
+    const bal = netTorque([...prob.fixed, ...mystWt, ...list]) === 0 && list.length > 0;
+    if (mode === "problem" && !done && !asking && bal) {
+      if (myst) {
+        setAsking(true);
+        setHopKey((k) => k + 1);
+      } else finishRound();
     } else if (mode === "free" && netTorque(list) === 0 && list.some((x) => x.slot < 0) && list.some((x) => x.slot > 0)) {
       cheer();
       setHopKey((k) => k + 1);
     }
   };
+  const answer = (v: number) => {
+    if (!myst || done || wrongOpts.includes(v)) return;
+    if (v === myst.q) finishRound();
+    else {
+      oops();
+      setWrongOpts((w) => [...w, v]);
+    }
+  };
 
-  const newProblem = () => {
+  const newProblem = (r = round) => {
     window.clearTimeout(timer.current);
-    setProb(makeProblem(rand, level));
+    setProb(genProblem(r));
     setMine([]);
     setDone(false);
     setPeeked(false);
+    setAsking(false);
+    setWrongOpts([]);
   };
   const showAnswer = () => {
     const sols = solutions(prob.T, sp.maxSlot, sp.weights);
@@ -231,7 +287,7 @@ export default function LeverGame() {
     if (!done) {
       setDone(true);
       // 답을 본 문제는 라운드로 세지 않고 새 문제로 바꿔요
-      timer.current = window.setTimeout(() => newProblem(), 3000);
+      timer.current = window.setTimeout(() => newProblem(round), 3000);
     }
   };
   const changeMode = (m: Mode) => {
@@ -240,11 +296,13 @@ export default function LeverGame() {
     setMine([]);
     setDone(false);
     setPeeked(false);
+    setAsking(false);
+    setWrongOpts([]);
   };
 
   // ── 포인터: 선반의 추나 막대 위의 추를 끌어서 칸에 놓기 ──
   const down = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (done) return;
+    if (done || asking) return;
     const svg = svgRef.current;
     if (!svg) return;
     const [x, y] = svgPoint(svg, e.clientX, e.clientY);
@@ -294,10 +352,12 @@ export default function LeverGame() {
 
   // 말풍선
   let say: { tone: "info" | "ok" | "bad"; text: string };
-  if (balanced && (mode === "free" || done)) {
+  if (asking && !done) {
+    say = { tone: "ok", text: wrongOpts.length ? "아직이에요, 괜찮아요! 수평이면 왼쪽 힘과 오른쪽 힘이 같아요. 오른쪽 힘을 먼저 구해 봐요." : "와, 수평이에요! 그럼 ❓는 몇 kg일까요? 아래에서 골라요!" };
+  } else if (balanced && (mode === "free" || done)) {
     say = { tone: "ok", text: `와, 수평이에요! 잘했어요! ⭐ 왼쪽 힘 ${left} = 오른쪽 힘 ${right}.${peeked ? " (답을 본 문제는 라운드로 세지 않아요. 새 문제가 나와요.)" : round < ROUNDS ? " 곧 다음 라운드로 가요." : " 레벨 클리어!"}` };
   } else if (mode === "problem" && mine.length === 0) {
-    say = { tone: "info", text: "아래 선반의 추를 끌어서 오른쪽 + 칸에 놓아요. 막대가 수평이 되면 성공!" };
+    say = { tone: "info", text: myst ? "❓ 동물의 무게는 비밀이에요! 오른쪽에 추를 놓아 수평을 만들면 알 수 있어요." : "아래 선반의 추를 끌어서 오른쪽 + 칸에 놓아요. 막대가 수평이 되면 성공!" };
   } else if (net > 0) {
     say = { tone: "bad", text: "오른쪽이 더 무거워요. 괜찮아요! 놓은 추를 끌어서 옮기거나 막대 밖으로 빼 봐요." };
   } else if (net < 0) {
@@ -388,7 +448,7 @@ export default function LeverGame() {
               {SLOTS.map((s) => {
                 const w = all.find((q) => q.slot === s);
                 if (!w) return null;
-                return <Critter key={s} cx={CX + s * GAP} bottom={CY - 7} w={w.w} team={!mine.some((q) => q.slot === s)} mood={balanced ? "happy" : "calm"} />;
+                return <Critter key={s} cx={CX + s * GAP} bottom={CY - 7} w={w.w} mystery={mystHidden && !!myst && s === myst.slot} team={!mine.some((q) => q.slot === s)} mood={balanced ? "happy" : "calm"} />;
               })}
             </g>
             {SLOTS.map((s) => {
@@ -446,7 +506,7 @@ export default function LeverGame() {
           <div className="mt-2 space-y-2 text-center text-base">
             <p className="font-semibold">돌리는 힘 = 무게 × 가운데에서 떨어진 칸 수</p>
             <div className="grid gap-2 sm:grid-cols-2">
-              <p className="rounded-card bg-bg px-3 py-2">왼쪽 힘 <strong className="tabular-nums">{left}</strong><span className="block tabular-nums text-muted">{exprOf(all, -1)}</span></p>
+              <p className="rounded-card bg-bg px-3 py-2">왼쪽 힘 <strong className="tabular-nums">{mystHidden ? "?" : left}</strong><span className="block tabular-nums text-muted">{mystHidden && myst ? exprOf(all, -1).replace(`${myst.q}×${-myst.slot}`, `❓×${-myst.slot}`) : exprOf(all, -1)}</span></p>
               <p className="rounded-card bg-bg px-3 py-2">오른쪽 힘 <strong className="tabular-nums">{right}</strong><span className="block tabular-nums text-muted">{exprOf(all, 1)}</span></p>
             </div>
             <p className="text-muted">두 힘이 같으면 수평이 돼요!</p>
@@ -456,12 +516,21 @@ export default function LeverGame() {
       </Board>
 
       <Say tone={say.tone}>{say.text}</Say>
+      {asking && !done && prob.opts && (
+        <div className="grid grid-cols-3 gap-3" role="group" aria-label="❓의 무게 고르기">
+          {prob.opts.map((v) => (
+            <GButton key={v} variant="soft" disabled={wrongOpts.includes(v)} onClick={() => answer(v)} className="min-h-[64px]! text-2xl">
+              {v}kg
+            </GButton>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <GButton pressed={hint} onClick={() => setHint((h) => !h)} className={BIG}>
           힌트 {hint ? "숨기기" : "보기"}
         </GButton>
-        {mode === "problem" && !done && (
+        {mode === "problem" && !done && !asking && (
           <GButton onClick={showAnswer} className={BIG}>
             답 하나 보기
           </GButton>

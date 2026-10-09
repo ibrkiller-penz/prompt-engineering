@@ -23,7 +23,7 @@ const capOf = (level: number) => [3, 4, 5, 6, 7, 8, 9, 9, 9, 9][Math.max(1, Math
 export function countSolutions(p: Puzzle): number {
   const { n, slots } = p;
   const rowH: (number | null)[] = p.rows.map((v) => v), colH: (number | null)[] = p.cols.map((v) => v);
-  const cell: (number | null)[][] = p.rows.map((rv, r) => p.cols.map((cv, c) => rv * cv));
+  const cell: (number | null)[][] = p.rows.map((rv) => p.cols.map((cv) => rv * cv));
   for (const s of slots) {
     if (s.k === "rowH") rowH[s.r] = null;
     else if (s.k === "colH") colH[s.c] = null;
