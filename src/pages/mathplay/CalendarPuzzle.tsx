@@ -102,6 +102,7 @@ export default function CalendarPuzzle() {
           solution={solution}
           resetKey={value}
           doneText={`${month + 1}월 ${day}일 ${WEEK[week]}요일만 남기고 모두 덮었어요!`}
+          next={{ label: "내일 날짜로 →", onClick: () => { const d = new Date(date); d.setDate(d.getDate() + 1); setValue(toInput(d)); } }}
           cellPx={46}
         />
       </div>

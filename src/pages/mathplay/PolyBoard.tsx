@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SHAPES, transform, type Cell, type Placed } from "./poly";
+import { cheer, oops, tick } from "./games/kit";
 
 /** 칸의 종류: void=판 밖, open=덮어야 하는 칸, target=덮지 말고 남길 칸 */
 export type CellKind = "void" | "open" | "target";
@@ -16,13 +17,15 @@ type Props = {
   resetKey: string | number;
   /** 다 덮었을 때 보일 말 */
   doneText: string;
+  /** 다 덮은 뒤 보일 ‘다음 문제’ 단추 */
+  next?: { label: string; onClick: () => void };
   cellPx?: number;
 };
 
 const key = (r: number, c: number) => `${r},${c}`;
 
 /** 조각을 놓는 판. 마우스는 칸 위에 올리면 놓일 자리가 보이고 누르면 놓인다. 터치는 한 번 눌러 자리를 보고, 같은 칸을 다시 눌러 놓는다. */
-export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, doneText, cellPx = 44 }: Props) {
+export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, doneText, next: nextBtn, cellPx = 44 }: Props) {
   const R = kinds.length;
   const C = kinds[0].length;
   const [placed, setPlaced] = useState<Record<string, Cell[]>>({});
@@ -36,7 +39,9 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
   const wrap = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   // 마우스로 조각을 끌고 있는 중: 시작한 자리와 움직였는지(클릭과 구분)
-  const [drag, setDrag] = useState<{ id: string; sx: number; sy: number; moved: boolean } | null>(null);
+  const [drag, setDrag] = useState<{ id: string; sx: number; sy: number; moved: boolean; touch: boolean } | null>(null);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const tapSel = useRef<string>("");
 
   useEffect(() => {
     setPlaced({});
@@ -66,12 +71,34 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
     return shape.reduce((best, x) => (Math.hypot(x[0] - cr, x[1] - cc) < Math.hypot(best[0] - cr, best[1] - cc) ? x : best), shape[0]);
   }, [shape]);
 
+  /** (r,c)를 잡는 곳으로 조각을 놓을 자리를 찾는다. 딱 맞는 자리가 없으면 한 칸 안쪽의 가까운 자리로 붙여 준다(snap). */
+  const findPlace = (id: string, r: number, c: number, base: Record<string, Cell[]>, snap = true): Cell[] | null => {
+    const d = pieces.find((p) => p.id === id);
+    if (!d) return null;
+    const sh = id === sel ? shape : transform(SHAPES[d.name], 0, false);
+    const an = id === sel ? anchor : sh[0];
+    const taken = new Set<string>();
+    for (const [pid, cs] of Object.entries(base)) if (pid !== id) cs.forEach(([rr, cc]) => taken.add(key(rr, cc)));
+    const tryAt = (rr: number, cc: number) => {
+      const cells = sh.map(([a, b]) => [rr + a - an[0], cc + b - an[1]] as Cell);
+      return cells.every(([x, y]) => x >= 0 && y >= 0 && x < R && y < C && kinds[x][y] === "open" && !taken.has(key(x, y))) ? cells : null;
+    };
+    const exact = tryAt(r, c);
+    if (exact || !snap) return exact;
+    for (const [dr, dc] of [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const near = tryAt(r + dr, c + dc);
+      if (near) return near;
+    }
+    return null;
+  };
+
   const ghost = useMemo(() => {
     if (!hover || !def || peek || placed[def.id]) return null;
-    const cells = shape.map(([a, b]) => [hover[0] + a - anchor[0], hover[1] + b - anchor[1]] as Cell);
-    const ok = cells.every(([r, c]) => r >= 0 && c >= 0 && r < R && c < C && kinds[r][c] === "open" && !owner.has(key(r, c)));
-    return { cells, ok };
-  }, [hover, def, shape, anchor, peek, placed, R, C, kinds, owner]);
+    const near = findPlace(def.id, hover[0], hover[1], placed);
+    if (near) return { cells: near, ok: true };
+    return { cells: shape.map(([a, b]) => [hover[0] + a - anchor[0], hover[1] + b - anchor[1]] as Cell), ok: false };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hover, def, shape, anchor, peek, placed, R, C, kinds]);
 
   const openCount = useMemo(() => kinds.flat().filter((k) => k === "open").length, [kinds]);
   const covered = useMemo(() => {
@@ -83,6 +110,11 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
     return n;
   }, [owner, kinds]);
   const done = covered === openCount && !peek;
+  const wasDone = useRef(false);
+  useEffect(() => {
+    if (done && !wasDone.current) cheer();
+    wasDone.current = done;
+  }, [done]);
 
   const nextUnplaced = useCallback(
     (after: Record<string, Cell[]>, from: string) => {
@@ -101,20 +133,16 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
   const mirror = useCallback(() => setFlip((x) => !x), []);
 
   /** (r,c)를 잡는 곳으로 해서 조각 id 를 놓을 수 있으면 놓고 true */
-  const placeAt = (id: string, r: number, c: number, base: Record<string, Cell[]>) => {
-    const d = pieces.find((p) => p.id === id);
-    if (!d) return false;
-    const cells = shape.map(([a, b]) => [r + a - anchor[0], c + b - anchor[1]] as Cell);
-    const taken = new Set<string>();
-    for (const [pid, cs] of Object.entries(base)) if (pid !== id) cs.forEach(([rr, cc]) => taken.add(key(rr, cc)));
-    const ok = cells.every(([rr, cc]) => rr >= 0 && cc >= 0 && rr < R && cc < C && kinds[rr][cc] === "open" && !taken.has(key(rr, cc)));
-    if (!ok) return false;
+  const placeAt = (id: string, r: number, c: number, base: Record<string, Cell[]>, snap = true) => {
+    const cells = findPlace(id, r, c, base, snap);
+    if (!cells) return false;
     const next = { ...base, [id]: cells };
     setPlaced(next);
     setSel(nextUnplaced(next, id));
     setRot(0);
     setFlip(false);
     setHover(null);
+    tick();
     return true;
   };
 
@@ -137,7 +165,7 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
       return;
     }
     if (!def) return;
-    if (!placeAt(def.id, r, c, placed)) setHover([r, c]);
+    if (!placeAt(def.id, r, c, placed, false)) setHover([r, c]);
   };
 
   // 포인터 위치 → 판의 칸
@@ -155,14 +183,17 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
   // 마우스 끌기: 조각 목록이나 판 위의 조각에서 시작해 놓고 싶은 칸에서 놓는다. 오른쪽 단추나 R·F 로 돌리고 뒤집는다.
   useEffect(() => {
     if (!drag) return;
+    const off = drag.touch ? 70 : 0; // 터치는 손가락에 가려지지 않게 조각을 위로 띄운다
     const move = (e: PointerEvent) => {
-      const moved = drag.moved || Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 4;
+      const moved = drag.moved || Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 6;
       if (moved !== drag.moved) setDrag({ ...drag, moved });
-      setHover(cellAt(e.clientX, e.clientY));
+      setDragPos({ x: e.clientX, y: e.clientY - off });
+      setHover(cellAt(e.clientX, e.clientY - off));
     };
     const up = (e: PointerEvent) => {
-      const at = cellAt(e.clientX, e.clientY);
-      if (drag.moved && at) placeAt(drag.id, at[0], at[1], placed);
+      const at = cellAt(e.clientX, e.clientY - off);
+      setDragPos(null);
+      if (drag.moved && at && !placeAt(drag.id, at[0], at[1], placed)) oops();
       else if (drag.moved) setHover(null);
       setDrag(null);
     };
@@ -172,18 +203,21 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     window.addEventListener("contextmenu", ctx);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
       window.removeEventListener("contextmenu", ctx);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drag, placed, shape, anchor, kinds]);
 
   const startDrag = (e: React.PointerEvent, id: string) => {
-    if (e.pointerType === "touch" || e.button !== 0 || peek) return;
+    if (e.button !== 0 || peek) return;
     e.preventDefault();
+    tapSel.current = sel;
     // 이미 놓은 조각이면 먼저 들어 올린다
     if (placed[id]) {
       const rest = { ...placed };
@@ -193,7 +227,7 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
     setSel(id);
     setRot(0);
     setFlip(false);
-    setDrag({ id, sx: e.clientX, sy: e.clientY, moved: false });
+    setDrag({ id, sx: e.clientX, sy: e.clientY, moved: false, touch: e.pointerType === "touch" });
   };
 
 
@@ -234,14 +268,35 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
   const H = R * S + pad * 2;
   const colorOf = (id: string) => pieces.find((p) => p.id === id)?.color ?? "#999";
 
+  // 끄는 중 손가락·마우스를 따라다니는 조각(칸 크기는 판에 맞춘다)
+  const floating = (() => {
+    if (!drag?.moved || !dragPos || !def || drag.id !== def.id || !svgRef.current) return null;
+    const px = (svgRef.current.getBoundingClientRect().width / W) * S;
+    const mr = Math.max(...shape.map((x) => x[0])) + 1;
+    const mc = Math.max(...shape.map((x) => x[1])) + 1;
+    return (
+      <svg
+        width={mc * px}
+        height={mr * px}
+        style={{ position: "fixed", left: dragPos.x - (anchor[1] + 0.5) * px, top: dragPos.y - (anchor[0] + 0.5) * px, pointerEvents: "none", zIndex: 90, opacity: 0.9, filter: "drop-shadow(0 6px 8px rgba(0,0,0,.35))" }}
+        aria-hidden
+      >
+        {shape.map(([a, b]) => (
+          <rect key={key(a, b)} x={b * px + 1} y={a * px + 1} width={px - 2} height={px - 2} rx={5} fill={def.color} />
+        ))}
+      </svg>
+    );
+  })();
+
   return (
     <div ref={wrap} className="select-none">
+      {floating}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${W} ${H}`}
-            className="mx-auto block w-full touch-manipulation"
+            className="mx-auto block w-full touch-none"
             style={{ maxWidth: C * S * 1.3 + 8 }}
             role="img"
             aria-label="조각을 놓는 판"
@@ -315,6 +370,11 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
                     type="button"
                     disabled={!!peek}
                     onClick={() => {
+                      if (!isPlaced && tapSel.current === p.id && sel === p.id && !peek) {
+                        rotate(); // 이미 고른 조각을 한 번 더 누르면 돌아가요
+                        tapSel.current = "";
+                        return;
+                      }
                       if (isPlaced) {
                         const rest = { ...placed };
                         delete rest[p.id];
@@ -327,7 +387,7 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
                     onPointerDown={(e) => startDrag(e, p.id)}
                     aria-pressed={sel === p.id}
                     aria-label={`${p.name.toUpperCase()} 조각${isPlaced ? ", 놓음(누르면 집어 들어요)" : ""}`}
-                    className={`flex h-[62px] min-w-[62px] items-center justify-center rounded-card border-2 bg-surface p-1.5 transition ${
+                    className={`flex h-[62px] min-w-[62px] touch-none items-center justify-center rounded-card border-2 bg-surface p-1.5 transition ${
                       sel === p.id && !peek ? "border-accent shadow" : "border-line hover:border-accent/60"
                     } ${isPlaced ? "opacity-40" : ""}`}
                   >
@@ -395,9 +455,14 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
         {noSolution && <span className="ml-2 font-semibold text-bad">이 문제는 답을 찾지 못했어요.</span>}
       </p>
       {done && (
-        <p className="mt-2 rounded-card bg-ok-soft p-3 font-semibold text-ok" role="status">
-          🎉 {doneText}
-        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-3 rounded-card bg-ok-soft p-3 font-semibold text-ok" role="status">
+          <span className="min-w-0 flex-1">🎉 {doneText}</span>
+          {nextBtn && (
+            <button type="button" onClick={nextBtn.onClick} className="min-h-[48px] rounded-card bg-accent px-5 font-extrabold text-accent-ink hover:brightness-110">
+              {nextBtn.label}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

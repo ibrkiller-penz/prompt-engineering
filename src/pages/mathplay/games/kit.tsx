@@ -105,3 +105,108 @@ export function Board({ children, className = "" }: { children: ReactNode; class
 
 export const rand = (n: number) => Math.floor(Math.random() * n);
 export const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
+
+// ───── 게임 느낌 내기: 성공 효과(색종이·진동·소리) ─────
+let soundOn = false;
+try {
+  soundOn = localStorage.getItem("penedu:mathplay:sound") === "1";
+} catch {
+  /* 저장소를 못 쓰는 환경이면 소리는 꺼 둔다 */
+}
+export const getSound = () => soundOn;
+export const setSound = (v: boolean) => {
+  soundOn = v;
+  try {
+    localStorage.setItem("penedu:mathplay:sound", v ? "1" : "0");
+  } catch {
+    /* 무시 */
+  }
+};
+
+let audio: AudioContext | null = null;
+function beep(freqs: number[], dur = 0.12, type: OscillatorType = "sine") {
+  if (!soundOn) return;
+  try {
+    audio ??= new AudioContext();
+    const t0 = audio.currentTime;
+    freqs.forEach((f, i) => {
+      const o = audio!.createOscillator();
+      const g = audio!.createGain();
+      o.type = type;
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + i * dur);
+      g.gain.exponentialRampToValueAtTime(0.15, t0 + i * dur + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + (i + 1) * dur);
+      o.connect(g).connect(audio!.destination);
+      o.start(t0 + i * dur);
+      o.stop(t0 + (i + 1) * dur + 0.02);
+    });
+  } catch {
+    /* 소리를 못 내면 조용히 넘어간다 */
+  }
+}
+const vibrate = (p: number | number[]) => {
+  try {
+    navigator.vibrate?.(p);
+  } catch {
+    /* 무시 */
+  }
+};
+
+/** 작은 ‘톡’: 놓기·고르기 같은 짧은 반응 */
+export function tick() {
+  beep([740], 0.05);
+  vibrate(8);
+}
+/** 아쉬움: 틀렸을 때(부드럽게) */
+export function oops() {
+  beep([260, 220], 0.12, "triangle");
+  vibrate(40);
+}
+/** 성공! 색종이 + 진동 + 소리 */
+export function cheer() {
+  beep([523, 659, 784, 1047], 0.1);
+  vibrate([30, 40, 30]);
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const c = document.createElement("canvas");
+  c.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:80";
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  c.width = W * dpr;
+  c.height = H * dpr;
+  document.body.appendChild(c);
+  const x = c.getContext("2d")!;
+  x.scale(dpr, dpr);
+  const colors = ["#f43f5e", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#eab308"];
+  const ps = Array.from({ length: 70 }, () => ({
+    x: W / 2 + (Math.random() - 0.5) * W * 0.3,
+    y: H * 0.45,
+    vx: (Math.random() - 0.5) * 9,
+    vy: -Math.random() * 11 - 3,
+    r: Math.random() * 6 + 3,
+    c: colors[Math.floor(Math.random() * colors.length)],
+    a: Math.random() * 6,
+  }));
+  const t0 = performance.now();
+  const loop = (now: number) => {
+    const t = (now - t0) / 1000;
+    x.clearRect(0, 0, W, H);
+    for (const p of ps) {
+      p.vy += 0.35;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.a += 0.2;
+      x.save();
+      x.globalAlpha = Math.max(0, 1 - t / 1.4);
+      x.translate(p.x, p.y);
+      x.rotate(p.a);
+      x.fillStyle = p.c;
+      x.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2);
+      x.restore();
+    }
+    if (t < 1.4) requestAnimationFrame(loop);
+    else c.remove();
+  };
+  requestAnimationFrame(loop);
+}

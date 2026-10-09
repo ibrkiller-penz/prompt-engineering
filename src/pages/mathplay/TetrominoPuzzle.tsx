@@ -30,7 +30,7 @@ export default function TetrominoPuzzle() {
         <p className="text-sm text-muted">흰 칸 20개를 5종 조각으로 빈틈없이 덮어요. 조각은 한 번씩만 써요. 답이 둘 이상일 수도 있어요.</p>
       </div>
       <div className="mt-4">
-        <PolyBoard kinds={kinds} pieces={PIECES} solution={solution} resetKey={seed} doneText="빈틈없이 5조각으로 덮었어요! 다른 방법도 있을까요?" cellPx={50} />
+        <PolyBoard kinds={kinds} pieces={PIECES} solution={solution} resetKey={seed} doneText="빈틈없이 5조각으로 덮었어요! 다른 방법도 있을까요?" next={{ label: "새 문제 →", onClick: () => setSeed((x) => x + 1) }} cellPx={50} />
       </div>
     </div>
   );

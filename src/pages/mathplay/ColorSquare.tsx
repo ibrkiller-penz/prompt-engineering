@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { makeColorSquare } from "./poly";
+import { cheer, oops, tick } from "./games/kit";
 
 /** 칩 색: 사진 속 교구처럼 1 빨강 · 2 노랑 · 3 초록 · 4 파랑 · 5 주황. 숫자도 같이 써서 색을 구분하기 어려워도 풀 수 있다. */
 const CHIP = [
@@ -39,7 +40,8 @@ export default function ColorSquare() {
   const [n, setN] = useState<4 | 5>(4);
   const [puzzle, setPuzzle] = useState<Puzzle>(() => makeColorSquare(4));
   const [grid, setGrid] = useState<number[][]>(() => puzzle.given.map((row, r) => row.map((g, c) => (g ? puzzle.solution[r][c] : 0))));
-  const [pick, setPick] = useState(1);
+  // pick=0 이면 ‘누를 때마다 색이 바뀜’, 색 칩을 고르면 그 색으로 칠함
+  const [pick, setPick] = useState(0);
   const [peek, setPeek] = useState(false);
 
   const start = (size: 4 | 5) => {
@@ -47,7 +49,7 @@ export default function ColorSquare() {
     setN(size);
     setPuzzle(p);
     setGrid(p.given.map((row, r) => row.map((g, c) => (g ? p.solution[r][c] : 0))));
-    setPick(1);
+    setPick(0);
     setPeek(false);
   };
 
@@ -56,6 +58,16 @@ export default function ColorSquare() {
   const filled = shown.flat().filter(Boolean).length;
   const anyBad = bad.flat().some(Boolean);
   const done = !peek && filled === n * n && !anyBad;
+  const wasDone = useRef(false);
+  const wasBad = useRef(false);
+  useEffect(() => {
+    if (done && !wasDone.current) cheer();
+    wasDone.current = done;
+  }, [done]);
+  useEffect(() => {
+    if (anyBad && !wasBad.current) oops();
+    wasBad.current = anyBad;
+  }, [anyBad]);
   const counts = useMemo(() => {
     const m = Array<number>(n + 1).fill(0);
     shown.flat().forEach((v) => v && m[v]++);
@@ -65,7 +77,8 @@ export default function ColorSquare() {
   const S = 64;
   const onCell = (r: number, c: number) => {
     if (peek || puzzle.given[r][c]) return;
-    setGrid((g) => g.map((row, i) => row.map((v, j) => (i === r && j === c ? (v === pick ? 0 : pick) : v))));
+    tick();
+    setGrid((g) => g.map((row, i) => row.map((v, j) => (i === r && j === c ? (pick === 0 ? (v + 1) % (n + 1) : v === pick ? 0 : pick) : v))));
   };
 
   return (
@@ -120,7 +133,7 @@ export default function ColorSquare() {
         </svg>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-muted">칩 고르기 → 빈칸 누르기 (같은 색을 한 번 더 누르면 빼요)</p>
+          <p className="text-sm font-semibold text-muted">칸을 누를 때마다 색이 바뀌어요. 색 칩을 고르면 그 색으로 칠해요(칩을 한 번 더 누르면 해제).</p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {[...Array(n)].map((_, i) => {
               const v = i + 1;
@@ -128,7 +141,7 @@ export default function ColorSquare() {
                 <li key={v}>
                   <button
                     type="button"
-                    onClick={() => setPick(v)}
+                    onClick={() => setPick(pick === v ? 0 : v)}
                     disabled={peek}
                     aria-pressed={pick === v}
                     aria-label={`${v}번 칩, 지금 ${counts[v]}개 놓음`}
@@ -178,6 +191,9 @@ export default function ColorSquare() {
           {done && (
             <p className="mt-2 rounded-card bg-ok-soft p-3 font-semibold text-ok" role="status">
               🎉 모든 줄과 두 대각선에 색이 하나씩! 완성했어요.
+              <button type="button" onClick={() => start(n)} className="ml-3 min-h-[48px] rounded-card bg-accent px-4 font-extrabold text-accent-ink hover:brightness-110">
+                새 문제 →
+              </button>
             </p>
           )}
         </div>

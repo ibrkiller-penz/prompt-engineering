@@ -1,4 +1,5 @@
-import { Suspense, lazy, useEffect, useMemo, type ComponentType } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState, type ComponentType } from "react";
+import { getSound, setSound } from "./games/kit";
 import { GAMES, floorInfo, gameById } from "./games/registry";
 
 const mods = import.meta.glob("./games/*.tsx") as Record<string, () => Promise<{ default: ComponentType }>>;
@@ -11,6 +12,7 @@ const puzzleMods: Record<string, () => Promise<{ default: ComponentType }>> = {
 /** 게임 팝업: 게임을 누르면 이 창 안에서 바로 논다. 드래그도 이 창 안에서 한다. */
 export default function GameModal({ id, onClose, onOpen }: { id: string; onClose: () => void; onOpen: (id: string) => void }) {
   const g = gameById(id);
+  const [sound, setSoundState] = useState(getSound());
   const Game = useMemo(() => {
     const load = puzzleMods[id] ?? mods[`./games/${id}.tsx`];
     return load ? lazy(load) : null;
@@ -47,6 +49,18 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
               {g.level === "upper" ? " · 중·고등 도전" : ""}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSound(!sound);
+              setSoundState(!sound);
+            }}
+            aria-pressed={sound}
+            aria-label={sound ? "소리 끄기" : "소리 켜기"}
+            className="min-h-[48px] shrink-0 rounded-card border border-line bg-surface px-3 text-xl hover:bg-bg"
+          >
+            {sound ? "🔊" : "🔇"}
+          </button>
           <button type="button" onClick={onClose} autoFocus className="min-h-[48px] shrink-0 rounded-card border border-line bg-surface px-4 text-lg font-bold hover:bg-bg" aria-label="게임 닫기">
             ✕ 닫기
           </button>
