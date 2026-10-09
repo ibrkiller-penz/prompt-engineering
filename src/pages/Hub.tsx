@@ -3,27 +3,46 @@ import { Link } from "react-router-dom";
 import { HUB_NAME, SECTIONS } from "../site";
 import SectionIcon from "../components/SectionIcon";
 
-/** 설명은 두 줄까지만 보이고, 더 긴 설명(more)이 있으면 '더보기'로 펼친다 (카드 전체가 링크라서 클릭이 이동하지 않게 막는다) */
-function Desc({ text, more }: { text: string; more?: string }) {
+type Section = (typeof SECTIONS)[number];
+
+/**
+ * 카드 안쪽. 공간을 아끼려고 두 줄로 정리한다.
+ * - 윗줄: 왼쪽 태그 / 오른쪽 끝 '더보기'(긴 설명이 있을 때만)
+ * - 설명은 두 줄까지, '더보기'를 눌러야 펼친다 (마우스를 올려도 펼치지 않는다)
+ * - 아랫줄: 왼쪽 '자료 · 이름'(있을 때만) / 오른쪽 끝 들어가기
+ * 카드 전체가 링크라서 '더보기' 클릭은 이동하지 않게 막는다.
+ */
+function CardBody({ s }: { s: Section }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-2">
-      <p className={`text-muted ${open ? "" : "line-clamp-2"}`}>{open && more ? more : text}</p>
-      {more && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setOpen((o) => !o);
-          }}
-          aria-expanded={open}
-          className="mt-1 min-h-[32px] text-sm font-semibold text-muted underline underline-offset-4 hover:text-ink"
-        >
-          {open ? "접기" : "더보기"}
-        </button>
-      )}
-    </div>
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <span className="inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">{s.tag}</span>
+        {s.more && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen((o) => !o);
+            }}
+            aria-expanded={open}
+            className="min-h-[32px] shrink-0 px-1 text-sm font-semibold text-muted underline underline-offset-4 hover:text-ink"
+          >
+            {open ? "접기" : "더보기"}
+          </button>
+        )}
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <SectionIcon path={s.path} size={44} />
+        <h2 className="text-2xl font-extrabold leading-tight">{s.title}</h2>
+      </div>
+      <p className={`mt-2 text-muted ${open ? "" : "line-clamp-2"}`}>{open && s.more ? s.more : s.desc}</p>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-xs text-muted">{s.credit ?? ""}</span>
+        <span className="shrink-0 font-semibold text-accent group-hover:underline">{s.cta ?? "들어가기 →"}</span>
+      </div>
+    </>
   );
 }
 
@@ -159,6 +178,7 @@ export default function Hub() {
               <span className="inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">{s.tag}</span>
               <h2 className="mt-1 text-2xl font-extrabold leading-tight sm:text-3xl">{s.title}</h2>
               <p className="mt-1 text-muted">{s.desc}</p>
+              {s.credit && <p className="mt-2 text-xs text-muted">{s.credit}</p>}
             </div>
             <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
               <span className="flex gap-1.5 text-sm font-bold" aria-label="ChatGPT, Claude, Gemini용">
@@ -176,18 +196,8 @@ export default function Hub() {
         <ul className="mt-4 grid gap-4 sm:grid-cols-2">
           {SECTIONS.filter((s) => !s.featured).map((s) => {
             const cls =
-              "group block h-full rounded-card border border-line bg-surface p-6 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg";
-            const inner = (
-              <>
-                <span className="inline-block rounded-full bg-accent-soft px-3 py-0.5 text-sm font-semibold text-accent">{s.tag}</span>
-                <div className="mt-3 flex items-center gap-3">
-                  <SectionIcon path={s.path} size={44} />
-                  <h2 className="text-2xl font-extrabold leading-tight">{s.title}</h2>
-                </div>
-                <Desc text={s.desc} more={s.more} />
-                <span className="mt-3 inline-block font-semibold text-accent group-hover:underline">{s.cta ?? "들어가기 →"}</span>
-              </>
-            );
+              "group block h-full rounded-card border border-line bg-surface p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg";
+            const inner = <CardBody s={s} />;
             return (
               <li key={s.path}>
                 {s.external ? (

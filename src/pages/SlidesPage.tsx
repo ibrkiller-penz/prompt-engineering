@@ -3,6 +3,21 @@ import { Link, useSearchParams } from "react-router-dom";
 import data from "../../content/slides/slides.json";
 import { HUB_NAME } from "../site";
 import { CopyButton } from "../components/ui";
+import { VARIANTS, BOOST_SLIDES, appendBlocks, variantBlock, viewOf, type Block } from "./slideStyles";
+import {
+  HEX,
+  PALETTE_FIELDS,
+  TAGS,
+  contrast,
+  makeCustomDesign,
+  paletteFromParam,
+  paletteToParam,
+  tagsOf,
+  type DesignLike,
+  type Palette,
+} from "./designTools";
+import { STYLES, applyStyle, canStyle } from "./styleTemplates";
+import StyleMock from "./StyleMock";
 
 type Design = (typeof data.designs)[number];
 type Col = Design["colors"][number];
@@ -190,17 +205,204 @@ const TABS = data.steps.filter((s) => s.id !== "design");
 /** 처음에 보이는 대표 디자인 (밝은 것·어두운 것·기관용이 섞이게) */
 const FEATURED = ["busan-office", "classroom-bright", "paper-notes", "night-navy", "chalkboard-v2", "terracotta"];
 
+/** 색을 고를 때 쓰기 좋은 사이트 */
+const PALETTE_SITES = [
+  { name: "Coolors", url: "https://coolors.co", desc: "스페이스바를 누를 때마다 5색 팔레트가 새로 나와요. 마음에 드는 색은 고정해 두면 돼요. 가장 무난해요." },
+  { name: "Adobe Color", url: "https://color.adobe.com", desc: "보색·유사색 같은 색상 규칙으로 만들거나 사진에서 색을 뽑아요. 명도 대비도 확인할 수 있어요." },
+  { name: "Color Hunt", url: "https://colorhunt.co", desc: "사람들이 고른 4색 팔레트를 둘러보고 골라요. 빨리 고를 때 좋아요." },
+  { name: "Realtime Colors", url: "https://realtimecolors.com", desc: "배경·글자·강조색을 실제 화면에 적용한 모습으로 미리 봐요. 슬라이드와 가장 비슷하게 확인할 수 있어요." },
+  { name: "Khroma", url: "https://khroma.co", desc: "좋아하는 색을 몇 개 고르면 AI가 취향에 맞는 조합을 추천해 줘요." },
+];
+
+
+/** 노트북LM 화면의 세 칸. active를 주면 붙여 넣을 칸을 강조한다 */
+function PanelMap({ active, stack }: { active?: 1 | 2 | 3; stack?: boolean }) {
+  const items = [
+    { n: 1, name: "소스", sub: "자료를 올리는 곳" },
+    { n: 2, name: "채팅", sub: "질문·대본을 붙여 넣는 곳" },
+    { n: 3, name: "스튜디오", sub: "슬라이드를 만드는 곳" },
+  ] as const;
+  return (
+    <div
+      className={`grid grid-cols-3 gap-2 ${stack ? "md:grid-cols-1" : ""}`}
+      role="img"
+      aria-label={`노트북LM 화면의 세 칸: 1번 소스, 2번 채팅, 3번 스튜디오.${active ? ` ${active}번에 붙여 넣어요.` : ""}`}
+    >
+      {items.map((it) => {
+        const on = it.n === active;
+        return (
+          <div
+            key={it.n}
+            className={`rounded-card border-2 p-3 text-center ${stack ? "md:py-2 md:text-left" : ""} ${on ? "border-accent bg-accent text-accent-ink" : "border-line bg-bg text-muted"}`}
+          >
+            <b className="block text-base leading-tight sm:text-lg">
+              {it.n}번 {it.name}
+            </b>
+            <span className="mt-0.5 block text-xs leading-snug">{it.sub}</span>
+            {on && <span className="mt-1 block text-xs font-bold">👇 여기예요</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** 탭마다 "어디에 붙여 넣고 그다음 무엇을 누르는지" (공식 도움말 기준) */
+const PLACE: Record<string, { panel: 1 | 2 | 3; where: string; steps: string[]; tips?: string[] }> = {
+  script: {
+    panel: 2,
+    where: "가운데 2번 채팅창에 붙여 넣어요",
+    steps: [
+      "1번 소스 칸에 수업 자료(파일·링크)를 먼저 올려 두세요.",
+      "아래에서 대상·목적을 고르고 [📋 전체 복사]를 눌러요.",
+      "2번 채팅창의 입력칸에 붙여 넣고 보내요. 슬라이드마다 제목·화면 텍스트·상세 대본이 나와요.",
+      "마음에 드는 답변 아래 [메모에 저장]을 누르고, 메모를 열어 [소스로 변환]을 눌러요. 그러면 대본이 소스 목록에 들어와서 다음 단계가 이 대본을 읽어요.",
+    ],
+  },
+  infoScript: {
+    panel: 2,
+    where: "가운데 2번 채팅창에 붙여 넣어요",
+    steps: [
+      "1번 소스 칸에 수업 자료(파일·링크)를 먼저 올려 두세요.",
+      "아래에서 대상·목적을 고르고 [📋 전체 복사]를 눌러요.",
+      "2번 채팅창의 입력칸에 붙여 넣고 보내요. 인포그래픽에 들어갈 짧은 글이 구역별로 나와요.",
+      "답변 아래 [메모에 저장] → 메모를 열어 [소스로 변환]을 눌러요.",
+    ],
+  },
+  slides: {
+    panel: 3,
+    where: "오른쪽 3번 스튜디오 · 슬라이드 맞춤설정의 '설명' 칸에 붙여 넣어요",
+    steps: [
+      "1번 소스 칸에서 변환한 '대본'만 체크하고 나머지 소스는 체크를 풀어 주세요. (추천: 대본대로 만들어져요)",
+      "3번 스튜디오에서 '슬라이드 자료'의 연필(맞춤설정) 아이콘을 눌러요.",
+      "형식은 발표용이면 '발표자 슬라이드', 읽는 자료면 '자세한 자료'. 언어는 '한국어'. 장수는 프롬프트가 정하니 길이는 '기본값'이면 돼요.",
+      "'만들려는 슬라이드 자료에 대한 설명' 칸에 [📋 전체 복사]한 프롬프트를 붙여 넣어요.",
+      "[지금 생성]을 눌러요. 몇 분 걸리고, 그동안 다른 작업을 해도 돼요.",
+    ],
+  },
+  infographic: {
+    panel: 3,
+    where: "오른쪽 3번 스튜디오 · 인포그래픽 맞춤설정의 입력 칸에 붙여 넣어요",
+    steps: [
+      "1번 소스 칸에서 변환한 '인포그래픽 대본'만 체크하고 나머지는 체크를 풀어 주세요. 이 프롬프트는 대본의 구역 제목·화면 텍스트·강조 숫자를 그대로 쓰라고 시켜요.",
+      "3번 스튜디오에서 '인포그래픽'의 연필(맞춤설정) 아이콘을 눌러요.",
+      "방향(정사각형·세로·가로), 세부 정보 수준(간결·표준·상세), 언어('한국어')를 골라요. 글자가 덜 깨지도록 '간결'을 추천해요.",
+      "시각적 스타일(스케치 노트·프로페셔널 등)을 고르는 칸이 있으면 '자동'으로 두세요. 색과 모양은 이 프롬프트가 정해요. (추천)",
+      "프롬프트 입력 칸에 [📋 전체 복사]한 글을 붙여 넣고 생성을 눌러요. 몇 분 걸려요.",
+    ],
+    tips: [
+      "글자가 깨지면: 세부 정보 수준을 '간결'로 하고, 대본의 글을 더 줄여서(한 줄 8단어 안팎) 다시 만들어요. '상세'는 글자 오류가 늘 수 있어요.",
+      "프롬프트가 안 먹는 것 같으면: 소스에 대본만 체크했는지 확인하고, 구역을 3~4개로 줄여 보세요. 한 번에 하나만 바꿔서 다시 만들면 무엇이 효과 있는지 알 수 있어요.",
+      "결과는 PNG 그림이에요. 글자를 직접 고칠 수 없어서, 틀린 글자는 대본이나 프롬프트를 고쳐 다시 만들어요.",
+      "AI가 만들어서 사실과 다르거나 글자가 틀릴 수 있어요. 수업에 쓰기 전에 꼭 확인하세요.",
+    ],
+  },
+};
+
+const GUIDE_STEPS: { t: string; d: string }[] = [
+  { t: "노트북을 만들고 자료를 올려요", d: "노트북LM에서 새 노트북을 만들고, 왼쪽 1번 소스 칸의 [+ 추가]로 자료를 넣어요. 방법은 여러 가지예요: 파일(PDF·Word·PowerPoint·이미지·오디오), 웹 주소, YouTube 링크, 구글 드라이브 문서·슬라이드, 복사한 글 붙여넣기, 웹에서 소스 찾기." },
+  { t: "이 페이지에서 디자인을 골라요", d: "아래 ① 디자인 고르기에서 색을, ② 스타일 고르기에서 모양을 골라요. 디자인 지침은 노트북LM에 따로 넣지 않아요. 슬라이드 프롬프트(단계 3·4) 안에 이미 들어 있어요." },
+  { t: "2번 채팅창에 '대본' 프롬프트를 붙여 넣어요", d: "③ 단계의 '슬라이드 대본' 탭에서 대상·목적을 고르고 [📋 전체 복사] → 노트북LM 가운데 채팅창에 붙여 넣고 보내요." },
+  { t: "대본을 '소스'로 바꿔요", d: "대본 답변 아래의 [메모에 저장]을 누르고, 메모를 열어 [소스로 변환]을 눌러요. 그다음 소스 칸에서 대본만 체크하고 나머지는 체크를 풀어요." },
+  { t: "3번 스튜디오에 '슬라이드 프롬프트'를 붙여 넣어요", d: "스튜디오의 '슬라이드 자료' 연필 아이콘 → 형식·언어(한국어)·길이(기본값)를 고르고 → '만들려는 슬라이드 자료에 대한 설명' 칸에 '슬라이드 프롬프트' 탭의 글을 붙여 넣은 뒤 [지금 생성]. (그 탭 위쪽 '구성 방식' 메뉴에서 그래픽·도형·주요 내용·설명 위주 중 골라 복사할 수 있어요.)" },
+  { t: "기다렸다가 고쳐요", d: "몇 분 걸려요. 완성되면 위쪽 수정 아이콘으로 슬라이드마다 고치고 [수정된 자료 생성]을 눌러요." },
+  { t: "내려받아요", d: "점 세 개(⋮) 메뉴에서 PDF 또는 PowerPoint(.pptx)로 받아요. 인포그래픽도 같은 방법이고, 대본과 프롬프트만 '인포그래픽' 탭 것을 써요." },
+];
+
+/** 처음 쓰는 사람을 위한 순서 안내 */
+function Guide() {
+  return (
+    <details open className="mt-6 rounded-card border border-line bg-surface p-5 sm:p-6">
+      <summary className="min-h-[44px] cursor-pointer text-xl font-bold">📖 처음이세요? 이렇게 하세요 (7단계)</summary>
+      <p className="mt-2 text-muted">
+        노트북LM 화면은 세 칸이에요. 어느 칸에 무엇을 붙여 넣는지만 알면 쉬워요.
+      </p>
+      <div className="mt-3">
+        <PanelMap />
+      </div>
+      <ol className="mt-5 space-y-3">
+        {GUIDE_STEPS.map((s, i) => (
+          <li key={s.t} className="flex gap-3">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent font-bold text-accent-ink" aria-hidden>
+              {i + 1}
+            </span>
+            <div className="min-w-0">
+              <b className="block">{s.t}</b>
+              <p className="text-muted">{s.d}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-5 rounded-card bg-bg p-4">
+        <p className="font-bold">알아 두면 좋아요</p>
+        <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted">
+          <li>한글이 어색하게 보이는 건 보통 글자가 많아서예요. 슬라이드 프롬프트 끝에 "각 슬라이드 본문은 3줄 이내, 짧은 키워드 중심으로 써 줘"를 덧붙이고, 형식은 '발표자 슬라이드'로 해 보세요.</li>
+          <li>AI가 만들어서 사실과 다른 내용이나 어색한 그림이 있을 수 있어요. 수업에 쓰기 전에 꼭 읽어 보세요.</li>
+          <li>노트북LM은 만 18세 이상만 쓸 수 있어요(공식 도움말). 학생에게는 선생님 계정으로 만든 결과물을 나눠 주세요.</li>
+        </ul>
+      </div>
+      <p className="mt-4 text-xs text-muted">
+        참고: 공식 도움말{" "}
+        <a className="underline" href="https://support.google.com/notebooklm/answer/16757456?hl=ko" target="_blank" rel="noopener">
+          슬라이드 자료 만들기
+        </a>
+        ,{" "}
+        <a className="underline" href="https://support.google.com/notebooklm/answer/16262519?hl=ko" target="_blank" rel="noopener">
+          메모를 소스로 변환
+        </a>
+        ,{" "}
+        <a className="underline" href="https://support.google.com/notebooklm/answer/16215270?hl=ko" target="_blank" rel="noopener">
+          소스 추가·검색
+        </a>
+        ,{" "}
+        <a className="underline" href="https://support.google.com/notebooklm/answer/16206563?hl=ko" target="_blank" rel="noopener">
+          화면 구성과 소스 선택
+        </a>
+        . 화면 이름은 노트북LM 업데이트에 따라 조금 달라질 수 있어요.
+      </p>
+    </details>
+  );
+}
+
 /** 노트북LM 슬라이드 프롬프트 — 디자인을 고르면 단계별 프롬프트가 채워진다 */
 export default function SlidesPage() {
   const [sp, setSp] = useSearchParams();
   const first = sp.get("d");
-  const [designId, setDesignId] = useState(data.designs.some((x) => x.id === first) ? (first as string) : data.designs[0].id);
+  // 내 색: 주소의 p(6색)로 공유할 수 있다. 밝은/어두운 틀을 복제해 만든다.
+  const [customPal, setCustomPal] = useState<Palette | null>(paletteFromParam(sp.get("p")));
+  const lightBase = data.designs.find((x) => x.id === "classroom-bright")!;
+  const darkBase = data.designs.find((x) => x.id === "night-navy")!;
+  const customDesign = customPal ? (makeCustomDesign(lightBase as unknown as DesignLike, darkBase as unknown as DesignLike, customPal) as unknown as (typeof data.designs)[number]) : null;
+  const allDesigns = customDesign ? [...data.designs, customDesign] : data.designs;
+  const [designId, setDesignId] = useState(
+    first === "custom" && customPal ? "custom" : data.designs.some((x) => x.id === first) ? (first as string) : data.designs[0].id,
+  );
+  const [tag, setTag] = useState<string>("전체");
+  const [edit, setEdit] = useState<Record<keyof Palette, string>>(() => {
+    const c = Object.fromEntries(lightBase.colors.map((x) => [x.name, x.hex]));
+    const p = customPal ?? { bg: c.BG, text: c.TEXT_MAIN, sub: c.TEXT_SUB, a1: c.ACCENT_1, a2: c.ACCENT_2, point: c.POINT };
+    return { ...p };
+  });
   const [step, setStep] = useState(TABS.some((x) => x.id === sp.get("s")) ? (sp.get("s") as string) : TABS[0].id);
   const [count, setCount] = useState<"20" | "60">("20");
-  const design = data.designs.find((x) => x.id === designId) ?? data.designs[0];
+  const baseDesign = allDesigns.find((x) => x.id === designId) ?? data.designs[0];
+  // 스타일 템플릿: 색(디자인)과 따로 고른다. 부산 원본 2종은 형식이 달라 스타일을 바꿀 수 없다.
+  const [styleId, setStyleId] = useState(STYLES.some((x) => x.id === sp.get("t")) ? (sp.get("t") as string) : STYLES[0].id);
+  const styleOk = canStyle(baseDesign as unknown as DesignLike);
+  const styleT = STYLES.find((x) => x.id === styleId) ?? STYLES[0];
+  const design = styleOk ? (applyStyle(baseDesign as unknown as DesignLike, styleT) as unknown as typeof baseDesign) : baseDesign;
   const [more, setMore] = useState(false);
+  const [openDesign, setOpenDesign] = useState(true); // 선택한 디자인 카드: 처음엔 펼침, 접기 버튼으로 접는다
+  const [boost, setBoost] = useState(true); // 슬라이드 프롬프트 보강 지침: 처음엔 켬(추천)
+  const [variantId, setVariantId] = useState(VARIANTS.some((x) => x.id === sp.get("v")) ? (sp.get("v") as string) : VARIANTS[0].id);
   // 대표만 보이되, 선택한 디자인이 대표가 아니면 함께 보여 준다
-  const shown = more ? data.designs : data.designs.filter((d) => FEATURED.includes(d.id) || d.id === design.id);
+  // 분위기를 고르면 그에 맞는 디자인을 모두 보여 준다. 고르지 않으면 대표만 보이고 더보기로 펼친다.
+  const shown =
+    tag !== "전체"
+      ? allDesigns.filter((d) => tagsOf(d).includes(tag) || d.id === "custom")
+      : more
+        ? allDesigns
+        : allDesigns.filter((d) => FEATURED.includes(d.id) || d.id === design.id || d.id === "custom");
   const [audience, setAudience] = useState(design.audience);
   const [objective, setObjective] = useState(data.objectives[0].label);
   const [infoObjective, setInfoObjective] = useState(data.infoObjectives[0].label);
@@ -208,16 +410,42 @@ export default function SlidesPage() {
   const designStep = data.steps.find((x) => x.id === "design")!;
 
   useEffect(() => {
-    document.title = `노트북LM 슬라이드 프롬프트 · ${HUB_NAME}`;
+    document.title = `슬라이드·인포그래픽 프롬프트 · 제미나이 노트북 · ${HUB_NAME}`;
   }, []);
 
+  const urlOf = (o: { d?: string; s?: string; v?: string; p?: Palette | null; t?: string }) => {
+    const r: Record<string, string> = { d: o.d ?? designId, s: o.s ?? step };
+    const v = o.v ?? variantId;
+    if (v !== VARIANTS[0].id) r.v = v;
+    const st = o.t ?? styleId;
+    if (st !== STYLES[0].id) r.t = st;
+    const pal = o.p === undefined ? customPal : o.p;
+    if (pal) r.p = paletteToParam(pal);
+    return r;
+  };
   const pickDesign = (d: Design) => {
     setDesignId(d.id);
-    setSp({ d: d.id, s: step }, { replace: true });
+    setSp(urlOf({ d: d.id }), { replace: true });
   };
   const pickStep = (id: string) => {
     setStep(id);
-    setSp({ d: designId, s: id }, { replace: true });
+    setSp(urlOf({ s: id }), { replace: true });
+  };
+  const editOk = (Object.keys(edit) as (keyof Palette)[]).every((k) => HEX.test(edit[k]));
+  const applyCustom = () => {
+    if (!editOk) return;
+    const pal = { ...edit } as Palette;
+    setCustomPal(pal);
+    setDesignId("custom");
+    setSp(urlOf({ d: "custom", p: pal }), { replace: true });
+  };
+  const pickStyle = (id: string) => {
+    setStyleId(id);
+    setSp(urlOf({ t: id }), { replace: true });
+  };
+  const pickVariant = (id: string) => {
+    setVariantId(id);
+    setSp(urlOf({ v: id }), { replace: true });
   };
 
   const body =
@@ -230,25 +458,59 @@ export default function SlidesPage() {
         : step === "slides"
           ? design.slides
           : design.infographic;
-  const text = fill(body, audience, objective, infoObjective, step);
+  const isFinal = step === "slides" || step === "infographic";
+  // 탭에 맞는 방식만 메뉴에 보인다 (인포그래픽 전용 방식은 슬라이드 탭에서 숨김). 고른 방식이 이 탭에 없으면 기본으로 돌아간다.
+  const kindNow = step === "infographic" ? "infographic" : "slides";
+  const menu = VARIANTS.filter((o) => !o.only || o.only === kindNow);
+  const variant = menu.find((x) => x.id === variantId) ?? VARIANTS[0];
+  // 슬라이드 프롬프트에는 보강 지침(선택)과 60장일 때 파트 지정, 그리고 구성 방식을 끝에 덧붙인다
+  const blocks: Block[] = [];
+  if (step === "slides") {
+    if (boost) blocks.push(BOOST_SLIDES);
+  }
+  if (isFinal) {
+    const vb = variantBlock(variant, step as "slides" | "infographic");
+    if (vb) blocks.push(vb);
+  }
+  const applied = appendBlocks(fill(body, audience, objective, infoObjective, step), isFinal ? (step as "slides" | "infographic") : "slides", isFinal ? blocks : []);
+  const text = applied.text;
+  const vt = viewOf(variant, step === "infographic" ? "infographic" : "slides");
   const isScript = step === "script" || step === "infoScript";
   const idx = TABS.findIndex((x) => x.id === step);
 
   return (
     <div className="min-h-screen">
       <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
-        <Link to="/" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
-          <img src="/icon-192.png" alt="" width={32} height={32} className="h-8 w-8" />
-          {HUB_NAME}
+        <Link to="/notebook" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
+          ← 제미나이 노트북
         </Link>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">노트북LM 슬라이드 프롬프트</h1>
+        <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">슬라이드·인포그래픽 프롬프트</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted">
-          디자인을 고르면 아래 프롬프트가 그 디자인으로 채워져요. 단계 순서대로 복사해서 노트북LM에 붙여 넣으세요.
+          디자인(색)과 스타일(모양)을 고르면 아래 프롬프트가 그대로 채워져요. 단계 순서대로 복사해서 노트북LM에 붙여 넣으세요.
         </p>
+        <Guide />
 
         <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-xl font-bold">① 디자인 고르기</h2>
-          <span className="text-sm text-muted">{data.designs.length}가지 중에서 골라요</span>
+          <span className="text-sm text-muted">{allDesigns.length}가지 중에서 골라요</span>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="분위기로 찾기">
+          {["전체", ...TAGS].map((g) => {
+            const n = g === "전체" ? allDesigns.length : allDesigns.filter((d) => tagsOf(d).includes(g)).length;
+            return (
+              <button
+                key={g}
+                type="button"
+                aria-pressed={tag === g}
+                onClick={() => setTag(g)}
+                className={`min-h-[40px] rounded-full border px-3 text-sm ${
+                  tag === g ? "border-accent bg-accent font-bold text-accent-ink" : "border-line bg-surface hover:border-accent"
+                }`}
+              >
+                {g} <span className="opacity-70">{n}</span>
+              </button>
+            );
+          })}
         </div>
         <ul className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6" role="radiogroup" aria-label="디자인">
           {shown.map((d) => {
@@ -271,15 +533,131 @@ export default function SlidesPage() {
             );
           })}
         </ul>
-        {data.designs.length > FEATURED.length && (
+        {tag === "전체" && allDesigns.length > FEATURED.length && (
           <button
             type="button"
             onClick={() => setMore((m) => !m)}
             aria-expanded={more}
             className="mt-2 inline-flex min-h-[44px] items-center gap-1 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-accent hover:bg-accent-soft"
           >
-            {more ? "▲ 접기" : `▼ 더보기 (+${data.designs.length - FEATURED.length}개)`}
+            {more ? "▲ 접기" : `▼ 더보기 (+${allDesigns.length - FEATURED.length}개)`}
           </button>
+        )}
+
+        {/* 내 색으로 만들기: 색 사이트에서 고른 6색을 넣으면 같은 틀로 디자인을 만든다 */}
+        <details className="mt-4 rounded-card border border-line bg-surface p-4 sm:p-5">
+          <summary className="min-h-[44px] cursor-pointer font-bold">🎨 내 색으로 만들기 — 색 사이트에서 고른 색을 넣어요</summary>
+          <p className="mt-2 text-sm text-muted">
+            색 사이트에서 마음에 드는 색 코드(#RRGGBB)를 복사해 아래 칸에 넣고 [이 색으로 디자인 만들기]를 누르세요. 글자색은 배경과 대비가 충분해야 읽기 편해요. 대비가 낮으면 경고가 떠요.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {PALETTE_FIELDS.map((f) => {
+              const v = edit[f.key];
+              const ok = HEX.test(v);
+              const ratio = ok && f.need > 0 && HEX.test(edit.bg) ? contrast(v, edit.bg) : null;
+              const pass = ratio === null ? null : ratio >= f.need;
+              return (
+                <div key={f.key} className="rounded-lg border border-line bg-bg p-3">
+                  <label htmlFor={`pal-${f.key}`} className="block text-sm font-bold">
+                    {f.label} <span className="font-normal text-muted">· {f.hint}</span>
+                  </label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      type="color"
+                      aria-label={`${f.label} 색 고르기`}
+                      value={ok ? v : "#000000"}
+                      onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value.toUpperCase() })}
+                      className="h-11 w-12 shrink-0 cursor-pointer rounded border border-line bg-surface p-0.5"
+                    />
+                    <input
+                      id={`pal-${f.key}`}
+                      value={v}
+                      onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}` })}
+                      spellCheck={false}
+                      maxLength={7}
+                      aria-invalid={!ok}
+                      className={`min-h-[44px] w-full min-w-0 rounded-card border bg-surface px-3 font-mono uppercase outline-none focus:border-accent ${ok ? "border-line" : "border-red-500"}`}
+                    />
+                  </div>
+                  {!ok ? (
+                    <p className="mt-1 text-xs text-red-600">#과 숫자·영문 6자리로 써 주세요 (예: #2563EB)</p>
+                  ) : ratio !== null ? (
+                    <p className={`mt-1 text-xs font-semibold ${pass ? "text-green-700" : "text-red-600"}`}>
+                      {pass ? "✓" : "⚠"} 배경과 대비 {ratio.toFixed(1)}:1 (기준 {f.need}:1 {pass ? "통과" : "미달"})
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted">다른 색들의 기준이 되는 색이에요</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={applyCustom}
+              disabled={!editOk}
+              className="min-h-[48px] rounded-card bg-accent px-5 font-semibold text-accent-ink disabled:opacity-50"
+            >
+              이 색으로 디자인 만들기
+            </button>
+            {customPal && <span className="text-sm text-muted">만든 디자인은 위 목록의 '내 색' 카드로 들어가고, 주소를 복사하면 같은 색으로 공유돼요.</span>}
+          </div>
+
+          <h4 className="mt-5 font-bold">색을 고르기 좋은 사이트</h4>
+          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+            {PALETTE_SITES.map((s) => (
+              <li key={s.url} className="rounded-lg border border-line bg-bg p-3 text-sm">
+                <a href={s.url} target="_blank" rel="noopener" className="font-bold text-accent underline underline-offset-2">
+                  {s.name} ↗
+                </a>
+                <p className="mt-0.5 text-muted">{s.desc}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+
+        {/* 스타일 템플릿: 색과 따로 고르는 모양 */}
+        <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xl font-bold">② 스타일 고르기</h2>
+          <span className="text-sm text-muted">색은 그대로, 글꼴 느낌·도형·배치만 바뀌어요</span>
+        </div>
+        {!styleOk && (
+          <p className="mt-2 rounded-card bg-bg p-3 text-sm text-muted">
+            선택한 디자인(부산 원본)은 스타일이 정해져 있어서 바꿀 수 없어요. 스타일을 고르려면 위에서 다른 디자인을 고르세요.
+          </p>
+        )}
+        <ul className={`mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 ${styleOk ? "" : "pointer-events-none opacity-50"}`} role="radiogroup" aria-label="스타일 템플릿">
+          {STYLES.map((s) => {
+            const on = s.id === styleT.id;
+            const cs = Object.fromEntries(design.colors.map((x) => [x.name, x.hex]));
+            const col = { bg: design.bg, text: design.text, sub: cs.TEXT_SUB ?? design.text, a1: design.accents[0], a2: design.accents[1] ?? design.accents[0], point: design.accents[2] ?? design.accents[0] };
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={!styleOk}
+                  onClick={() => pickStyle(s.id)}
+                  className={`block h-full w-full rounded-card border-2 bg-surface p-2 text-left transition ${
+                    on ? "border-accent shadow-md" : "border-line hover:border-accent/60"
+                  }`}
+                >
+                  <StyleMock id={s.id} c={col} />
+                  <span className="mt-1.5 block text-sm font-bold leading-tight">
+                    {s.icon} {s.label}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-snug text-muted">{s.hint}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        {styleOk && styleT.id !== "basic" && (
+          <p className="mt-2 text-sm text-muted">
+            이럴 때 좋아요: {styleT.when}. 고른 스타일은 아래 프롬프트의 Style·Type A~D 줄에 들어가 있어요.
+          </p>
         )}
 
         {/* 선택한 디자인: 색 목록 + 슬라이드 미리보기 + 단계 1 프롬프트 */}
@@ -290,30 +668,46 @@ export default function SlidesPage() {
               <h3 className="text-2xl font-extrabold">{design.name}</h3>
               <p className="text-muted">{design.mood}</p>
             </div>
-            <CopyButton text={design.design} label="📋 디자인 프롬프트 복사" />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setOpenDesign((o) => !o)}
+                aria-expanded={openDesign}
+                aria-controls="design-detail"
+                className="inline-flex min-h-[44px] items-center gap-1 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-accent hover:bg-accent-soft"
+              >
+                {openDesign ? "▲ 접기" : "▼ 펼치기"}
+              </button>
+              <CopyButton text={design.design} label="📋 디자인 글 복사" />
+            </div>
           </div>
+          <p className="mt-2 text-sm text-muted">디자인 글은 노트북LM에 따로 넣지 않아요. 아래 슬라이드·인포그래픽 프롬프트 안에 이미 들어 있어요.</p>
 
-          <h4 className="mt-5 font-bold">사용하는 색</h4>
-          <div className="mt-2">
-            <ColorTable d={design} />
-          </div>
+          {openDesign && (
+            <div id="design-detail">
+              <h4 className="mt-5 font-bold">사용하는 색</h4>
+              <div className="mt-2">
+                <ColorTable d={design} />
+              </div>
 
-          <h4 className="mt-5 font-bold">이렇게 꾸며져요 (예시)</h4>
-          <div className="mt-2">
-            <SlidePreview d={design} />
-          </div>
-          <p className="mt-1 text-xs text-muted">디자인 프롬프트의 색과 Type A~D 규칙을 적용한 모습의 예시예요. 실제 결과는 노트북LM이 만들어요.</p>
+              <h4 className="mt-5 font-bold">이렇게 꾸며져요 (예시)</h4>
+              <div className="mt-2">
+                <SlidePreview d={design} />
+              </div>
+              <p className="mt-1 text-xs text-muted">디자인 프롬프트의 색과 Type A~D 규칙을 적용한 모습의 예시예요. 실제 결과는 노트북LM이 만들어요.</p>
 
-          <details className="mt-5">
-            <summary className="min-h-[44px] cursor-pointer font-bold">{designStep.title} — 프롬프트 글</summary>
-            <p className="mt-1 text-sm text-muted">{designStep.help}</p>
-            <pre className="mt-2 max-h-[360px] overflow-auto whitespace-pre-wrap break-words rounded-card bg-bg p-4 font-mono text-[0.85rem] leading-relaxed">
-              {design.design}
-            </pre>
-          </details>
+              <details className="mt-5">
+                <summary className="min-h-[44px] cursor-pointer font-bold">{designStep.title} — 디자인 글</summary>
+                <p className="mt-1 text-sm text-muted">{designStep.help}</p>
+                <pre className="mt-2 max-h-[360px] overflow-auto whitespace-pre-wrap break-words rounded-card bg-bg p-4 font-mono text-[0.85rem] leading-relaxed">
+                  {design.design}
+                </pre>
+              </details>
+            </div>
+          )}
         </section>
 
-        <h2 className="mt-8 text-xl font-bold">② 단계별 프롬프트 복사</h2>
+        <h2 className="mt-8 text-xl font-bold">③ 단계별 프롬프트 복사</h2>
         <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 py-1.5" role="tablist" aria-label="단계">
           {TABS.map((s, i) => (
             <button
@@ -340,6 +734,143 @@ export default function SlidesPage() {
             </div>
             <CopyButton text={text} label="📋 전체 복사" />
           </div>
+
+          {isFinal && (
+            <div className="mt-4 rounded-card border-2 border-accent bg-bg p-4">
+              {/* 넓은 화면에서는 두 칸: 왼쪽 선택·설명 / 오른쪽 더해지는 지침 */}
+              <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+                <div className="min-w-0">
+                  <label htmlFor="variant" className="block font-bold">
+                    ✨ 구성 방식 고르기
+                  </label>
+                  <p className="text-sm text-muted">고르면 아래 프롬프트가 바뀌고, [📋 전체 복사]를 누르면 고른 방식으로 복사돼요.</p>
+                  <select
+                    id="variant"
+                    value={variant.id}
+                    onChange={(e) => pickVariant(e.target.value)}
+                    className="mt-2 min-h-[48px] w-full rounded-card border border-line bg-surface px-3 text-base font-semibold outline-none focus:border-accent"
+                  >
+                    {menu
+                      .filter((o) => o.group === "기본")
+                      .map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.icon} {o.label}
+                        </option>
+                      ))}
+                    {[...new Set(menu.filter((o) => o.group !== "기본").map((o) => o.group))].map((g) => (
+                      <optgroup key={g} label={g}>
+                        {menu
+                          .filter((o) => o.group === g)
+                          .map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {o.icon} {o.label}
+                            </option>
+                          ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <p className="mt-3 font-semibold">{vt.hint}</p>
+                  <p className="mt-1 text-sm text-muted">
+                    이럴 때 좋아요: {vt.when}
+                    <br />
+                    {vt.settingsLabel}: <b className="text-ink">{vt.settings}</b>
+                  </p>
+                </div>
+                <div className="min-w-0 self-start rounded-lg bg-yellow-100/70 p-3 text-sm text-black dark:bg-yellow-200/20 dark:text-ink">
+                  {vt.ko.length > 0 ? (
+                    <>
+                      <b>이 방식에서 프롬프트 끝에 더해지는 지침</b>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                        {vt.ko.map((k) => (
+                          <li key={k}>{k}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-1 text-xs">아래 글에서 노란 줄로 표시된 부분이에요.</p>
+                    </>
+                  ) : (
+                    <>
+                      <b>더해지는 지침이 없어요</b>
+                      <p className="mt-1">기본은 지금까지 쓰던 프롬프트 그대로예요. 다른 방식을 고르면 이 칸에 무엇이 더해지는지 보여 줘요.</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === "slides" && (
+            <div className="mt-4 rounded-card border border-line bg-bg p-4">
+              <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={boost}
+                    onChange={(e) => setBoost(e.target.checked)}
+                    className="mt-1 h-5 w-5 shrink-0 accent-[var(--accent)]"
+                  />
+                  <span className="min-w-0">
+                    <b>보강 지침 넣기 (추천)</b>
+                    <span className="block text-sm text-muted">
+                      슬라이드 글은 한국어로, 대본의 '화면 텍스트'만 넣고 '상세 대본'은 슬라이드에 넣지 않게, 소스에 없는 내용은 지어내지 않게 해요. 끄면 원문 그대로예요.
+                    </span>
+                  </span>
+                </label>
+                <fieldset className="min-w-0">
+                  <legend className="mb-1 text-sm font-bold">대본 길이</legend>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(["20", "60"] as const).map((c) => (
+                      <label
+                        key={c}
+                        className={`inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm ${
+                          count === c ? "border-accent bg-accent-soft font-bold text-accent" : "border-line bg-surface"
+                        }`}
+                      >
+                        <input type="radio" checked={count === c} onChange={() => setCount(c)} className="accent-[var(--accent)]" />
+                        {c}장{c === "60" ? " (3파트)" : ""}
+                      </label>
+                    ))}
+                  </div>
+                  {count === "60" && (
+                    <div className="mt-2 text-sm text-muted">
+                      <p>60장 대본은 파트별로 소스를 나눠 두세요. 답변이 나오는 방식이 그때그때 달라서 두 가지 방법이 있어요.</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5">
+                        <li>답변이 파트별로 나뉘어 나오면: 각각 [메모에 저장] → [소스로 변환]</li>
+                        <li>한 번에 다 나오면: 파트마다 복사해서 소스 칸 [+ 추가] → 복사한 텍스트로 붙여 넣기 (파트 수만큼 소스를 따로 만들어요)</li>
+                      </ul>
+                      <p className="mt-1">슬라이드를 만들 때는 <b className="text-ink">노트북LM 소스 칸에서 만들 파트의 소스만 직접 체크</b>하면 돼요.</p>
+                    </div>
+                  )}
+                </fieldset>
+              </div>
+            </div>
+          )}
+
+          {PLACE[step] && (
+            <div className="mt-4 rounded-card border border-accent bg-accent-soft/40 p-4">
+              <p className="font-bold">📍 {PLACE[step].where}</p>
+              {/* 넓은 화면에서는 왼쪽에 칸 그림, 오른쪽에 순서 */}
+              <div className="mt-2 grid gap-4 md:grid-cols-[2fr_3fr] md:gap-6">
+                <div className="min-w-0">
+                  <PanelMap active={PLACE[step].panel} stack />
+                </div>
+                <ol className="min-w-0 list-decimal space-y-1.5 pl-5">
+                  {PLACE[step].steps.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ol>
+              </div>
+              {PLACE[step].tips && (
+                <div className="mt-4 rounded-lg bg-bg p-3 text-sm">
+                  <b>잘 안 될 때</b>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-muted">
+                    {PLACE[step].tips!.map((k) => (
+                      <li key={k}>{k}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           {isScript && (
             <div className="mt-4 space-y-4 rounded-card bg-bg p-4">
@@ -384,11 +915,26 @@ export default function SlidesPage() {
             </div>
           )}
 
-          <pre className="mt-4 max-h-[460px] overflow-auto whitespace-pre-wrap break-words rounded-card bg-bg p-4 font-mono text-[0.85rem] leading-relaxed">
-            {text}
+          {/* 설명 상자가 길어져도 복사 버튼이 글 바로 위에 보이게 한다 */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+            <span className="font-bold">
+              프롬프트 글 <span className="text-sm font-normal text-muted">{text.length.toLocaleString()}자</span>
+            </span>
+            <CopyButton text={text} label="📋 전체 복사" />
+          </div>
+          <pre className="mt-2 max-h-[460px] overflow-auto whitespace-pre-wrap break-words rounded-card bg-bg p-4 font-mono text-[0.85rem] leading-relaxed">
+            {applied.start >= 0 ? (
+              <>
+                {text.slice(0, applied.start)}
+                <mark className="block rounded bg-yellow-200 px-1 text-black">{text.slice(applied.start + 1, applied.end)}</mark>
+                {text.slice(applied.end)}
+              </>
+            ) : (
+              text
+            )}
           </pre>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm text-muted">{text.length.toLocaleString()}자</span>
+            <CopyButton text={text} label="📋 전체 복사" />
             <div className="flex gap-2">
               {idx > 0 && (
                 <button type="button" onClick={() => pickStep(TABS[idx - 1].id)} className="min-h-[44px] rounded-card border border-line bg-surface px-4 font-semibold">

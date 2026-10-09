@@ -3,7 +3,7 @@ export const HUB_NAME = "살빠진 임선생과 함께하는 교육자료";
 export const COURSE_NAME = "다시 묻는 AI 교실";
 export const BOARD_NAME = "ESP32 터치 화면으로 시간표 단말 만들기";
 
-export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string; lock?: string; unlocked?: { label: string; href: string; note: string; download?: boolean; withCode?: boolean }[] }[] = [
+export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string; credit?: string; lock?: string; unlocked?: { label: string; href: string; note: string; download?: boolean; withCode?: boolean }[] }[] = [
   // lock: 들어가기 전에 비밀번호를 묻는다. 값은 SHA-256('penedu-lock:' + 비밀번호). 화면 안에서 확인하는 간단한 잠금이라 보안 장치는 아니다.
   {
     path: "/setup",
@@ -12,12 +12,14 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     tag: "먼저 해 두면 좋아요",
     desc: "ChatGPT·Claude·Gemini에 한 번 넣어 두는 설정 글이에요. 모델을 난이도에 맞게 고르게 해서 토큰을 아껴요.",
     cta: "설정 복사하러 가기 →",
+    credit: "자료 · uniquelfie 선생님",
   },
   {
     path: "/prompt",
     title: COURSE_NAME,
     tag: "프롬프트 엔지니어링",
     desc: "AI의 첫 결과물은 끝이 아니라 출발점. 부탁하고, 확인하고, 바로잡는 연습을 하는 초·중·고 13차시.",
+    credit: "자료 · uniquelfie 선생님",
     more: "AI의 첫 결과물은 끝이 아니라 출발점. 부탁하기 → 되말하기 확인 → 점검·검증 → 선택 기록 → 마무리를 직접 연습하는 초·중·고 13차시.",
   },
   {
@@ -39,12 +41,12 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     cta: "프로그램 받으러 가기 ↗",
   },
   {
-    path: "/slides",
-    title: "노트북LM 슬라이드 프롬프트",
-    tag: "슬라이드·인포그래픽 만들기",
-    desc: "노트북LM으로 슬라이드·인포그래픽을 만드는 프롬프트예요. 디자인을 고르면 프롬프트가 채워져요.",
-    more: "노트북LM으로 슬라이드와 인포그래픽을 만드는 프롬프트 모음이에요. 디자인을 고르면 디자인 지침, 슬라이드 대본, 인포그래픽 대본, 완성 프롬프트가 그 디자인으로 채워져요. 단계마다 복사 버튼이 있어서 붙여 넣기만 하면 돼요.",
-    cta: "디자인 고르러 가기 →",
+    path: "/notebook",
+    title: "제미나이 노트북",
+    tag: "노트북LM으로 수업 자료 만들기",
+    desc: "구글 AI 노트북(노트북LM)으로 슬라이드·퀴즈·오디오를 만드는 방법과 복사해서 쓰는 프롬프트 모음이에요.",
+    more: "구글 AI 노트북(노트북LM)으로 수업 자료를 만드는 방법을 모았어요. 슬라이드·인포그래픽 프롬프트(디자인 18종, 구성 방식 10가지)와, 오디오 개요·동영상 개요·퀴즈·마인드맵·데이터 표·교사용 채팅 질문 같은 활용 사례가 들어 있고, 모두 복사해서 붙여 넣기만 하면 돼요.",
+    cta: "들어가기 →",
   },
   {
     path: "/handgen/",
