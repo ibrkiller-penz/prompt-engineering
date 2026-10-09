@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>레이저 이미지 변환기</title>
+<style>
+/* penedu 사이트 기본 테마(밝은 바탕 + 파랑 포인트)와 같은 색. 시스템 어두운 모드는 따르지 않는다. */
+:root{color-scheme:light;--bg:#f7f6f2;--panel:#ffffff;--ink:#1f2328;--mute:#5b6168;--line:#e3e1da;--accent:#3b5bdb;--accent-ink:#fff;--soft:#e8edff;--stage:#e9e7e0;--field:#f4f3ef}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#161618;--panel:#202024;--ink:#ececea;--mute:#9a9a96;--line:#34343a;--accent:#8ea2ff;--accent-ink:#10131f;--soft:#232a4a;--stage:#0e0e10;--field:#2a2a2f}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Pretendard","Malgun Gothic",system-ui,sans-serif;display:grid;grid-template-rows:auto 1fr}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--field);border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--mute)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+select,input[type=number],input[type=text]{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--accent)}
+header{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:16px;margin:0 12px 0 0}
+header .sp{flex:1}
+.app{display:grid;grid-template-columns:350px 1fr;min-height:0}
+aside{overflow:auto;border-right:1px solid var(--line);background:var(--panel);padding:6px 14px 40px}
+main{display:grid;grid-template-rows:auto 1fr auto;min-width:0;min-height:0}
+details{border-bottom:1px solid var(--line);padding:8px 0}
+summary{font-weight:700;cursor:pointer;padding:4px 0;list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"＋";color:var(--mute)}
+details[open]>summary::after{content:"－"}
+.ctl{margin:8px 0}
+.ctl label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
+.ctl label span{cursor:default}
+.ctl input[type=number]{width:72px;text-align:right}
+.row{display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap;font-size:13px}
+.row label{color:var(--mute)}
+.chk{display:flex;gap:6px;align-items:center;margin:8px 0;font-size:13px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.preset{text-align:left;padding:7px 9px;white-space:normal;line-height:1.25}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px}
+.chip{padding:4px 10px;border-radius:99px;font-size:12.5px}
+#wfList{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#wfList .note{grid-column:1/-1;margin:2px 0}
+.wfb{text-align:left;padding:7px 9px;line-height:1.3;display:flex;flex-direction:column;gap:1px;white-space:normal}
+.wfb b{font-size:13.5px}
+.wfb span{font-size:12.5px;color:var(--mute)}
+.wfb i{font-style:normal;font-size:11.5px;color:var(--mute);opacity:.85}
+.upi{border-bottom:1px dashed var(--line);padding-bottom:2px}
+textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;color:inherit;resize:vertical}
+.preset.on,button.on{border-color:var(--accent);background:var(--soft)}
+.note{font-size:12.5px;color:var(--mute);background:var(--field);border-radius:7px;padding:8px 10px;margin:8px 0;line-height:1.5}
+.note b{color:var(--ink)}
+.toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;font-size:13px}
+.toolbar .info{color:var(--mute);margin-left:auto}
+.stage{overflow:auto;background:var(--stage);position:relative}
+.pad{min-width:100%;min-height:100%;width:max-content;display:flex;align-items:center;justify-content:center;padding:18px}
+.wrap{position:relative;box-shadow:0 2px 12px rgba(0,0,0,.25);background:#fff}
+.wrap canvas{position:absolute;inset:0;width:100%;height:100%}
+.wrap.px canvas{image-rendering:pixelated}
+#split{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);pointer-events:none}
+.drop{border:2px dashed var(--mute);border-radius:14px;padding:48px 36px;text-align:center;color:var(--mute);background:var(--panel);max-width:440px}
+.drop b{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
+.stage.over .drop{border-color:var(--accent)}
+.files{display:flex;gap:8px;padding:8px 14px;border-top:1px solid var(--line);background:var(--panel);overflow-x:auto;align-items:center}
+.thumb{position:relative;flex:none;width:64px;height:64px;border-radius:7px;border:2px solid transparent;overflow:hidden;cursor:pointer;background:var(--field)}
+.thumb.on{border-color:var(--accent)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .x{position:absolute;top:1px;right:1px;width:18px;height:18px;border-radius:50%;padding:0;font-size:11px;line-height:16px;background:rgba(0,0,0,.6);color:#fff;border:0}
+#busy{color:var(--accent);font-weight:600}
+#curve{width:100%;max-width:256px;aspect-ratio:1;border:1px solid var(--line);border-radius:6px;background:var(--field);touch-action:none;cursor:crosshair;display:block}
+pre#wf{white-space:pre-wrap;font-size:12.5px;background:var(--field);padding:10px;border-radius:7px;margin:8px 0}
+.up{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px;padding:4px 0}
+.up span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ul.tips{padding-left:18px;margin:6px 0;font-size:12.5px;color:var(--mute)}
+ul.tips li{margin:4px 0}
+ul.tips b{color:var(--ink)}
+#home{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;display:flex;justify-content:center;padding:34px 18px 60px}
+#home[hidden],#homeTiles[hidden],#wfView[hidden]{display:none}
+.hwrap{max-width:900px;width:100%}
+.hwrap h1{font-size:26px;margin:0 0 6px}
+.lead{color:var(--mute);margin:0 0 22px;font-size:15px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tile{text-align:left;padding:22px 22px 20px;border-radius:14px;background:var(--panel);border:2px solid var(--line);display:flex;flex-direction:column;gap:6px;white-space:normal;line-height:1.5}
+.tile:hover{border-color:var(--accent)}
+.tile b{font-size:19px}
+.tile span{color:var(--mute);font-size:13.5px}
+.tile em{font-style:normal;color:var(--accent);font-weight:700;margin-top:6px}
+.hback{margin-bottom:14px}
+.wcards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.wcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.wcard h3{margin:0;font-size:16px}
+.wcard .sub{color:var(--mute);font-size:13px}
+.wcard ul{margin:2px 0;padding-left:18px;font-size:12.5px;color:var(--mute)}
+.wcard .note{margin:2px 0}
+.wcard button.primary{margin-top:auto;align-self:flex-start}
+.hfoot{margin-top:26px;font-size:12.5px;color:var(--mute)}
+.why{margin-top:4px;font-size:12.5px}
+.why summary{font-weight:600;padding:2px 0;color:var(--accent)}
+.why summary::after{content:""}
+.why ul{margin:4px 0 0;padding-left:18px;color:var(--ink)}
+.why li{margin:4px 0;line-height:1.5}
+.why li b{color:var(--ink)}
+.trait{background:var(--soft);border-radius:9px;padding:10px 12px;margin:6px 0 10px;font-size:13.5px;line-height:1.6}
+.trait b{color:var(--accent)}
+@media (max-width:860px){
+  .tiles,.wcards{grid-template-columns:1fr}
+  body{height:auto;display:block}
+  .app{grid-template-columns:1fr}
+  aside{border-right:0;order:2}
+  main{min-height:72vh}
+  .stage{height:60vh}
+}
+</style>
+</head>
+<body>
+<div id="home">
+  <div class="hwrap">
+    <h1>레이저 이미지 변환기</h1>
+    <p class="lead">사진을 레이저 각인용 점 그림으로 바꿔요. 설치도 인터넷도 필요 없고, 사진은 이 컴퓨터 밖으로 나가지 않아요.</p>
+    <div id="homeTiles" class="tiles">
+      <button class="tile" id="goWf"><b>워크플로우</b><span>재료를 고르면 그 재료에 맞는 시작 설정(해상도·대비·디더링·반전)이 나와요. 나무·아크릴·가죽·유리·금속 등 11가지 재료와 내가 저장한 워크플로우를 볼 수 있어요.</span><em>재료 고르기 →</em></button>
+      <button class="tile" id="goConv"><b>이미지 변환</b><span>바로 사진을 열어 변환해요. 설정은 직접 조절하거나, 변환기 안에서 워크플로우를 골라도 돼요.</span><em>사진 변환하러 가기 →</em></button>
+    </div>
+    <div id="wfView" hidden>
+      <button class="hback" id="hBack">← 처음으로</button>
+      <div class="chips" id="hMatChips"></div>
+      <div class="wcards" id="hWfList"></div>
+      <div class="hfoot">워크플로우의 숫자는 <b>시작값</b>입니다. 같은 재료 자투리에 변환기의 「시험 카드」를 먼저 각인해 보고 조절하세요.</div>
+    </div>
+  </div>
+</div>
+<header>
+  <h1>레이저 이미지 변환기</h1>
+  <button id="homeBtn" title="처음 화면으로">← 처음</button>
+  <button class="primary" id="openBtn">사진 열기</button>
+  <input type="file" id="fileIn" accept="image/*" multiple hidden>
+  <button id="undoBtn" title="실행 취소 (Ctrl+Z)">↶ 되돌리기</button>
+  <button id="redoBtn" title="다시 실행 (Ctrl+Y)">↷ 다시</button>
+  <button id="resetBtn" title="모든 조정을 초기값으로">초기화</button>
+  <span class="sp"></span>
+  <select id="fmt" title="저장 형식">
+    <option value="bmp">BMP (RDWorks 권장)</option>
+    <option value="png">PNG</option>
+  </select>
+  <label class="chk" style="margin:0" title="디더링 없는 회색조 파일을 하나 더 저장합니다. 레이저 프로그램이 직접 디더링할 때 쓰세요."><input type="checkbox" id="withGray"> 회색조 원본도 함께</label>
+  <button class="primary" id="saveBtn" disabled>저장</button>
+  <button id="zipBtn" disabled title="불러온 모든 사진을 같은 설정으로 변환해 ZIP 하나로 저장">전체 일괄 저장 (ZIP)</button>
+</header>
+
+<div class="app">
+<aside id="side">
+  <details open><summary>워크플로우 (재료별 시작 설정)</summary>
+    <div class="chips" id="matChips"></div>
+    <div id="wfList"></div>
+    <details class="why" id="whyBox" hidden open><summary>왜 이렇게 잡았나요?</summary><ul id="whyList"></ul></details>
+    <div class="note" id="presetNote">재료를 고르면 그 재료의 워크플로우가 나옵니다. 원하는 워크플로우를 누르면 해상도·대비·디더링·반전이 한 번에 맞춰집니다. 숫자는 <b>시작값</b>이에요 — 같은 재료 자투리에 <b>시험 카드</b>를 먼저 각인해 보고 아래에서 미세 조정하세요.</div>
+  </details>
+
+  <details open><summary>크기 · 해상도</summary>
+    <div class="row">
+      <label>가로</label><input type="number" id="wmm" min="1" max="1500" step="0.1" style="width:80px"> mm
+      <label style="margin-left:6px">세로</label><input type="number" id="hmm" min="1" max="1500" step="0.1" style="width:80px"> mm
+    </div>
+    <div class="row">
+      <label>DPI</label><input type="number" id="dpi" min="50" max="1000" step="1" list="dpiList" style="width:80px">
+      <datalist id="dpiList"><option value="200"><option value="254"><option value="300"><option value="318"><option value="339"><option value="400"><option value="508"></datalist>
+      <span id="intv" class="note" style="margin:0;padding:3px 8px"></span>
+    </div>
+    <div class="row">
+      <button id="rotL">⟲ 90°</button><button id="rotR">⟳ 90°</button>
+      <label class="chk" style="margin:0 0 0 6px"><input type="checkbox" id="flipH"> 좌우 반전 (뒷면 각인)</label>
+    </div>
+  </details>
+
+  <details><summary>자르기</summary>
+    <div id="cropCtl"></div>
+    <div class="note">네 방향에서 잘라낼 비율(%)입니다. 자르면 가로세로 비율이 바뀌고 mm 크기는 자른 뒤 기준입니다.</div>
+  </details>
+
+  <details open><summary>톤 조정</summary>
+    <div id="toneCtl"></div>
+    <div class="note" style="margin-top:2px">슬라이더 이름을 더블클릭하면 그 값만 초기화됩니다.</div>
+  </details>
+
+  <details><summary>커브</summary>
+    <canvas id="curve" width="256" height="256"></canvas>
+    <div class="row"><button id="curveReset">커브 초기화</button></div>
+    <div class="note">빈 곳을 클릭하면 점이 추가되고, 끌어서 옮깁니다. 점을 더블클릭하면 삭제됩니다.</div>
+  </details>
+
+  <details open><summary>선명도 · 윤곽</summary>
+    <div id="sharpCtl"></div>
+  </details>
+
+  <details open><summary>디더링 (점 변환)</summary>
+    <div id="ditherCtl"></div>
+  </details>
+
+  <details><summary>내 워크플로우</summary>
+    <div class="row"><input type="text" id="upName" placeholder="예: 자작합판 60W" style="flex:1"></div>
+    <div class="row"><label>재료</label><select id="upMat" style="flex:1"><option value="">(고르지 않음)</option></select></div>
+    <textarea id="upMemo" rows="2" maxlength="300" placeholder="메모: 장비·출력·속도 (예: 40W 튜브, 속도 300, 출력 18~22%)"></textarea>
+    <div class="row"><button id="upSave">현재 설정 저장</button></div>
+    <div id="upList"></div>
+    <div class="row"><button id="upExport">파일로 내보내기</button><button id="upImport">파일에서 가져오기</button><input type="file" id="upFile" accept=".json" hidden></div>
+    <div class="row"><button id="upCode">공유 코드로 가져오기</button></div>
+    <div class="note">저장한 워크플로우의 「공유」를 누르면 짧은 코드가 복사됩니다. 동료에게 보내면 「공유 코드로 가져오기」로 같은 설정을 받을 수 있어요. 저장은 이 브라우저 안에만 됩니다.</div>
+  </details>
+
+  <details><summary>시험 카드 (DPI·세기 시험)</summary>
+    <div class="note">50×30 mm 크기의 시험 그림(농도 10단계·선 굵기 0.1~0.5 mm·글자·원)을 <b>지금 재료 설정</b>으로 변환해 저장합니다. 같은 자투리에 같은 속도·출력으로 각인하고, 가장 깨끗한 DPI와 농도 단계를 고르세요.</div>
+    <div class="row"><label>DPI 목록</label><input type="text" id="cardDpi" value="200, 254, 300, 400" style="flex:1"></div>
+    <div class="row"><button id="cardOne">지금 DPI로 한 장</button><button id="cardZip">DPI별 카드 ZIP</button></div>
+    <div class="note">RDWorks 스캔 간격은 DPI에 맞춰(254 DPI = 0.1 mm) 카드마다 바꿔 주세요. 간격이 다르면 점이 뭉개져 비교가 안 됩니다.</div>
+  </details>
+
+  <details id="wfBox"><summary>작업 순서 보기</summary>
+    <pre id="wf"></pre>
+    <button id="wfCopy">복사</button>
+  </details>
+
+  <details><summary>레이저 프로그램 사용 팁</summary>
+    <ul class="tips">
+      <li><b>BMP로 저장</b> → RDWorks에서 <b>가져오기(Import, Ctrl+I)</b>로 불러옵니다.</li>
+      <li>파일 안에 DPI 정보가 들어 있어 지정한 mm 크기로 들어오는 것이 정상입니다. 크기가 다르게 들어오면 RDWorks 상단의 가로·세로 크기에 위 mm 값을 입력하세요.</li>
+      <li>레이어 설정: 모드 <b>스캔(Scan)</b>, <b>간격(Interval)</b>은 위에 표시된 값(예: 254 DPI → 0.1 mm)으로 맞춥니다. 간격이 DPI와 다르면 점이 다시 깎여 결과가 뭉개집니다.</li>
+      <li>이미 점으로 변환된 1비트 이미지이므로 RDWorks의 <b>비트맵 처리(Bitmap handle)</b>에서 다시 디더링하지 마세요. <b>LightBurn</b>은 이미지 모드를 <b>패스스루(Pass-Through)</b>로 두어야 이중 디더링을 피합니다.</li>
+      <li>화면이 거의 <b>검정 점 무늬</b>로 보이는 것은 정상입니다. 레이저는 점의 밀도로 명암을 표현합니다. 「400%」로 확대하면 점이 보입니다.</li>
+      <li>프로그램의 디더링을 쓰고 싶다면 상단의 「회색조 원본도 함께」를 켜서 디더링 없는 파일을 같이 저장하세요.</li>
+      <li>양방향 스캔에서 윤곽이 지글지글하게 어긋나면 RDWorks의 <b>역방향 간격 보정(스캔 오프셋)</b>을 조정합니다.</li>
+      <li>속도·출력은 튜브 출력과 재료마다 다르므로, 같은 재료 자투리에 2~3 cm 크기로 먼저 시험하세요.</li>
+    </ul>
+  </details>
+</aside>
+
+<main>
+  <div class="toolbar">
+    <span>보기</span>
+    <button data-zoom="fit">화면 맞춤</button>
+    <button data-zoom="1">100%</button>
+    <button data-zoom="2">200%</button>
+    <button data-zoom="4" title="레이저가 찍는 점을 크게 봅니다">400%</button>
+    <span style="margin-left:10px">원본 비교</span>
+    <input type="range" id="cmp" min="0" max="100" value="0" style="width:130px">
+    <span id="busy" hidden>처리 중…</span>
+    <span class="info" id="info"></span>
+  </div>
+  <div class="stage" id="stage">
+    <div class="pad">
+      <div class="drop" id="drop"><b>사진을 여기로 끌어 놓으세요</b>또는 상단 「사진 열기」 · 붙여넣기(Ctrl+V)<br>여러 장을 한꺼번에 불러와 같은 설정으로 일괄 변환할 수 있습니다.<br><br>사진은 이 컴퓨터 안에서만 처리되며 어디에도 업로드되지 않습니다.</div>
+      <div class="wrap" id="wrap" hidden>
+        <canvas id="res"></canvas>
+        <canvas id="orig"></canvas>
+        <div id="split" hidden></div>
+      </div>
+    </div>
+  </div>
+  <div class="files" id="files" hidden></div>
+</main>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+/* ---------- 기본값 / 프리셋 ---------- */
+const DEF = {
+  widthMm: 100, dpi: 254, rotate: 0, flipH: false,
+  brightness: 0, contrast: 0, gamma: 1, black: 0, white: 255,
+  curve: [[0, 0], [255, 255]],
+  denoise: 0, sharpen: 0, sharpenR: 1, edge: 0, edgeOnly: false,
+  dither: 'jarvis', threshold: 128, serpentine: true, morph: 0, invert: false,
+  cropL: 0, cropT: 0, cropR: 0, cropB: 0, maxInk: 100
+};
+
+const MATS = [
+  { id: 'wood', name: '나무', trait: '레이저가 나무를 태워 갈색~짙은 갈색 자국을 냅니다. 새기지 않은 곳은 나무 본래 색 그대로라서, 사진의 어두운 부분을 많이 태우고 밝은 부분은 비워 둡니다. 결·옹이에 따라 같은 설정에도 진하기가 달라지고 그을음이 번지기 쉽습니다.', tip: '<b>나무</b>: 표면에 마스킹 테이프를 붙여 새기면 그을음 자국이 줄어듭니다. 결이 센 원목은 대비를 올리세요.' },
+  { id: 'mdf', name: 'MDF', trait: '접착제가 섞인 균일한 판이라 결은 없지만, 연기와 그을음이 많고 같은 출력에서 나무보다 진하게 탑니다. 점이 번져 이어지기 쉬워서 사진이 어둡고 뭉개져 보이기 쉽습니다.', tip: '<b>MDF</b>: 연기와 그을음이 많습니다. 환기를 하고, 코팅된 판은 출력을 낮추세요.' },
+  { id: 'acrylic', name: '아크릴', trait: '새기면 표면이 서리처럼 하얗게 변합니다(캐스트 아크릴). 투명 아크릴은 뒷면에서 새겨 앞으로 보면 선명한데, 이때 글자와 그림이 거울처럼 뒤집히므로 미리 좌우 반전해야 합니다. 유색 아크릴은 새긴 곳이 바탕색보다 밝게 드러납니다. 압출 아크릴은 하얗게 되지 않고 투명하게 깎입니다.', tip: '<b>아크릴</b>: 보호 필름을 붙인 채 새기면 표면이 덜 상합니다. 투명 아크릴은 뒷면 각인이 더 선명합니다.' },
+  { id: 'slate', name: '슬레이트', trait: '어두운 돌이라 새긴 곳이 밝은 회색으로 드러납니다. 그래서 사진의 밝은 부분을 새겨야 합니다(반전). 표면이 단단하고 고르지 않아 선명도를 높이는 것이 도움이 되고, 새긴 뒤 오일을 바르면 대비가 살아납니다.', tip: '<b>슬레이트</b>: 각인 뒤 식용유·광택제를 얇게 바르면 대비가 살아납니다.' },
+  { id: 'leather', name: '가죽', trait: '타서 갈색~검은 갈색이 됩니다. 가죽 종류·두께에 따라 반응이 다르고 탄 냄새와 불꽃이 나기 쉽습니다. 표면 질감 때문에 가는 선이 묻히기 쉽습니다. 합성 가죽(비닐 계열)은 유해한 연기가 날 수 있으니 새기지 않습니다.', tip: '<b>가죽</b>: 식물성 태닝 가죽이 잘 새겨집니다. 낮은 출력으로 시작하고 불꽃과 냄새에 주의해 환기하세요. 합성 가죽은 유독 가스가 나올 수 있으니 재질을 확인하세요.' },
+  { id: 'cork', name: '코르크', trait: '구멍이 많은 거친 재료라 점이 고르게 찍히지 않고 가는 선과 작은 글자가 묻힙니다. 색이 밝은 갈색이라 대비가 낮은 편이므로 대비를 올리고 큰 그림에 쓰는 것이 좋습니다.', tip: '<b>코르크</b>: 표면이 거칠어 작은 글자는 뭉개집니다. 큰 그림과 굵은 선이 잘 맞습니다.' },
+  { id: 'glass', name: '유리', trait: '레이저가 표면에 미세한 균열을 만들어 서리처럼 하얗게 보입니다. 새긴 곳이 밝아지므로 반전이 필요합니다. 열 충격으로 금이 갈 수 있어 약한 세기로 시작하세요. 유리 종류에 따라 결과가 크게 다릅니다. 뒷면에서 새기면 유리 두께 너머로 보여 입체감이 납니다.', tip: '<b>유리</b>: 열 충격으로 금이 갈 수 있습니다. 낮은 출력으로 시작하고, 유리 위에 젖은 키친타월이나 마스킹을 덮는 방법이 알려져 있습니다. 유리 종류에 따라 결과가 크게 다릅니다.' },
+  { id: 'anodized', name: '아노다이즈드 알루미늄', trait: '표면의 염색된 산화 피막을 레이저가 벗겨 내면 금속 본래의 은색이 드러납니다. 검은 알루미늄에서는 새긴 곳이 밝아져 반전이 필요합니다. 점이 작고 정밀하게 표현되어 높은 해상도가 어울리지만, 레이저 종류와 피막에 따라 반응이 크게 다릅니다.', tip: '<b>아노다이즈드 알루미늄</b>: 표면 염색층을 날려 밝은 자국을 냅니다. 레이저 종류와 코팅에 따라 반응이 크게 다르므로 시험이 꼭 필요합니다.' },
+  { id: 'steel', name: '스테인리스 스틸', trait: '스테인리스는 CO2 레이저로 직접 새겨지지 않아 레이저용 마킹제를 바르고 말립니다. 레이저가 닿은 마킹제가 금속에 검게 굳고 나머지는 씻어 냅니다. 검게 굳은 곳이 점이므로 반전하지 않으며, 표면이 매끈해 높은 해상도가 가능합니다.', tip: '<b>스테인리스 스틸</b>: CO2 레이저는 금속을 직접 새기지 못합니다. 레이저용 마킹제를 얇게 바르고 말린 뒤 새기는 방식입니다. 마킹제 사용법을 따르세요.' },
+  { id: 'tile', name: '흰색 타일', trait: '유약 처리된 흰 타일에 검은 페인트를 입히면, 레이저가 페인트를 걷어낸 곳에 흰 바탕이 드러납니다. 걷힌 곳이 밝아지므로 반전이 필요하고, 페인트층이 얇고 고를수록 선명합니다.', tip: '<b>흰색 타일</b>: 검정 스프레이 페인트를 칠해 완전히 말린 뒤 새기면 페인트가 걷히며 흰 바탕이 드러납니다. 환기하세요.' },
+  { id: 'line', name: '로고 · 선화', trait: '점 변환 없이 검정과 흰색 두 가지로만 나눕니다. 선·글자·로고처럼 경계가 분명한 그림에 어울리고 사진에는 맞지 않습니다. 재료와 무관하게 쓸 수 있습니다.', tip: '<b>로고·선화</b>: 점 변환 없이 선으로 표현합니다. 어떤 재료에서도 쓸 수 있습니다.' }
+];
+const TIPS = {
+  wood: ["표면에 마스킹 테이프(또는 전사지)를 붙이고 새긴 뒤 떼면 그을음이 덜 남습니다.", "송진·기름기가 많은 나무는 피하세요. 연기가 많고 얼룩이 생깁니다.", "단단한 나무(참나무 등)는 대비가 낮게, 무른 나무(소나무 등)는 고르지 않게 타는 경향이 있습니다. 합판은 접착제층 때문에 자국이 고르지 않을 수 있으니 같은 판으로 시험하세요.", "연기와 불꽃: 환기하고 에어어시스트를 쓰며 자리를 비우지 마세요.", "새긴 뒤 그을음은 마른 천이나 아주 고운 샌딩으로 닦고, 투명 마감제를 바르면 표면이 보호됩니다."],
+  mdf: ["환기가 필수입니다. 엔지니어드 우드라 연기와 그을음이 많고, 같은 출력에서 나무보다 더 타는 편입니다.", "코팅·무늬 MDF는 반응이 다르니 같은 종류로 시험하세요.", "그을음은 마스킹 테이프로 줄이고, 새긴 뒤 마른 천으로 닦습니다.", "가루가 몸에 좋지 않으니 가공 뒤 청소할 때 마스크를 쓰세요."],
+  acrylic: ["보호 필름(또는 마스킹)을 붙인 채 새기면 표면이 덜 상하고 그을음이 줄어듭니다. 뒷면 각인은 새길 면의 필름을 떼세요.", "캐스트 아크릴은 새기면 서리처럼 하얗고, 압출 아크릴은 투명하게 깎입니다. 사기 전에 종류를 확인하세요.", "PVC 계열 플라스틱은 새기지 마세요. 유해한 연기가 납니다.", "새긴 뒤 부드러운 천과 물로 가루를 닦습니다. 새긴 곳에 아크릴 물감을 문질러 넣으면 색을 입힐 수 있습니다."],
+  slate: ["먼지가 많이 납니다. 환기하고 기계 청소를 자주 하세요.", "값싼 슬레이트 코스터 블랭크로 연습하면 부담이 적습니다.", "새긴 뒤 솔로 가루를 털고 식용유나 광택 오일을 얇게 바르면 대비가 살아납니다.", "표면이 고르지 않으면 초점이 달라집니다. 가능한 평평한 면을 쓰세요."],
+  leather: ["진짜 가죽만 새기세요(식물성 태닝이 잘 됩니다). 합성 가죽·비닐 계열은 유해한 연기가 납니다.", "냄새가 강하고 연기가 많습니다. 환기하고, 낮은 출력·빠른 속도로 시작해 조금씩 올리세요.", "가죽은 두께와 수분에 따라 반응이 다릅니다. 새길 가죽과 같은 자투리로 시험하세요.", "불꽃이 나기 쉬우니 자리를 비우지 말고, 마스킹 테이프로 그을음을 줄일 수 있습니다."],
+  cork: ["코르크가 얇으면 휘어서 초점이 달라집니다. 테이프나 무게로 평평하게 고정하세요.", "구멍 때문에 가는 선이 끊깁니다. 굵은 선과 큰 그림을 쓰세요.", "불이 붙기 쉬운 재료입니다. 낮은 출력으로 시작하고 자리를 비우지 마세요."],
+  glass: ["<b>주방세제(예: 퐁퐁)</b>를 얇게 펴 바르고, 젖은 채로 새깁니다. 세제막이 열을 흩어 금이 가는 것을 줄이고 서리처럼 고르게 새겨진다고 알려져 있습니다. 긴 작업이면 마르기 전에 다시 바르세요.", "<b>젖은 키친타월·신문지</b>를 주름 없이 펴서 새길 곳보다 조금 크게 덮고, 그 위로 새기는 방법도 있습니다. 세제를 같이 묻히면 더 좋다는 경험담이 많습니다. <b>무늬 있는 휴지는 무늬가 유리에 묻을 수 있으니</b> 무지를 쓰세요.", "<b>점을 벌리세요</b>: 해상도 300 DPI 안팎, 최대 농도 70~80%, 점이 흩어지는 Jarvis가 권장됩니다. 점이 붙을수록 미세 균열이 이어져 금이 갑니다. 이 변환기의 「최대 농도」 슬라이더가 이 값입니다.", "<b>유리 종류</b>: 값싼 일반(소다석회) 유리가 잘 새겨진다는 경험담이 많습니다. 크리스털·강화유리·코팅 유리는 결과가 다르거나 깨질 수 있으니 같은 종류 자투리로 먼저 시험하세요.", "같은 그림을 여러 번 덧새기면 점점 흐려집니다. 시험 카드로 설정을 정한 뒤 한 번에 새기세요.", "<b>곡면(컵·병)</b>: 가장 볼록한 곳에 초점을 맞추고, 바깥쪽은 초점을 다시 맞춰 따로 새깁니다. 너무 바깥은 초점이 약해 새겨지지 않습니다.", "렌즈 초점거리가 긴 쪽(2~2.5인치)이 유리에 유리하다는 안내가 있습니다(장비에 따라 다름).", "새긴 뒤 세제와 가루를 물로 씻고, 거칠거나 날카로운 곳은 고운 연마 패드(스카치브라이트, 8000~10000방 마이크로메시)로 가볍게 닦습니다.", "출력은 낮게 시작해서 올립니다. 열이 많을수록 깨질 위험이 큽니다. 환기하고 보안경을 쓰며 자리를 비우지 마세요.", "<span style='color:var(--mute)'>참고: Epilog·JP Plus·Graphics Pro·Boss Laser의 유리 각인 안내와 LightBurn 포럼 경험담. 장비와 유리마다 결과가 다르니 시험이 먼저입니다.</span>"],
+  anodized: ["반응이 레이저 종류(CO2·다이오드·파이버)와 피막에 따라 크게 다릅니다. 같은 판 자투리로 출력·속도를 먼저 시험하세요.", "표면에 보호 필름이나 코팅이 있으면 먼저 벗기세요.", "새긴 뒤 알코올로 닦아 가루를 제거하면 대비가 잘 보입니다."],
+  steel: ["마킹제는 제품 설명서의 도포 두께·건조 시간·세기를 따르세요. 두께가 고르지 않으면 진하기도 고르지 않습니다.", "완전히 마른 뒤 새기고, 새긴 뒤 남은 마킹제는 제품 설명서에 맞는 방법으로 씻어 냅니다.", "연기가 나므로 환기하세요. 금속은 빛 반사가 강하니 보안경을 꼭 쓰세요."],
+  tile: ["검정 무광 스프레이를 얇게 여러 번 뿌리고 완전히 말립니다. 두꺼우면 걷히는 시간이 길어지고 가장자리가 지저분해집니다.", "타일은 타지 않지만 페인트는 탈 수 있으니 불연성 받침(금속·세라믹)을 쓰세요.", "페인트 연기가 나므로 환기하세요.", "새긴 뒤 물티슈나 젖은 천으로 남은 가루를 닦습니다."],
+  line: ["사진이 아니라 선(벡터) 그림이라면, 이미지 변환보다 레이저 프로그램의 벡터 각인이 더 선명할 수 있습니다.", "선이 끊기면 경계값을 올리거나 선 굵기를 +1, 해상도를 올려 보세요.", "아주 작은 글자는 재료 질감에 묻힙니다. 재료에서 시험해 읽히는 크기를 확인하세요."],
+};
+MATS.forEach(m => { m.tips = TIPS[m.id] || [m.tip]; });
+const START = ' <br><span class="s">※ 시작값입니다. 같은 재료 자투리에서 시험 카드로 먼저 확인하세요.</span>';
+const WORKFLOWS = [
+  { id: 'wood', mat: 'wood', name: '나무 사진', sub: '합판 · 원목', p: { dpi: 254, brightness: 5, contrast: 15, gamma: 1.1, black: 8, white: 245, sharpen: 80, sharpenR: 1, dither: 'jarvis', invert: false, flipH: false },
+    why: ['감마 1.1·레벨 8–245: 나무는 중간 톤이 실제보다 어둡게 타므로 약간 밝게 보정하고, 완전한 검정·흰색 끝을 조금 잘라 점이 막히거나 빈 곳이 생기지 않게 했습니다.'],
+    note: '<b>나무</b>: 각인부가 진하게 탑니다. 중간 톤이 실제보다 어둡게 나오므로 감마를 약간 올렸습니다. 결이 강한 원목은 대비를 더 올리세요.' },
+  { id: 'wood-strong', mat: 'wood', name: '나무 · 결 강한 원목', sub: '대비 강하게', p: { dpi: 254, brightness: 8, contrast: 28, gamma: 1.2, black: 10, white: 240, sharpen: 60, sharpenR: 1, dither: 'atkinson', invert: false, flipH: false },
+    why: ['결이 강한 원목은 결 무늬가 사진을 덮어 버립니다. 그래서 대비를 크게 올리고, 밝고 어두운 곳을 단순하게 만드는 Atkinson을 골랐습니다.'],
+    note: '<b>결이 강한 원목</b>: 결 때문에 사진이 묻히므로 대비를 올리고 대비가 강한 Atkinson 디더링을 썼습니다.' + START },
+  { id: 'mdf', mat: 'mdf', name: 'MDF 사진', sub: '밝게 · 낮은 해상도', p: { dpi: 200, brightness: 15, contrast: 20, gamma: 1.25, black: 15, white: 240, sharpen: 60, sharpenR: 1, dither: 'stucki', invert: false, flipH: false },
+    why: ['MDF는 같은 출력에서 진하게 타고 점이 번져 이어집니다. 그래서 해상도를 200 DPI로 낮춰 점 사이를 벌리고, 전체를 밝게(밝기 +15, 감마 1.25) 잡았습니다.'],
+    note: '<b>MDF</b>: 점이 번지고 진하게 타서 해상도를 낮췄고(200 DPI ≈ 간격 0.127 mm) 전체를 밝게 잡았습니다. 표면이 코팅된 MDF는 출력을 낮추세요.' },
+  { id: 'acrylic-back', mat: 'acrylic', name: '투명 아크릴', sub: '뒷면 각인', p: { dpi: 300, brightness: 0, contrast: 15, gamma: 1, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: true },
+    why: ['뒷면에서 새기므로 좌우 반전, 새긴 곳이 하얗게 보이므로 반전을 함께 켰습니다. 점이 작을수록 부드러워 보이는 재료라 300 DPI를 썼습니다.'],
+    note: '<b>투명 아크릴 뒷면</b>: 깎인 곳이 하얗게 보이므로 <b>반전</b>, 뒤에서 새기므로 <b>좌우 반전</b>을 켰습니다. 캐스트 아크릴이 하얗게 잘 나옵니다(압출 아크릴은 투명하게 깎임).' },
+  { id: 'acrylic-front', mat: 'acrylic', name: '유색 아크릴', sub: '앞면 각인', p: { dpi: 300, brightness: 0, contrast: 15, gamma: 1, sharpen: 70, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
+    why: ['유색 아크릴은 새긴 곳이 바탕색보다 밝아지므로 반전만 켰습니다. 앞면에서 새기므로 좌우 반전은 필요 없습니다.'],
+    note: '<b>유색(검정 등) 아크릴</b>: 각인부가 밝게 드러나므로 반전을 켰습니다.' },
+  { id: 'slate', mat: 'slate', name: '슬레이트 사진', sub: '반전 · 선명하게', p: { dpi: 254, brightness: 0, contrast: 25, gamma: 0.9, black: 10, white: 235, sharpen: 100, sharpenR: 1, dither: 'jarvis', invert: true, flipH: false },
+    why: ['새긴 곳이 밝게 나오므로 반전. 슬레이트는 새겨도 대비가 약해서 대비 +25, 선명도 100%, 감마 0.9(중간 톤을 약간 어둡게)로 대비를 최대한 끌어올렸습니다.'],
+    note: '<b>슬레이트</b>: 각인부가 밝은 회색이 되므로 반전을 켜고 대비·선명도를 강하게 잡았습니다. 각인 후 오일을 바르면 대비가 살아납니다.' },
+  { id: 'leather', mat: 'leather', name: '가죽 사진', sub: '식물성 태닝', p: { dpi: 254, brightness: 8, contrast: 12, gamma: 1.15, black: 6, white: 245, sharpen: 50, sharpenR: 1, dither: 'jarvis', invert: false, flipH: false },
+    why: ['가죽은 타서 갈색이 되므로 사진의 어두운 곳을 태웁니다. 부드러운 톤이 어울려 Jarvis를 쓰고, 약간 밝게(밝기 +8, 감마 1.15) 잡아 과하게 타는 것을 줄였습니다.'],
+    note: '<b>가죽</b>: 각인부가 진한 갈색으로 탑니다. 부드럽게 보이도록 Jarvis, 약간 밝게 잡았습니다. 낮은 출력으로 시작하세요.' + START },
+  { id: 'leather-logo', mat: 'leather', name: '가죽 로고', sub: '굵은 선 · 글자', p: { dpi: 300, contrast: 10, sharpen: 0, dither: 'threshold', threshold: 140, morph: 1, invert: false, flipH: false },
+    why: ['가죽은 표면 질감 때문에 얇은 선이 묻히기 쉽습니다. 그래서 점 없이 경계값으로 나누고, 선을 한 단계 굵게(+1) 했습니다.'],
+    note: '<b>가죽 로고</b>: 점 변환 없이 경계값 하나로 나눕니다. 가죽은 얇은 선이 표면 질감에 묻히기 쉬워 선을 약간 굵게(+1) 잡았습니다.' + START },
+  { id: 'cork', mat: 'cork', name: '코르크 사진', sub: '큰 그림 · 거친 표면', p: { dpi: 200, brightness: 12, contrast: 25, gamma: 1.2, black: 10, white: 240, denoise: 0.6, sharpen: 40, sharpenR: 1.2, dither: 'stucki', invert: false, flipH: false },
+    why: ['거친 표면에서 점이 일정하게 찍히지 않아 해상도를 200 DPI로 낮췄습니다. 노이즈 제거 0.6은 표면 질감이 만드는 작은 잡티를 줄이기 위한 것이고, 대비 +25는 낮은 바탕 대비를 보충합니다.'],
+    note: '<b>코르크</b>: 표면이 거칠어 해상도를 낮추고 노이즈를 약간 줄였습니다. 작은 글자는 피하세요.' + START },
+  { id: 'glass-front', mat: 'glass', name: '유리 앞면', sub: '반전 · 점 벌리기', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, maxInk: 75, sharpen: 70, sharpenR: 1, dither: 'jarvis', invert: true, flipH: false },
+    why: ['새긴 곳이 하얗게 되므로 반전. 유리는 점이 서로 붙으면 미세 균열이 이어져 금이 가기 쉽습니다. 그래서 최대 농도를 75%로 낮춰 점 사이를 벌리고(유리 각인 안내들은 70~80%를 권합니다), 점을 흩뜨려 부드럽게 보이는 Jarvis를 골랐습니다.'],
+    note: '<b>유리 앞면</b>: 각인부가 뿌옇게(서리처럼) 하얗게 변하므로 반전을 켰습니다. 점 사이를 벌려(최대 농도 75%) 금이 가는 것을 줄였습니다. <b>주방세제나 젖은 키친타월을 쓰는 방법은 아래 현장 팁을 보세요.</b>' + START },
+  { id: 'glass-back', mat: 'glass', name: '유리 뒷면', sub: '반전 · 좌우 반전', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, maxInk: 75, sharpen: 70, sharpenR: 1, dither: 'jarvis', invert: true, flipH: true },
+    why: ['앞면 설정과 같고, 뒷면에서 새겨 앞에서 보므로 좌우 반전만 더했습니다.'],
+    note: '<b>유리 뒷면</b>: 뒤에서 새겨 앞에서 보는 방식이라 <b>좌우 반전</b>을 함께 켰습니다.' + START },
+  { id: 'anodized', mat: 'anodized', name: '알루미늄 사진', sub: '반전 · 고해상도', p: { dpi: 400, contrast: 20, gamma: 0.95, black: 8, white: 242, sharpen: 90, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
+    why: ['피막이 벗겨진 곳이 은색으로 밝아지므로 반전. 점이 작게 표현되는 재료라 400 DPI, 선명하게 90%로 가장자리를 또렷하게 했습니다.'],
+    note: '<b>아노다이즈드 알루미늄</b>: 염색층이 날아간 곳이 밝게 나오므로 반전을 켰습니다. 점이 작아 400 DPI로 잡았습니다.' + START },
+  { id: 'steel', mat: 'steel', name: '스테인리스 사진', sub: '마킹제 사용', p: { dpi: 400, contrast: 25, gamma: 1, black: 10, white: 240, sharpen: 90, sharpenR: 1, dither: 'floyd', invert: false, flipH: false },
+    why: ['마킹제가 검게 굳은 곳이 점이 되므로 반전하지 않습니다. 매끈한 금속이라 400 DPI, 대비 +25·선명하게 90%로 점을 또렷하게 했습니다.'],
+    note: '<b>스테인리스 스틸</b>: 마킹제가 검게 굳은 부분이 어두운 점이 됩니다. 마킹제 설명서의 속도·출력을 먼저 따르세요.' + START },
+  { id: 'tile', mat: 'tile', name: '블랙 페인트 타일', sub: '반전 · 페인트 걷어내기', p: { dpi: 300, contrast: 20, gamma: 1, black: 6, white: 245, sharpen: 80, sharpenR: 1, dither: 'floyd', invert: true, flipH: false },
+    why: ['페인트가 걷힌 곳이 흰색으로 밝아지므로 반전. 페인트는 얇게 걷히므로 300 DPI에서 Floyd–Steinberg의 촘촘한 점이 잘 맞습니다.'],
+    note: '<b>블랙 페인트 타일</b>: 페인트가 걷히는 곳이 흰색으로 드러나므로 반전을 켰습니다.' + START },
+  { id: 'line', mat: 'line', name: '로고 · 선화', sub: '경계값 흑백', p: { dpi: 400, contrast: 0, gamma: 1, sharpen: 0, dither: 'threshold', threshold: 128, invert: false, flipH: false },
+    why: ['사진이 아니라 선·글자·로고용이라 점 변환 없이 경계값으로 나눕니다. 선이 가늘게 살도록 400 DPI를 썼습니다.'],
+    note: '<b>로고·선화</b>: 점 변환 없이 경계값 하나로 흑백을 나눕니다. 선이 끊기면 경계값을 올리거나 「선 굵기」를 조정하세요.' },
+  { id: 'line-edge', mat: 'line', name: '사진 → 윤곽선', sub: '선화 만들기', p: { dpi: 300, denoise: 0.8, edge: 50, edgeOnly: true, dither: 'threshold', threshold: 160, invert: false, flipH: false },
+    why: ['사진에서 윤곽선만 뽑아 선화를 만듭니다. 윤곽 검출은 잡티에도 반응하므로 노이즈 제거 0.8로 먼저 부드럽게 하고, 경계값 160으로 약한 선은 지웁니다.'],
+    note: '<b>사진 → 윤곽선</b>: 사진에서 윤곽만 뽑아 선화로 만듭니다. 선이 지저분하면 노이즈 제거를 올리고, 끊기면 경계값을 올리세요.' + START }
+];
+const PRESETS = WORKFLOWS;
+
+const DITHERS = [
+  ['jarvis', 'Jarvis (부드러움, 사진 추천)'], ['stucki', 'Stucki (선명, 사진)'], ['floyd', 'Floyd–Steinberg (세밀)'],
+  ['atkinson', 'Atkinson (대비 강함)'], ['sierra', 'Sierra'], ['sierralite', 'Sierra Lite (빠름)'], ['burkes', 'Burkes'],
+  ['bayer4', 'Bayer 4×4 (격자무늬)'], ['bayer8', 'Bayer 8×8'], ['cluster', '망점 (신문 인쇄 느낌)'],
+  ['threshold', '경계값 (흑백 2단)'], ['none', '없음 (회색조 그대로)']
+];
+
+let P = clone(DEF);
+let images = [], cur = -1, idSeq = 0;
+let baseCache = null, lastOut = null, zoom = 'fit', activePreset = null;
+
+/* ---------- 컨트롤 생성 ---------- */
+const binds = {};
+function update(key, v) { P[key] = v; changed(); }
+function changed() { activePresetMark(); scheduleRender(); scheduleCommit(); updateInfo(); }
+
+function slider(key, label, min, max, step) {
+  const row = document.createElement('div'); row.className = 'ctl';
+  row.innerHTML = `<label><span title="더블클릭: 초기화">${label}</span><input type="number" min="${min}" max="${max}" step="${step}"></label><input type="range" min="${min}" max="${max}" step="${step}">`;
+  const num = row.querySelector('input[type=number]'), rng = row.querySelector('input[type=range]');
+  const set = v => { num.value = v; rng.value = v; };
+  rng.addEventListener('input', () => { num.value = rng.value; update(key, +rng.value); });
+  num.addEventListener('change', () => { const v = clamp(+num.value || 0, min, max); set(v); update(key, v); });
+  row.querySelector('span').addEventListener('dblclick', () => { set(DEF[key]); update(key, DEF[key]); });
+  binds[key] = set; return row;
+}
+function check(key, label) {
+  const row = document.createElement('label'); row.className = 'chk';
+  row.innerHTML = `<input type="checkbox"> ${label}`;
+  const cb = row.querySelector('input');
+  cb.addEventListener('change', () => update(key, cb.checked));
+  binds[key] = v => cb.checked = v; return row;
+}
+function select(key, label, opts) {
+  const row = document.createElement('div'); row.className = 'row';
+  row.innerHTML = `<label>${label}</label><select style="flex:1">${opts.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')}</select>`;
+  const sel = row.querySelector('select');
+  sel.addEventListener('change', () => { update(key, sel.value); ditherVis(); });
+  binds[key] = v => sel.value = v; return row;
+}
+
+$('#toneCtl').append(
+  slider('brightness', '밝기', -100, 100, 1),
+  slider('contrast', '대비', -100, 100, 1),
+  slider('gamma', '감마 (중간 톤, 클수록 밝게)', 0.2, 3, 0.05),
+  slider('black', '레벨: 검정점', 0, 254, 1),
+  slider('white', '레벨: 흰점', 1, 255, 1),
+  slider('maxInk', '최대 농도 (%, 낮을수록 점 사이가 벌어짐)', 30, 100, 1)
+);
+$('#sharpCtl').append(
+  slider('denoise', '노이즈 제거 (흐림)', 0, 3, 0.1),
+  slider('sharpen', '선명하게 (%)', 0, 300, 5),
+  slider('sharpenR', '선명도 반경 (px)', 0.5, 5, 0.1),
+  slider('edge', '윤곽 강조', 0, 100, 1),
+  check('edgeOnly', '윤곽선만 남기기 (선화 만들기)')
+);
+$('#cropCtl').append(
+  slider('cropL', '왼쪽에서 (%)', 0, 90, 1),
+  slider('cropR', '오른쪽에서 (%)', 0, 90, 1),
+  slider('cropT', '위에서 (%)', 0, 90, 1),
+  slider('cropB', '아래에서 (%)', 0, 90, 1)
+);
+const thrRow = slider('threshold', '경계값', 1, 254, 1);
+const serpRow = check('serpentine', '지그재그 처리 (줄무늬 감소)');
+const morphRow = slider('morph', '선 굵기 (−가늘게 / +굵게)', -3, 3, 1);
+$('#ditherCtl').append(
+  select('dither', '방식', DITHERS),
+  thrRow, serpRow, morphRow,
+  check('invert', '반전 (슬레이트·아크릴 등 밝게 깎이는 재료)')
+);
+function ditherVis() {
+  const d = P.dither, ed = !/^(bayer|cluster|threshold|none)/.test(d);
+  thrRow.hidden = d !== 'threshold';
+  serpRow.hidden = !ed;
+  morphRow.hidden = d === 'none';
+}
+
+/* 설정 이유 설명 (일반적인 레이저 각인 경험칙 — 장비·재료마다 다름) */
+const DITHER_WHY = {
+  jarvis: '오차를 넓은 범위로 퍼뜨려 부드럽게 이어지는 톤을 만듭니다(사진용).',
+  stucki: 'Jarvis처럼 부드럽지만 조금 더 선명합니다.',
+  floyd: '점이 촘촘하고 세밀해서 작은 점을 잘 찍는 재료에 어울립니다.',
+  atkinson: '밝은 곳과 어두운 곳을 단순하게 만들어 대비가 강해집니다. 바탕 무늬가 센 재료에서 사진이 묻히는 것을 막습니다.',
+  threshold: '점 없이 검정과 흰색 두 가지로만 나눕니다. 선·글자·로고용입니다.'
+};
+function whyList(w) {
+  const q = Object.assign(clone(DEF), w.p), D = Object.fromEntries(DITHERS), L = [];
+  const iv = (25.4 / q.dpi).toFixed(3);
+  L.push(`<b>${q.dpi} DPI</b> (점 간격 ${iv} mm): ` + (q.dpi >= 400 ? '아주 촘촘한 점이라 매끈한 표면에서 가는 선과 작은 글자를 살립니다.' : q.dpi >= 300 ? '사진과 작은 글자를 함께 살리는 중간값입니다.' : q.dpi >= 254 ? '0.1 mm 간격으로, 많은 CO2 레이저에서 사진 각인의 기본으로 쓰는 값입니다.' : '간격을 넓혀 점이 서로 겹치지 않게 합니다. 점이 번지거나 표면이 거친 재료에 맞습니다.'));
+  L.push(`<b>${D[q.dither].split(' (')[0]}</b>: ` + (DITHER_WHY[q.dither] || '점의 밀도로 명암을 표현합니다.') + (q.dither === 'threshold' ? ` 경계값 ${q.threshold}보다 어두운 곳을 새깁니다.` : ''));
+  if (q.invert) L.push('<b>반전</b>: 레이저는 검은 점 자리를 새깁니다. 이 재료는 새긴 곳이 밝아지므로, 사진의 밝은 부분을 새기도록 흑백을 뒤집습니다.');
+  if (q.flipH) L.push('<b>좌우 반전</b>: 뒷면에서 새겨 앞에서 보는 방식이라, 글자와 그림이 거울처럼 보이지 않도록 미리 좌우를 뒤집습니다.');
+  const tone = [];
+  if (q.brightness) tone.push(`밝기 ${q.brightness > 0 ? '+' : ''}${q.brightness}`);
+  if (q.contrast) tone.push(`대비 ${q.contrast > 0 ? '+' : ''}${q.contrast}`);
+  if (q.gamma !== 1) tone.push(`감마 ${q.gamma}`);
+  if (q.black || q.white !== 255) tone.push(`레벨 ${q.black}–${q.white}`);
+  if (tone.length) L.push(`<b>톤 (${tone.join(' · ')})</b>: 재료가 사진을 실제보다 어둡게·흐리게 만드는 경향을 미리 보정합니다. 감마가 1보다 크면 중간 톤이 밝아지고, 레벨은 너무 어둡거나 밝은 끝을 잘라 점이 막히거나 사라지는 것을 막습니다.`);
+  if (q.maxInk < 100) L.push(`<b>최대 농도 ${q.maxInk}%</b>: 가장 어두운 곳도 점을 ${q.maxInk}%만 찍어 점 사이를 벌립니다. 점이 너무 붙으면 열이 쌓여 유리·세라믹 같은 재료가 갈라지거나 번지기 쉽습니다.`);
+  if (q.sharpen) L.push(`<b>선명하게 ${q.sharpen}%</b>: 새기면 가장자리가 번지므로 미리 또렷하게 만듭니다.`);
+  if (q.denoise) L.push(`<b>노이즈 제거 ${q.denoise}</b>: 거친 표면이나 사진의 작은 잡티가 점으로 찍히지 않게 줄입니다.`);
+  if (q.edgeOnly) L.push('<b>윤곽선만 남기기</b>: 사진에서 경계만 뽑아 선화로 만듭니다.');
+  if (q.morph) L.push(`<b>선 굵기 ${q.morph > 0 ? '+' : ''}${q.morph}</b>: ` + (q.morph > 0 ? '가는 선이 재료 질감에 묻히지 않게 굵힙니다.' : '선이 번져 뭉치는 것을 줄이도록 가늘게 합니다.'));
+  (w.why || []).forEach(t => L.push('<b>이 재료에서는</b> ' + t));
+  L.push('<span style="color:var(--mute)">※ 이유는 일반적인 레이저 각인 경험칙입니다. 레이저 종류·출력·속도·재료 상태에 따라 달라지므로 시험 카드로 확인하세요.</span>');
+  return L;
+}
+
+/* 워크플로우 (재료별) */
+let curMat = 'wood';
+function keepView() { return { widthMm: P.widthMm, rotate: P.rotate, cropL: P.cropL, cropT: P.cropT, cropR: P.cropR, cropB: P.cropB }; }
+function matChips() {
+  const box = $('#matChips'); box.innerHTML = '';
+  MATS.forEach(m => {
+    const b = document.createElement('button'); b.className = 'chip' + (m.id === curMat ? ' on' : ''); b.textContent = m.name;
+    b.onclick = () => { curMat = m.id; matChips(); wfList(); };
+    box.append(b);
+  });
+}
+function wfSummary(p) {
+  const D = Object.fromEntries(DITHERS);
+  return [`${p.dpi} DPI`, D[p.dither].split(' ')[0], p.invert ? '반전' : '', p.flipH ? '좌우반전' : ''].filter(Boolean).join(' · ');
+}
+function wfList() {
+  const box = $('#wfList'); box.innerHTML = '';
+  WORKFLOWS.filter(w => w.mat === curMat).forEach(w => {
+    const b = document.createElement('button'); b.className = 'wfb'; b.dataset.id = w.id;
+    b.innerHTML = `<b>${w.name}</b><span>${w.sub}</span>`;
+    b.title = wfSummary(w.p);
+    b.onclick = () => applyPreset(w);
+    box.append(b);
+  });
+  const m = MATS.find(x => x.id === curMat), t = document.createElement('div');
+  t.className = 'note'; t.innerHTML = `<b>${m.name}의 특징</b>: ${m.trait}`; box.append(t);
+  const tp = document.createElement('div'); tp.className = 'note';
+  tp.innerHTML = `<b>현장 팁</b><ul class="tips">${m.tips.map(x => `<li>${x}</li>`).join('')}</ul>`; box.append(tp);
+  activePresetMark();
+}
+function applyPreset(pr) {
+  P = Object.assign(clone(DEF), keepView(), clone(pr.p));
+  activePreset = pr.id;
+  $('#presetNote').innerHTML = pr.note;
+  $('#whyList').innerHTML = whyList(pr).map(x => `<li>${x}</li>`).join(''); $('#whyBox').hidden = false;
+  syncUI(); scheduleRender(); scheduleCommit(); updateInfo(); activePresetMark();
+}
+function activePresetMark() {
+  if (activePreset) {
+    const pr = PRESETS.find(x => x.id === activePreset);
+    const ref = Object.assign(clone(DEF), keepView(), clone(pr.p));
+    if (JSON.stringify(ref) !== JSON.stringify(P)) activePreset = null;
+  }
+  document.querySelectorAll('.wfb').forEach(b => b.classList.toggle('on', b.dataset.id === activePreset));
+}
+
+/* 크기 입력 */
+function aspect() {
+  if (cur < 0) return 1;
+  const c = cropRect(images[cur], P), r = P.rotate % 180 !== 0;
+  return r ? c.sw / c.sh : c.sh / c.sw; // 세로/가로
+}
+$('#wmm').addEventListener('change', e => { update('widthMm', clamp(+e.target.value || 1, 1, 1500)); syncUI(); });
+$('#hmm').addEventListener('change', e => { update('widthMm', +(clamp(+e.target.value || 1, 1, 1500) / aspect()).toFixed(2)); syncUI(); });
+$('#dpi').addEventListener('change', e => { update('dpi', clamp(Math.round(+e.target.value || 254), 50, 1000)); syncUI(); });
+$('#flipH').addEventListener('change', e => update('flipH', e.target.checked));
+$('#rotL').onclick = () => { update('rotate', (P.rotate + 270) % 360); syncUI(); };
+$('#rotR').onclick = () => { update('rotate', (P.rotate + 90) % 360); syncUI(); };
+
+function syncUI() {
+  for (const k in binds) binds[k](P[k]);
+  $('#wmm').value = +P.widthMm.toFixed(2);
+  $('#hmm').value = +(P.widthMm * aspect()).toFixed(2);
+  $('#dpi').value = P.dpi;
+  $('#flipH').checked = P.flipH;
+  ditherVis(); drawCurve(); updateInfo(); activePresetMark();
+}
+
+/* ---------- 실행 취소 ---------- */
+let hist = [clone(P)], hi = 0, commitT = 0;
+function scheduleCommit() {
+  clearTimeout(commitT);
+  commitT = setTimeout(() => {
+    if (JSON.stringify(hist[hi]) === JSON.stringify(P)) return;
+    hist = hist.slice(0, hi + 1); hist.push(clone(P)); if (hist.length > 200) hist.shift(); hi = hist.length - 1; histBtns();
+  }, 350);
+}
+function histBtns() { $('#undoBtn').disabled = hi <= 0; $('#redoBtn').disabled = hi >= hist.length - 1; }
+function undo() { clearTimeout(commitT); if (JSON.stringify(hist[hi]) !== JSON.stringify(P)) { hist = hist.slice(0, hi + 1); hist.push(clone(P)); hi++; } if (hi > 0) { hi--; P = clone(hist[hi]); syncUI(); scheduleRender(); } histBtns(); }
+function redo() { if (hi < hist.length - 1) { hi++; P = clone(hist[hi]); syncUI(); scheduleRender(); } histBtns(); }
+$('#undoBtn').onclick = undo; $('#redoBtn').onclick = redo;
+$('#resetBtn').onclick = () => { P = Object.assign(clone(DEF), { widthMm: P.widthMm }); activePreset = null; syncUI(); scheduleRender(); scheduleCommit(); };
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input[type=text],input[type=number]')) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+});
+
+/* ---------- 커브 ---------- */
+const cv = $('#curve'), cx = cv.getContext('2d');
+function curveLut(pts) {
+  const n = pts.length, xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), lut = new Float32Array(256);
+  const d = [], m = new Array(n);
+  for (let i = 0; i < n - 1; i++) d[i] = (ys[i + 1] - ys[i]) / Math.max(1e-6, xs[i + 1] - xs[i]);
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+  }
+  let k = 0;
+  for (let x = 0; x < 256; x++) {
+    while (k < n - 2 && x > xs[k + 1]) k++;
+    const h = xs[k + 1] - xs[k], t = h ? (x - xs[k]) / h : 0, t2 = t * t, t3 = t2 * t;
+    lut[x] = clamp((2 * t3 - 3 * t2 + 1) * ys[k] + (t3 - 2 * t2 + t) * h * m[k] + (-2 * t3 + 3 * t2) * ys[k + 1] + (t3 - t2) * h * m[k + 1], 0, 255);
+  }
+  return lut;
+}
+function drawCurve() {
+  const css = getComputedStyle(document.documentElement);
+  cx.clearRect(0, 0, 256, 256);
+  cx.strokeStyle = css.getPropertyValue('--line'); cx.lineWidth = 1;
+  for (let i = 64; i < 256; i += 64) { cx.beginPath(); cx.moveTo(i + .5, 0); cx.lineTo(i + .5, 256); cx.moveTo(0, i + .5); cx.lineTo(256, i + .5); cx.stroke(); }
+  cx.beginPath(); cx.moveTo(0, 256); cx.lineTo(256, 0); cx.stroke();
+  const lut = curveLut(P.curve);
+  cx.strokeStyle = css.getPropertyValue('--accent'); cx.lineWidth = 2; cx.beginPath();
+  for (let x = 0; x < 256; x++) cx[x ? 'lineTo' : 'moveTo'](x, 255 - lut[x]);
+  cx.stroke();
+  cx.fillStyle = css.getPropertyValue('--ink');
+  P.curve.forEach(p => { cx.beginPath(); cx.arc(p[0], 255 - p[1], 5, 0, 7); cx.fill(); });
+}
+let drag = -1;
+function cpos(e) { const r = cv.getBoundingClientRect(); return [clamp((e.clientX - r.left) / r.width * 256, 0, 255), clamp(255 - (e.clientY - r.top) / r.height * 256, 0, 255)]; }
+function nearPt(x, y) { return P.curve.findIndex(p => Math.hypot(p[0] - x, p[1] - y) < 12); }
+cv.addEventListener('pointerdown', e => {
+  const [x, y] = cpos(e); let i = nearPt(x, y);
+  if (i < 0) {
+    if (P.curve.some(p => Math.abs(p[0] - x) < 6)) return;
+    P.curve.push([Math.round(x), Math.round(y)]); P.curve.sort((a, b) => a[0] - b[0]); i = P.curve.findIndex(p => p[0] === Math.round(x));
+  }
+  drag = i; cv.setPointerCapture(e.pointerId); changed(); drawCurve();
+});
+cv.addEventListener('pointermove', e => {
+  if (drag < 0) return;
+  const [x, y] = cpos(e), pts = P.curve, last = pts.length - 1;
+  const nx = drag === 0 ? 0 : drag === last ? 255 : clamp(Math.round(x), pts[drag - 1][0] + 1, pts[drag + 1][0] - 1);
+  pts[drag] = [nx, Math.round(y)]; drawCurve(); changed();
+});
+cv.addEventListener('pointerup', () => drag = -1);
+cv.addEventListener('dblclick', e => {
+  const [x, y] = cpos(e), i = nearPt(x, y);
+  if (i > 0 && i < P.curve.length - 1) { P.curve.splice(i, 1); drawCurve(); changed(); }
+});
+$('#curveReset').onclick = () => { P.curve = [[0, 0], [255, 255]]; drawCurve(); changed(); };
+
+/* ---------- 이미지 처리 ---------- */
+const MAXPX = 12000;
+function cropRect(im, p) {
+  const bw = im.bmp.width, bh = im.bmp.height;
+  let l = p.cropL || 0, r = p.cropR || 0, t = p.cropT || 0, b = p.cropB || 0;
+  if (l + r > 95) { const k = 95 / (l + r); l *= k; r *= k; }
+  if (t + b > 95) { const k = 95 / (t + b); t *= k; b *= k; }
+  return { sx: Math.round(bw * l / 100), sy: Math.round(bh * t / 100),
+    sw: Math.max(1, Math.round(bw * (1 - (l + r) / 100))), sh: Math.max(1, Math.round(bh * (1 - (t + b) / 100))) };
+}
+function outSize(im, p = P) {
+  const c = cropRect(im, p), r = p.rotate % 180 !== 0, iw = r ? c.sh : c.sw, ih = r ? c.sw : c.sh;
+  let W = Math.max(1, Math.round(p.widthMm / 25.4 * p.dpi)), H = Math.max(1, Math.round(W * ih / iw)), capped = false;
+  if (W > MAXPX || H > MAXPX) { const s = MAXPX / Math.max(W, H); W = Math.max(1, Math.round(W * s)); H = Math.max(1, Math.round(H * s)); capped = true; }
+  return { W, H, capped };
+}
+function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function prescale(src, dw, dh) {
+  let s = src, w = src.width, h = src.height;
+  while (w / 2 >= dw * 1.2 && h / 2 >= dh * 1.2) {
+    w = Math.round(w / 2); h = Math.round(h / 2);
+    const c = mkCanvas(w, h), x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(s, 0, 0, w, h); s = c;
+  }
+  return s;
+}
+function buildBase(im, p = P) {
+  const { W, H } = outSize(im, p), r = p.rotate % 180 !== 0, dw = r ? H : W, dh = r ? W : H;
+  const c = mkCanvas(W, H), x = c.getContext('2d', { willReadFrequently: true });
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.imageSmoothingQuality = 'high';
+  x.translate(W / 2, H / 2); if (p.flipH) x.scale(-1, 1); x.rotate(p.rotate * Math.PI / 180);
+  const cr = cropRect(im, p); let srcImg = im.bmp;
+  if (cr.sw !== im.bmp.width || cr.sh !== im.bmp.height) {
+    const cc = mkCanvas(cr.sw, cr.sh); cc.getContext('2d').drawImage(im.bmp, cr.sx, cr.sy, cr.sw, cr.sh, 0, 0, cr.sw, cr.sh); srcImg = cc;
+  }
+  x.drawImage(prescale(srcImg, dw, dh), -dw / 2, -dh / 2, dw, dh);
+  const d = x.getImageData(0, 0, W, H).data, g = new Float32Array(W * H);
+  for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+  return { W, H, gray: g, color: c };
+}
+function getBase(im) {
+  const { W, H } = outSize(im), key = [im.id, W, H, P.rotate, P.flipH, P.cropL, P.cropT, P.cropR, P.cropB].join('|');
+  if (baseCache && baseCache.key === key) return baseCache;
+  baseCache = Object.assign(buildBase(im), { key }); return baseCache;
+}
+
+function gauss(src, W, H, s) {
+  const r = Math.max(1, Math.ceil(s * 3)), k = new Float32Array(2 * r + 1); let sum = 0;
+  for (let i = -r; i <= r; i++) { k[i + r] = Math.exp(-i * i / (2 * s * s)); sum += k[i + r]; }
+  for (let i = 0; i < k.length; i++) k[i] /= sum;
+  const tmp = new Float32Array(W * H), out = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) { const o = y * W; for (let x = 0; x < W; x++) { let a = 0; for (let i = -r; i <= r; i++) a += src[o + clamp(x + i, 0, W - 1)] * k[i + r]; tmp[o + x] = a; } }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let a = 0; for (let i = -r; i <= r; i++) a += tmp[clamp(y + i, 0, H - 1) * W + x] * k[i + r]; out[y * W + x] = a; }
+  return out;
+}
+function sobel(g, W, H) {
+  const m = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const y0 = Math.max(0, y - 1) * W, y1 = y * W, y2 = Math.min(H - 1, y + 1) * W;
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.max(0, x - 1), x2 = Math.min(W - 1, x + 1);
+      const gx = g[y0 + x2] + 2 * g[y1 + x2] + g[y2 + x2] - g[y0 + x0] - 2 * g[y1 + x0] - g[y2 + x0];
+      const gy = g[y2 + x0] + 2 * g[y2 + x] + g[y2 + x2] - g[y0 + x0] - 2 * g[y0 + x] - g[y0 + x2];
+      m[y1 + x] = Math.sqrt(gx * gx + gy * gy) / 4;
+    }
+  }
+  return m;
+}
+function buildLut(p) {
+  const lut = new Float32Array(256), cl = curveLut(p.curve), c = p.contrast * 2.55, f = 259 * (c + 255) / (255 * (259 - c));
+  for (let v = 0; v < 256; v++) {
+    let x = clamp((v - p.black) / Math.max(1, p.white - p.black), 0, 1);
+    x = Math.pow(x, 1 / p.gamma) * 255;
+    x = clamp(f * (x - 128) + 128 + p.brightness * 2.55, 0, 255);
+    lut[v] = cl[Math.round(x)];
+  }
+  return lut;
+}
+
+const KERNELS = {
+  floyd: [16, [1, 0, 7], [-1, 1, 3], [0, 1, 5], [1, 1, 1]],
+  atkinson: [8, [1, 0, 1], [2, 0, 1], [-1, 1, 1], [0, 1, 1], [1, 1, 1], [0, 2, 1]],
+  jarvis: [48, [1, 0, 7], [2, 0, 5], [-2, 1, 3], [-1, 1, 5], [0, 1, 7], [1, 1, 5], [2, 1, 3], [-2, 2, 1], [-1, 2, 3], [0, 2, 5], [1, 2, 3], [2, 2, 1]],
+  stucki: [42, [1, 0, 8], [2, 0, 4], [-2, 1, 2], [-1, 1, 4], [0, 1, 8], [1, 1, 4], [2, 1, 2], [-2, 2, 1], [-1, 2, 2], [0, 2, 4], [1, 2, 2], [2, 2, 1]],
+  burkes: [32, [1, 0, 8], [2, 0, 4], [-2, 1, 2], [-1, 1, 4], [0, 1, 8], [1, 1, 4], [2, 1, 2]],
+  sierra: [32, [1, 0, 5], [2, 0, 3], [-2, 1, 2], [-1, 1, 4], [0, 1, 5], [1, 1, 4], [2, 1, 2], [-1, 2, 2], [0, 2, 3], [1, 2, 2]],
+  sierralite: [4, [1, 0, 2], [-1, 1, 1], [0, 1, 1]]
+};
+function bayer(n) {
+  let M = [[0]];
+  while (M.length < n) {
+    const s = M.length, R = [];
+    for (let y = 0; y < 2 * s; y++) { R[y] = []; for (let x = 0; x < 2 * s; x++) R[y][x] = M[y % s][x % s] * 4 + [0, 2, 3, 1][(y >= s) * 2 + (x >= s)]; }
+    M = R;
+  }
+  return M;
+}
+function cluster(n) {
+  const c = (n - 1) / 2, cells = [];
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) cells.push([Math.hypot(x - c, y - c) + Math.atan2(y - c, x - c) * 1e-3, x, y]);
+  cells.sort((a, b) => a[0] - b[0]);
+  const M = Array.from({ length: n }, () => []); cells.forEach((e, i) => M[e[2]][e[1]] = i); return M;
+}
+const ORD = { bayer4: bayer(4), bayer8: bayer(8), cluster: cluster(6) };
+
+function dither(g, W, H, p) {
+  const N = W * H, out = new Uint8ClampedArray(N), d = p.dither;
+  if (d === 'none') { for (let i = 0; i < N; i++) out[i] = g[i]; return out; }
+  if (d === 'threshold') { for (let i = 0; i < N; i++) out[i] = g[i] >= p.threshold ? 255 : 0; return out; }
+  if (ORD[d]) {
+    const M = ORD[d], n = M.length, nn = n * n;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; out[i] = g[i] > (M[y % n][x % n] + 0.5) * 255 / nn ? 255 : 0; }
+    return out;
+  }
+  const K = KERNELS[d], div = K[0], taps = K.slice(1), e = g;
+  for (let y = 0; y < H; y++) {
+    const rev = p.serpentine && (y & 1);
+    for (let xi = 0; xi < W; xi++) {
+      const x = rev ? W - 1 - xi : xi, i = y * W + x, old = e[i], nv = old < 128 ? 0 : 255, err = old - nv;
+      out[i] = nv;
+      for (let t = 0; t < taps.length; t++) {
+        const xx = x + (rev ? -taps[t][0] : taps[t][0]), yy = y + taps[t][1];
+        if (xx >= 0 && xx < W && yy < H) e[yy * W + xx] += err * taps[t][2] / div;
+      }
+    }
+  }
+  return out;
+}
+function morph(a, W, H, n) {
+  let s = a; const thick = n > 0, from = thick ? 255 : 0, to = thick ? 0 : 255;
+  for (let k = 0; k < Math.abs(n); k++) {
+    const d = new Uint8ClampedArray(s);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x; if (s[i] !== from) continue;
+      if ((x > 0 && s[i - 1] === to) || (x < W - 1 && s[i + 1] === to) || (y > 0 && s[i - W] === to) || (y < H - 1 && s[i + W] === to)) d[i] = to;
+    }
+    s = d;
+  }
+  return s;
+}
+function processGray(base, W, H, p) {
+  const N = W * H; let g = new Float32Array(base);
+  if (p.denoise > 0) g = gauss(g, W, H, p.denoise);
+  const lut = buildLut(p);
+  for (let i = 0; i < N; i++) g[i] = lut[clamp(Math.round(g[i]), 0, 255)];
+  if (p.sharpen > 0) { const b = gauss(g, W, H, p.sharpenR), a = p.sharpen / 100; for (let i = 0; i < N; i++) g[i] += a * (g[i] - b[i]); }
+  if (p.edge > 0 || p.edgeOnly) {
+    const m = sobel(g, W, H);
+    if (p.edgeOnly) { const k = Math.max(p.edge, 25) / 25; for (let i = 0; i < N; i++) g[i] = 255 - m[i] * k; }
+    else { const k = p.edge / 100; for (let i = 0; i < N; i++) g[i] -= m[i] * k; }
+  }
+  for (let i = 0; i < N; i++) { let v = clamp(g[i], 0, 255); g[i] = p.invert ? 255 - v : v; }
+  if (p.maxInk < 100) { const m = p.maxInk / 100, lo = 255 * (1 - m); for (let i = 0; i < N; i++) g[i] = lo + g[i] * m; }
+  let out = dither(g, W, H, p);
+  if (p.morph && p.dither !== 'none') out = morph(out, W, H, p.morph);
+  return out;
+}
+
+/* ---------- 화면 표시 ---------- */
+let renderT = 0;
+function scheduleRender() { clearTimeout(renderT); if (cur < 0) return; $('#busy').hidden = false; renderT = setTimeout(render, 60); }
+function render() {
+  if (cur < 0) return;
+  const t0 = performance.now(), b = getBase(images[cur]), out = processGray(b.gray, b.W, b.H, P);
+  lastOut = { gray: out, W: b.W, H: b.H };
+  const res = $('#res'), org = $('#orig');
+  res.width = org.width = b.W; res.height = org.height = b.H;
+  const id = new ImageData(b.W, b.H), d = id.data;
+  for (let i = 0, j = 0; i < out.length; i++, j += 4) { d[j] = d[j + 1] = d[j + 2] = out[i]; d[j + 3] = 255; }
+  res.getContext('2d').putImageData(id, 0, 0);
+  org.getContext('2d').drawImage(b.color, 0, 0);
+  applyZoom(); applyCmp();
+  $('#busy').hidden = true;
+  if ($('#ms')) $('#ms').textContent = `${Math.round(performance.now() - t0)} ms`;
+  if ($('#wfBox').open) $('#wf').textContent = workflowText();
+}
+function applyZoom() {
+  if (!lastOut) return;
+  const st = $('#stage'), { W, H } = lastOut;
+  let s = zoom === 'fit' ? Math.min((st.clientWidth - 36) / W, (st.clientHeight - 36) / H, 4) : +zoom;
+  s = Math.max(s, 0.02);
+  const dpr = window.devicePixelRatio || 1, w = $('#wrap');
+  w.style.width = W * s / (zoom === 'fit' ? 1 : dpr) + 'px';
+  w.style.height = H * s / (zoom === 'fit' ? 1 : dpr) + 'px';
+  w.classList.toggle('px', zoom !== 'fit' || s >= 1);
+  document.querySelectorAll('[data-zoom]').forEach(b => b.classList.toggle('on', b.dataset.zoom === String(zoom)));
+}
+document.querySelectorAll('[data-zoom]').forEach(b => b.onclick = () => { zoom = b.dataset.zoom === 'fit' ? 'fit' : +b.dataset.zoom; applyZoom(); });
+window.addEventListener('resize', () => zoom === 'fit' && applyZoom());
+function applyCmp() {
+  const v = +$('#cmp').value;
+  $('#orig').style.clipPath = `inset(0 ${100 - v}% 0 0)`;
+  $('#split').hidden = v === 0 || v === 100; $('#split').style.left = v + '%';
+}
+$('#cmp').addEventListener('input', applyCmp);
+
+function updateInfo() {
+  const iv = 25.4 / P.dpi;
+  $('#intv').textContent = `RDWorks 간격 ${iv.toFixed(3)} mm`;
+  if (cur < 0) { $('#info').innerHTML = '<span id="ms"></span>'; return; }
+  const { W, H, capped } = outSize(images[cur]);
+  const cr = cropRect(images[cur], P), srcW = P.rotate % 180 !== 0 ? cr.sh : cr.sw;
+  const low = srcW < W * 0.75 ? ` · <b style="color:var(--accent)">원본이 작아 흐릴 수 있음 (원본 ${srcW}px → ${W}px)</b>` : '';
+  $('#info').innerHTML = `${(W / P.dpi * 25.4).toFixed(1)} × ${(H / P.dpi * 25.4).toFixed(1)} mm · ${W} × ${H} px · ${P.dpi} DPI${capped ? ' · <b style="color:var(--accent)">최대 크기로 제한됨</b>' : ''}${low} · <span id="ms"></span>`;
+  $('#hmm').value = +(P.widthMm * aspect()).toFixed(2);
+}
+
+function workflowText() {
+  const D = Object.fromEntries(DITHERS), L = [];
+  let n = 1;
+  const add = s => L.push(`${n++}. ${s}`);
+  const sz = cur >= 0 ? outSize(images[cur]) : null;
+  add(`크기: 가로 ${P.widthMm} mm, ${P.dpi} DPI${sz ? ` (${sz.W}×${sz.H}px)` : ''}, RDWorks 간격 ${(25.4 / P.dpi).toFixed(3)} mm`);
+  if (P.rotate) add(`회전 ${P.rotate}°`);
+  if (P.cropL || P.cropR || P.cropT || P.cropB) add(`자르기: 왼쪽 ${P.cropL}% · 오른쪽 ${P.cropR}% · 위 ${P.cropT}% · 아래 ${P.cropB}%`);
+  if (P.flipH) add('좌우 반전');
+  add('흑백 변환 (휘도)');
+  if (P.denoise) add(`노이즈 제거: 가우시안 ${P.denoise}`);
+  if (P.black || P.white !== 255) add(`레벨: 검정점 ${P.black}, 흰점 ${P.white}`);
+  if (P.gamma !== 1) add(`감마 ${P.gamma}`);
+  if (P.brightness || P.contrast) add(`밝기 ${P.brightness}, 대비 ${P.contrast}`);
+  if (P.curve.length > 2 || P.curve[0][1] !== 0 || P.curve[1][1] !== 255) add(`커브: ${P.curve.map(p => `(${p[0]},${p[1]})`).join(' ')}`);
+  if (P.sharpen) add(`선명하게 ${P.sharpen}% (반경 ${P.sharpenR}px)`);
+  if (P.edgeOnly) add(`윤곽선만 남기기 (강도 ${Math.max(P.edge, 25)})`); else if (P.edge) add(`윤곽 강조 ${P.edge}`);
+  if (P.invert) add('반전');
+  if (P.maxInk < 100) add(`최대 농도 ${P.maxInk}% (가장 어두운 곳도 점을 ${P.maxInk}%만 찍음)`);
+  add(`디더링: ${D[P.dither]}${P.dither === 'threshold' ? ` (경계값 ${P.threshold})` : ''}${KERNELS[P.dither] && P.serpentine ? ', 지그재그' : ''}`);
+  if (P.morph && P.dither !== 'none') add(`선 굵기 ${P.morph > 0 ? '+' : ''}${P.morph}`);
+  return L.join('\n');
+}
+$('#wfBox').addEventListener('toggle', e => { if (e.target.open) $('#wf').textContent = workflowText(); });
+$('#wfCopy').onclick = () => navigator.clipboard.writeText(workflowText()).then(() => { $('#wfCopy').textContent = '복사됨'; setTimeout(() => $('#wfCopy').textContent = '복사', 1200); });
+
+/* ---------- 파일 불러오기 ---------- */
+async function loadFiles(list) {
+  const files = [...list].filter(f => f.type.startsWith('image/'));
+  for (const f of files) {
+    try {
+      let bmp;
+      try { bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }); }
+      catch { bmp = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = URL.createObjectURL(f); }); }
+      const t = mkCanvas(96, 96), tx = t.getContext('2d'), s = Math.max(96 / bmp.width, 96 / bmp.height);
+      tx.drawImage(bmp, (96 - bmp.width * s) / 2, (96 - bmp.height * s) / 2, bmp.width * s, bmp.height * s);
+      images.push({ id: ++idSeq, name: f.name.replace(/\.[^.]+$/, '') || 'image', bmp, thumb: t.toDataURL() });
+    } catch (e) { alert(`${f.name} 을(를) 열 수 없습니다.`); }
+  }
+  if (files.length && images.length) select_(cur < 0 ? 0 : images.length - files.length);
+}
+function select_(i) {
+  cur = i; baseCache = null;
+  const has = cur >= 0;
+  $('#drop').hidden = has; $('#wrap').hidden = !has; $('#files').hidden = !has;
+  $('#saveBtn').disabled = !has; $('#zipBtn').disabled = images.length < 1;
+  renderThumbs(); syncUI(); if (has) scheduleRender();
+}
+function renderThumbs() {
+  const f = $('#files'); f.innerHTML = '';
+  images.forEach((im, i) => {
+    const d = document.createElement('div'); d.className = 'thumb' + (i === cur ? ' on' : ''); d.title = im.name;
+    d.innerHTML = `<img src="${im.thumb}" alt=""><button class="x" title="목록에서 빼기">✕</button>`;
+    d.onclick = () => select_(i);
+    d.querySelector('.x').onclick = e => { e.stopPropagation(); images.splice(i, 1); select_(images.length ? Math.min(cur, images.length - 1) : -1); };
+    f.append(d);
+  });
+  const add = document.createElement('button'); add.textContent = '+ 추가'; add.onclick = () => $('#fileIn').click(); f.append(add);
+}
+$('#openBtn').onclick = () => $('#fileIn').click();
+$('#fileIn').addEventListener('change', e => { loadFiles(e.target.files); e.target.value = ''; });
+const stage = $('#stage');
+stage.addEventListener('dragover', e => { e.preventDefault(); stage.classList.add('over'); });
+stage.addEventListener('dragleave', () => stage.classList.remove('over'));
+stage.addEventListener('drop', e => { e.preventDefault(); stage.classList.remove('over'); loadFiles(e.dataTransfer.files); });
+$('#drop').onclick = () => $('#fileIn').click();
+document.addEventListener('paste', e => { const fs = [...e.clipboardData.items].filter(i => i.kind === 'file').map(i => i.getAsFile()); if (fs.length) loadFiles(fs); });
+
+/* ---------- 저장 (DPI 포함 BMP / PNG, ZIP) ---------- */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8, c = 0xFFFFFFFF) { for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return c; }
+const crcDone = u8 => (crc32(u8) ^ 0xFFFFFFFF) >>> 0;
+
+function makeBMP(gray, W, H, dpi, oneBit) {
+  const ppm = Math.round(dpi / 0.0254), bpp = oneBit ? 1 : 8, rowBytes = Math.ceil(W * bpp / 32) * 4, palN = oneBit ? 2 : 256;
+  const off = 54 + palN * 4, size = off + rowBytes * H, buf = new ArrayBuffer(size), dv = new DataView(buf), u8 = new Uint8Array(buf);
+  u8[0] = 0x42; u8[1] = 0x4D; dv.setUint32(2, size, true); dv.setUint32(10, off, true);
+  dv.setUint32(14, 40, true); dv.setInt32(18, W, true); dv.setInt32(22, H, true); dv.setUint16(26, 1, true); dv.setUint16(28, bpp, true);
+  dv.setUint32(34, rowBytes * H, true); dv.setInt32(38, ppm, true); dv.setInt32(42, ppm, true); dv.setUint32(46, palN, true);
+  for (let i = 0; i < palN; i++) { const v = oneBit ? (i ? 255 : 0) : i; u8[54 + i * 4] = u8[55 + i * 4] = u8[56 + i * 4] = v; }
+  for (let y = 0; y < H; y++) {
+    const row = off + (H - 1 - y) * rowBytes, o = y * W;
+    if (oneBit) { for (let x = 0; x < W; x++) if (gray[o + x] >= 128) u8[row + (x >> 3)] |= 0x80 >> (x & 7); }
+    else u8.set(gray.subarray(o, o + W), row);
+  }
+  return u8;
+}
+async function makePNG(gray, W, H, dpi) {
+  const c = mkCanvas(W, H), id = new ImageData(W, H), d = id.data;
+  for (let i = 0, j = 0; i < gray.length; i++, j += 4) { d[j] = d[j + 1] = d[j + 2] = gray[i]; d[j + 3] = 255; }
+  c.getContext('2d').putImageData(id, 0, 0);
+  const png = new Uint8Array(await (await new Promise(r => c.toBlob(r, 'image/png'))).arrayBuffer());
+  const ppm = Math.round(dpi / 0.0254), ch = new Uint8Array(21), dv = new DataView(ch.buffer);
+  dv.setUint32(0, 9); ch.set([0x70, 0x48, 0x59, 0x73], 4); dv.setUint32(8, ppm); dv.setUint32(12, ppm); ch[16] = 1;
+  dv.setUint32(17, crcDone(ch.subarray(4, 17)));
+  const out = new Uint8Array(png.length + 21); out.set(png.subarray(0, 33)); out.set(ch, 33); out.set(png.subarray(33), 54);
+  return out;
+}
+async function encode(gray, W, H, p, fmt) {
+  return fmt === 'png' ? makePNG(gray, W, H, p.dpi) : makeBMP(gray, W, H, p.dpi, p.dither !== 'none');
+}
+function fname(im, W, p, fmt) { return `${im.name}_${(W / p.dpi * 25.4).toFixed(0)}mm_${p.dpi}dpi.${fmt}`; }
+function download(data, name, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function grayName(n) { return n.replace(/(\.\w+)$/, '_회색조$1'); }
+$('#saveBtn').onclick = async () => {
+  if (!lastOut) render();
+  const fmt = $('#fmt').value, { gray, W, H } = lastOut, mime = fmt === 'png' ? 'image/png' : 'image/bmp';
+  download(await encode(gray, W, H, P, fmt), fname(images[cur], W, P, fmt), mime);
+  if ($('#withGray').checked) {
+    const pg = Object.assign({}, P, { dither: 'none', morph: 0 }), b = getBase(images[cur]);
+    const g = processGray(b.gray, b.W, b.H, pg);
+    await new Promise(r => setTimeout(r, 400));
+    download(await encode(g, W, H, pg, fmt), grayName(fname(images[cur], W, P, fmt)), mime);
+  }
+};
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = crcDone(f.data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
+    h.setUint32(14, crc, true); h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(h.buffer), nm, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+    c.setUint32(16, crc, true); c.setUint32(20, f.data.length, true); c.setUint32(24, f.data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    cen.push(new Uint8Array(c.buffer), nm);
+    off += 30 + nm.length + f.data.length;
+  }
+  const cs = cen.reduce((a, b) => a + b.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+$('#zipBtn').onclick = async () => {
+  const btn = $('#zipBtn'), fmt = $('#fmt').value, files = [], names = new Set();
+  btn.disabled = true;
+  for (let i = 0; i < images.length; i++) {
+    btn.textContent = `변환 중 ${i + 1}/${images.length}`;
+    await new Promise(r => setTimeout(r, 20));
+    const b = buildBase(images[i]), g = processGray(b.gray, b.W, b.H, P);
+    let n = fname(images[i], b.W, P, fmt); while (names.has(n)) n = n.replace(/(\.\w+)$/, '_' + i + '$1'); names.add(n);
+    files.push({ name: n, data: await encode(g, b.W, b.H, P, fmt) });
+    if ($('#withGray').checked) {
+      const pg = Object.assign({}, P, { dither: 'none', morph: 0 });
+      files.push({ name: grayName(n), data: await encode(processGray(b.gray, b.W, b.H, pg), b.W, b.H, pg, fmt) });
+    }
+  }
+  const zipName = `레이저변환_${new Date().toISOString().slice(0, 10)}.zip`;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(makeZip(files)); a.download = zipName; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  btn.textContent = '전체 일괄 저장 (ZIP)'; btn.disabled = false;
+};
+
+/* ---------- 내 워크플로우 ---------- */
+const UPKEY = 'laserprep.presets.v1';
+function upLoad() { try { return JSON.parse(localStorage.getItem(UPKEY) || '[]'); } catch { return []; } }
+function upStore(a) { try { localStorage.setItem(UPKEY, JSON.stringify(a)); } catch { alert('이 브라우저에서는 저장할 수 없습니다. 「파일로 내보내기」를 사용하세요.'); } upRender(); }
+let upMem = upLoad();
+MATS.forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.name; $('#upMat').append(o); });
+function shareCode(u) { return 'LW1:' + btoa(unescape(encodeURIComponent(JSON.stringify(u)))); }
+function readCode(t) {
+  t = t.trim(); if (!t.startsWith('LW1:')) throw 0;
+  const u = JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));
+  return cleanUp(u);
+}
+function cleanUp(u) {
+  if (!u || typeof u.name !== 'string' || !u.name || !u.p || typeof u.p !== 'object') throw 0;
+  const p = Object.assign(clone(DEF), u.p);
+  if (!DITHERS.some(d => d[0] === p.dither)) p.dither = 'jarvis';
+  p.dpi = clamp(Math.round(+p.dpi || 254), 50, 1000);
+  ['cropL', 'cropT', 'cropR', 'cropB'].forEach(k => delete p[k]);
+  return { name: u.name.slice(0, 60), mat: MATS.some(m => m.id === u.mat) ? u.mat : '', memo: String(u.memo || '').slice(0, 300), p };
+}
+function upsert(e) { const i = upMem.findIndex(x => x.name === e.name); if (i >= 0) upMem[i] = e; else upMem.push(e); }
+function upRender() {
+  const box = $('#upList'); box.innerHTML = upMem.length ? '' : '<div class="note">저장된 워크플로우가 없습니다.</div>';
+  upMem.forEach((u, i) => {
+    const r = document.createElement('div'); r.className = 'upi';
+    r.innerHTML = '<div class="up"><span></span><button>적용</button><button title="공유 코드를 복사합니다">공유</button><button title="삭제">✕</button></div>' + (u.memo ? '<div class="note" style="margin:2px 0 6px"></div>' : '');
+    const mat = (MATS.find(m => m.id === u.mat) || {}).name;
+    r.querySelector('span').textContent = (mat ? `[${mat}] ` : '') + u.name;
+    if (u.memo) r.querySelector('.note').textContent = u.memo;
+    const [ap, sh, del] = r.querySelectorAll('button');
+    ap.onclick = () => { P = Object.assign(clone(DEF), keepView(), clone(u.p)); activePreset = null; syncUI(); scheduleRender(); scheduleCommit(); };
+    sh.onclick = () => navigator.clipboard.writeText(shareCode(u)).then(() => { sh.textContent = '복사됨'; setTimeout(() => sh.textContent = '공유', 1200); }, () => prompt('아래 코드를 복사하세요', shareCode(u)));
+    del.onclick = () => { if (confirm(`'${u.name}' 워크플로우를 삭제할까요?`)) { upMem.splice(i, 1); upStore(upMem); } };
+    box.append(r);
+  });
+}
+$('#upSave').onclick = () => {
+  const name = $('#upName').value.trim() || `워크플로우 ${upMem.length + 1}`;
+  upsert(cleanUp({ name, mat: $('#upMat').value, memo: $('#upMemo').value.trim(), p: P }));
+  $('#upName').value = ''; $('#upMemo').value = ''; upStore(upMem);
+};
+$('#upExport').onclick = () => download(JSON.stringify(upMem, null, 1), '레이저변환_워크플로우.json', 'application/json');
+$('#upImport').onclick = () => $('#upFile').click();
+$('#upFile').addEventListener('change', async e => {
+  try {
+    const arr = JSON.parse(await e.target.files[0].text());
+    if (!Array.isArray(arr)) throw 0;
+    arr.forEach(u => upsert(cleanUp(u)));
+    upStore(upMem);
+  } catch { alert('워크플로우 파일 형식이 올바르지 않습니다.'); }
+  e.target.value = '';
+});
+$('#upCode').onclick = () => {
+  const t = prompt('받은 공유 코드를 붙여 넣으세요 (LW1: 로 시작)'); if (!t) return;
+  try { upsert(readCode(t)); upStore(upMem); } catch { alert('공유 코드가 올바르지 않습니다.'); }
+};
+
+/* ---------- 시험 카드 ---------- */
+function cardGray(dpi, p) {
+  const px = mm => Math.max(1, Math.round(mm / 25.4 * dpi)), W = px(50), H = px(30);
+  const c = mkCanvas(W, H), x = c.getContext('2d', { willReadFrequently: true });
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+  if (p.flipH) { x.translate(W, 0); x.scale(-1, 1); }
+  for (let i = 0; i < 10; i++) { const v = Math.round(255 * (1 - i / 9)); x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(px(2 + i * 4.6), px(2), px(4.6), px(8)); }
+  x.fillStyle = '#000';
+  let gx = 2;
+  [0.1, 0.2, 0.3, 0.5].forEach(w => { for (let k = 0; k < 6; k++) x.fillRect(px(gx + k * w * 2), px(12), Math.max(1, px(w)), px(7)); gx += 6 * w * 2 + 2; });
+  x.font = `bold ${px(5)}px sans-serif`; x.textBaseline = 'top'; x.fillText(`${dpi} DPI`, px(2), px(21));
+  x.fillStyle = '#808080'; x.fillRect(px(24), px(22), px(8), px(6));
+  x.strokeStyle = '#000'; x.lineWidth = Math.max(1, px(0.4)); x.beginPath(); x.arc(px(40), px(21), px(6), 0, 7); x.stroke();
+  const d = x.getImageData(0, 0, W, H).data, g = new Float32Array(W * H);
+  for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+  return { gray: processGray(g, W, H, Object.assign({}, p, { dpi, edgeOnly: false })), W, H };
+}
+function parseDpis() {
+  const a = [...new Set($('#cardDpi').value.split(/[,\s]+/).map(Number).filter(v => v >= 50 && v <= 1000))].slice(0, 8);
+  return a.length ? a : [P.dpi];
+}
+$('#cardOne').onclick = async () => {
+  const fmt = $('#fmt').value, c = cardGray(P.dpi, P);
+  download(await encode(c.gray, c.W, c.H, P, fmt), `시험카드_${P.dpi}dpi.${fmt}`, fmt === 'png' ? 'image/png' : 'image/bmp');
+};
+$('#cardZip').onclick = async () => {
+  const fmt = $('#fmt').value, files = [];
+  for (const dpi of parseDpis()) {
+    const p = Object.assign({}, P, { dpi }), c = cardGray(dpi, P);
+    files.push({ name: `시험카드_${dpi}dpi.${fmt}`, data: await encode(c.gray, c.W, c.H, p, fmt) });
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(makeZip(files)); a.download = '시험카드_DPI별.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+};
+
+/* ---------- 시작 화면 (워크플로우 / 이미지 변환) ---------- */
+let hMat = 'wood';
+function showHome(view) {
+  $('#home').hidden = false;
+  $('#homeTiles').hidden = view === 'wf';
+  $('#wfView').hidden = view !== 'wf';
+  if (view === 'wf') { hMatChips(); hWfList(); }
+}
+function enterConv(applyFn) {
+  $('#home').hidden = true;
+  if (applyFn) applyFn();
+  try { history.replaceState(null, '', '#convert'); } catch (e) { /* file:// 등 */ }
+}
+function wfFacts(p) {
+  const q = Object.assign(clone(DEF), p), D = Object.fromEntries(DITHERS), L = [];
+  L.push(`해상도 ${q.dpi} DPI (RDWorks 간격 ${(25.4 / q.dpi).toFixed(3)} mm)`);
+  L.push(`디더링 ${D[q.dither]}${q.dither === 'threshold' ? ` · 경계값 ${q.threshold}` : ''}`);
+  if (q.invert) L.push('반전 켬 (밝게 깎이는 재료)');
+  if (q.flipH) L.push('좌우 반전 켬 (뒷면 각인)');
+  const tone = [q.brightness && `밝기 ${q.brightness}`, q.contrast && `대비 ${q.contrast}`, q.gamma !== 1 && `감마 ${q.gamma}`, (q.black || q.white !== 255) && `레벨 ${q.black}–${q.white}`].filter(Boolean);
+  if (tone.length) L.push(tone.join(' · '));
+  if (q.maxInk < 100) L.push(`최대 농도 ${q.maxInk}%`);
+  if (q.sharpen) L.push(`선명하게 ${q.sharpen}%`);
+  if (q.denoise) L.push(`노이즈 제거 ${q.denoise}`);
+  if (q.edgeOnly) L.push('윤곽선만 남기기');
+  if (q.morph) L.push(`선 굵기 ${q.morph > 0 ? '+' : ''}${q.morph}`);
+  return L;
+}
+function hMatChips() {
+  const box = $('#hMatChips'); box.innerHTML = '';
+  [...MATS, { id: '_mine', name: '내 워크플로우' }].forEach(m => {
+    const b = document.createElement('button'); b.className = 'chip' + (m.id === hMat ? ' on' : ''); b.textContent = m.name;
+    b.onclick = () => { hMat = m.id; hMatChips(); hWfList(); };
+    box.append(b);
+  });
+}
+function hWfList() {
+  const box = $('#hWfList'); box.innerHTML = '';
+  if (hMat === '_mine') {
+    if (!upMem.length) box.innerHTML = '<div class="note" style="grid-column:1/-1">저장한 워크플로우가 없습니다. 변환기에서 설정을 맞춘 뒤 「내 워크플로우 → 현재 설정 저장」을 누르면 여기에 나옵니다.</div>';
+    upMem.forEach(u => {
+      const c = document.createElement('div'); c.className = 'wcard';
+      const mat = (MATS.find(m => m.id === u.mat) || {}).name;
+      c.innerHTML = '<h3></h3><div class="sub"></div><ul></ul><button class="primary">이 설정으로 시작</button>';
+      c.querySelector('h3').textContent = u.name;
+      c.querySelector('.sub').textContent = [mat, u.memo].filter(Boolean).join(' · ');
+      wfFacts(u.p).forEach(t => { const li = document.createElement('li'); li.textContent = t; c.querySelector('ul').append(li); });
+      c.querySelector('button').onclick = () => enterConv(() => { P = Object.assign(clone(DEF), keepView(), clone(u.p)); activePreset = null; syncUI(); scheduleRender(); scheduleCommit(); });
+      box.append(c);
+    });
+    return;
+  }
+  const m = MATS.find(x => x.id === hMat);
+  const tr = document.createElement('div'); tr.className = 'trait'; tr.style.gridColumn = '1/-1'; tr.innerHTML = `<b>${m.name}의 특징</b><br>${m.trait}`; box.append(tr);
+  const tq = document.createElement('div'); tq.className = 'trait'; tq.style.gridColumn = '1/-1';
+  tq.innerHTML = `<b>현장 팁</b><ul class="tips" style="color:var(--ink)">${m.tips.map(x => `<li>${x}</li>`).join('')}</ul>`; box.append(tq);
+  WORKFLOWS.filter(w => w.mat === hMat).forEach(w => {
+    const c = document.createElement('div'); c.className = 'wcard';
+    c.innerHTML = `<h3>${w.name}</h3><div class="sub">${w.sub}</div><ul>${wfFacts(w.p).map(t => `<li>${t}</li>`).join('')}</ul><div class="note">${w.note}</div><details class="why" open><summary>왜 이렇게 잡았나요?</summary><ul>${whyList(w).map(t => `<li>${t}</li>`).join('')}</ul></details><button class="primary">이 워크플로우로 시작</button>`;
+    c.querySelector('button').onclick = () => enterConv(() => { curMat = hMat; matChips(); wfList(); applyPreset(w); });
+    box.append(c);
+  });
+  const t = document.createElement('div'); t.className = 'note'; }
+$('#goWf').onclick = () => showHome('wf');
+$('#hBack').onclick = () => showHome('tiles');
+$('#goConv').onclick = () => enterConv();
+$('#homeBtn').onclick = () => { showHome('tiles'); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* 무시 */ } };
+if (location.hash === '#convert') $('#home').hidden = true;
+
+/* 시작 */
+matChips(); wfList(); upRender(); syncUI(); histBtns(); updateInfo();
+</script>
+</body>
+</html>

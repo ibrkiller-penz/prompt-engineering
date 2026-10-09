@@ -1,0 +1,14 @@
+--- a/index.html	2026-10-09 10:08:17.229213217 +0000
++++ b/index.html	2026-10-09 10:08:17.243690232 +0000
+@@ -10,7 +10,10 @@
+ <meta property="og:title" content="인공지능 기초 학습사이트">
+ <meta property="og:description" content="고등학교 인공지능 기초 교과서를 이야기와 계단식 학습으로 쉽게 풀어 쓴 학습 사이트">
+ <meta property="og:url" content="https://penedu.web.app/aibasic/">
+-<meta property="og:image" content="https://penedu.web.app/icon-512.png">
++<meta property="og:image" content="https://penedu.web.app/og/aibasic.png">
++<meta property="og:image:width" content="1200">
++<meta property="og:image:height" content="630">
++<meta name="twitter:card" content="summary_large_image">
+ <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A4%96%3C/text%3E%3C/svg%3E">
+ <link rel="stylesheet" href="style.css?v=1791462518463">
+ </head>

@@ -93,6 +93,76 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 시간표 단말 — 터치 화면 + 시간표 칸 + 아래 받침
+  "/board": {
+    from: "#0e7490",
+    to: "#22d3ee",
+    glyph: (
+      <g>
+        <rect x="8" y="10" width="32" height="23" rx="3.5" fill="none" stroke="#fff" strokeWidth="3" />
+        <path d="M14 18h20M14 24h20M22 14v15" stroke="#fff" strokeWidth="2" strokeLinecap="round" opacity=".9" />
+        <circle cx="30" cy="27.5" r="2.4" fill="#fff" />
+        <path d="M17 38h14" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    ),
+  },
+  // SVG Forge — 벡터 곡선(제어점) + 레이저 빔
+  "https://svg-forge-01.netlify.app/": {
+    from: "#dc2626",
+    to: "#fb923c",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 33C14 14 26 14 24 26S34 36 38 17" />
+        <circle cx="10" cy="33" r="3" fill="#fff" stroke="none" />
+        <circle cx="38" cy="17" r="3" fill="#fff" stroke="none" />
+        <path d="M24 5v8M20 9h8" strokeWidth="2.4" />
+      </g>
+    ),
+  },
+  // 레이저 이미지 변환기 — 사진 틀 + 점(디더링) + 레이저 빔
+  "/laser/": {
+    from: "#0f172a",
+    to: "#475569",
+    glyph: (
+      <g fill="#fff">
+        <rect x="9" y="17" width="30" height="22" rx="3.5" fill="none" stroke="#fff" strokeWidth="3" />
+        <circle cx="17" cy="26" r="2" />
+        <circle cx="24" cy="31" r="2" />
+        <circle cx="31" cy="26" r="2" />
+        <circle cx="17" cy="33" r="1.3" opacity=".7" />
+        <circle cx="31" cy="33" r="1.3" opacity=".7" />
+        <path d="M24 5v9" stroke="#fb923c" strokeWidth="3.4" strokeLinecap="round" />
+        <circle cx="24" cy="16" r="2.4" fill="#fb923c" />
+      </g>
+    ),
+  },
+  // HappyMpX — 음표 + 아래 화살표(내려받기)
+  "https://happymp3.web.app/": {
+    from: "#16a34a",
+    to: "#86efac",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 29V10l14-3v18" />
+        <ellipse cx="15.5" cy="29.5" rx="4.3" ry="3.4" fill="#fff" stroke="none" />
+        <ellipse cx="29.5" cy="25.5" rx="4.3" ry="3.4" fill="#fff" stroke="none" />
+        <path d="M24 34v8M20 39l4 4 4-4" />
+      </g>
+    ),
+  },
+  // 인공지능 수학 — 시그마 + 연결 점(신경망)
+  "/aimath": {
+    from: "#4f46e5",
+    to: "#a78bfa",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M30 11H15l9 13-9 13h15" />
+        <circle cx="35" cy="14" r="2.6" fill="#fff" stroke="none" />
+        <circle cx="38" cy="24" r="2.6" fill="#fff" stroke="none" />
+        <circle cx="35" cy="34" r="2.6" fill="#fff" stroke="none" />
+        <path d="M33 16l3 6M36 26l-2 6" strokeWidth="1.8" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",

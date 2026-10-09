@@ -1,0 +1,7 @@
+.pio/
+node_modules/
+firmware/sdkconfig*
+firmware/managed_components/
+firmware/dependencies.lock
+build.log
+*.log

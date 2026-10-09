@@ -1,0 +1,29 @@
+# 배포: main 에 올라가면 자동으로, 또는 Actions 탭에서 "Run workflow" 로 원하는 브랜치를 수동 배포.
+# 필요한 비밀값(저장소 Settings → Secrets and variables → Actions): FIREBASE_TOKEN
+#  (penedu.web.app 을 가진 구글 계정으로 `npx firebase-tools login:ci` 해서 나온 값)
+name: Deploy penedu
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # prebuild 가 /aibasic 복원·패치·HappyMpX.zip 받기를 자동으로 한다
+      - run: npm run build
+      - name: Deploy to Firebase Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          test -n "$FIREBASE_TOKEN" || { echo "FIREBASE_TOKEN 비밀값이 없습니다"; exit 1; }
+          npx --yes firebase-tools deploy --only hosting --project firsttest-5db1f --non-interactive

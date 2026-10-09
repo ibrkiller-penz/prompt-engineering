@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "katex": "^0.19.0",
     "page-flip": "^2.0.7",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -7,6 +8,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/katex": "^0.16.8",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
@@ -23,7 +25,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && firebase deploy --only hosting",
-    "pdfs": "node scripts/make-pdfs.mjs"
+    "deploy": "npm run build && npx firebase-tools deploy --only hosting",
+    "pdfs": "node scripts/make-pdfs.mjs",
+    "prebuild": "node scripts/prepare-aibasic.mjs"
   }
 }

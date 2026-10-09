@@ -1,8 +1,10 @@
 // 사이트 이름·꼭지 목록. 새 교육자료를 더할 때는 SECTIONS에 한 줄을 추가하고 라우트를 연결한다.
 export const HUB_NAME = "살빠진 임선생과 함께하는 교육자료";
 export const COURSE_NAME = "다시 묻는 AI 교실";
+export const BOARD_NAME = "ESP32 터치 화면으로 시간표 단말 만들기";
 
-export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string; credit?: string }[] = [
+export const SECTIONS: { path: string; title: string; tag: string; desc: string; external?: boolean; cta?: string; featured?: boolean; more?: string; credit?: string; lock?: string; unlocked?: { label: string; href: string; note: string; download?: boolean; withCode?: boolean }[] }[] = [
+  // lock: 들어가기 전에 비밀번호를 묻는다. 값은 SHA-256('penedu-lock:' + 비밀번호). 화면 안에서 확인하는 간단한 잠금이라 보안 장치는 아니다.
   {
     path: "/setup",
     featured: true,
@@ -54,5 +56,52 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     desc: "학습 사이트를 AI와 함께 만드는 방법을 안내해요. 편집해서 복사할 수 있는 작업지시서와 단계별 확인표가 있어요.",
     more: "학습 사이트를 AI와 함께 만드는 방법을 안내해요. 편집해서 복사할 수 있는 작업지시서, 내 주제 정하기, 단계별 확인표를 따라 해 보고, 본보기인 손발전기 사이트(4단계 만들기·교육과정 기초자료·실험·영상·퀴즈·학습지)로 이어져요.",
     cta: "안내 보기 →",
+  },
+  {
+    path: "/board",
+    title: "시간표 단말 만들기",
+    tag: "ESP32 터치 화면 · 따라 하기",
+    desc: "보드 한 장으로 시계·날씨·급식·내 시간표가 뜨는 작은 터치 화면을 만들어요. 사는 법부터 화면 흔들림 잡기까지.",
+    more: "Waveshare ESP32-S3 터치 LCD 보드(7인치 중심, 4인치도)로 교실·교무실에 두는 시간표 단말을 만들어요. 살 것, PC 준비, 처음 굽기, 내 시간표 올리기, AI에게 시킬 작업지시서, 개인정보를 뺀 시작 프로젝트 내려받기까지 순서대로 따라 할 수 있어요. 직접 겪은 화면 흔들림·밀림의 원인과 해결도 자세히 적었어요.",
+    cta: "따라 하러 가기 →",
+  },
+  {
+    path: "https://svg-forge-01.netlify.app/",
+    external: true,
+    title: "SVG Forge",
+    tag: "레이저커팅 · 벡터 그래픽",
+    desc: "그림과 글자를 벡터(SVG·DXF)로 바꿔 레이저커팅에 쓰는 사이트예요. 색마다 자르기·새기기를 정해요.",
+    more: "그림을 벡터 그래픽으로 바꾸고 글자를 넣어서 레이저커팅용 파일(SVG·DXF)로 저장하는 웹 도구예요. LightBurn·RDWorks 같은 프로그램에서 열 수 있고, 색마다 선은 ‘자르기’, 면은 ‘새기기’처럼 다른 작업을 정할 수 있어요. 곡선 정확도와 색 개수, 문턱값도 조절해요.",
+    cta: "도구 열어 보기 ↗",
+  },
+  {
+    path: "/laser/",
+    external: true,
+    title: "레이저 이미지 변환기",
+    tag: "레이저 각인 · 사진 변환",
+    desc: "재료를 고르면 시작 설정이 나오는 워크플로우와 사진 변환기예요. 설치 없이 돌고 사진은 밖으로 나가지 않아요.",
+    more: "시작 화면에서 ‘워크플로우’와 ‘이미지 변환’을 골라요. 워크플로우는 나무·MDF·아크릴·슬레이트·가죽·코르크·유리·알루미늄·스테인리스·타일 등 재료별 시작 설정(해상도·대비·디더링·반전)이고, 내가 맞춘 설정은 저장해서 공유 코드로 동료에게 보낼 수 있어요. 변환기는 밝기·대비·커브·노이즈 제거·자르기·디더링 12종을 조절하고, mm와 DPI를 넣으면 스캔 간격을 알려 줘요. DPI별 시험 카드, 회색조 원본 동시 저장, 1비트 BMP·PNG 저장, 여러 장 ZIP 일괄 변환이 돼요. 인터넷에 올라가는 것이 없어서 레이저 PC에 파일만 복사해서 써도 돼요.",
+    cta: "변환기 열기 ↗",
+  },
+  {
+    path: "https://happymp3.web.app/",
+    external: true,
+    lock: "5f51070ea552aa2e896dc6e9b315dbadd3c9672508b88511f4bd0b106e362e09",
+    title: "HappyMpX",
+    tag: "유튜브 → MP3·MP4 · 프로그램",
+    desc: "유튜브 링크를 MP3(소리)나 MP4(영상) 파일로 바꿔 주는 Windows 프로그램이에요. 비밀번호가 필요해요.",
+    more: "컴퓨터에 풀어서 쓰는 프로그램(HappyMpX)이에요. 유튜브 링크를 붙여 넣고 MP3나 MP4로 내려받아요. 웹페이지로는 쓸 수 없어요 — 유튜브가 웹서버 주소를 막아서 프로그램으로만 제공해요. 직접 만든 영상이나 사용을 허락받은 영상에만 쓰고, 저작권이 있는 영상은 이용 조건과 학교의 저작권 지침을 먼저 확인하세요.",
+    cta: "비밀번호 입력 후 받기 🔒",
+    unlocked: [
+      { label: "프로그램 받기 (HappyMpX)", href: "/happy/HappyMpX.zip", download: true, note: "Windows 프로그램을 zip으로 묶은 파일(약 53MB). 압축을 풀어 HappyMpX.exe를 실행해요. 서명이 없어서 Windows 보호 창이 뜨면 ‘추가 정보 → 실행’을 눌러요." },
+    ],
+  },
+  {
+    path: "/aimath",
+    title: "인공지능 수학",
+    tag: "고등 진로선택 · 단원별 학습",
+    desc: "이야기로 시작해서 개념·체험·계단 문제까지. 인공지능 수학 5개 대단원을 새봄고 AI랩 친구들과 함께 공부해요.",
+    more: "인공지능과 빅데이터, 텍스트·이미지 데이터 처리, 예측과 최적화, 탐구까지 5개 대단원·20개 레슨을 단원별로 정리했어요. 레슨마다 이야기, 개념과 예제, 직접 만져 보는 체험 도구, 힌트가 있는 계단 문제, AI 프로젝트, 요약이 있고 틀린 문제는 오답노트에 모여요. 모든 글과 문제는 새로 쓴 것이에요.",
+    cta: "공부하러 가기 →",
   },
 ];

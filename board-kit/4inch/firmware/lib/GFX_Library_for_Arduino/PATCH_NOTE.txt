@@ -1,0 +1,5 @@
+GFX Library for Arduino 1.5.3 (moononournation/Arduino_GFX, BSD License — license.txt)
+이 사본은 Waveshare 가 Arduino-ESP32 3.3 에 맞춰 고친 것입니다. PlatformIO 레지스트리의 1.5.3 은 그대로는 빌드가 실패합니다.
+  실패 원인: Arduino-ESP32 3.3 에서 spiFrequencyToClockDiv() 의 인자가 (freq) -> (spi, freq) 로 바뀜.
+  고친 곳: src/databus/Arduino_ESP32SPI.cpp, src/databus/Arduino_ESP32SPIDMA.cpp (gfxSpiFrequencyToClockDiv 도우미 추가). 다른 파일은 레지스트리 1.5.3 과 같습니다.
+이 프로젝트는 화면 칩(ST7701)에 시작 명령을 보낼 때만(Arduino_SWSPI) 이 라이브러리를 씁니다.

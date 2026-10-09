@@ -59,6 +59,14 @@ html[data-level="high"] {
   font-size: 16px;
 }
 
+/* 인공지능 수학: 대단원마다 포인트 색이 달라진다 */
+html[data-aiunit="0"] { --accent: #4f46e5; --accent-soft: #eef0ff; }
+html[data-aiunit="1"] { --accent: #4f46e5; --accent-soft: #eef0ff; }
+html[data-aiunit="2"] { --accent: #0f766e; --accent-soft: #e3f6f2; }
+html[data-aiunit="3"] { --accent: #e11d48; --accent-soft: #ffe8ee; }
+html[data-aiunit="4"] { --accent: #b45309; --accent-soft: #fff1dc; }
+html[data-aiunit="5"] { --accent: #7c3aed; --accent-soft: #f0e9ff; }
+
 body {
   background: var(--bg);
   color: var(--ink);
@@ -108,3 +116,23 @@ a.btn {
   object-fit: contain;
   pointer-events: none;
 }
+
+/* aimath: 정답 효과 */
+@keyframes am-pop { 0% { transform: scale(.96); } 40% { transform: scale(1.03); } 100% { transform: scale(1); } }
+@keyframes am-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@keyframes am-draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes am-circle { 0% { opacity: 0; transform: scale(.7); } 15% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(1.08); } }
+.am-pop { animation: am-pop .45s ease-out; }
+.am-shake { animation: am-shake .3s ease-in-out; }
+.am-circle { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; pointer-events: none; color: #16a34a; background: rgba(255, 255, 255, .35); animation: am-circle 1s ease-out forwards; }
+.am-circle circle { stroke-dasharray: 100; animation: am-draw .45s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .am-pop, .am-shake { animation: none; }
+  .am-circle { display: none; }
+}
+
+/* aimath: 한글은 단어 단위로 줄바꿈하고, 제목은 줄 길이를 고르게 */
+.aimath-root { word-break: keep-all; overflow-wrap: break-word; }
+.aimath-root :is(h1, h2, h3, h4) { text-wrap: balance; }
+.aimath-root :is(p, li) { text-wrap: pretty; }
+.aimath-root :is(pre, code, textarea, input, .katex) { word-break: normal; }

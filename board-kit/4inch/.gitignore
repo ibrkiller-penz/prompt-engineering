@@ -1,0 +1,6 @@
+firmware/.pio/
+firmware/fonts/node_modules/
+firmware/sdkconfig*
+firmware/CMakeLists.txt
+firmware/.dummy/
+__pycache__/
