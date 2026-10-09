@@ -44,6 +44,14 @@ export default function Thumb({ id, size = "md", bob = false }: { id: string; si
             <path d="M 30 100 V 80 A 20 20 0 0 1 70 80 V 100 Z" opacity="0.6" />
           </g>
         )}
+        {floor === "world" && (
+          // 세계 놀이터: 지구본 줄무늬
+          <g stroke="#fff" opacity="0.28" fill="none" strokeWidth="1.4">
+            <circle cx="50" cy="52" r="42" />
+            <ellipse cx="50" cy="52" rx="18" ry="42" />
+            <path d="M 8 52 H 92 M 14 30 H 86 M 14 74 H 86" />
+          </g>
+        )}
         {/* 반짝이 */}
         {[
           [80, 16, 4],

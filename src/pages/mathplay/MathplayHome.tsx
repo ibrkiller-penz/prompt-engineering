@@ -10,10 +10,15 @@ import { dayKey, rankOf, starsOf, streak, totalStars, useSave, type Save } from 
 import { useGameFont } from "./theme";
 
 const MORE: { name: string; href: string; note: string }[] = [
+  { name: "NRICH (영국 케임브리지대학)", href: "https://nrich.maths.org/", note: "초등부터 고등까지 수학 퍼즐과 상호작용 놀이가 가득해요(영어)" },
+  { name: "Math Playground (미국)", href: "https://www.mathplayground.com/math-games.html", note: "수학 게임 300가지 이상, 로그인 없이 무료(영어)" },
+  { name: "Cut-the-Knot (미국)", href: "https://www.cut-the-knot.org/gamesList.shtml", note: "님, 하노이의 탑 같은 수학 놀이 모음(일부는 요즘 브라우저에서 안 열릴 수 있어요)(영어)" },
+  { name: "Mathigon Polypad (영국·미국)", href: "https://mathigon.org/polypad", note: "펜토미노·탱그램·분수 막대 같은 디지털 교구(영어)" },
+  { name: "Math Is Fun (호주)", href: "https://www.mathsisfun.com/", note: "수학 개념 설명과 퍼즐, 스도쿠(영어)" },
+  { name: "GeoGebra (오스트리아·국제)", href: "https://www.geogebra.org/", note: "그래프·도형·퍼즐 활동이 많아요(한국어 지원)" },
   { name: "Panchang Paheli", href: "https://ccl.iitgn.ac.in/panchang-paheli", note: "펜토미노 달력 퍼즐을 날마다(영어)" },
   { name: "Transum — Pentominoes", href: "https://www.transum.org/maths/activity/jigsaw/Pentominoes.asp", note: "펜토미노 12조각 채우기(영어)" },
   { name: "Transum — Tetrominoes", href: "https://www.transum.org/maths/activity/jigsaw/Tetrominoes.asp", note: "테트로미노 직사각형 채우기(영어)" },
-  { name: "Mathigon Polypad", href: "https://mathigon.org/polypad", note: "펜토미노·탱그램 디지털 교구(영어)" },
 ];
 
 /** 별 세 칸 */
@@ -293,8 +298,8 @@ export default function MathplayHome() {
         </section>
 
         <details className="mt-6 rounded-[22px] bg-white p-4 shadow-[0_4px_0_0_rgba(0,0,0,0.06)]">
-          <summary className="font-game min-h-[44px] cursor-pointer py-2 text-lg text-[#2b2340]">🔗 조각 퍼즐을 더 해 볼 수 있는 곳</summary>
-          <p className="text-sm text-[#6b6280]">대부분 영어 사이트예요. 어른과 함께 보세요. 내용이 바뀌거나 사라질 수 있어요.</p>
+          <summary className="font-game min-h-[44px] cursor-pointer py-2 text-lg text-[#2b2340]">🌍 세계의 수학 놀이터 사이트 구경하기</summary>
+          <p className="text-sm text-[#6b6280]">4층 세계 놀이터의 게임은 이런 사이트의 놀이에서 아이디어를 얻어 새로 만들었어요. 대부분 영어 사이트라서 어른과 함께 보세요. 내용이 바뀌거나 사라질 수 있어요.</p>
           <ul className="mt-2 space-y-2">
             {MORE.map((m) => (
               <li key={m.href}>

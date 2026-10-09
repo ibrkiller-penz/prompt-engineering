@@ -256,6 +256,17 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
                   })}
                 </div>
               </div>
+              {g.credit && (
+                <p className="mt-4 w-full rounded-2xl border-2 border-line bg-surface px-3 py-2 text-left text-sm shadow-[0_3px_0_0_rgba(0,0,0,0.04)]">
+                  <span className="font-game text-accent">🌍 세계의 놀이에서 영감</span>
+                  <span className="mt-0.5 block text-muted">
+                    {g.credit.country}의 {g.credit.site}에도 ‘{g.credit.what}’이(가) 있어요. 이 게임은 그 아이디어를 바탕으로 새로 만들었어요.{" "}
+                    <a href={g.credit.href} target="_blank" rel="noopener" className="font-semibold text-accent underline underline-offset-4">
+                      원조 사이트 ↗
+                    </a>
+                  </span>
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => {

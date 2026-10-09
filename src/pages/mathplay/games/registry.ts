@@ -1,11 +1,12 @@
 // 게임 목록. 게임 화면은 games/<id>.tsx (기본 내보내기 컴포넌트)에 있다.
-export type Floor = "play" | "future" | "classic";
+export type Floor = "play" | "future" | "classic" | "world";
 
 /** 층별 분위기: 놀이 마당(몸으로 놀듯), 미래 연구소(세상에 쓰이는 수학), 수학 박물관(도형·함수·옛 수학) */
 export const FLOORS: { key: Floor; label: string; name: string; emoji: string; desc: string; zone: string; grad: [string, string] }[] = [
   { key: "play", label: "1층", name: "놀이 마당", emoji: "🎈", desc: "누르고 끌며 놀듯이", zone: "#e8552f", grad: ["#ff9a5a", "#ff5e7e"] },
   { key: "future", label: "2층", name: "미래 연구소", emoji: "🚀", desc: "세상을 움직이는 수학", zone: "#2563eb", grad: ["#4fc3ff", "#6a5cff"] },
   { key: "classic", label: "3층", name: "수학 박물관", emoji: "🏛️", desc: "도형·수·옛 수학 이야기", zone: "#7c3aed", grad: ["#b78cff", "#ff6fb5"] },
+  { key: "world", label: "4층", name: "세계 놀이터", emoji: "🌍", desc: "전 세계 아이들이 하는 수학 놀이", zone: "#0d9488", grad: ["#34d399", "#3b82f6"] },
 ];
 
 /** 게임 썸네일: 큰 그림 문자와 배경 그라데이션 */
@@ -40,6 +41,16 @@ export const ART: Record<string, { e: string; e2?: string; c: [string, string] }
   factortree: { e: "🌳", e2: "🍏", c: ["#bbf7d0", "#15803d"] },
   conic: { e: "🪐", e2: "🔦", c: ["#c7d2fe", "#4338ca"] },
   pascal: { e: "🔺", e2: "🎈", c: ["#fecdd3", "#e11d48"] },
+  hanoi: { e: "🗼", e2: "🔵", c: ["#a5f3fc", "#0891b2"] },
+  gotit: { e: "🎯", e2: "🥇", c: ["#fde68a", "#f97316"] },
+  nim: { e: "🪨", e2: "🤖", c: ["#d6d3d1", "#57534e"] },
+  lightsout: { e: "💡", e2: "🌙", c: ["#312e81", "#1e1b4b"] },
+  sliding: { e: "🧩", e2: "🔢", c: ["#fbcfe8", "#db2777"] },
+  jugs: { e: "🫗", e2: "💧", c: ["#bae6fd", "#0284c7"] },
+  hundred: { e: "💯", e2: "🧩", c: ["#ddd6fe", "#6d28d9"] },
+  geoboard: { e: "📐", e2: "🟡", c: ["#fef08a", "#ca8a04"] },
+  matchtime: { e: "⏰", e2: "🕒", c: ["#fecaca", "#dc2626"] },
+  timestable: { e: "✖️", e2: "🧮", c: ["#bbf7d0", "#16a34a"] },
   calendar: { e: "📅", e2: "🧩", c: ["#bfdbfe", "#2563eb"] },
   tetromino: { e: "🧱", e2: "🟪", c: ["#fecaca", "#dc2626"] },
   colorsquare: { e: "🎨", e2: "🌈", c: ["#fde68a", "#ec4899"] },
@@ -55,6 +66,8 @@ export type GameDef = {
   think: string[];
   /** elem=초등 3~6학년, upper=중·고 도전 */
   level: "elem" | "upper";
+  /** 영감을 받은 해외 사이트(우리가 새로 만든 놀이이고, 원조가 있는 곳을 소개한다) */
+  credit?: { site: string; country: string; what: string; href: string };
 };
 
 export const GAMES: GameDef[] = [
@@ -97,6 +110,17 @@ export const GAMES: GameDef[] = [
   { id: "calendar", floor: "play", title: "펜토미노 달력", blurb: "오늘 날짜만 남기고 달력을 조각으로 덮어요.", how: "조각을 끌어다 달력 위에 놓아요. 끄는 중에 오른쪽 단추(또는 R)로 돌리고 F로 뒤집어요. 고른 조각을 한 번 더 누르면 돌아가요. 레벨이 오를 때마다 다음 날짜가 나와요.", think: ["덮어야 하는 칸은 47칸이에요. 5칸짜리 조각 7개와 4칸짜리 조각 3개를 합치면 딱 47칸이에요. 계산해 볼까요?", "어떤 날짜를 골라도 풀 수 있어요. 컴퓨터로 모두 확인했어요.", "같은 날짜를 다르게 풀 수 있을까요? 친구와 비교해 봐요."], level: "elem" },
   { id: "tetromino", floor: "play", title: "테트로미노 퍼즐", blurb: "네모 4개를 붙인 조각 5가지로 빈틈없이 채워요.", how: "조각을 끌어다 흰 칸에 놓아요. 끄는 중에 오른쪽 단추(또는 R)로 돌리고 F로 뒤집어요. ‘새 문제’를 누르면 다른 모양이 나와요.", think: ["네모 4개로 만든 모양은 5가지뿐이에요. 종이에 직접 그려 볼까요?", "지그재그 모양과 L 모양은 뒤집으면 방향이 달라져요.", "다르게 채울 수 있는 문제를 찾아봐요."], level: "elem" },
   { id: "colorsquare", floor: "play", title: "색동 마방진", blurb: "가로줄, 세로줄, 대각선에 같은 색이 겹치지 않게 칠해요.", how: "빈칸을 누를 때마다 색이 바뀌어요(색 칩을 고르면 그 색으로 칠해요). 가로·세로·대각선 한 줄에 같은 색이 두 번 나오면 빨간 테두리가 생겨요. 레벨 6부터는 5×5 판이에요.", think: ["4×4 판에서 한 줄에 4가지 색이 모두 있어야 해요. 각 색은 모두 몇 개 필요할까요?", "처음 놓인 칩을 잘 보면 다음 칩을 알 수 있어요.", "옛날 조선의 수학자 최석정 할아버지도 이런 색(숫자) 퍼즐을 연구했다고 알려져 있어요."], level: "elem" },
+  // ───── 4층 세계 놀이터(해외 사이트의 놀이에서 영감을 받아 새로 만듦) ─────
+  { id: "hanoi", floor: "world", title: "하노이의 탑", blurb: "큰 원반 위에 작은 원반만! 원반을 다른 기둥으로 옮겨요.", how: "원반을 끌어서(또는 기둥을 눌러서) 다른 기둥으로 옮겨요. 큰 원반을 작은 원반 위에 올릴 수는 없어요.", think: ["원반이 3개면 가장 적게 몇 번 옮길까요? 4개, 5개일 때도 세어 보세요.", "원반이 하나 늘 때마다 필요한 횟수가 어떻게 변해요? (힌트: 2배 + 1)"], level: "elem", credit: { site: "Math Playground · Cut-the-Knot", country: "미국", what: "하노이의 탑", href: "https://www.mathplayground.com/math-games.html" } },
+  { id: "gotit", floor: "world", title: "Got It! 먼저 만들기", blurb: "번갈아 수를 더해서 목표 수를 먼저 만들면 이겨요.", how: "1~4 중 하나를 골라 번갈아 더해요. 목표 수를 딱 만드는 쪽이 이겨요.", think: ["늘 이기는 방법이 숨어 있어요. 목표에서 거꾸로 생각해 보세요.", "목표가 23이고 1~4를 더할 때, 어떤 수를 만들면 항상 이길 수 있을까요?"], level: "elem", credit: { site: "NRICH", country: "영국", what: "Got It!", href: "https://nrich.maths.org/" } },
+  { id: "nim", floor: "world", title: "님 게임", blurb: "돌을 가져가요. 마지막 돌을 가져가는 사람이 이겨요.", how: "한 더미를 골라 돌을 하나 이상 가져가요. 컴퓨터와 번갈아 하며, 마지막 돌을 가져가면 이겨요.", think: ["어떤 모양이 되면 내가 이길 수 있을까요? 여러 번 해 보며 규칙을 찾아봐요.", "돌 더미가 둘이고 개수가 같을 때, 먼저 하는 사람과 나중에 하는 사람 중 누가 유리할까요?"], level: "elem", credit: { site: "Cut-the-Knot", country: "미국", what: "Nim", href: "https://www.cut-the-knot.org/gamesList.shtml" } },
+  { id: "lightsout", floor: "world", title: "불 끄기 퍼즐", blurb: "누르면 주변 불도 같이 바뀌어요. 모든 불을 꺼요.", how: "불을 누르면 그 불과 위·아래·양옆의 불이 켜졌다 꺼졌다 해요. 모든 불을 꺼 보세요.", think: ["같은 불을 두 번 누르면 어떻게 될까요?", "누르는 순서는 상관이 있을까요?"], level: "elem", credit: { site: "GeoGebra", country: "오스트리아·국제", what: "Lights Out", href: "https://www.geogebra.org/" } },
+  { id: "sliding", floor: "world", title: "숫자 밀기 퍼즐", blurb: "빈칸으로 숫자를 밀어서 1, 2, 3… 순서로 맞춰요.", how: "빈칸 옆의 숫자 칸을 눌러(또는 밀어서) 옮겨요. 숫자를 순서대로 맞추면 성공!", think: ["빈칸을 어떻게 움직이면 한 칸만 바꿀 수 있을까요?", "섞인 모양이 모두 풀릴 수 있는 것은 아니에요. 컴퓨터가 풀 수 있는 것만 섞어 줬어요."], level: "elem", credit: { site: "Cut-the-Knot", country: "미국", what: "Sliders", href: "https://www.cut-the-knot.org/gamesList.shtml" } },
+  { id: "jugs", floor: "world", title: "물통 퍼즐", blurb: "크기가 다른 물통으로 딱 맞는 물의 양을 만들어요.", how: "물통을 눌러 가득 채우고, 비우고, 다른 물통으로 옮겨요. 목표 양을 한 통에 만들어요.", think: ["3L와 5L 물통으로 4L를 만들 수 있을까요?", "물통 크기가 어떤 수일 때 만들 수 있는 양이 달라질까요?"], level: "elem", credit: { site: "세계의 옛 퍼즐", country: "프랑스 등", what: "물 붓기 퍼즐", href: "https://www.cut-the-knot.org/gamesList.shtml" } },
+  { id: "hundred", floor: "world", title: "100칸 퍼즐", blurb: "100칸 표에서 찢어진 조각이 들어갈 자리를 찾아요.", how: "조각을 끌어서 100칸 표의 알맞은 자리에 놓아요. 수가 어떻게 이어지는지 보면 알 수 있어요.", think: ["오른쪽 칸은 1 커지고, 아래 칸은 10 커져요. 위쪽 칸은 어떨까요?", "조각에 보이는 수 하나만으로도 자리를 찾을 수 있을까요?"], level: "elem", credit: { site: "NRICH", country: "영국", what: "100 Square Jigsaw", href: "https://nrich.maths.org/" } },
+  { id: "geoboard", floor: "world", title: "고무줄 판", blurb: "못을 이어 도형을 만들고 넓이를 맞혀요.", how: "못을 차례로 눌러 고무줄을 걸고, 처음 못으로 돌아오면 도형이 완성돼요. 목표 넓이가 되게 만들어 봐요.", think: ["넓이를 어떻게 셀 수 있을까요? 네모 칸이 몇 개 들어가는지 세어 봐요.", "같은 넓이인데 모양이 다른 도형을 만들 수 있을까요?"], level: "elem", credit: { site: "NRICH", country: "영국", what: "Virtual Geoboard", href: "https://nrich.maths.org/" } },
+  { id: "matchtime", floor: "world", title: "시계 맞추기", blurb: "시곗바늘과 디지털 시각을 짝 지어요.", how: "시곗바늘을 끌어 돌려 시각에 맞추거나, 시계를 보고 맞는 시각을 골라요.", think: ["짧은바늘과 긴바늘 중 어느 쪽이 시이고 어느 쪽이 분일까요?", "긴바늘이 3을 가리키면 몇 분일까요?"], level: "elem", credit: { site: "NRICH", country: "영국", what: "Matching Time", href: "https://nrich.maths.org/" } },
+  { id: "timestable", floor: "world", title: "구구단 곱셈표 퍼즐", blurb: "곱셈표의 빈칸에 알맞은 수를 끌어다 채워요.", how: "수 조각을 곱셈표의 빈칸으로 끌어다 놓아요. 가로 수와 세로 수를 곱한 값이 들어가요.", think: ["곱셈표는 대각선을 기준으로 똑같은 모양이에요. 왜 그럴까요?", "3단과 6단을 비교해 보면 어떤 규칙이 보여요?"], level: "elem", credit: { site: "NRICH", country: "영국", what: "Tables Teaser", href: "https://nrich.maths.org/" } },
 ];
 
 export const gameById = (id: string) => GAMES.find((g) => g.id === id);

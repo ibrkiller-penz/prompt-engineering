@@ -6,8 +6,10 @@ export default function BuildingMap({ onPick, stars }: { onPick: (f: Floor) => v
   const W = 420;
   const top = 92;
   const fh = 86;
+  const n = FLOORS.length;
+  const H = top + n * fh + 56;
   return (
-    <svg viewBox={`0 0 ${W} 400`} className="block h-auto w-full select-none" role="group" aria-label="수학 놀이터 건물. 층을 누르면 그 층 게임으로 가요">
+    <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full select-none" role="group" aria-label="수학 놀이터 건물. 층을 누르면 그 층 게임으로 가요">
       <defs>
         {FLOORS.map((f) => (
           <linearGradient key={f.key} id={`bm-${f.key}`} x1="0" y1="0" x2="1" y2="1">
@@ -30,15 +32,15 @@ export default function BuildingMap({ onPick, stars }: { onPick: (f: Floor) => v
       </g>
 
       {/* 땅 */}
-      <ellipse cx={W / 2} cy="392" rx="240" ry="34" fill="#7bd389" />
-      <ellipse cx={W / 2} cy="386" rx="200" ry="20" fill="#9be59f" />
+      <ellipse cx={W / 2} cy={H - 8} rx="240" ry="34" fill="#7bd389" />
+      <ellipse cx={W / 2} cy={H - 14} rx="200" ry="20" fill="#9be59f" />
 
       {/* 나무 */}
       {[34, 386].map((x) => (
         <g key={x}>
-          <rect x={x - 4} y="330" width="8" height="40" rx="3" fill="#a16207" />
-          <circle cx={x} cy="322" r="22" fill="#4ade80" stroke="#16a34a" strokeWidth="3" />
-          <circle cx={x - 7} cy="315" r="5" fill="#ef4444" />
+          <rect x={x - 4} y={H - 70} width="8" height="40" rx="3" fill="#a16207" />
+          <circle cx={x} cy={H - 78} r="22" fill="#4ade80" stroke="#16a34a" strokeWidth="3" />
+          <circle cx={x - 7} cy={H - 85} r="5" fill="#ef4444" />
         </g>
       ))}
 
@@ -95,11 +97,11 @@ export default function BuildingMap({ onPick, stars }: { onPick: (f: Floor) => v
       })}
 
       {/* 손 흔드는 친구들 */}
-      <text x={W / 2 + 54} y={top + 3 * fh + 22} fontSize="30" pointerEvents="none">
+      <text x={W / 2 + 54} y={top + n * fh + 22} fontSize="30" pointerEvents="none">
         🐰
         <animateTransform attributeName="transform" type="translate" values="0 0;0 -6;0 0" dur="1.2s" repeatCount="indefinite" />
       </text>
-      <text x={W / 2 - 92} y={top + 3 * fh + 24} fontSize="28" pointerEvents="none">
+      <text x={W / 2 - 92} y={top + n * fh + 24} fontSize="28" pointerEvents="none">
         🐻
       </text>
     </svg>
