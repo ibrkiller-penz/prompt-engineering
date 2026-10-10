@@ -39,3 +39,40 @@ export function minSidesForGap(tol: number, maxN = 2000): number {
 }
 
 export const fmt = (v: number, d = 5) => v.toFixed(d);
+
+/** 어린이용 표시: 아래 값은 내림, 위 값은 올림으로 소수 둘째 자리까지 (참인 말만 하도록) */
+export const floor2 = (v: number) => Math.floor(v * 100 + 1e-9) / 100;
+export const ceil2 = (v: number) => Math.ceil(v * 100 - 1e-9) / 100;
+
+/** 미션 종류: gap=차이를 gap 보다 작게, is314=3.14~3.15 사이로, minGap=차이가 minGap 보다 작아지는 가장 적은 변 맞히기, min314=3.14~3.15 사이가 되는 가장 적은 변 맞히기 */
+export type Mission = { gap?: number; is314?: boolean; minGap?: number; min314?: boolean };
+export const MISSIONS: Mission[] = [{ gap: 0.2 }, { gap: 0.05 }, { gap: 0.02 }, { gap: 0.005 }, { is314: true }];
+
+/** 레벨 1~10, 레벨마다 라운드 3개 */
+export const LEVEL_MISSIONS: Mission[][] = [
+  [{ gap: 0.2 }, { gap: 0.05 }, { gap: 0.02 }],
+  [{ gap: 0.2 }, { gap: 0.02 }, { is314: true }],
+  [{ gap: 0.1 }, { gap: 0.01 }, { gap: 0.005 }],
+  [{ gap: 0.05 }, { gap: 0.005 }, { is314: true }],
+  [{ gap: 0.02 }, { minGap: 0.3 }, { is314: true }],
+  [{ gap: 0.01 }, { minGap: 0.2 }, { gap: 0.002 }],
+  [{ minGap: 0.2 }, { minGap: 0.1 }, { is314: true }],
+  [{ minGap: 0.1 }, { gap: 0.002 }, { minGap: 0.05 }],
+  [{ minGap: 0.05 }, { minGap: 0.02 }, { is314: true }],
+  [{ minGap: 0.02 }, { minGap: 0.01 }, { min314: true }],
+];
+export const missionsFor = (level: number) => LEVEL_MISSIONS[Math.max(1, Math.min(10, level)) - 1];
+export const isMinMission = (m: Mission) => m.minGap !== undefined || !!m.min314;
+/** ‘가장 적은 변’ 미션의 정답 */
+export const minTarget = (m: Mission) => (m.min314 ? minSidesFor314() : minSidesForGap(m.minGap as number));
+/** 3.14~3.15 사이: 아래 ≥ 3.14, 위 ≤ 3.15 */
+export const in314 = (n: number) => inscribed(n) >= 3.14 && circumscribed(n) <= 3.15;
+/** 바로 판정하는 미션(gap, is314)이 이 n 에서 성공인가 */
+export function missionOkM(m: Mission, n: number): boolean {
+  if (m.is314) return in314(n);
+  if (m.gap !== undefined) return gap(n) < m.gap;
+  return false;
+}
+export function missionOk(i: number, n: number): boolean {
+  return missionOkM(MISSIONS[i], n);
+}

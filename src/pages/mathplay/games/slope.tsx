@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, clamp, svgPoint } from "./kit";
-import { FNS, judge, makeQuest, questText, type Quest } from "./slope.math";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Board, GButton, Say, Stat, cheer, clamp, oops, stageClear, svgPoint, useStage } from "./kit";
+import { FNS, judge, makeQuest, questText, zeroTol, type Quest } from "./slope.math";
 
 const W = 400;
 const PX0 = 40, PX1 = 390;
@@ -11,10 +11,11 @@ const BINS = 140;
 const fmt = (v: number) => (Math.abs(v) < 0.005 ? "0" : v.toFixed(2).replace(/\.?0+$/, ""));
 
 export default function SlopeGame() {
-  const [fi, setFi] = useState(0);
+  const level = useStage();
+  const [fi, setFi] = useState((level - 1) % FNS.length);
   const fn = FNS[fi];
-  const [x, setX] = useState(1);
-  const [quest, setQuest] = useState<Quest>({ kind: "zero" });
+  const [x, setX] = useState(() => (FNS[(level - 1) % FNS.length].id === "sqrt" ? 4 : 1));
+  const [quest, setQuest] = useState<Quest>(() => makeQuest(FNS[(level - 1) % FNS.length], Math.random));
   const [trail, setTrail] = useState<Set<number>>(new Set());
   const [showAns, setShowAns] = useState(false);
   const [score, setScore] = useState(0);
@@ -66,27 +67,29 @@ export default function SlopeGame() {
     const q = makeQuest(f, Math.random);
     setQuest(q);
     setDone(false);
-    if (!keep) setMsg({ t: "info", s: "새 문제예요! " + questText(q) });
+    if (!keep) setMsg({ t: "info", s: "새 문제예요! " + questText(q, level) });
   };
 
-  const reset = (idx = fi) => {
+  const reset = (idx = fi, keepScore = false) => {
     const f = FNS[idx];
     setTrail(new Set());
     lastBin.current = null;
     setX(clamp(f.id === "sqrt" ? 4 : f.id === "sin" ? 1 : 1, f.lo, f.x1));
-    setScore(0);
-    setHit(0);
-    setTries(0);
-    setStreak(0);
+    if (!keepScore) {
+      setScore(0);
+      setHit(0);
+      setTries(0);
+      setStreak(0);
+    }
     const q = makeQuest(f, Math.random);
     setQuest(q);
     setDone(false);
-    setMsg({ t: "info", s: "처음부터 시작해요. " + questText(q) });
+    setMsg({ t: "info", s: "처음부터 시작해요. " + questText(q, level) });
   };
 
   const pick = (i: number) => {
     setFi(i);
-    reset(i);
+    reset(i, true);
   };
 
   const check = () => {
@@ -95,13 +98,14 @@ export default function SlopeGame() {
       return;
     }
     setTries((t) => t + 1);
-    if (judge(quest, m)) {
+    if (judge(quest, m, level)) {
       const gain = 10 + Math.min(streak, 4) * 2;
       setScore((s) => s + gain);
       setHit((h) => h + 1);
       setStreak((s) => s + 1);
       setDone(true);
-      setMsg({ t: "ok", s: `맞아요! x = ${fmt(x)} 에서 기울기는 ${fmt(m)} 이에요. +${gain}점 🎉` });
+      cheer();
+      setMsg({ t: "ok", s: `맞아요! x = ${fmt(x)} 에서 기울기는 ${fmt(m)} 이에요. +${gain}점 🎉` + (hit + 1 >= ROUNDS ? ` 레벨 ${level}의 라운드 3개를 모두 깼어요!` : " 곧 다음 라운드예요.") });
     } else {
       setStreak(0);
       let hint = "";
@@ -109,9 +113,18 @@ export default function SlopeGame() {
       else if (quest.kind === "pos") hint = "접선이 오른쪽으로 올라가는 곳이어야 해요.";
       else if (quest.kind === "neg") hint = "접선이 오른쪽으로 내려가는 곳이어야 해요.";
       else hint = m > (quest.target as number) ? "기울기가 너무 커요. 더 완만한 쪽으로 가 봐요." : "기울기가 아직 작아요. 더 가파른 쪽으로 가 봐요.";
+      oops();
       setMsg({ t: "bad", s: `아쉬워요. 지금 기울기는 ${fmt(m)} 이에요. ${hint}` });
     }
   };
+
+  // 맞히면: 3라운드째면 레벨 클리어, 아니면 잠깐 뒤 저절로 새 문제
+  useEffect(() => {
+    if (!done) return;
+    const id = hit >= ROUNDS ? setTimeout(stageClear, 1200) : setTimeout(() => newQuest(), 1800);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done, hit]);
 
   const onKey = (e: React.KeyboardEvent) => {
     const step = ((fn.x1 - fn.x0) / 200) * (e.shiftKey ? 5 : 1);
@@ -131,7 +144,7 @@ export default function SlopeGame() {
   const tl = (fn.x1 - fn.x0) * 0.16;
   const tx0 = x - tl, tx1 = x + tl;
   const ty0 = fn.f(x) + m * (tx0 - x), ty1 = fn.f(x) + m * (tx1 - x);
-  const col = Math.abs(m) <= QUEST_TOL0 ? "var(--muted)" : m > 0 ? "var(--color-ok)" : "var(--color-bad)";
+  const col = Math.abs(m) <= zeroTol(level) ? "var(--muted)" : m > 0 ? "var(--color-ok)" : "var(--color-bad)";
   const trailBins = [...trail].sort((a, b) => a - b);
 
   const axisX = (y0: number, y1: number, ym: (v: number) => number) =>
@@ -149,13 +162,14 @@ export default function SlopeGame() {
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="font-game text-lg">레벨 {level} · 라운드 {Math.min(hit + 1, ROUNDS)}/{ROUNDS}</span>
         <Stat label="점수" value={score} />
         <Stat label="맞힘/시도" value={`${hit}/${tries}`} />
         <Stat label="연속" value={streak} tone={streak >= 2 ? "ok" : "plain"} />
       </div>
 
-      <p className="mt-3 rounded-card bg-bg px-3 py-2 text-[0.95rem] font-semibold">🎯 문제 · {questText(quest)}</p>
+      <p className="mt-3 rounded-card bg-bg px-3 py-2 text-[0.95rem] font-semibold">🎯 문제 · {questText(quest, level)}</p>
 
       <svg
         ref={svgRef}
@@ -234,4 +248,4 @@ export default function SlopeGame() {
   );
 }
 
-const QUEST_TOL0 = 0.12;
+const ROUNDS = 3;

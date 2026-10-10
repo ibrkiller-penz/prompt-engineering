@@ -24,9 +24,6 @@ import BoardShake from "./pages/board/Shake";
 import BoardHelp from "./pages/board/Help";
 import BoardBrief from "./pages/board/Brief";
 import MathplayHome from "./pages/mathplay/MathplayHome";
-import FloorPage from "./pages/mathplay/FloorPage";
-import PuzzlePage from "./pages/mathplay/PuzzlePage";
-import GamePage from "./pages/mathplay/GamePage";
 import NotFound from "./pages/NotFound";
 import PromptLayout from "./components/PromptLayout";
 
@@ -74,9 +71,9 @@ export default function App() {
         <Route path="brief" element={<BoardBrief />} />
       </Route>
       <Route path="/mathplay" element={<MathplayHome />} />
-      <Route path="/mathplay/busan/:floor" element={<FloorPage />} />
-      <Route path="/mathplay/puzzle" element={<PuzzlePage />} />
-      <Route path="/mathplay/game/:id" element={<GamePage />} />
+      <Route path="/mathplay/busan/*" element={<Navigate to="/mathplay" replace />} />
+      <Route path="/mathplay/puzzle" element={<Navigate to="/mathplay?g=calendar" replace />} />
+      <Route path="/mathplay/game/:id" element={<GameRedirect />} />
       <Route
         path="/aimath/*"
         element={
@@ -88,6 +85,12 @@ export default function App() {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
+}
+
+/** 예전 게임 주소(/mathplay/game/아이디)는 팝업 주소로 보낸다 */
+function GameRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/mathplay?g=${id ?? ""}`} replace />;
 }
 
 function SlidesRedirect() {

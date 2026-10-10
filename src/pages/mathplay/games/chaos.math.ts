@@ -57,3 +57,7 @@ export function synced(r: number, x0 = QB.x0, eps = QB.eps): boolean {
   }
   return true;
 }
+
+/** 레벨(1~10)별 예측 허용 오차(해): 1·2→±5, 3·4→±4, 5·6→±3, 7·8→±2, 9·10→±1 */
+export const predictTol = (level: number) => Math.max(1, 5 - Math.floor((Math.max(1, Math.min(10, level)) - 1) / 2));
+export const predictOk = (guess: number, answer: number, level: number) => Math.abs(guess - answer) <= predictTol(level);

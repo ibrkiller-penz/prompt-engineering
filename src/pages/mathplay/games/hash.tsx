@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Stat, rand } from "./kit";
-import { GENESIS, bitDiff, blockHash, chainStatus, chunks4, mine, mineChain, sha256Hex } from "./hash.logic";
+import { Board, GButton, Say, Stat, cheer, rand, stageClear, useStage } from "./kit";
+import { GENESIS, bitDiff, blockHash, chainStatus, chunks4, hashLevel, mine, mineChain, sha256Hex } from "./hash.logic";
 
 const hue = (chunk: string) => (parseInt(chunk, 16) / 65536) * 360;
 
@@ -109,79 +109,98 @@ function Lab() {
   );
 }
 
+const ORIGINAL6 = [...ORIGINAL, "영희가 민수에게 700원", "철수가 지아에게 100원"];
+
 function Chain() {
-  const [zeros, setZeros] = useState(1);
-  const [chain, setChain] = useState(() => mineChain(ORIGINAL, 1));
+  const stage = useStage();
+  const cfg = hashLevel(stage);
+  const { zeros } = cfg;
+  const base = ORIGINAL6.slice(0, cfg.blocks);
+  const pickTarget = () => cfg.lo + rand(cfg.hi - cfg.lo + 1);
+  const [round, setRound] = useState(1);
+  const [target, setTarget] = useState(pickTarget);
+  const [chain, setChain] = useState(() => mineChain(base, zeros));
   const [mined, setMined] = useState(0);
-  const [wins, setWins] = useState(0);
-  const [edited3, setEdited3] = useState(false);
-  const [msg, setMsg] = useState<{ t: string; tone: "info" | "ok" | "bad" }>({
-    t: "퀘스트: 3번 블록의 내용을 고쳐 보세요. 뒤가 끊기면 ‘다시 채굴’로 이어 붙여요.",
+  const [won, setWon] = useState(false);
+  const [msg, setMsg] = useState<{ t: string; tone: "info" | "ok" | "bad" }>(() => ({
+    t: `라운드 1: ${target + 1}번 블록 내용을 고친 뒤, 체인을 다시 모두 이어 보세요(‘다시 채굴’).`,
     tone: "info",
-  });
+  }));
   const status = chainStatus(chain, zeros);
   const firstBad = status.findIndex((s) => s !== "ok");
   const valid = firstBad < 0;
 
-  const setZ = (z: number) => {
-    setZeros(z);
-    setChain(mineChain(chain.map((b) => b.content), z));
-    setEdited3(false);
-    setMsg({ t: `규칙을 바꿨어요. 해시가 ${"0".repeat(z)}로 시작해야 유효해요. 다시 채굴해서 새 체인을 만들었어요.`, tone: "info" });
+  useEffect(() => {
+    if (!won) return;
+    const id = window.setTimeout(() => {
+      if (round >= 3) stageClear();
+      else {
+        const tg = pickTarget();
+        setRound(round + 1);
+        setTarget(tg);
+        setChain(mineChain(base, zeros));
+        setWon(false);
+        setMsg({ t: `라운드 ${round + 1}: 이번엔 ${tg + 1}번 블록을 고치고 체인을 다시 이어 보세요.`, tone: "info" });
+      }
+    }, round >= 3 ? 1200 : 1800);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [won]);
+
+  const check = (next: typeof chain, extra: string) => {
+    const st = chainStatus(next, zeros);
+    if (st.every((s) => s === "ok")) {
+      if (next[target].content !== base[target] && !won) {
+        setWon(true);
+        cheer();
+        setMsg({ t: round >= 3 ? "레벨 클리어! 고친 블록 뒤를 줄줄이 다시 채굴해야 해서 옛 기록을 몰래 고치기는 힘들어요." : `성공! ${target + 1}번 블록을 고치고도 체인을 다시 이었어요. 곧 다음 라운드!`, tone: "ok" });
+      } else setMsg({ t: `${extra} 체인이 모두 이어졌어요. 퀘스트는 ${target + 1}번 블록 내용을 고치는 거예요.`, tone: "ok" });
+    } else setMsg({ t: `${extra} 아직 끊긴 블록이 있어요.`, tone: "info" });
   };
 
   const edit = (i: number, content: string) => {
+    if (won) return;
     const next = chain.map((b, k) => (k === i ? { ...b, content } : b));
     setChain(next);
-    if (i === 2) setEdited3(content !== ORIGINAL[2]);
     const st = chainStatus(next, zeros);
     const fb = st.findIndex((s) => s !== "ok");
     setMsg(fb < 0 ? { t: "내용이 같아서 체인이 그대로 이어져 있어요.", tone: "info" } : { t: `${i + 1}번 블록을 고치자 ${fb + 1}번 블록부터 끊겼어요! 해시가 달라져서 뒤 블록이 가리키는 값과 안 맞아요.`, tone: "bad" });
   };
 
   const remine = (i: number) => {
+    if (won) return;
     const prev = i === 0 ? GENESIS : blockHash(i - 1, chain[i - 1]);
     const r = mine(i, chain[i].content, prev, zeros);
     const next = chain.map((b, k) => (k === i ? { ...b, prev, nonce: r.nonce } : b));
     setChain(next);
     setMined((m) => m + r.tries);
-    const st = chainStatus(next, zeros);
-    if (st.every((s) => s === "ok")) {
-      if (edited3) {
-        setWins((w) => w + 1);
-        setEdited3(false);
-        setMsg({ t: "성공! 3번 블록을 고치고도 체인을 다시 유효하게 이었어요. 뒤 블록을 줄줄이 다시 채굴해야 해서 옛 기록을 몰래 고치기는 힘들어요.", tone: "ok" });
-      } else setMsg({ t: `${i + 1}번 블록 채굴 성공! nonce=${r.nonce} (${r.tries}번 시도). 체인이 모두 이어졌어요.`, tone: "ok" });
-    } else setMsg({ t: `${i + 1}번 블록 채굴 성공! nonce=${r.nonce} (${r.tries}번 시도). 아직 끊긴 블록이 있어요.`, tone: "info" });
+    check(next, `${i + 1}번 블록 채굴! nonce=${r.nonce} (${r.tries}번 시도).`);
   };
 
   const remineAll = () => {
+    if (won) return;
     const next = mineChain(chain.map((b) => b.content), zeros);
     setChain(next);
-    setMsg({ t: "모든 블록을 앞에서부터 다시 채굴했어요.", tone: "info" });
-    if (edited3) {
-      setWins((w) => w + 1);
-      setEdited3(false);
-      setMsg({ t: "성공! 3번 블록을 고치고 체인을 다시 이었어요.", tone: "ok" });
-    }
+    check(next, "모든 블록을 다시 채굴했어요.");
   };
 
   const reset = () => {
-    setChain(mineChain(ORIGINAL, zeros));
-    setEdited3(false);
-    setMsg({ t: "처음 체인으로 되돌렸어요. 3번 블록을 고쳐 보세요.", tone: "info" });
+    setChain(mineChain(base, zeros));
+    setWon(false);
+    setMsg({ t: `처음 체인으로 되돌렸어요. ${target + 1}번 블록을 고쳐 보세요.`, tone: "info" });
   };
 
   return (
     <Board className="space-y-3">
-      <h3 className="font-extrabold">2. 블록 체인 이어 보기</h3>
-      <p className="text-sm text-muted">각 블록은 ‘앞 블록의 해시’를 품고 있어요. 해시가 <strong>{"0".repeat(zeros)}</strong>로 시작하면 유효해요. 맞는 숫자(nonce)를 찾는 일이 ‘채굴’이에요.</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-extrabold">2. 블록 체인 이어 보기</h3>
+        <span className="font-game rounded-full bg-accent px-4 py-1 text-lg text-white">레벨 {stage} · 라운드 {round}/3</span>
+      </div>
+      <p className="text-sm text-muted">각 블록은 ‘앞 블록의 해시’를 품고 있어요. 해시가 <strong>{"0".repeat(zeros)}</strong>로 시작하면 유효해요. 맞는 숫자(nonce)를 찾는 일이 ‘채굴’이에요. 레벨이 오를수록 블록이 늘고, 앞자리 0이 늘어나고, 앞쪽 블록을 고쳐야 해요.</p>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold">규칙</span>
-        <GButton pressed={zeros === 1} onClick={() => setZ(1)}>0 한 개</GButton>
-        <GButton pressed={zeros === 2} onClick={() => setZ(2)}>0 두 개</GButton>
+        <Stat label="고칠 블록" value={`${target + 1}번`} tone="bad" />
+        <Stat label="규칙" value={`0 ${zeros}개`} />
         <Stat label="채굴 시도" value={mined} />
-        <Stat label="퀘스트 성공" value={wins} tone={wins ? "ok" : "plain"} />
       </div>
       <ol className="grid gap-3 md:grid-cols-2">
         {chain.map((b, i) => {
@@ -189,9 +208,9 @@ function Chain() {
           const bad = firstBad >= 0 && i >= firstBad;
           const st = status[i];
           return (
-            <li key={i} className={`rounded-card border-2 p-3 text-sm ${bad ? "border-bad bg-bad-soft/40" : "border-line bg-surface"}`}>
+            <li key={i} className={`rounded-card border-2 p-3 text-sm ${bad ? "border-bad bg-bad-soft/40" : i === target ? "border-accent bg-surface" : "border-line bg-surface"}`}>
               <div className="mb-2 flex items-center justify-between">
-                <strong>블록 {i + 1}</strong>
+                <strong>블록 {i + 1}{i === target ? " 🎯" : ""}</strong>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${st === "ok" ? (bad ? "bg-bad-soft text-bad" : "bg-ok-soft text-ok") : "bg-bad-soft text-bad"}`}>
                   {st === "ok" ? (bad ? "⚠ 앞이 끊겨 있어요" : "✔ 이어짐") : st === "link" ? "✖ 끊김: 앞 해시가 달라요" : "✖ 끊김: 해시 조건 불만족"}
                 </span>
@@ -211,7 +230,7 @@ function Chain() {
         })}
       </ol>
       <div className="flex flex-wrap gap-2">
-        <GButton onClick={remineAll}>모두 다시 채굴</GButton>
+        {cfg.allButton && <GButton onClick={remineAll}>모두 다시 채굴</GButton>}
         <GButton onClick={reset}>다시 하기</GButton>
       </div>
       <Say tone={msg.tone}>{valid && msg.tone === "bad" ? "체인이 이어졌어요." : msg.t}</Say>

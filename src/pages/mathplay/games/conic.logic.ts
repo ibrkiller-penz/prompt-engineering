@@ -47,3 +47,17 @@ export function curveSegments(e: number, d = D, rmax = 40, n = 1440): [number, n
   if (e < 1 && segs.length === 1) segs[0].push(segs[0][0]);
   return segs;
 }
+
+export type ConicTask = { type: "kind"; kind: Kind } | { type: "ratio"; e: number; pf: number; d: number };
+/** 레벨별 과제: 1~3 곡선 이름, 4~6 쉬운 거리 비, 7~10 소수 거리 비 */
+export function conicTask(level: number, rnd: () => number = Math.random): ConicTask {
+  const L = Math.min(10, Math.max(1, Math.round(level)));
+  const pick = <T,>(a: T[]) => a[Math.floor(rnd() * a.length)];
+  if (L <= 3) return { type: "kind", kind: pick<Kind>(["타원", "포물선", "쌍곡선"]) };
+  const e = L <= 6 ? pick([0.5, 1, 1.5, 2]) : pick([0.4, 0.6, 0.75, 1.25, 1.5, 2.5, 3]);
+  const d = L <= 6 ? pick([1, 2, 4]) : pick([1.2, 1.6, 2.4, 3]);
+  return { type: "ratio", e, d, pf: Math.round(e * d * 100) / 100 };
+}
+export function checkTask(task: ConicTask, e: number): boolean {
+  return task.type === "kind" ? classify(e) === task.kind : Math.abs(e - task.e) < 0.026;
+}

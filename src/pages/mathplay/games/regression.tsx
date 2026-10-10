@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { Board, GButton, Say, Stat, clamp, svgPoint } from "./kit";
-import { OUTLIER, X0, X1, leastSquares, lineAt, lsAt, makeData, sse } from "./regression.logic";
+import { Board, GButton, Say, Stat, cheer, clamp, stageClear, svgPoint, useStage } from "./kit";
+import { OUTLIER, X0, X1, leastSquares, lineAt, lsAt, makeData, regLevel, sse } from "./regression.logic";
 
 const W = 640,
   H = 400,
@@ -19,10 +19,13 @@ const r2 = (v: number) => Math.round(v * 100) / 100;
 const mean = (a: { y: number }[]) => a.reduce((s, p) => s + p.y, 0) / a.length;
 
 export default function RegressionGame() {
+  const stage = useStage();
+  const cfg = regLevel(stage);
+  const [round, setRound] = useState(1);
   const [seed, setSeed] = useState(() => 1 + Math.floor(Math.random() * 9000));
-  const data = makeData(seed);
-  const [ya, setYa] = useState(() => r2(mean(makeData(seed))));
-  const [yb, setYb] = useState(() => r2(mean(makeData(seed))));
+  const data = makeData(seed, cfg.noise);
+  const [ya, setYa] = useState(() => r2(mean(makeData(seed, cfg.noise))));
+  const [yb, setYb] = useState(() => r2(mean(makeData(seed, cfg.noise))));
   const [showLs, setShowLs] = useState(false);
   const [outlier, setOutlier] = useState(false);
   const [predict, setPredict] = useState(false);
@@ -38,14 +41,31 @@ export default function RegressionGame() {
   const sseMine = sse(pts, mine);
   const sseLs = sse(pts, (x) => lsAt(ls, x));
   const ratio = sseMine / sseLs;
-  const ok = ratio <= 1.2;
+  // 이상한 점을 넣으면 최소제곱선 오차가 커져서 기준이 느슨해지므로, 성공 판정은 이상한 점이 없을 때만 해요
+  const ok = !outlier && ratio <= cfg.tol;
 
   useEffect(() => {
     if (ok && !solved) {
       setSolved(true);
       setWins((w) => w + 1);
+      cheer();
     }
   }, [ok, solved]);
+
+  // 성공하면 잠시 뒤 다음 라운드(예측을 열어 보고 있으면 기다려요)
+  useEffect(() => {
+    if (!solved || predict) return;
+    const id = window.setTimeout(advance, round >= 3 ? 1200 : 3000);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solved, predict, round]);
+  function advance() {
+    if (round >= 3) stageClear();
+    else {
+      setRound(round + 1);
+      newData();
+    }
+  }
 
   const set = (which: "a" | "b", v: number) => {
     const c = r2(clamp(v, YMIN + 0.05, YMAX - 0.05));
@@ -77,9 +97,9 @@ export default function RegressionGame() {
     }
   };
 
-  const newData = () => {
+  function newData() {
     const s = 1 + Math.floor(Math.random() * 9000);
-    const m = r2(mean(makeData(s)));
+    const m = r2(mean(makeData(s, cfg.noise)));
     setSeed(s);
     setYa(m);
     setYb(m);
@@ -88,7 +108,7 @@ export default function RegressionGame() {
     setPredict(false);
     setOutlier(false);
     setMoves(0);
-  };
+  }
   const flat = () => {
     const m = r2(mean(pts));
     setYa(m);
@@ -121,6 +141,10 @@ export default function RegressionGame() {
   return (
     <div className="space-y-3">
       <Board className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-game rounded-full bg-accent px-4 py-1 text-lg text-white">레벨 {stage} · 라운드 {round}/3</span>
+          <span className="text-sm font-bold text-muted">목표: 최소제곱선의 {cfg.tol}배 이내</span>
+        </div>
         <p className="rounded-card bg-bad-soft px-3 py-2 text-sm font-bold text-bad">⚠ 가상의 예시 자료예요. 실제 기후 자료가 아니에요.</p>
         <div className="flex flex-wrap gap-2">
           <Stat label="내 오차 제곱합" value={sseMine.toFixed(2)} />
@@ -178,17 +202,21 @@ export default function RegressionGame() {
           {handle("b", X1, yb, `2020년 쪽 손잡이, 값 ${yb}`)}
         </svg>
         <div className="flex flex-wrap gap-2">
-          <GButton variant={showLs ? "soft" : "primary"} pressed={showLs} onClick={() => setShowLs((s) => !s)}>📏 최소제곱선 보기</GButton>
+          <GButton variant={showLs ? "soft" : "primary"} pressed={showLs} disabled={!solved} title={solved ? undefined : "성공하면 볼 수 있어요"} onClick={() => setShowLs((s) => !s)}>📏 최소제곱선 보기</GButton>
           <GButton pressed={outlier} onClick={() => setOutlier((o) => !o)}>⚡ 이상한 점 추가</GButton>
           <GButton onClick={flat}>선 평평하게</GButton>
           <GButton onClick={newData}>새 자료</GButton>
         </div>
         <Say tone={ok ? "ok" : moves ? "bad" : "info"}>
           {ok
-            ? `성공! 오차가 최소제곱선의 ${ratio.toFixed(2)}배예요(1.2배 이내).`
-            : moves
-              ? `아직 최소제곱선의 ${ratio.toFixed(2)}배예요. 1.2배 이내로 줄여 봐요. 두 손잡이를 위아래로 끌어요(키보드는 ↑↓, Shift는 크게).`
-              : "주황 손잡이 두 개를 끌어서 파란 점들 한가운데를 지나는 직선을 만들어 봐요. 목표: 오차를 최소제곱선의 1.2배 이내로!"}
+            ? `성공! 오차가 최소제곱선의 ${ratio.toFixed(2)}배예요(${cfg.tol}배 이내). ${round >= 3 ? "레벨 클리어!" : "곧 다음 라운드!"}`
+            : outlier
+              ? solved
+                ? "이상한 점 실험 중이에요. 이번 라운드는 이미 성공했어요!"
+                : "이상한 점이 있는 동안은 실험만 해요. ‘⚡ 이상한 점 추가’를 다시 눌러 끄면 성공 판정을 해요."
+              : moves
+              ? `아직 최소제곱선의 ${ratio.toFixed(2)}배예요. ${cfg.tol}배 이내로 줄여 봐요. 두 손잡이를 위아래로 끌어요(키보드는 ↑↓, Shift는 크게).`
+              : "주황 손잡이 두 개를 끌어서 파란 점들 한가운데를 지나는 직선을 만들어 봐요. 목표: 오차를 최소제곱선의 " + cfg.tol + "배 이내로!"}
         </Say>
         {showLs && (
           <p className="rounded-card bg-ok-soft p-2 text-sm text-ok">
@@ -206,7 +234,8 @@ export default function RegressionGame() {
       <Board className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <GButton variant="primary" disabled={!solved} onClick={() => setPredict((p) => !p)} pressed={predict}>🔮 2040년 값을 예측해 봐요</GButton>
-          {!solved && <span className="text-sm text-muted">먼저 오차를 1.2배 이내로 맞추면 열려요.</span>}
+          {solved && <GButton onClick={advance}>{round >= 3 ? "🎉 레벨 클리어!" : "다음 라운드 ▶"}</GButton>}
+          {!solved && <span className="text-sm text-muted">먼저 오차를 {cfg.tol}배 이내로 맞추면 열려요.</span>}
         </div>
         {predict && (
           <div className="space-y-2 text-sm">

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
-import { Board, GButton, Say, Stat, clamp, rand, svgPoint } from "./kit";
-import { logPos, offsetFor, valueAt, within } from "./sliderule.logic";
+import { Board, GButton, Say, Stat, cheer, clamp, oops, stageClear, svgPoint, useStage } from "./kit";
+import { logPos, offsetFor, srProblems, valueAt, within } from "./sliderule.logic";
 
 const VW = 640;
 const VH = 232;
@@ -21,16 +21,6 @@ const TICKS: Tick[] = (() => {
   return t;
 })();
 
-const POOL: [number, number][] = [
-  [2, 3], [1.5, 4], [2.5, 3.2], [3, 4], [1.2, 5], [2, 4.5], [6, 1.5], [2.2, 3], [3.5, 2], [1.8, 4], [4, 5], [3.5, 4], [6, 2.5], [8, 1.5], [2.5, 4], [1.5, 3],
-];
-const pick5 = () => {
-  const a = [...POOL];
-  const out: [number, number][] = [];
-  while (out.length < 5) out.push(a.splice(rand(a.length), 1)[0]);
-  // 쉬운 문제 먼저, 10 넘는 문제는 뒤쪽에
-  return out.sort((x, y) => x[0] * x[1] - y[0] * y[1]);
-};
 const fmt = (x: number) => String(+x.toFixed(3));
 
 function Scale({ y, up, shift = 0, clip, fill = "var(--surface)", stroke = "var(--line)" }: { y: number; up: boolean; shift?: number; clip?: string; fill?: string; stroke?: string }) {
@@ -59,15 +49,16 @@ export default function SlideRuleGame() {
   const drag = useRef<{ kind: "slide" | "cursor"; grab: number } | null>(null);
   const [d, setD] = useState(0); // 아래 자 밀림 (길이 단위, -1~1)
   const [cx, setCx] = useState(0.3); // 커서 위치 (0~1)
-  const [probs, setProbs] = useState(pick5);
+  const stage = useStage();
+  const [probs, setProbs] = useState(() => srProblems(stage));
   const [qi, setQi] = useState(0);
   const [score, setScore] = useState(0);
   const [ans, setAns] = useState("");
   const [res, setRes] = useState<null | { ok: boolean; val: number }>(null);
   const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "아래 자를 끌어서 아래 자의 1을 위 자의 첫째 수에 맞춰 봐요." });
 
-  const done = qi >= 5;
-  const [a, b] = probs[Math.min(qi, 4)];
+  const done = qi >= 3;
+  const [a, b] = probs[Math.min(qi, 2)];
   const truth = a * b;
   const over = truth >= 10;
 
@@ -118,14 +109,22 @@ export default function SlideRuleGame() {
     setRes({ ok, val: v });
     if (ok) {
       setScore((s) => s + 1);
-      setMsg({ t: "ok", s: `맞아요! ${fmt(a)} × ${fmt(b)} = ${fmt(truth)}. 읽은 값 ${fmt(v)} 은(는) 오차 3% 안이에요.` });
+      cheer();
+      setMsg({ t: "ok", s: `맞아요! ${fmt(a)} × ${fmt(b)} = ${fmt(truth)}. 읽은 값 ${fmt(v)} 은(는) 오차 3% 안이에요.` + (qi >= 2 ? " 레벨 클리어!" : "") });
+      if (qi >= 2) setTimeout(stageClear, 1200);
     } else {
-      setMsg({ t: "bad", s: `아쉬워요. 정답은 ${fmt(truth)} 이에요. 자가 정답 위치로 움직였어요. 눈금을 다시 살펴봐요.` });
+      oops();
+      setMsg({ t: "bad", s: `아쉬워요. 자가 정답 위치로 움직였어요. 눈금을 읽고 '다시 해 보기'로 한 번 더 적어 봐요.` });
     }
     // 정답 위치 보여 주기
     const dd = over ? offsetFor(a) - 1 : offsetFor(a);
     setD(dd);
     setCx(clamp(logPos(truth / (over ? 10 : 1)), 0, 1));
+  };
+  const retry = () => {
+    setRes(null);
+    setAns("");
+    setMsg({ t: "info", s: "다시 해 봐요. 자를 끌어 직접 맞춘 뒤 읽은 값을 적어요." });
   };
   const next = () => {
     setRes(null);
@@ -134,14 +133,14 @@ export default function SlideRuleGame() {
     setMsg({ t: "info", s: "새 문제예요. 아래 자의 1을 위 자의 첫째 수에 맞춰 봐요." });
   };
   const restart = () => {
-    setProbs(pick5());
+    setProbs(srProblems(stage));
     setQi(0);
     setScore(0);
     setAns("");
     setRes(null);
     setD(0);
     setCx(0.3);
-    setMsg({ t: "info", s: "새로 시작해요. 5문제를 풀어 봐요." });
+    setMsg({ t: "info", s: "새로 시작해요. 3문제를 풀어 봐요." });
   };
   const nudge = (v: number) => setD((x) => clamp(x + v, -1, 1));
 
@@ -151,8 +150,8 @@ export default function SlideRuleGame() {
   return (
     <Board>
       <div className="flex flex-wrap items-center gap-2">
-        <Stat label="문제" value={done ? "끝" : `${qi + 1} / 5`} />
-        <Stat label="점수" value={`${score} / 5`} tone={score >= 4 ? "ok" : "plain"} />
+        <Stat label={`레벨 ${stage}`} value={`라운드 ${Math.min(qi + 1, 3)}/3`} />
+        <Stat label="맞힌 문제" value={score} tone={score ? "ok" : "plain"} />
       </div>
 
       <div className="mt-3">
@@ -269,7 +268,7 @@ export default function SlideRuleGame() {
             />
           </label>
           {res ? (
-            <GButton variant="primary" onClick={next}>{qi === 4 ? "결과 보기" : "다음 문제"}</GButton>
+            res.ok ? (qi < 2 ? <GButton variant="primary" onClick={next}>다음 문제</GButton> : null) : <GButton variant="primary" onClick={retry}>다시 해 보기</GButton>
           ) : (
             <GButton variant="primary" onClick={submit}>확인</GButton>
           )}

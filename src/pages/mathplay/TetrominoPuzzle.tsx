@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import PolyBoard, { type CellKind, type PieceDef } from "./PolyBoard";
 import { makeTetrominoProblem, solveFill } from "./poly";
+import { stageClear } from "./games/kit";
 
 /** 테트로미노 5종: 막대(I) · 정사각형(O) · T · 지그재그(S) · L. 뒤집기를 쓰면 S와 L의 거울 모양도 만들 수 있어요. */
 const PIECES: PieceDef[] = [
@@ -23,14 +24,14 @@ export default function TetrominoPuzzle() {
         <button
           type="button"
           onClick={() => setSeed((s) => s + 1)}
-          className="min-h-[44px] rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110"
+          className="font-game min-h-[48px] rounded-2xl bg-accent px-5 text-[1.05rem] text-accent-ink shadow-[0_4px_0_0_rgba(0,0,0,0.2)] hover:brightness-110 active:translate-y-[2px]"
         >
-          새 문제
+          다른 모양
         </button>
         <p className="text-sm text-muted">흰 칸 20개를 5종 조각으로 빈틈없이 덮어요. 조각은 한 번씩만 써요. 답이 둘 이상일 수도 있어요.</p>
       </div>
       <div className="mt-4">
-        <PolyBoard kinds={kinds} pieces={PIECES} solution={solution} resetKey={seed} doneText="빈틈없이 5조각으로 덮었어요! 다른 방법도 있을까요?" cellPx={50} />
+        <PolyBoard kinds={kinds} pieces={PIECES} solution={solution} resetKey={seed} doneText="빈틈없이 5조각으로 덮었어요! 다른 방법도 있을까요?" next={{ label: "다음 레벨 →", onClick: stageClear }} cellPx={50} />
       </div>
     </div>
   );

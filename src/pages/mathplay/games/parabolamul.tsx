@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Board, GButton, Say, Slider, Stat, clamp, rand, svgPoint } from "./kit";
+import { useEffect, useRef, useState } from "react";
+import { Board, GButton, Say, Slider, Stat, cheer, clamp, oops, rand, stageClear, svgPoint, useStage } from "./kit";
 
 // <pure>
 /** y = x² 위의 두 점 (a, a²), (−b, b²) 를 잇는 직선: 기울기와 y절편 */
@@ -29,24 +29,31 @@ const fmt = (v: number) => (Math.round(v * 100) / 100).toString();
 
 type Quest = { kind: "compute"; a: number; b: number } | { kind: "find"; target: number };
 
-function newQuest(): Quest {
-  if (Math.random() < 0.55) {
+/** 레벨이 오를수록: 양의 정수 → 0·음수 → 0.5 단위 곱 */
+function newQuest(level: number): Quest {
+  const L = Math.min(10, Math.max(1, level));
+  if (rand(2) === 0) {
+    const m = Math.min(5, 2 + L);
     let a = 0;
     let b = 0;
     while (a === 0 || b === 0) {
-      a = rand(11) - 5;
-      b = rand(11) - 5;
+      a = L <= 3 ? 1 + rand(m) : rand(2 * m + 1) - m;
+      b = L <= 3 ? 1 + rand(m) : rand(2 * m + 1) - m;
+      if (L >= 4 && L <= 6 && rand(6) === 0) return { kind: "compute", a: rand(5) + 1, b: 0 };
     }
     return { kind: "compute", a, b };
   }
-  const pool = [6, 8, 9, 10, 12, 15, 16, 20, 25, -4, -6, -9, -10, -12, -15, -20, 1, 2.5, -2.5];
+  const pool = L <= 3 ? [2, 3, 4, 6, 8, 9, 10, 12] : L <= 6 ? [12, 15, 16, 20, -4, -6, -8, -10, -12, 0] : [2.5, -2.5, 4.5, -7.5, 0.25, 12.5, 6.25, -20, 25];
   return { kind: "find", target: pool[rand(pool.length)] };
 }
 
 export default function ParabolaMulGame() {
   const [a, setA] = useState(3);
   const [b, setB] = useState(2);
-  const [quest, setQuest] = useState<Quest>(newQuest);
+  const level = useStage();
+  const [quest, setQuest] = useState<Quest>(() => newQuest(level));
+  const [round, setRound] = useState(0);
+  const [cleared, setCleared] = useState(false);
   const [ans, setAns] = useState("");
   const [score, setScore] = useState({ ok: 0, tries: 0 });
   const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string }>({ t: "info", s: "점을 끌거나 슬라이더로 a, b 를 정해 보세요. 직선이 세로축과 만나는 곳이 a × b 예요." });
@@ -67,7 +74,32 @@ export default function ParabolaMulGame() {
     else setB(-v);
   };
 
+  const result = (ok: boolean) => {
+    setScore((s) => ({ ok: s.ok + (ok ? 1 : 0), tries: s.tries + 1 }));
+    if (ok) {
+      cheer();
+      setCleared(true);
+    } else oops();
+  };
+  // 맞히면 잠깐 뒤 다음 문제, 3문제를 풀면 레벨 클리어
+  useEffect(() => {
+    if (!cleared) return;
+    if (round >= 2) {
+      const id = setTimeout(stageClear, 1200);
+      return () => clearTimeout(id);
+    }
+    const id = setTimeout(() => {
+      setRound((r) => r + 1);
+      setCleared(false);
+      setQuest(newQuest(level));
+      setAns("");
+      setMsg({ t: "info", s: "다음 문제예요!" });
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [cleared, round, level]);
+
   const check = () => {
+    if (cleared) return;
     if (quest.kind === "compute") {
       const v = parseFloat(ans.replace(",", "."));
       const same = (a === quest.a && b === quest.b) || (a === quest.b && b === quest.a);
@@ -80,16 +112,17 @@ export default function ParabolaMulGame() {
         return;
       }
       const ok = Math.abs(v - quest.a * quest.b) < 1e-9;
-      setScore((s) => ({ ok: s.ok + (ok ? 1 : 0), tries: s.tries + 1 }));
+      result(ok);
       setMsg(ok ? { t: "ok", s: `맞아요! ${quest.a} × ${quest.b} = ${quest.a * quest.b}. 포물선과 직선만으로 곱셈을 했어요.` } : { t: "bad", s: "아쉬워요. 빨간 점이 세로축에서 가리키는 눈금을 다시 읽어 봐요." });
     } else {
       const ok = Math.abs(prod - quest.target) < 1e-9;
-      setScore((s) => ({ ok: s.ok + (ok ? 1 : 0), tries: s.tries + 1 }));
+      result(ok);
       setMsg(ok ? { t: "ok", s: `맞아요! ${fmt(a)} × ${fmt(b)} = ${fmt(prod)} 예요. 곱이 ${quest.target} 이 되는 짝은 여러 개 있어요.` } : { t: "bad", s: `지금은 ${fmt(a)} × ${fmt(b)} = ${fmt(prod)} 이에요. 빨간 점이 ${quest.target} 에 오도록 해 봐요.` });
     }
   };
   const next = () => {
-    setQuest(newQuest());
+    if (cleared) return;
+    setQuest(newQuest(level));
     setAns("");
     setMsg({ t: "info", s: "새 문제예요!" });
   };
@@ -220,6 +253,7 @@ export default function ParabolaMulGame() {
 
       <Board>
         <div className="mb-2 flex flex-wrap gap-2">
+          <Stat label={`레벨 ${level} · 라운드`} value={`${round + 1} / 3`} />
           <Stat label="맞힌 문제" value={`${score.ok} / ${score.tries}`} tone={score.ok > 0 ? "ok" : "plain"} />
         </div>
         {quest.kind === "compute" ? (

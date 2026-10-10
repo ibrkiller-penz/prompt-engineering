@@ -74,3 +74,20 @@ export function textToNums(s: string): number[] | null {
 export const numToLetter = (n: number) => (n >= 1 && n <= 26 ? String.fromCharCode(64 + n) : "?");
 export const lockNums = (m: number[], e: number, n: number) => m.map((x) => modPow(x, e, n));
 export const unlockNums = (c: number[], d: number, n: number) => c.map((x) => modPow(x, d, n));
+
+/** 레벨 1~10: 낱말 길이·숫자만 보여 주기(글자로 직접 바꾸기)·낯선 열쇠(n 을 소인수분해해서 내 열쇠로 다시 만들기)·
+ *  낯선 열쇠의 소수 범위(레벨이 오를수록 큰 소수라 n 을 쪼개기 어려워요) */
+const LEN = [3, 4, 3, 4, 5, 3, 4, 5, 5, 5];
+const STRANGER_PRIMES: [number, number][] = [[11, 19], [11, 23], [13, 31], [17, 41], [29, 47]];
+export function rsaLevel(lv: number) {
+  const L = Math.max(1, Math.min(10, lv));
+  const stranger = L >= 6;
+  const [lo, hi] = stranger ? STRANGER_PRIMES[L - 6] : [11, 47];
+  const primes = PRIMES_SHOWN.filter((v) => isPrime(v) && v >= lo && v <= hi);
+  return { len: LEN[L - 1], numbersOnly: L >= 3, stranger, primes };
+}
+export const WORDS_BY_LEN: Record<number, string[]> = {
+  3: ["SUN", "KEY", "CAT", "DOG", "SKY", "MAP"],
+  4: ["MATH", "STAR", "CODE", "MOON", "BOOK", "LOVE"],
+  5: ["PRIME", "LIGHT", "SMILE", "HAPPY", "OCEAN", "MUSIC"],
+};

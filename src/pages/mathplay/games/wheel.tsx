@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Board, GButton, Say, Slider, Stat, clamp, fitCanvas, useFrame } from "./kit";
+import { Board, GButton, Say, Slider, Stat, cheer, clamp, fitCanvas, stageClear, tick, useFrame, useStage } from "./kit";
 
 // ==PURE-START==
 // 단위: 바퀴의 외접원 반지름 R = 1. n = 0 이면 원.
@@ -37,91 +37,253 @@ export function pose(n: number, road: Road, x: number): { h: number; rot: number
   const u = mod(x + w, 2 * w) - w;
   return { h: 1, rot: -Math.PI / 2 + Math.PI / n + Math.atan(-Math.sinh(u / a)) };
 }
+export type Mission = { kind: "roll"; n: number } | { kind: "smooth"; t: number } | { kind: "wave"; n: number } | { kind: "most" } | { kind: "band"; lo: number; hi: number };
+/** 이 바퀴(n)와 길(road)로 굴리면 미션을 이루는가 */
+export function missionOk(m: Mission, n: number, road: Road): boolean {
+  if (m.kind === "wave") return road === "bumpy" && n === m.n && bumpyFits(n);
+  if (road !== "flat") return false;
+  const w = wiggle(n, "flat");
+  if (m.kind === "roll") return n === m.n;
+  if (m.kind === "smooth") return w <= m.t + 1e-9;
+  if (m.kind === "most") return n === 3;
+  return n > 0 && w >= m.lo - 1e-9 && w <= m.hi + 1e-9;
+}
+type MSpec = "roll" | "rollAny" | "most" | "wave" | ["smooth", number] | ["band", number, number];
+export const LEVEL_MISSIONS: MSpec[][] = [
+  ["roll", "roll", "roll"],
+  ["rollAny", "most", ["smooth", 0.3]],
+  [["smooth", 0.3], ["smooth", 0.2], "rollAny"],
+  [["smooth", 0.2], ["smooth", 0.15], "most"],
+  [["smooth", 0.15], ["smooth", 0.1], "wave"],
+  [["smooth", 0.1], "wave", ["band", 0.12, 0.2]],
+  ["wave", ["smooth", 0.1], ["band", 0.12, 0.2]],
+  ["wave", ["smooth", 0.08], ["band", 0.08, 0.12]],
+  ["wave", "wave", ["smooth", 0.08]],
+  ["wave", ["band", 0.25, 0.35], ["smooth", 0.08]],
+];
+export function levelMissions(level: number, rnd: () => number = Math.random): Mission[] {
+  const specs = LEVEL_MISSIONS[Math.min(10, Math.max(1, level)) - 1];
+  const used: number[] = [];
+  const pick = (pool: number[]) => {
+    const p = pool.filter((v) => !used.includes(v));
+    const v = (p.length ? p : pool)[Math.floor(rnd() * (p.length ? p : pool).length)];
+    used.push(v);
+    return v;
+  };
+  return specs.map((sp): Mission => {
+    if (sp === "roll") return { kind: "roll", n: pick([3, 5, 6, 0]) };
+    if (sp === "rollAny") return { kind: "roll", n: pick([3, 4, 5, 6, 7, 8, 0]) };
+    if (sp === "most") return { kind: "most" };
+    if (sp === "wave") return { kind: "wave", n: level <= 6 ? 4 : pick([4, 5, 6, 7, 8]) };
+    if (sp[0] === "smooth") return { kind: "smooth", t: sp[1] };
+    return { kind: "band", lo: sp[1], hi: sp[2] };
+  });
+}
 // ==PURE-END==
 
-const NAMES: Record<number, string> = { 0: "원", 3: "정삼각형", 4: "정사각형", 5: "정오각형", 6: "정육각형", 7: "정칠각형", 8: "정팔각형" };
+const NAMES: Record<number, string> = { 0: "동그라미", 3: "세모", 4: "네모", 5: "오각형", 6: "육각형", 7: "칠각형", 8: "팔각형" };
+const BIG = "min-h-[48px]! text-base";
+/** 덜컹거림을 쉬운 말로 */
+function bumpWord(w: number) {
+  return w === 0 ? "매끈매끈" : w <= 0.1 ? "조금" : w <= 0.2 ? "덜컹덜컹" : "아주 많이";
+}
 const GRAPH_H = 124;
 const H_LO = 0.42;
 const H_HI = 1.1;
 
+const R_FRAC = 0.25; // 바퀴 반지름 = 장면 높이 × R_FRAC
+const FONT = "S-Core Dream, Pretendard Variable, sans-serif";
+
 function sceneH(W: number) {
-  return clamp(W * 0.4, 150, 230);
+  return clamp(W * 0.45, 170, 250);
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function cloud(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, 30 * s, 12 * s, 0, 0, Math.PI * 2);
+  ctx.arc(x - 12 * s, y - 7 * s, 12 * s, 0, Math.PI * 2);
+  ctx.arc(x + 10 * s, y - 9 * s, 15 * s, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: number) {
   const Hs = sceneH(W);
   const H = Hs + GRAPH_H;
   const ctx = fitCanvas(c, W, H);
-  const R = Hs * 0.3;
-  const groundY = Hs - 18;
+  const R = Hs * R_FRAC;
+  const groundY = Hs - 24;
   const cx0 = W * 0.36;
   const toX = (X: number) => cx0 + (X - x) * R;
   const fromSx = (sx: number) => x + (sx - cx0) / R;
+  const wrap = (v: number, m: number) => ((v % m) + m) % m;
 
-  // 하늘
+  // 하늘·해·구름·언덕 (멀리 있는 것은 천천히 움직여요)
   const g = ctx.createLinearGradient(0, 0, 0, Hs);
-  g.addColorStop(0, "#e0f2fe");
-  g.addColorStop(1, "#f0f9ff");
+  g.addColorStop(0, "#7dd3fc");
+  g.addColorStop(1, "#e0f2fe");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, Hs);
+  ctx.fillStyle = "#fde047";
+  ctx.strokeStyle = "#f59e0b";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(W - 38, 34, 17, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  for (let k = 0; k < 3; k++) cloud(ctx, wrap(k * 260 + 80 - x * R * 0.25, W + 160) - 80, 28 + (k % 2) * 22, 0.8 + (k % 2) * 0.25);
+  ctx.fillStyle = "#86efac";
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  for (let sx = 0; sx <= W + 4; sx += 4) ctx.lineTo(sx, groundY - R * 1.15 - Math.sin((sx + x * R * 0.5) / 70) * R * 0.25 - Math.sin((sx + x * R * 0.5) / 31) * R * 0.08);
+  ctx.lineTo(W, groundY);
+  ctx.closePath();
+  ctx.fill();
 
-  // 길
+  // 길: 흙 + 풀
+  const roadAt = (sx: number) => groundY - roadY(n, road, fromSx(sx)) * R;
+  const soil = ctx.createLinearGradient(0, groundY - R * 0.5, 0, Hs);
+  soil.addColorStop(0, "#f59e0b");
+  soil.addColorStop(1, "#92400e");
   ctx.beginPath();
   ctx.moveTo(0, Hs);
-  for (let sx = 0; sx <= W + 2; sx += 2) ctx.lineTo(sx, groundY - roadY(n, road, fromSx(sx)) * R);
+  for (let sx = 0; sx <= W + 2; sx += 2) ctx.lineTo(sx, roadAt(sx));
   ctx.lineTo(W, Hs);
   ctx.closePath();
-  ctx.fillStyle = "#a8a29e";
+  ctx.fillStyle = soil;
   ctx.fill();
-  ctx.beginPath();
-  for (let sx = 0; sx <= W + 2; sx += 2) {
-    const yy = groundY - roadY(n, road, fromSx(sx)) * R;
-    if (sx === 0) ctx.moveTo(sx, yy);
-    else ctx.lineTo(sx, yy);
-  }
-  ctx.strokeStyle = "#57534e";
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  // 길이 움직이는 것이 보이도록 눈금
-  ctx.strokeStyle = "rgba(68,64,60,0.35)";
-  ctx.lineWidth = 2;
+  // 길이 움직이는 것이 보이도록 흙 속 조약돌
   const step = 0.5;
   for (let X = Math.floor(fromSx(0) / step) * step; toX(X) < W + 4; X += step) {
     const sx = toX(X);
     const yy = groundY - roadY(n, road, X) * R;
+    ctx.fillStyle = Math.round(X / step) % 2 ? "#fde68a" : "#b45309";
     ctx.beginPath();
-    ctx.moveTo(sx, yy + 6);
-    ctx.lineTo(sx, yy + 14);
-    ctx.stroke();
+    ctx.ellipse(sx, yy + 12 + (Math.round(X / step) % 3) * 3, 3.5, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
+  ctx.beginPath();
+  for (let sx = 0; sx <= W + 2; sx += 2) {
+    if (sx === 0) ctx.moveTo(sx, roadAt(sx));
+    else ctx.lineTo(sx, roadAt(sx));
+  }
+  ctx.strokeStyle = "#15803d";
+  ctx.lineWidth = 7;
+  ctx.lineJoin = "round";
+  ctx.stroke();
+  ctx.strokeStyle = "#4ade80";
+  ctx.lineWidth = 3;
+  ctx.stroke();
   // 평평한 길에서 꼭짓점이 땅에 닿는 자리 표시
   if (road === "flat" && n > 0) {
     const s = sideLen(n);
-    ctx.fillStyle = "#b45309";
+    ctx.fillStyle = "#ea580c";
     for (let k = Math.floor(fromSx(0) / s); toX(k * s) < W + 4; k++) {
       ctx.beginPath();
-      ctx.arc(toX(k * s), groundY, 3, 0, Math.PI * 2);
+      ctx.arc(toX(k * s), groundY, 3.5, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
-  // 바퀴
+  // 가장 높을 때 기준선
   const { h, rot } = pose(n, road, x);
   const cy = groundY - h * R;
-  // 가장 높을 때 기준선
-  ctx.setLineDash([5, 5]);
+  ctx.setLineDash([6, 6]);
   ctx.strokeStyle = "#ef4444";
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, groundY - R);
   ctx.lineTo(W, groundY - R);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = "#ef4444";
-  ctx.font = "600 11px sans-serif";
+  ctx.font = `15px ${FONT}`;
   ctx.textAlign = "left";
-  ctx.fillText("중심 높이 1", 6, groundY - R - 4);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#fff";
+  ctx.strokeText("가장 높을 때", 6, groundY - R - 6);
+  ctx.fillStyle = "#dc2626";
+  ctx.fillText("가장 높을 때", 6, groundY - R - 6);
 
+  // 수레: 바퀴 가운데에 붙어서 같이 오르내리고, 길이 기울면 같이 기울어요
+  const wg = wiggle(n, road);
+  const tilt = clamp(((pose(n, road, x + 0.04).h - pose(n, road, x - 0.04).h) / 0.08) * -0.35, -0.3, 0.3);
+  ctx.save();
+  ctx.translate(cx0, cy);
+  ctx.rotate(tilt);
+  const cartB = -R - 8;
+  ctx.strokeStyle = "#6d28d9";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-3, 0);
+  ctx.lineTo(-R * 0.4, cartB);
+  ctx.moveTo(3, 0);
+  ctx.lineTo(R * 0.4, cartB);
+  ctx.stroke();
+  // 운전사 병아리
+  const hr = R * 0.32;
+  const hy = cartB - R * 0.45 - hr * 0.55;
+  ctx.fillStyle = "#fde047";
+  ctx.strokeStyle = "#a16207";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, hy, hr, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-2, hy - hr);
+  ctx.quadraticCurveTo(-6, hy - hr - 10, 2, hy - hr - 8);
+  ctx.stroke();
+  ctx.fillStyle = "#1c1917";
+  ctx.beginPath();
+  ctx.arc(-hr * 0.38, hy - hr * 0.12, 2.6, 0, Math.PI * 2);
+  ctx.arc(hr * 0.38, hy - hr * 0.12, 2.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(251,113,133,0.6)";
+  ctx.beginPath();
+  ctx.arc(-hr * 0.62, hy + hr * 0.22, 3, 0, Math.PI * 2);
+  ctx.arc(hr * 0.62, hy + hr * 0.22, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#f97316";
+  ctx.beginPath();
+  if (wg > 0.2) ctx.ellipse(0, hy + hr * 0.3, 3.5, 4.5, 0, 0, Math.PI * 2);
+  else {
+    ctx.moveTo(-5, hy + hr * 0.12);
+    ctx.lineTo(5, hy + hr * 0.12);
+    ctx.lineTo(0, hy + hr * 0.42);
+    ctx.closePath();
+  }
+  ctx.fill();
+  // 수레 몸통
+  const body = ctx.createLinearGradient(0, cartB - R * 0.45, 0, cartB);
+  body.addColorStop(0, "#fb7185");
+  body.addColorStop(1, "#e11d48");
+  roundRect(ctx, -R * 0.95, cartB - R * 0.45, R * 1.9, R * 0.45, 8);
+  ctx.fillStyle = body;
+  ctx.fill();
+  ctx.strokeStyle = "#9f1239";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  roundRect(ctx, -R * 0.8, cartB - R * 0.38, R * 1.6, 4, 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 바퀴
+  const wf = ctx.createRadialGradient(cx0 - R * 0.3, cy - R * 0.3, R * 0.1, cx0, cy, R);
+  wf.addColorStop(0, "#fef3c7");
+  wf.addColorStop(0.6, "#fbbf24");
+  wf.addColorStop(1, "#f59e0b");
   ctx.beginPath();
   if (n === 0) ctx.arc(cx0, cy, R, 0, Math.PI * 2);
   else
@@ -133,37 +295,46 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
       else ctx.lineTo(px, py);
     }
   if (n !== 0) ctx.closePath();
-  ctx.fillStyle = "rgba(251,191,36,0.85)";
+  ctx.fillStyle = wf;
   ctx.fill();
   ctx.strokeStyle = "#b45309";
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 4;
   ctx.lineJoin = "round";
   ctx.stroke();
-  // 돌아가는 것이 보이는 바퀴살
+  // 바퀴살
+  const spokes = n === 0 ? 6 : n;
+  ctx.strokeStyle = "#c2410c";
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.moveTo(cx0, cy);
-  ctx.lineTo(cx0 + R * 0.95 * Math.cos(rot), cy - R * 0.95 * Math.sin(rot));
-  ctx.strokeStyle = "#92400e";
-  ctx.lineWidth = 2;
+  for (let k = 0; k < spokes; k++) {
+    const al = rot + (k * 2 * Math.PI) / spokes;
+    const rr = n === 0 ? R * 0.9 : R * 0.92;
+    ctx.moveTo(cx0, cy);
+    ctx.lineTo(cx0 + rr * Math.cos(al), cy - rr * Math.sin(al));
+  }
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(cx0, cy, 5, 0, Math.PI * 2);
-  ctx.fillStyle = "#1f2937";
+  ctx.arc(cx0, cy, 7, 0, Math.PI * 2);
+  ctx.fillStyle = "#7c2d12";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx0 - 2, cy - 2, 2.2, 0, Math.PI * 2);
+  ctx.fillStyle = "#fde68a";
   ctx.fill();
 
   // 그래프
   const gy0 = Hs;
-  ctx.fillStyle = "#f8fafc";
+  ctx.fillStyle = "#fff7ed";
   ctx.fillRect(0, gy0, W, GRAPH_H);
-  ctx.strokeStyle = "#cbd5e1";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0.5, gy0 + 0.5, W - 1, GRAPH_H - 1);
-  const top = gy0 + 26;
+  ctx.strokeStyle = "#fdba74";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, gy0 + 1, W - 2, GRAPH_H - 2);
+  const top = gy0 + 28;
   const bot = gy0 + GRAPH_H - 12;
   const gyOf = (hh: number) => bot - ((hh - H_LO) / (H_HI - H_LO)) * (bot - top);
   const lowH = n === 0 || road === "bumpy" ? 1 : apothem(n);
-  ctx.font = "600 11px sans-serif";
   ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1.5;
   ctx.strokeStyle = "#ef4444";
   ctx.beginPath();
   ctx.moveTo(0, gyOf(1));
@@ -177,18 +348,18 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
     ctx.stroke();
   }
   ctx.setLineDash([]);
-  ctx.fillStyle = "#ef4444";
+  ctx.font = `14px ${FONT}`;
+  ctx.fillStyle = "#dc2626";
   ctx.textAlign = "right";
-  ctx.fillText("1", W - 6, gyOf(1) - 3);
+  ctx.fillText("높음", W - 6, gyOf(1) - 4);
   if (lowH < 1) {
     ctx.fillStyle = "#2563eb";
-    ctx.fillText(lowH.toFixed(2), W - 6, gyOf(lowH) + 12);
+    ctx.fillText("낮음", W - 6, gyOf(lowH) + 15);
   }
-  ctx.fillStyle = "#334155";
+  ctx.fillStyle = "#7c2d12";
   ctx.textAlign = "left";
-  ctx.font = "700 12px sans-serif";
-  const wg = wiggle(n, road);
-  ctx.fillText(`중심 높이 그래프 · 흔들림 폭 ${(wg * 100).toFixed(1)}%`, 8, gy0 + 16);
+  ctx.font = `16px ${FONT}`;
+  ctx.fillText(`바퀴 가운데 점의 높이 (덜컹거림: ${bumpWord(wg)})`, 10, gy0 + 20);
   // 자취: 지나온 곳은 굵게, 앞으로 갈 곳은 연하게
   const draw = (from: number, to: number, color: string, lw: number) => {
     ctx.beginPath();
@@ -203,43 +374,89 @@ function drawAll(c: HTMLCanvasElement, W: number, n: number, road: Road, x: numb
     }
     ctx.strokeStyle = color;
     ctx.lineWidth = lw;
+    ctx.lineCap = "round";
     ctx.stroke();
   };
   const sx0 = toX(0);
-  draw(0, sx0, "#cbd5e1", 2);
-  draw(sx0, cx0, "#2563eb", 3.5);
-  draw(cx0, W, "#cbd5e1", 2);
+  draw(0, sx0, "#c4b5fd", 2.5);
+  draw(sx0, cx0, "#2563eb", 4);
+  draw(cx0, W, "#c4b5fd", 2.5);
   ctx.setLineDash([2, 4]);
-  ctx.strokeStyle = "#94a3b8";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#a78bfa";
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(cx0, cy + R + 2 > Hs ? Hs : cy + R + 2);
+  ctx.moveTo(cx0, Math.min(Hs, cy + R + 2));
   ctx.lineTo(cx0, gyOf(h));
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.beginPath();
-  ctx.arc(cx0, gyOf(h), 5, 0, Math.PI * 2);
+  ctx.arc(cx0, gyOf(h), 6, 0, Math.PI * 2);
   ctx.fillStyle = "#1d4ed8";
   ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
 
 type Msg = { tone: "info" | "ok" | "bad"; text: string };
+
+function Icon({ n }: { n: number }) {
+  const r = 18;
+  const pts = Array.from({ length: n }, (_, k) => {
+    const a = -Math.PI / 2 + (k * 2 * Math.PI) / n;
+    return `${22 + r * Math.cos(a)},${22 + r * Math.sin(a)}`;
+  }).join(" ");
+  return (
+    <svg viewBox="0 0 44 44" width="40" height="40" aria-hidden="true">
+      <defs>
+        <radialGradient id="wh-ic" cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#fef3c7" />
+          <stop offset="0.6" stopColor="#fbbf24" />
+          <stop offset="1" stopColor="#f59e0b" />
+        </radialGradient>
+      </defs>
+      {n === 0 ? <circle cx="22" cy="23" r={r} fill="#b45309" opacity="0.3" /> : null}
+      {n === 0 ? <circle cx="22" cy="22" r={r} fill="url(#wh-ic)" stroke="#b45309" strokeWidth="3" /> : <polygon points={pts} fill="url(#wh-ic)" stroke="#b45309" strokeWidth="3" strokeLinejoin="round" />}
+      <circle cx="22" cy="22" r="3.5" fill="#7c2d12" />
+    </svg>
+  );
+}
+
+const NEED = 4; // 미션 성공에 필요한 굴린 거리 (바퀴 반지름의 몇 배)
+const ROUNDS = 3;
+function missionText(m: Mission): string {
+  if (m.kind === "roll") return `${NAMES[m.n]} 바퀴를 골라 쓱 밀어 굴려 봐요!`;
+  if (m.kind === "most") return "가장 많이 덜컹거리는 바퀴를 찾아 굴려 봐요!";
+  if (m.kind === "smooth") return `평평한 길에서 덜컹거림이 ${Math.round(m.t * 100)}% 이하인 바퀴로 굴려 봐요!`;
+  if (m.kind === "wave") return `${NAMES[m.n]} 바퀴를 덜컹거림 없이(0%) 굴려 봐요! (길 모양을 바꿔 봐요)`;
+  return `평평한 길에서 덜컹거림이 ${Math.round(m.lo * 100)}%~${Math.round(m.hi * 100)}%인 바퀴로 굴려 봐요!`;
+}
 
 export default function WheelGame() {
   const [n, setN] = useState(4);
   const [road, setRoad] = useState<Road>("flat");
   const [running, setRunning] = useState(false);
-  const [speed, setSpeed] = useState(4);
-  const [m1, setM1] = useState(false);
-  const [m2, setM2] = useState(false);
-  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "‘굴리기’를 눌러 보세요. 정사각형 바퀴는 평평한 길에서 어떻게 굴러갈까요?" });
+  const [speed, setSpeed] = useState(5);
+  const level = useStage();
+  const [missions] = useState(() => levelMissions(level));
+  const [mi, setMi] = useState(0);
+  const [won, setWon] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [prog, setProg] = useState(0);
+  const [msg, setMsg] = useState<Msg>({ tone: "info", text: "바퀴를 골라 손가락으로 쓱 밀어 봐요! 위의 미션을 해내면 다음으로 넘어가요." });
   const [W, setW] = useState(600);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const xRef = useRef(0);
+  const vRef = useRef(0);
   const distRef = useRef(0);
-  const drag = useRef<{ px: number } | null>(null);
+  const drag = useRef<{ px: number; t: number; v: number } | null>(null);
+  const cfg = useRef({ n, road, mi, won });
+  cfg.current = { n, road, mi, won };
+  const timer = useRef(0);
+  const warned = useRef(false);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -253,164 +470,246 @@ export default function WheelGame() {
 
   const paint = () => {
     const c = canvasRef.current;
-    if (c) drawAll(c, W, n, road, xRef.current);
+    if (c) drawAll(c, W, cfg.current.n, cfg.current.road, xRef.current);
   };
-
   useEffect(() => {
     paint();
   });
 
-  useFrame((_, dt) => {
-    const v = speed * 0.3;
-    xRef.current += v * dt;
-    distRef.current += v * dt;
-    paint();
-    if (distRef.current >= 6) {
-      if (road === "flat" && wiggle(n, road) <= 0.1 && !m1) {
-        setM1(true);
-        setMsg({ tone: "ok", text: `미션 1 성공! ${NAMES[n]} 바퀴는 평평한 길에서 중심이 ${(wiggle(n, road) * 100).toFixed(1)}%만 흔들려요. 변이 많을수록 원에 가까워져요.` });
+  const addDist = (d: number) => {
+    distRef.current += d;
+    const p = Math.min(1, distRef.current / NEED);
+    setProg((old) => (Math.floor(p * 20) !== Math.floor(old * 20) ? p : old));
+    if (distRef.current < NEED) return;
+    const { n: cn, road: cr, mi: i, won: done } = cfg.current;
+    if (done) return;
+    if (!missionOk(missions[i], cn, cr)) {
+      // 다 굴렸는데 미션과 안 맞으면 한 번만 알려 줘요
+      if (!warned.current) {
+        warned.current = true;
+        setMsg({ tone: "bad", text: `아깝다! ${NAMES[cn]} 바퀴${cr === "bumpy" ? "(물결 길)" : ""}로는 이번 미션이 아니에요. ${missions[i].kind === "wave" ? "다른 바퀴나 길을" : "다른 바퀴를"} 골라 봐요. (💡 힌트도 있어요)` });
       }
-      if (road === "bumpy" && n === 4 && !m2) {
-        setM2(true);
-        setMsg({ tone: "ok", text: "미션 2 성공! 네모 바퀴가 올록볼록한 길 위에서 중심 높이가 늘 1로 일정해요. 흔들림이 없어요." });
-      }
+      return;
     }
-  }, running);
+    setWon(true);
+    cfg.current.won = true;
+    cheer();
+    window.clearTimeout(timer.current);
+    const w = wiggle(cn, cr);
+    const praise = `⭐ 미션 성공! ${NAMES[cn]} 바퀴${cr === "bumpy" ? "가 물결 길에서" : ""} 덜컹거림 ${bumpWord(w)} (${(w * 100).toFixed(0)}%)!`;
+    if (i + 1 >= ROUNDS) {
+      setMsg({ tone: "ok", text: `${praise} 레벨 ${level} 끝!` });
+      timer.current = window.setTimeout(() => stageClear(), 1200);
+    } else {
+      setMsg({ tone: "ok", text: `${praise} 곧 다음 미션!` });
+      timer.current = window.setTimeout(() => {
+        setMi(i + 1);
+        setWon(false);
+        warned.current = false;
+        distRef.current = 0;
+        setProg(0);
+        setMsg({ tone: "info", text: `다음 미션: ${missionText(missions[i + 1])}` });
+      }, 1800);
+    }
+  };
+
+  useFrame((_, dt) => {
+    if (drag.current) return;
+    let v: number;
+    if (running) {
+      v = speed * 0.3;
+      vRef.current = v;
+    } else {
+      vRef.current *= Math.exp(-1.5 * dt);
+      if (Math.abs(vRef.current) < 0.03) vRef.current = 0;
+      v = vRef.current;
+    }
+    if (v !== 0) {
+      xRef.current += v * dt;
+      addDist(Math.abs(v * dt));
+      paint();
+    }
+  });
 
   const resetDist = () => {
+    warned.current = false;
     distRef.current = 0;
+    setProg(0);
   };
 
   const pickN = (k: number) => {
     let r = road;
-    if (!bumpyFits(k) && road === "bumpy") r = "flat";
+    const reroad = !bumpyFits(k) && road === "bumpy";
+    if (reroad) r = "flat";
+    tick();
     setN(k);
     setRoad(r);
     resetDist();
     const w = wiggle(k, r);
-    const base = k === 0 ? "원 바퀴는 어디서나 중심 높이가 1로 일정해요." : `${NAMES[k]} 바퀴(변 ${k}개): 평평한 길에서 중심 높이가 ${apothem(k).toFixed(3)}~1 사이를 오르내려요.`;
-    setMsg({ tone: "info", text: r === "bumpy" ? `${NAMES[k]} 바퀴에 꼭 맞는 올록볼록 길로 바뀌었어요. 중심 높이는 늘 1이에요.` : `${base}${k ? ` 흔들림 폭 ${(w * 100).toFixed(1)}%.` : ""}` });
-    if (!bumpyFits(k) && road === "bumpy") setMsg({ tone: "info", text: `${NAMES[k]} 바퀴는 올록볼록 길에 맞지 않아 평평한 길로 바꿨어요.` });
+    setMsg({
+      tone: "info",
+      text: reroad
+        ? `${NAMES[k]} 바퀴는 물결 길에 안 맞아서 평평한 길로 바꿨어요.`
+        : r === "bumpy"
+          ? `${NAMES[k]} 바퀴에 꼭 맞는 물결 길이에요. 쓱 밀어 봐요!`
+          : k === 0
+            ? "동그라미 바퀴는 언제나 높이가 그대로예요. 매끈매끈!"
+            : `${NAMES[k]} 바퀴예요. 쓱 밀어 봐요! 덜컹거림: ${bumpWord(w)} (${(w * 100).toFixed(0)}%)`,
+    });
   };
 
   const pickRoad = (r: Road) => {
     if (r === "bumpy" && !bumpyFits(n)) {
-      setMsg({ tone: "bad", text: n === 0 ? "원은 평평한 길이 가장 잘 맞아요." : "정삼각형은 변이 너무 길어서 올록볼록 길의 이웃 둔덕에 걸려요. 변이 4개 이상인 바퀴로 해 보세요." });
+      setMsg({ tone: "bad", text: n === 0 ? "동그라미는 평평한 길이 어울려요." : "세모 바퀴는 변이 너무 길어서 물결 길에 걸려요. 변이 4개 이상인 바퀴로 해 봐요." });
       return;
     }
+    tick();
     setRoad(r);
     resetDist();
-    setMsg(r === "bumpy" ? { tone: "info", text: `${NAMES[n]} 바퀴 한 변의 길이와 둔덕 한 조각의 곡선 길이가 같아요. 굴려서 중심 높이 그래프를 봐요.` } : { tone: "info", text: "평평한 길이에요. 꼭짓점이 땅에 닿을 때마다 중심이 올라갔다 내려와요." });
+    setMsg(r === "bumpy" ? { tone: "info", text: "물결 길이에요. 바퀴 한 변의 길이와 둔덕 하나의 길이가 같게 만든 길이에요. 쓱 밀어서 점의 높이를 봐요!" } : { tone: "info", text: "평평한 길이에요. 모서리가 땅에 닿을 때마다 가운데 점이 올라갔다 내려와요." });
+  };
+
+  const giveHint = () => {
+    const m = missions[mi];
+    const ok = [3, 4, 5, 6, 7, 8, 0].filter((k) => missionOk(m, k, m.kind === "wave" ? "bumpy" : "flat"));
+    const names = ok.map((k) => NAMES[k]).join(", ");
+    setMsg({ tone: "info", text: m.kind === "wave" ? `힌트: ‘${NAMES[m.n]}’ 바퀴를 고르고 ‘물결 길’을 누른 다음 쓱 밀어요.` : `힌트: ${names} 바퀴로 평평한 길에서 굴려 보세요. 아래 막대 그래프도 도움이 돼요!` });
   };
 
   const restart = () => {
     setRunning(false);
     xRef.current = 0;
+    vRef.current = 0;
     resetDist();
-    setM1(false);
-    setM2(false);
-    setMsg({ tone: "info", text: "처음으로 돌아왔어요. 바퀴와 길을 골라 굴려 보세요. 화면을 끌어서 직접 굴릴 수도 있어요." });
+    setMsg({ tone: "info", text: "처음으로 돌아왔어요. 바퀴를 쓱 밀어 봐요!" });
   };
 
   const onDown = (e: React.PointerEvent) => {
-    drag.current = { px: e.clientX };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setRunning(false);
+    setTouched(true);
+    vRef.current = 0;
+    drag.current = { px: e.clientX, t: performance.now(), v: 0 };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      /* 무시 */
+    }
   };
   const onMove = (e: React.PointerEvent) => {
-    if (!drag.current) return;
-    const R = sceneH(W) * 0.3;
-    xRef.current -= (e.clientX - drag.current.px) / R;
-    drag.current.px = e.clientX;
+    const d = drag.current;
+    if (!d) return;
+    const R = sceneH(W) * R_FRAC;
+    const now = performance.now();
+    const dX = (e.clientX - d.px) / R;
+    const dtS = Math.max(0.008, (now - d.t) / 1000);
+    xRef.current += dX;
+    addDist(Math.abs(dX));
+    d.v = d.v * 0.6 + (dX / dtS) * 0.4;
+    d.px = e.clientX;
+    d.t = now;
     paint();
   };
   const onUp = () => {
+    const d = drag.current;
     drag.current = null;
+    if (d && performance.now() - d.t < 90) vRef.current = clamp(d.v, -6, 6);
   };
 
   const w = wiggle(n, road);
   const H = sceneH(W) + GRAPH_H;
-  const bars = [3, 4, 5, 6, 7, 8, 0];
+  const shapes = [3, 4, 5, 6, 7, 8, 0];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 text-base">
+      <p className="font-game text-center text-xl text-accent">레벨 {level} · 라운드 {mi + 1}/{ROUNDS}</p>
+      <p className={`rounded-card px-3 py-2 font-bold ${won ? "bg-ok-soft text-ok" : "bg-accent-soft"}`}>미션 {mi + 1}: {missionText(missions[mi])}</p>
       <Board>
-        <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="바퀴 모양 고르기">
-          <span className="text-sm font-semibold">바퀴</span>
-          {bars.map((k) => (
+        <div className="mb-3 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="바퀴 모양 고르기">
+          {shapes.map((k) => (
             <button
               key={k}
               type="button"
               onClick={() => pickN(k)}
               aria-pressed={k === n}
-              aria-label={k === 0 ? "원 바퀴" : `변 ${k}개 바퀴`}
-              className={`h-11 min-w-[44px] rounded-card px-3 text-base font-bold ${k === n ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-bg"}`}
+              aria-label={k === 0 ? "동그라미 바퀴" : `변 ${k}개 바퀴`}
+              className={`flex min-h-[72px] flex-col items-center justify-center rounded-card px-1 py-1 text-sm font-bold shadow-sm ${k === n ? "bg-accent-soft ring-2 ring-accent" : "border border-line bg-surface hover:bg-bg"}`}
+              style={{ touchAction: "manipulation" }}
             >
-              {k === 0 ? "원" : k}
+              <Icon n={k} />
+              <span>{k === 0 ? "동그라미" : `${NAMES[k]}`}</span>
             </button>
           ))}
         </div>
-        <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="길 모양 고르기">
-          <span className="text-sm font-semibold">길 모양</span>
-          <GButton variant={road === "flat" ? "soft" : "ghost"} pressed={road === "flat"} onClick={() => pickRoad("flat")} className="text-sm">평평한 길</GButton>
-          <GButton variant={road === "bumpy" ? "soft" : "ghost"} pressed={road === "bumpy"} onClick={() => pickRoad("bumpy")} className="text-sm">올록볼록 길 (현수선)</GButton>
-        </div>
 
-        <div ref={wrapRef} className="w-full overflow-hidden rounded-card border border-line">
+        <div ref={wrapRef} className="relative w-full overflow-hidden rounded-card border border-line">
           <canvas
             ref={canvasRef}
             role="img"
-            aria-label={`${NAMES[n]} 바퀴가 ${road === "flat" ? "평평한" : "올록볼록한"} 길을 구르는 모습과 중심 높이 그래프. 흔들림 폭 ${(w * 100).toFixed(1)}퍼센트`}
-            style={{ width: W, height: H, display: "block", touchAction: "pan-y", cursor: "grab" }}
+            aria-label={`${NAMES[n]} 바퀴가 ${road === "flat" ? "평평한" : "물결"} 길 위에 있어요. 좌우로 끌면 굴러가요. 덜컹거림 ${bumpWord(w)}`}
+            style={{ width: W, height: H, display: "block", touchAction: "none", cursor: "grab" }}
             onPointerDown={onDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
             onPointerCancel={onUp}
           />
+          {!touched && !running && (
+            <div className="pointer-events-none absolute left-[18%] top-[30%]">
+              <style>{`@keyframes wh-nudge{0%{transform:translateX(0);opacity:0}15%{opacity:1}80%{transform:translateX(110px);opacity:1}100%{transform:translateX(130px);opacity:0}}`}</style>
+              <div style={{ animation: "wh-nudge 1.6s ease-in-out infinite" }} className="rounded-full bg-white/90 px-3 py-1.5 text-base font-extrabold text-orange-700 shadow-md">
+                👉 쓱 밀어 봐요!
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="mt-3">
-          <Slider label="굴러가는 속도" value={speed} min={1} max={10} onChange={setSpeed} show={(v) => `${v}단계`} />
+        <div className="mt-3" aria-label="미션 진행">
+          <p className="mb-1 text-sm text-muted">굴린 거리 (가득 차면 미션 확인!)</p>
+          <div className="h-4 overflow-hidden rounded-full bg-bg">
+            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.round(prog * 100)}%` }} />
+          </div>
         </div>
       </Board>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Stat label="흔들림 폭" value={`${(w * 100).toFixed(1)}%`} tone={w === 0 ? "ok" : "plain"} />
-        <Stat label="미션" value={`${(m1 ? 1 : 0) + (m2 ? 1 : 0)}/2`} tone={m1 && m2 ? "ok" : "plain"} />
+        <Stat label="덜컹거림" value={`${bumpWord(w)} (${(w * 100).toFixed(0)}%)`} tone={w === 0 ? "ok" : "plain"} />
+        <Stat label="라운드" value={`${mi + 1}/${ROUNDS}`} tone={won ? "ok" : "plain"} />
       </div>
       <Say tone={msg.tone}>{msg.text}</Say>
 
       <div className="flex flex-wrap gap-2">
-        <GButton variant="primary" onClick={() => setRunning(!running)}>{running ? "■ 멈추기" : "▶ 굴리기"}</GButton>
-        <GButton onClick={restart}>↻ 다시</GButton>
+        <GButton variant={running ? "primary" : "soft"} onClick={() => { setRunning(!running); setTouched(true); }} className={BIG}>{running ? "■ 멈추기" : "▶ 저절로 굴러가기"}</GButton>
+        <GButton onClick={restart} className={BIG}>↻ 다시 하기</GButton>
+        <GButton variant="soft" onClick={giveHint} className={BIG}>💡 힌트 보기</GButton>
       </div>
 
-      <Board>
-        <h3 className="mb-2 text-sm font-bold">미션</h3>
-        <ul className="space-y-1 text-sm">
-          <li className={m1 ? "font-semibold text-ok" : ""}>{m1 ? "✔" : "○"} 평평한 길에서 흔들림 폭을 10% 이하로 만들어 굴려 보세요. 바퀴의 변은 몇 개가 필요할까요?</li>
-          <li className={m2 ? "font-semibold text-ok" : ""}>{m2 ? "✔" : "○"} 네모 바퀴(변 4개)를 흔들림 없이 굴려 보세요.</li>
-        </ul>
-      </Board>
+      {(level >= 5 || road === "bumpy") && (
+        <Board className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="길 모양 고르기">
+            <span className="font-semibold">길 모양</span>
+            <GButton variant={road === "flat" ? "soft" : "ghost"} pressed={road === "flat"} onClick={() => pickRoad("flat")} className={BIG}>평평한 길</GButton>
+            <GButton variant={road === "bumpy" ? "soft" : "ghost"} pressed={road === "bumpy"} onClick={() => pickRoad("bumpy")} className={BIG}>물결 길</GButton>
+          </div>
+          <Slider label="저절로 굴러가는 속도" value={speed} min={1} max={10} onChange={setSpeed} show={(v) => `${v}단계`} />
+        </Board>
+      )}
 
       <Board>
-        <h3 className="mb-2 text-sm font-bold">평평한 길에서 바퀴마다 흔들리는 폭 (바퀴 반지름 기준)</h3>
+        <h3 className="mb-2 text-base font-bold">바퀴마다 얼마나 덜컹거릴까? (평평한 길)</h3>
         <ul className="space-y-1.5">
-          {bars.map((k) => {
+          {shapes.map((k) => {
             const v = wiggle(k, "flat");
             return (
-              <li key={k} className="flex items-center gap-2 text-sm">
-                <span className="w-16 shrink-0">{k === 0 ? "원" : `변 ${k}개`}</span>
+              <li key={k} className="flex items-center gap-2 text-base">
+                <span className="w-20 shrink-0">{k === 0 ? "동그라미" : `변 ${k}개`}</span>
                 <span className="h-4 flex-1 overflow-hidden rounded-full bg-bg">
                   <span className={`block h-full rounded-full ${k === n ? "bg-accent" : "bg-accent-soft"}`} style={{ width: `${Math.max(v / 0.5, 0.01) * 100}%` }} />
                 </span>
-                <span className="w-14 shrink-0 text-right tabular-nums text-muted">{(v * 100).toFixed(1)}%</span>
+                <span className="w-12 shrink-0 text-right tabular-nums text-muted">{(v * 100).toFixed(0)}%</span>
               </li>
             );
           })}
         </ul>
-        <p className="mt-2 text-xs leading-relaxed text-muted">
-          정n각형 바퀴의 중심 높이는 cos(180°/n) 에서 1까지 오르내려서 흔들림 폭은 1 − cos(180°/n) 이에요. 올록볼록 길은 뒤집힌 현수선(y = −a·cosh(x/a), a는 중심에서 변까지의 거리) 조각을 이어 붙여 만들어요.
-        </p>
+        <p className="mt-2 leading-relaxed text-muted">막대가 짧을수록 덜컹거림이 작아요. 변이 많아질수록 막대가 줄어드는 걸 봐요!</p>
       </Board>
     </div>
   );

@@ -16,7 +16,7 @@ const CARDS = {
   prompt:  { c1: "#0369a1", c2: "#38bdf8", glyph: "“ ”", tag: "프롬프트 엔지니어링 · 초중고 13차시", title: "다시 묻는 AI 교실", sub: "부탁하고, 확인하고, 바로잡는 연습" },
   board:   { c1: "#15803d", c2: "#4ade80", glyph: "▦", tag: "ESP32 터치 화면 · 따라 하기", title: "시간표 단말 만들기", sub: "시계·날씨·급식·내 시간표가 뜨는 작은 화면" },
   slides:  { c1: "#c2410c", c2: "#fb923c", glyph: "▤", tag: "슬라이드·인포그래픽", title: "노트북LM\n슬라이드 프롬프트", sub: "디자인을 고르면 프롬프트가 채워져요" },
-  mathplay:{ c1: "#0f766e", c2: "#34d399", glyph: "▞", tag: "마우스로 하는 수학 게임 30가지", title: "온라인 수학 체험", sub: "끌고 누르며 해 보는 수학체험관 게임" },
+  mathplay:{ c1: "#0f766e", c2: "#34d399", glyph: "▞", tag: "초등 · 마우스로 놀며 배우는 수학", title: "온라인 수학 체험", sub: "생각 없이 놀다 보면 수학이 쏙쏙" },
   setup:   { c1: "#6d28d9", c2: "#a78bfa", glyph: "⚙", tag: "먼저 해 두면 좋아요", title: "AI 맞춤 설정", sub: "ChatGPT·Claude·Gemini에 한 번 넣어 두는 설정" },
 };
 

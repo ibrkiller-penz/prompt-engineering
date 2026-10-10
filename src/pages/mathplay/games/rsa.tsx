@@ -1,23 +1,27 @@
-import { useMemo, useState } from "react";
-import { Board, GButton, Say, Stat, rand } from "./kit";
-import { PRIMES_SHOWN, eCandidates, isPrime, lockNums, modInverse, numToLetter, smallestFactor, textToNums, unlockNums } from "./rsa.logic";
+import { useEffect, useMemo, useState } from "react";
+import { Board, GButton, Say, Stat, cheer, rand, stageClear, useStage } from "./kit";
+import { PRIMES_SHOWN, WORDS_BY_LEN, eCandidates, rsaLevel, isPrime, lockNums, modInverse, numToLetter, smallestFactor, textToNums, unlockNums } from "./rsa.logic";
 
 type Msg = { t: string; tone: "info" | "ok" | "bad" };
-const WORDS = ["SUN", "MATH", "STAR", "CODE", "LOVE", "KEY", "MOON", "BOOK"];
 const PR = PRIMES_SHOWN.filter(isPrime);
 
 const numsLine = (a: number[]) => a.join(" · ");
 const lettersOf = (a: number[]) => a.map(numToLetter).join("");
 
-function newFriend() {
-  const p = PR[rand(PR.length)];
-  let q = PR[rand(PR.length)];
-  while (q === p) q = PR[rand(PR.length)];
+function newFriend(pool: number[] = PR) {
+  const p = pool[rand(pool.length)];
+  let q = pool[rand(pool.length)];
+  while (q === p) q = pool[rand(pool.length)];
   const es = eCandidates((p - 1) * (q - 1), 6);
-  return { n: p * q, e: es[rand(es.length)] };
+  return { n: p * q, e: es[rand(es.length)], p, q };
 }
 
 export default function RsaGame() {
+  const stage = useStage();
+  const lvl = rsaLevel(stage);
+  const words = WORDS_BY_LEN[lvl.len];
+  const [round, setRound] = useState(1);
+  const [stranger, setStranger] = useState(() => newFriend(lvl.primes));
   const [p, setP] = useState<number | null>(11);
   const [q, setQ] = useState<number | null>(13);
   const [slot, setSlot] = useState<"p" | "q">("p");
@@ -28,7 +32,7 @@ export default function RsaGame() {
   const [labMsg, setLabMsg] = useState<Msg | null>(null);
 
   // 퀘스트
-  const [friend, setFriend] = useState(newFriend);
+  const [friend, setFriend] = useState(() => newFriend());
   const [qi, setQi] = useState(0);
   const [sendText, setSendText] = useState("");
   const [sent, setSent] = useState(false);
@@ -63,7 +67,6 @@ export default function RsaGame() {
     setE(null);
     setDGuess(null);
     setKeyMsg({ t: `소수 ${v}을(를) 골랐어요. 둘을 다 고르면 공개 지수 e 를 골라 보세요.`, tone: "info" });
-    newQuest(false);
   };
 
   const chooseE = (v: number) => {
@@ -71,12 +74,12 @@ export default function RsaGame() {
     setDGuess(null);
     const r = modInverse(v, phi);
     setKeyMsg({ t: `e=${v} 를 골랐어요. 확장 유클리드 호제법으로 비밀 지수 d=${r.d} 를 찾았어요! (${v} × ${r.d} 를 φ=${phi} 로 나누면 나머지가 1이에요)`, tone: "ok" });
-    newQuest(false);
   };
 
   function newQuest(count = true) {
     if (count) setQMsg({ t: "새 문제예요. 친구의 열쇠가 바뀌었어요.", tone: "info" });
     setFriend(newFriend());
+    setStranger(newFriend(lvl.primes));
     setQi((x) => x + 1);
     setSendText("");
     setSent(false);
@@ -92,11 +95,13 @@ export default function RsaGame() {
   const same = opened && nums ? opened.every((x, i) => x === nums[i]) : false;
 
   // 퀘스트 계산
-  const target = WORDS[qi % WORDS.length];
+  const target = words[qi % words.length];
   const sendNums = textToNums(sendText);
   const friendCipher = sendNums && sendNums.length ? lockNums(sendNums, friend.e, friend.n) : null;
-  const recvWord = WORDS[(qi + 3) % WORDS.length];
-  const recvCipher = ready ? lockNums(textToNums(recvWord)!, e!, n) : null;
+  const recvWord = words[(qi + 3) % words.length];
+  const recvKey = lvl.stranger ? { n: stranger.n, e: stranger.e } : { n, e: e ?? 0 };
+  const recvCipher = ready ? lockNums(textToNums(recvWord)!, recvKey.e, recvKey.n) : null;
+  const keyMatches = recvKey.n === n && recvKey.e === e;
   const recvPlain = ready && recvCipher ? unlockNums(recvCipher, d, n) : null;
 
   const doSend = () => {
@@ -111,9 +116,24 @@ export default function RsaGame() {
     if (answer.trim().toUpperCase() === recvWord) {
       setDone2(true);
       setWins((w) => w + 1);
-      setQMsg({ t: `성공! 암호문을 풀어 ‘${recvWord}’ 를 읽었어요. 공개 열쇠로 잠근 글은 비밀 열쇠를 가진 사람만 열 수 있어요.`, tone: "ok" });
+      cheer();
+      setQMsg({ t: round >= 3 ? `레벨 클리어! ‘${recvWord}’ 를 읽었어요.` : `성공! 암호문을 풀어 ‘${recvWord}’ 를 읽었어요. 곧 라운드 ${round + 1}!`, tone: "ok" });
     } else setQMsg({ t: "아니에요. ‘내 비밀 열쇠로 풀기’를 눌러 숫자를 글자로 바꿔 읽어 보세요.", tone: "bad" });
   };
+
+  useEffect(() => {
+    if (!done2) return;
+    const id = window.setTimeout(() => {
+      if (round >= 3) stageClear();
+      else {
+        setRound(round + 1);
+        newQuest(false);
+        setQMsg({ t: `라운드 ${round + 1}: 새 친구에게 편지를 보내고, 온 편지를 풀어요.`, tone: "info" });
+      }
+    }, round >= 3 ? 1200 : 1800);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done2]);
 
   return (
     <div className="space-y-4">
@@ -200,7 +220,7 @@ export default function RsaGame() {
 
       <Board className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-extrabold">3. 퀘스트: 친구와 비밀 편지</h3>
+          <h3 className="font-extrabold">3. 퀘스트: 친구와 비밀 편지 <span className="font-game ml-1 rounded-full bg-accent px-3 py-0.5 text-base text-white">레벨 {stage} · 라운드 {round}/3</span></h3>
           <div className="flex flex-wrap gap-2"><Stat label="성공" value={wins} tone={wins ? "ok" : "plain"} /><Stat label="확인 횟수" value={tries} /></div>
         </div>
         {!ready ? (
@@ -218,13 +238,31 @@ export default function RsaGame() {
             </div>
             <div className={`rounded-card bg-bg p-3 text-sm ${sent ? "" : "opacity-50"}`}>
               <p className="font-bold">② 내게 온 암호문 풀기</p>
-              <p className="mt-1">친구가 내 공개 열쇠 ({n}, {e}) 로 잠가 보낸 암호문: <strong className="text-accent">{numsLine(recvCipher!)}</strong></p>
+              {lvl.stranger ? (
+                <p className="mt-1">
+                  이 암호문은 공개 열쇠 (n, e) = (<strong>{recvKey.n}</strong>, <strong>{recvKey.e}</strong>) 로 잠겼어요: <strong className="text-accent">{numsLine(recvCipher!)}</strong>
+                  <br />
+                  <span className={keyMatches ? "font-bold text-ok" : "font-bold text-bad"}>{keyMatches ? "✔ 위에서 같은 열쇠를 만들었어요! 이제 풀 수 있어요." : `✖ 내 열쇠는 (${n}, ${e ?? "?"}) 예요. n=${recvKey.n} 을 두 소수의 곱으로 쪼개서 1번에서 p, q 와 e=${recvKey.e} 를 골라 같은 열쇠를 만들어요.`}</span>
+                </p>
+              ) : (
+                <p className="mt-1">친구가 내 공개 열쇠 ({n}, {e}) 로 잠가 보낸 암호문: <strong className="text-accent">{numsLine(recvCipher!)}</strong></p>
+              )}
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <GButton onClick={() => setShowPlain(true)} disabled={!sent}>🔑 내 비밀 열쇠로 풀기</GButton>
-                {showPlain && sent && <span>풀면 숫자 <strong>{numsLine(recvPlain!)}</strong> → 글자로 바꿔 보세요</span>}
+                {showPlain && sent && (
+                  <span>
+                    풀면 숫자 <strong>{numsLine(recvPlain!)}</strong>
+                    {lvl.numbersOnly ? " → 글자로 바꿔 보세요" : <> → <strong className="text-ok">{lettersOf(recvPlain!)}</strong></>}
+                  </span>
+                )}
               </div>
+              {lvl.numbersOnly && (
+                <p className="mt-2 break-words font-mono text-xs text-muted" aria-label="알파벳 번호표">
+                  {Array.from({ length: 26 }, (_, i) => `${String.fromCharCode(65 + i)}=${i + 1}`).join(" ")}
+                </p>
+              )}
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <input value={answer} onChange={(ev) => setAnswer(ev.target.value)} maxLength={8} disabled={!sent || done2} placeholder="읽은 글" className="min-h-[44px] w-40 rounded-card border border-line bg-surface px-3 uppercase" aria-label="풀어서 읽은 글" />
+                <input value={answer} onChange={(ev) => setAnswer(ev.target.value)} maxLength={8} disabled={!sent || done2} placeholder={`읽은 글 (${lvl.len}글자)`} className="min-h-[44px] w-40 rounded-card border border-line bg-surface px-3 uppercase" aria-label="풀어서 읽은 글" />
                 <GButton variant="primary" onClick={doAnswer} disabled={!sent || done2}>답 확인</GButton>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
-import { Board, GButton, Say, Slider, Stat, rand, svgPoint } from "./kit";
-import { D, classify, curveSegments, measure, pointAt, snapE, type Kind } from "./conic.logic";
+import { Board, GButton, Say, Slider, Stat, cheer, oops, rand, stageClear, svgPoint, useStage } from "./kit";
+import { D, classify, curveSegments, measure, pointAt, snapE, type Kind, checkTask, conicTask, type ConicTask } from "./conic.logic";
 
 const S = 40; // 1 단위 = 40 칸
 const X_MIN = -9;
@@ -32,12 +32,12 @@ export default function ConicGame() {
   const dragging = useRef(false);
   const [e, setE] = useState(0.6);
   const [t, setT] = useState(Math.PI / 2);
-  const [mode, setMode] = useState<Mode>("free");
+  const stage = useStage();
+  const [mode, setMode] = useState<Mode>("name");
+  const [task, setTask] = useState<ConicTask>(() => conicTask(stage));
   const [msg, setMsg] = useState<{ t: "info" | "ok" | "bad"; s: string } | null>(null);
   // 이름 맞추기
   const [qi, setQi] = useState(0);
-  const [target, setTarget] = useState<Kind>("쌍곡선");
-  const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState(false);
   // 비율 확인
   const [marks, setMarks] = useState<number[]>([]);
@@ -50,7 +50,7 @@ export default function ConicGame() {
   const P = pointAt(e, tt);
   const m = measure(P);
   const kind = classify(e);
-  const hideName = mode === "name" && !answered;
+  const hideName = mode === "name" && !answered && task.type === "kind";
 
   const nearest = (x: number, y: number) => {
     let best = ok[0] ?? Math.PI / 2;
@@ -83,7 +83,6 @@ export default function ConicGame() {
           setFound(nf);
           const mm = measure(pointAt(e, marks[hit]));
           if (nf.length === marks.length) {
-            setScore((s) => s + 1);
             setRounds((r) => r + 1);
             setMsg({ t: "ok", s: `모두 찾았어요! 세 점 모두 PF ÷ (준선까지 거리) = ${f2(mm.ratio)} = e 예요. 점이 어디에 있어도 비가 같아요.` });
           } else setMsg({ t: "ok", s: `이 점: PF = ${f2(mm.pf)}, 준선까지 = ${f2(mm.dist)}, 비 = ${f2(mm.ratio)} (e = ${f2(e)}). 다른 별도 눌러 봐요.` });
@@ -130,17 +129,17 @@ export default function ConicGame() {
     setFound([]);
     setAnswered(false);
     if (md === "name") {
-      const k = KINDS[rand(3)];
-      setTarget(k);
-      setE(sample(KINDS.filter((x) => x !== k)[rand(2)]));
+      const tk = conicTask(stage);
+      setTask(tk);
+      if (tk.type === "kind") {
+        setE(sample(KINDS.filter((x) => x !== tk.kind)[rand(2)]));
+      } else setE(0.6);
       setQi(0);
-      setScore(0);
-      setMsg({ t: "info", s: `1번째 과제: ${k} 을(를) 그리는 e 를 맞춰 보세요. 맞췄다고 생각하면 '확인'을 눌러요.` });
+      setMsg(null);
     } else if (md === "ratio") {
       const ee = [0.5, 0.7, 1, 1.5, 2][rand(5)];
       setE(ee);
       setMarks(newMarks(ee));
-      setScore(0);
       setRounds(0);
       setMsg({ t: "info", s: "곡선 위의 노란 별 세 개를 눌러, 거리의 비가 정말 e 인지 확인해 봐요." });
     } else {
@@ -149,24 +148,26 @@ export default function ConicGame() {
   };
   const check = () => {
     if (answered) return;
-    setAnswered(true);
-    if (kind === target) {
-      setScore((s) => s + 1);
-      setMsg({ t: "ok", s: `맞아요! e = ${f2(e)} 이므로 ${kind} 이에요.` });
-    } else setMsg({ t: "bad", s: `아쉬워요. e = ${f2(e)} 는 ${kind} 이에요. ${target} 은(는) ${target === "타원" ? "e < 1" : target === "포물선" ? "e = 1" : "e > 1"} 일 때예요.` });
+    if (checkTask(task, e)) {
+      setAnswered(true);
+      cheer();
+      setMsg({ t: "ok", s: (task.type === "kind" ? `맞아요! e = ${f2(e)} 이므로 ${kind} 이에요.` : `맞아요! e = PF ÷ d = ${task.pf} ÷ ${task.d} = ${f2(task.e)} → ${kind}.`) + (qi >= 2 ? " 레벨 클리어!" : "") });
+      setTimeout(qi >= 2 ? stageClear : nextQ, qi >= 2 ? 1200 : 1600);
+    } else {
+      oops();
+      setMsg({ t: "bad", s: task.type === "kind" ? `아쉬워요. 지금 e = ${f2(e)} 는 ${kind} 이에요. ${task.kind} 은(는) ${task.kind === "타원" ? "e < 1" : task.kind === "포물선" ? "e = 1" : "e > 1"} 일 때예요. 다시 해 봐요.` : `아쉬워요. e 는 PF ÷ d 예요. ${task.pf} ÷ ${task.d} 를 계산해서 다시 맞춰 봐요.` });
+    }
   };
   const nextQ = () => {
-    if (qi >= 4) {
-      setQi(5);
-      setMsg({ t: score >= 4 ? "ok" : "info", s: `끝! ${score} / 5 개를 맞혔어요. '다시 하기'로 한 번 더 해 봐요.` });
-      return;
+    if (qi >= 2) return;
+    const tk = conicTask(stage);
+    setTask(tk);
+    if (tk.type === "kind") {
+      setE(sample(KINDS.filter((x) => x !== tk.kind)[rand(2)]));
     }
-    const k = KINDS[rand(3)];
-    setTarget(k);
-    setE(sample(KINDS.filter((x) => x !== k)[rand(2)]));
-    setQi(qi + 1);
+    setQi((q) => q + 1);
     setAnswered(false);
-    setMsg({ t: "info", s: `${qi + 2}번째 과제: ${k} 을(를) 그려 보세요.` });
+    setMsg(null);
   };
   const newRound = () => {
     const ee = [0.4, 0.6, 0.8, 1, 1.4, 2, 2.6][rand(7)];
@@ -185,15 +186,15 @@ export default function ConicGame() {
     <Board>
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="놀이 방식">
         <GButton pressed={mode === "free"} onClick={() => startMode("free")}>자유 실험</GButton>
-        <GButton pressed={mode === "name"} onClick={() => startMode("name")}>곡선 이름 맞추기</GButton>
+        <GButton pressed={mode === "name"} onClick={() => startMode("name")}>레벨 {stage} 놀이</GButton>
         <GButton pressed={mode === "ratio"} onClick={() => startMode("ratio")}>비율 확인하기</GButton>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Stat label="e" value={f2(e)} />
         <Stat label="곡선" value={hideName ? "???" : kind} />
-        {mode === "name" && <Stat label="과제" value={qi > 4 ? "끝" : `${qi + 1} / 5`} />}
-        {mode !== "free" && <Stat label="점수" value={mode === "name" ? `${score} / 5` : `${rounds} 판`} tone={score ? "ok" : "plain"} />}
+        {mode === "name" && <Stat label={`레벨 ${stage}`} value={`라운드 ${Math.min(qi + 1, 3)}/3`} />}
+        {mode === "ratio" && <Stat label="점수" value={`${rounds} 판`} tone={rounds ? "ok" : "plain"} />}
         {mode === "ratio" && <Stat label="찾은 별" value={`${found.length} / ${marks.length}`} />}
       </div>
 
@@ -265,14 +266,20 @@ export default function ConicGame() {
       </div>
 
       <div className="mt-3 space-y-2">
-        <Say tone={msg ? msg.t : "info"}>{msg ? msg.s : freeMsg}</Say>
-        {mode === "name" && qi <= 4 && (
-          <p className="text-sm font-semibold">목표 곡선: <span className="text-accent">{target}</span></p>
+        <Say tone={msg ? msg.t : "info"}>{msg ? msg.s : mode === "name" ? "e 막대를 움직여 곡선을 바꿔 보고, 맞다고 생각하면 '확인'을 눌러요." : freeMsg}</Say>
+        {mode === "name" && (
+          <p className="font-game rounded-2xl bg-accent-soft px-3 py-2 text-lg">
+            {task.type === "kind" ? (
+              <>목표: <span className="text-accent">{task.kind}</span> 을(를) 그리는 e 를 맞추고 '확인'!</>
+            ) : (
+              <>어떤 이차곡선 위의 점 P에서 PF = <span className="text-accent">{task.pf}</span>, 준선까지 d = <span className="text-accent">{task.d}</span> 예요. 이 곡선의 e 로 맞추고 '확인'!</>
+            )}
+          </p>
         )}
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {mode === "name" && qi <= 4 && (answered ? <GButton variant="primary" onClick={nextQ}>{qi >= 4 ? "결과 보기" : "다음 과제"}</GButton> : <GButton variant="primary" onClick={check}>확인</GButton>)}
+        {mode === "name" && !answered && <GButton variant="primary" onClick={check}>확인</GButton>}
         {mode === "ratio" && found.length === marks.length && marks.length > 0 && <GButton variant="primary" onClick={newRound}>새 곡선</GButton>}
         {mode !== "free" && <GButton onClick={() => startMode(mode)}>다시 하기</GButton>}
         {mode === "free" && <GButton onClick={() => { setE(0.6); setT(Math.PI / 2); }}>처음으로</GButton>}
