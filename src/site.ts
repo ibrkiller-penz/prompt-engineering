@@ -105,6 +105,15 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     cta: "공부하러 가기 →",
   },
   {
+    path: "/aibasic/",
+    external: true,
+    title: "인공지능 기초",
+    tag: "고등 인공지능 기초 · 단원별 학습",
+    desc: "교과서 단원 순서대로 이야기를 읽고, 계단을 하나씩 올라가며 확인 문제를 풀어요. 단원 시험까지 있어요.",
+    more: "2022 개정 고등학교 『인공지능 기초』 교과서의 단원 구성을 따라, 쉬운 말로 다시 쓴 학습 자료예요. 4개 단원 26개 레슨마다 이야기, 계단식 설명과 확인 문제, 용어 게임, 마무리 시험이 있고 기록은 이 기기에만 남아요.",
+    cta: "공부하러 가기 ↗",
+  },
+  {
     path: "/mathplay",
     title: "온라인 수학 체험",
     tag: "마우스로 하는 수학 게임 30가지",
