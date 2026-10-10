@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>미끄러질까, 멈춰 있을까? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"C9",
+ predict:{q:"상자를 경사면에 놓을 때, 미끄러질지 멈춰 있을지는 무엇으로 정해질까요?",options:["무게만 무거우면 항상 미끄러진다","경사각과 바닥 마찰(마찰계수)","바닥 색깔"],answer:1,
+  feedback:["무게만으로 정해지지 않아요. 같은 무게라도 각도와 마찰에 따라 달라요.","맞아요. 경사가 가파르고 마찰이 작을수록 미끄러져요.","색깔은 상관없어요. 바닥의 거칠기(마찰)가 중요해요."]},
+ steps:["경사각을 정해요.","마찰계수(바닥의 거칠기)를 정해요.","'놓기'를 눌러 상자가 미끄러지는지 확인해요."],
+ observe:["각도를 키우면 상자가 멈춰 있기 어려워지나요?","마찰계수를 키우면 같은 각도에서 어떻게 되나요?","멈춰 있는 상자와 미끄러지는 상자는 어떤 조건이 다른가요?"],
+ more:["책을 비스듬한 책상 위에 올려 놓고, 얼마나 기울이면 미끄러지는지 재 보세요.","매끈한 바닥과 거친 바닥에서 각각 실험해 보고 비교해 보세요."],
+ why:{easy:["물체를 아래로 당기는 힘의 일부가 경사를 따라 미끄러지게 해요. 바닥과의 마찰은 그 움직임을 막아요.","경사가 가파르면 미끄러지는 힘이 커지고, 마찰이 크면 막는 힘도 커요. 두 힘의 크기 비교로 미끄러짐이 정해져요."],
+  detail:["경사각 θ에서 중력의 경사 방향 성분은 mg·sinθ, 수직 항력은 mg·cosθ예요. 정지 마찰은 최대 μ·mg·cosθ까지 버텨서, μ ≥ tanθ이면 멈춰 있어요.","미끄러지면 가속도는 a = g(sinθ − μ·cosθ)예요. 이 체험은 정지 마찰과 운동 마찰 계수를 같게 놓은 근사이고, 무게(질량)는 결과에 영향을 주지 않도록 했어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="경사면 위에 놓인 상자. 경사각과 마찰계수에 따라 미끄러지는지 보여 줘요"></canvas>'+
+   '<div class="controls"><label>경사각 θ <input id="th" type="range" min="5" max="60" value="25" aria-label="경사각"><span class="readout" id="rt"></span></label></div>'+
+   '<div class="controls"><label>마찰계수 μ <input id="mu" type="range" min="0" max="1" step="0.05" value="0.3" aria-label="마찰계수"><span class="readout" id="rm"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">놓기</button><button id="rs" type="button">다시 세우기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3em"></p>';
+  var cv=el.querySelector("#cv"),th=el.querySelector("#th"),mu=el.querySelector("#mu"),rt=el.querySelector("#rt"),rm=el.querySelector("#rm"),msg=el.querySelector("#msg"),css=getComputedStyle(document.documentElement);
+  var G=9.8,LEN=2,p=0,t=0,run=false;
+  function ang(){return Math.PI/180*+th.value}
+  function accel(){return Math.max(G*(Math.sin(ang())-(+mu.value)*Math.cos(ang())),0)}
+  function stays(){return (+mu.value)>=Math.tan(ang())}
+  function frame(){if(!run)return;if(!document.body.contains(cv))return;t+=1/60;p=Math.min(0.5*accel()*t*t/LEN,1);
+   if(p>=1){run=false;msg.textContent="바닥 끝까지 미끄러졌어요. 가속도 약 "+accel().toFixed(1)+" m/s² (근사)."}
+   draw();if(run)requestAnimationFrame(frame)}
+  function reset(){p=0;t=0;run=false;msg.textContent="";rt.textContent="θ = "+th.value+"°";rm.textContent="μ = "+(+mu.value).toFixed(2);draw()}
+  function draw(){
+   var s=Sci.fit(cv,.6),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,brand=css.getPropertyValue("--brand").trim(),sub=css.getPropertyValue("--sub").trim(),soft=css.getPropertyValue("--soft").trim();
+   c.clearRect(0,0,w,h);
+   var a=ang(),tn=Math.tan(a),x0=w*.06,base=h*.85,Lb=w*.88,Ls=Math.min(Lb,(h*.6)/tn),top={x:x0,y:base-Ls*tn},bot={x:x0+Ls,y:base};
+   c.fillStyle=soft;c.strokeStyle=ink;c.lineWidth=2.5;c.beginPath();c.moveTo(top.x,top.y);c.lineTo(bot.x,bot.y);c.lineTo(x0,base);c.closePath();c.fill();c.stroke();
+   c.strokeStyle=sub;c.beginPath();c.moveTo(x0,base);c.lineTo(w*.97,base);c.stroke();
+   c.fillStyle=ink;c.font="14px sans-serif";c.fillText("θ = "+th.value+"°",x0+Ls*.35,base-10);
+   var q=Math.min(p,.95),bx=top.x+q*(bot.x-top.x),by=top.y+q*(bot.y-top.y),bs=Math.min(w,h)*.13;
+   c.save();c.translate(bx,by);c.rotate(a);c.fillStyle=brand;c.fillRect(-bs/2,-bs,bs,bs);c.restore();
+   c.fillStyle=sub;c.font="13px sans-serif";
+   c.fillText(stays()?"μ ≥ tanθ → 멈춰 있어요":"μ < tanθ → 미끄러져요",8,16);
+   rt.textContent="θ = "+th.value+"° (tanθ ≈ "+tn.toFixed(2)+")";rm.textContent="μ = "+(+mu.value).toFixed(2);
+  }
+  th.addEventListener("input",reset);mu.addEventListener("input",reset);
+  el.querySelector("#go").addEventListener("click",function(){
+   Exp.reveal();p=0;t=0;
+   if(stays()){run=false;msg.textContent="멈춰 있어요. 바닥 마찰이 상자를 붙잡고 있어요 (μ ≥ tanθ).";draw();return}
+   msg.textContent="미끄러져요! 가속도 약 "+accel().toFixed(1)+" m/s² (근사).";run=true;requestAnimationFrame(frame)});
+  el.querySelector("#rs").addEventListener("click",reset);
+  window.addEventListener("resize",draw);reset();
+ }
+};
+Sci.initExp();
+</script></body></html>

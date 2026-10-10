@@ -576,6 +576,76 @@
    "minutes": 4,
    "needsMic": false,
    "status": "done"
+  },
+  {
+   "id": "A8",
+   "gallery": "see",
+   "title": "거울에서 빛은 어떻게 튈까?",
+   "question": "거울에 부딪힌 빛은 어떤 각도로 튕겨 나갈까?",
+   "topics": [
+    "빛",
+    "반사"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "done"
+  },
+  {
+   "id": "C8",
+   "gallery": "move",
+   "title": "공은 높이에 따라 얼마나 빨리 굴러 내려올까?",
+   "question": "높은 곳에서 굴러 내려온 공은 바닥에서 얼마나 빨라질까?",
+   "topics": [
+    "힘",
+    "에너지"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "done"
+  },
+  {
+   "id": "C9",
+   "gallery": "move",
+   "title": "미끄러질까, 멈춰 있을까?",
+   "question": "경사면에 놓은 상자는 무엇이 정해 주면 미끄러질까?",
+   "topics": [
+    "힘",
+    "마찰"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "done"
+  },
+  {
+   "id": "D6",
+   "gallery": "us",
+   "title": "두 점은 언제 하나로 붙어 보일까?",
+   "question": "멀리 떨어진 두 점은 어떻게 보일까?",
+   "topics": [
+    "몸",
+    "인지"
+   ],
+   "level": 1,
+   "minutes": 3,
+   "needsMic": false,
+   "status": "done"
+  },
+  {
+   "id": "F5",
+   "gallery": "look",
+   "title": "일식과 월식은 언제 생길까?",
+   "question": "달이 해를 가리는 날은 얼마나 자주 올까?",
+   "topics": [
+    "지구·우주",
+    "달"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "done"
   }
  ]
 }

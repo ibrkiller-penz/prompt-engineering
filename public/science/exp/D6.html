@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>두 점은 언제 하나로 붙어 보일까? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"D6",
+ predict:{q:"두 점 사이 간격이 같을 때, 눈에서 멀어지면 두 점은 어떻게 보일까요?",options:["더 잘 구분된다","한 점처럼 붙어 보인다","달라지지 않는다"],answer:1,
+  feedback:["멀어지면 오히려 가까워 보여요. 눈에 들어오는 각도가 작아지니까요.","맞아요. 눈이 두 점을 구분하려면 일정 각도 이상 벌어져야 해요.","거리에 따라 눈에 들어오는 각도가 달라져요."]},
+ steps:["두 점 간격 슬라이더를 움직여 보세요.","눈에서 거리 슬라이더를 움직여 멀리 떨어뜨려 보세요.","두 버튼 중 하나를 눌러 답을 확인해요."],
+ observe:["거리가 2배 멀어지면 눈에 드는 각도는 어떻게 바뀌나요?","두 점이 한 점처럼 보이기 시작하는 조건은 무엇인가요?","안경을 쓰거나 밝기가 달라지면 결과가 달라질까요?"],
+ more:["교실 칠판에 간격이 다른 두 점을 그리고, 자리마다 몇 개로 보이는지 세어 보세요.","글씨가 작은 안내문을 멀리서 읽어 보며 글자 획이 붙어 보이는 거리를 찾아보세요."],
+ why:{easy:["눈은 아주 작은 차이를 구분하지만 한계가 있어요. 두 점이 눈에 들어오는 각도가 너무 작으면 하나로 합쳐 보여요.","멀리 있을수록 같은 간격도 눈에 들어오는 각도가 작아져서 더 붙어 보여요."],
+  detail:["눈에 드는 각도 θ ≈ 2·arctan(간격 / 2거리)이에요. 시력의 기준으로 보통 약 1′(1분, 1/60°) 정도를 구분 한계로 쓰지만, 사람·밝기·대비에 따라 달라요.","이 체험은 눈에 드는 각도를 확대해 그린 모식도이고, 실제 화면 크기와는 관계없어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="두 점이 눈에 드는 모습. 간격과 거리를 바꾸면 두 점이 붙어 보여요"></canvas>'+
+   '<div class="controls"><label>두 점 간격 <input id="gap" type="range" min="1" max="20" value="6" aria-label="두 점 간격 (mm)"><span class="readout" id="rg"></span></label></div>'+
+   '<div class="controls"><label>눈에서 거리 <input id="dist" type="range" min="0.5" max="10" step="0.1" value="1" aria-label="눈에서 거리 (m)"><span class="readout" id="rd"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="two" type="button">두 점으로 보여요</button><button id="one" type="button">한 점으로 보여요</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3em"></p>';
+  var cv=el.querySelector("#cv"),gap=el.querySelector("#gap"),dist=el.querySelector("#dist"),rg=el.querySelector("#rg"),rd=el.querySelector("#rd"),msg=el.querySelector("#msg"),css=getComputedStyle(document.documentElement);
+  function arcmin(){var g=(+gap.value)/1000,d=+dist.value;return 2*Math.atan(g/(2*d))*180/Math.PI*60}
+  function draw(){
+   var s=Sci.fit(cv,.45),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,sub=css.getPropertyValue("--sub").trim(),a=arcmin();
+   c.clearRect(0,0,w,h);
+   var sep=a*4,cx=w/2,cy=h*.45,r=3;
+   c.fillStyle=ink;c.beginPath();c.arc(cx-sep/2,cy,r,0,Math.PI*2);c.fill();c.beginPath();c.arc(cx+sep/2,cy,r,0,Math.PI*2);c.fill();
+   c.fillStyle=sub;c.font="14px sans-serif";c.textAlign="center";
+   c.fillText("눈에 드는 각도 약 "+a.toFixed(1)+"′ (1′ = 1/60°)",cx,h*.9);c.textAlign="start";
+   rg.textContent="간격 "+gap.value+" mm";rd.textContent="거리 "+(+dist.value).toFixed(1)+" m";
+  }
+  function answer(userTwo){var a=arcmin(),truth=a>=1;
+   msg.textContent=((userTwo===truth)?"✅ 맞았어요! ":"🤔 다시 생각해 봐요. ")+"이 조건에서 눈에 드는 각도는 약 "+a.toFixed(1)+"′이에요. 대략 1′ 이상이면 두 점으로 보이기 쉬워요(사람마다 달라요). 지금은 "+(truth?"두 점":"한 점")+"으로 보여요.";
+   Exp.reveal()}
+  [gap,dist].forEach(function(el2){el2.addEventListener("input",function(){msg.textContent="";draw()})});
+  el.querySelector("#two").addEventListener("click",function(){answer(true)});
+  el.querySelector("#one").addEventListener("click",function(){answer(false)});
+  window.addEventListener("resize",draw);draw();
+ }
+};
+Sci.initExp();
+</script></body></html>

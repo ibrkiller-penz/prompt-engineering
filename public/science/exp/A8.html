@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>거울에서 빛은 어떻게 튈까? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"A8",
+ predict:{q:"빛이 거울에 40°로 들어오면, 튕겨 나가는 각도는?",options:["입사각보다 작다","입사각과 같다","입사각보다 크다"],answer:1,
+  feedback:["작게 튀지 않아요. 입사각과 같은 각도로 튕겨요.","맞아요. 반사의 법칙: 입사각 = 반사각.","크게 튀지 않아요. 입사각과 같은 각도예요."]},
+ steps:["입사각 슬라이더로 빛이 거울에 들어오는 각도를 정해요.","'내가 예상하는 반사각' 점선을 옮겨 예상 경로를 만들어 보세요.","'반사각 확인'을 눌러 실제 빛과 비교해요."],
+ observe:["입사각을 바꾸면 반사각도 같이 바뀌나요?","내 예상과 실제 빛의 차이는 얼마였나요?","빛이 반대 방향으로 들어와도 같은 규칙이 보이나요?"],
+ more:["손전등을 거울에 비춰 벽에 생기는 빛의 위치를 바꿔 보세요.","숟가락 안쪽처럼 굽은 거울에서는 각도가 어떻게 달라 보이는지 관찰해 보세요."],
+ why:{easy:["빛은 거울에 부딪히면 거울 면에 수직인 선(법선)을 기준으로 들어온 각도와 같은 각도로 튕겨 나가요.","그래서 입사각이 40°이면 반사각도 40°예요. 입사각을 키우면 반사각도 같이 커져요."],
+  detail:["반사의 법칙: 입사각 θ₁과 반사각 θ₂는 같아요(θ₁ = θ₂). 입사광, 반사광, 법선은 한 평면에 있어요.","평평한 거울에 보이는 상은 거울 뒤쪽 가상의 위치에서 오는 것처럼 보여요. 굽은 거울은 위치마다 법선 방향이 달라서 같은 법칙을 따르지만 상의 모양이 달라 보여요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="거울과 빛의 경로. 들어오는 빛과 튕겨 나가는 빛의 각도를 비교해요"></canvas>'+
+   '<div class="controls"><label>입사각 <input id="inc" type="range" min="10" max="80" value="40" aria-label="입사각"><span class="readout" id="rd"></span></label></div>'+
+   '<div class="controls"><label>내가 예상하는 반사각 <input id="gs" type="range" min="10" max="80" value="25" aria-label="예상 반사각"><span class="readout" id="gd"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="chk" type="button">반사각 확인</button></div><p class="note" id="msg" aria-live="polite" style="min-height:3em"></p>';
+  var cv=el.querySelector("#cv"),inc=el.querySelector("#inc"),gs=el.querySelector("#gs"),rd=el.querySelector("#rd"),gd=el.querySelector("#gd"),msg=el.querySelector("#msg"),shown=false,css=getComputedStyle(document.documentElement);
+  function ray(c,x0,y0,x1,y1,col,dash){c.save();c.strokeStyle=col;c.fillStyle=col;c.lineWidth=3;c.setLineDash(dash||[]);c.beginPath();c.moveTo(x0,y0);c.lineTo(x1,y1);c.stroke();c.setLineDash([]);
+   var a=Math.atan2(y1-y0,x1-x0),L=14;c.beginPath();c.moveTo(x1,y1);c.lineTo(x1-L*Math.cos(a-.4),y1-L*Math.sin(a-.4));c.lineTo(x1-L*Math.cos(a+.4),y1-L*Math.sin(a+.4));c.closePath();c.fill();c.restore()}
+  function draw(){
+   var s=Sci.fit(cv,.62),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,brand=css.getPropertyValue("--brand").trim(),sub=css.getPropertyValue("--sub").trim();
+   c.clearRect(0,0,w,h);
+   var cx=w/2,my=h*.8,L=h*.7,a=+inc.value*Math.PI/180,g=+gs.value*Math.PI/180;
+   c.fillStyle=sub;c.fillRect(w*.1,my,w*.8,6);
+   c.fillStyle=ink;c.font="14px sans-serif";c.fillText("거울",w*.1,my+24);
+   c.save();c.setLineDash([5,5]);c.strokeStyle=sub;c.lineWidth=1.5;c.beginPath();c.moveTo(cx,my);c.lineTo(cx,my-L);c.stroke();c.restore();
+   c.fillStyle=sub;c.fillText("법선",cx+6,my-L+12);
+   var ix=cx-L*Math.sin(a),iy=my-L*Math.cos(a);
+   ray(c,ix,iy,cx,my,ink);
+   c.fillStyle=ink;c.fillText("들어온 빛",Math.max(4,ix-10),iy-8);
+   ray(c,cx,my,cx+L*Math.sin(g),my-L*Math.cos(g),sub,[6,5]);
+   if(shown){ray(c,cx,my,cx+L*Math.sin(a),my-L*Math.cos(a),brand);c.fillStyle=brand;c.fillText("실제 반사각 "+inc.value+"°",cx+L*Math.sin(a)*.5+12,my-L*Math.cos(a)*.5)}
+   rd.textContent="입사각 "+inc.value+"°";gd.textContent=gs.value+"°";
+  }
+  inc.addEventListener("input",function(){shown=false;msg.textContent="";draw()});
+  gs.addEventListener("input",draw);
+  el.querySelector("#chk").addEventListener("click",function(){
+   shown=true;var diff=Math.abs(+gs.value-+inc.value);
+   msg.textContent="실제 반사각은 "+inc.value+"°예요. 내 예상과 "+diff+"° 차이가 났어요."+(diff<=3?" 거의 맞혔어요!":"");
+   draw();Exp.reveal()});
+  window.addEventListener("resize",draw);draw();
+ }
+};
+Sci.initExp();
+</script></body></html>

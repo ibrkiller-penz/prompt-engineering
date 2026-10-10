@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>일식과 월식은 언제 생길까? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"F5",
+ predict:{q:"일식은 얼마나 자주 일어날까요? 어떤 위치에 있을 때 생길까요?",options:["달마다 일어난다","보름달일 때 일어난다","달이 해와 지구 사이에 일직선으로 올 때 일어난다"],answer:2,
+  feedback:["매달 일식이 보이지는 않아요. 달의 궤도가 기울어 있어서 대부분 빗나가요.","보름달일 때는 지구가 달과 해 사이에 있어서 월식이 생길 수 있어요. 일식이 아니에요.","맞아요. 달이 해와 지구 사이를 일직선으로 지나면서 햇빛을 가리는 조건이에요."]},
+ steps:["달의 위치 슬라이더로 달을 궤도 위에서 움직여 보세요.","궤도 기울기를 켜고 끄며 교점 위치를 바꿔 보세요.","'지금 확인'을 눌러 일식이나 월식이 생기는지 봐요."],
+ observe:["달이 해와 지구 사이 일직선에 오면 그림자가 어디에 생기나요?","궤도 기울기를 켜면 같은 위치에서도 그림자가 빗나가나요?","교점이 해와 지구가 있는 방향에 가까울 때만 일식이 생기는 이유는 무엇일까요?"],
+ more:["손전등(해), 공(지구), 구슬(달)로 같은 상황을 재현해 보세요.","달 그림자가 지구에 닿는 영역이 왜 좁은지 생각해 보고 그려 보세요."],
+ why:{easy:["달이 해와 지구 사이에 일직선으로 오면 달이 햇빛을 가려 지구에 그림자가 생겨요. 그 그림자 안에서 보면 일식이에요.","달의 궤도는 지구 궤도와 약 5° 기울어 있어요. 그래서 대부분의 경우 달이 위나 아래로 조금 빗나가고, 일식은 드물게 일어나요.","월식은 지구가 해와 달 사이에 있을 때 지구 그림자에 달이 들어가면서 생겨요. 보름달 무렵에 볼 수 있어요."],
+  detail:["삭(새로운 달)일 때 일식 조건이 되고, 망(보름달)일 때 월식 조건이 돼요. 달 궤도가 황도면과 약 5.1° 기울어 있어서, 두 궤도가 만나는 교점 근처에서 겹칠 때만 일식·월식이 일어나요.","이 체험은 모식도예요. 세로 방향을 늘려 그렸고, 실제 크기·거리와 그림자 폭은 다르며 교점 위치는 단순화했어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="위에서 본 해, 지구, 달의 위치 그림. 달의 위치와 궤도 교점을 바꿀 수 있어요"></canvas>'+
+   '<div class="controls"><label>달의 위치 <input id="th" type="range" min="0" max="359" value="20" aria-label="달의 위치"><span class="readout" id="rt"></span></label></div>'+
+   '<div class="controls"><label>궤도 교점 위치 <input id="nd" type="range" min="0" max="359" value="90" aria-label="궤도 교점 위치"><span class="readout" id="rn"></span></label></div>'+
+   '<div class="controls"><label><input id="tilt" type="checkbox" checked aria-label="궤도 기울기 켜기"> 궤도 기울기 켜기 (약 5°, 세로 확대)</label></div>'+
+   '<div class="controls"><button class="primary" id="chk" type="button">지금 확인</button></div><p class="note" id="msg" aria-live="polite" style="min-height:3em"></p>';
+  var cv=el.querySelector("#cv"),th=el.querySelector("#th"),nd=el.querySelector("#nd"),tilt=el.querySelector("#tilt"),rt=el.querySelector("#rt"),rn=el.querySelector("#rn"),msg=el.querySelector("#msg"),css=getComputedStyle(document.documentElement);
+  var K=0.6,TH=0.15;
+  function kk(){return tilt.checked?K:0}
+  function syzygyOK(){return !tilt.checked||Math.abs(Math.sin(+nd.value*Math.PI/180))*K<TH}
+  function draw(){
+   var s=Sci.fit(cv,.6),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,sub=css.getPropertyValue("--sub").trim(),brand=css.getPropertyValue("--brand").trim();
+   c.clearRect(0,0,w,h);
+   var ey=h*.5,ex=w*.62,sxp=w*.1,rr=w*.2,t=+th.value*Math.PI/180,n=+nd.value*Math.PI/180;
+   c.save();c.setLineDash([5,5]);c.strokeStyle=sub;c.beginPath();c.ellipse(ex,ey,rr,rr*kk(),0,0,Math.PI*2);c.stroke();c.restore();
+   c.fillStyle="#f2b705";c.beginPath();c.arc(sxp,ey,18,0,Math.PI*2);c.fill();
+   c.fillStyle=brand;c.beginPath();c.arc(ex,ey,14,0,Math.PI*2);c.fill();
+   var mx=ex-rr*Math.cos(t),my=ey+rr*kk()*Math.sin(t-n);
+   c.fillStyle=sub;c.beginPath();c.arc(mx,my,7,0,Math.PI*2);c.fill();
+   c.fillStyle=ink;c.font="13px sans-serif";c.fillText("해",sxp-8,ey-24);c.fillText("지구",ex-12,ey-22);c.fillText("달",mx-6,my-12);
+   rt.textContent=(+th.value)+"°";rn.textContent=(+nd.value)+"°";
+  }
+  function check(){var cs=Math.cos(+th.value*Math.PI/180),msgT;
+   if(cs>0.97)msgT=syzygyOK()?"일식이 일어나요! 달 그림자가 지구에 닿아요.":"삭(새로운 달)이지만 달이 위나 아래로 빗나가 그림자가 지구를 비껴가요. 일식은 없어요.";
+   else if(cs<-0.97)msgT=syzygyOK()?"월식이 일어나요! 지구 그림자에 달이 들어가요.":"보름달이지만 달이 지구 그림자 밖으로 빗나가 월식은 없어요.";
+   else msgT="해·달·지구가 아직 일직선이 아니에요. 달을 삭(새로운 달)이나 망(보름달) 근처로 움직여 보세요.";
+   msg.textContent=msgT;Exp.reveal()}
+  [th,nd].forEach(function(el2){el2.addEventListener("input",function(){msg.textContent="";draw()})});
+  tilt.addEventListener("change",function(){msg.textContent="";draw()});
+  el.querySelector("#chk").addEventListener("click",check);
+  window.addEventListener("resize",draw);draw();
+ }
+};
+Sci.initExp();
+</script></body></html>
