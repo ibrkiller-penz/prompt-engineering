@@ -34,7 +34,7 @@ export default function Profile({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="내 프로필" onClick={onClose}>
-      <div className="gz-pop max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-[#fff8ef] p-5 shadow-2xl sm:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
+      <div className="gz-pop max-h-[92vh] w-full max-w-lg overflow-y-auto md:max-w-4xl md:p-7 rounded-t-[28px] bg-[#fff8ef] p-5 shadow-2xl sm:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="font-game text-3xl text-[#2b2340]">내 프로필</h2>
           <button type="button" onClick={onClose} aria-label="닫기" className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ff4d6d] text-2xl font-black text-white shadow-[0_3px_0_0_rgba(0,0,0,0.25)]">
@@ -42,6 +42,8 @@ export default function Profile({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
+        <div className="md:mt-2 md:grid md:grid-cols-2 md:gap-8">
+        <div className="min-w-0">
         <div className="mt-4 flex items-center gap-4 rounded-3xl bg-white p-4 shadow-[0_4px_0_0_rgba(0,0,0,0.06)]">
           <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#ffd166] to-[#ff8a5b] text-5xl shadow-[0_4px_0_0_rgba(0,0,0,0.12)]">{s.avatar}</span>
           <div className="min-w-0 flex-1">
@@ -88,7 +90,9 @@ export default function Profile({ onClose }: { onClose: () => void }) {
           <p className="mt-1 text-sm text-[#6b6280]">{r.next ? `별 ${r.next.at - total}개 더 모으면 등급이 올라가요!` : "모든 등급을 다 올랐어요!"}</p>
         </div>
 
-        <p className="font-game mt-5 text-lg text-[#2b2340]">🏅 배지 {BADGES.filter((b) => b.ok(s)).length}/{BADGES.length}</p>
+        </div>
+        <div className="min-w-0">
+        <p className="font-game mt-5 text-lg text-[#2b2340] md:mt-4">🏅 배지 {BADGES.filter((b) => b.ok(s)).length}/{BADGES.length}</p>
         <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {BADGES.map((b) => {
             const ok = b.ok(s);
@@ -114,6 +118,8 @@ export default function Profile({ onClose }: { onClose: () => void }) {
         >
           기록 지우기
         </button>
+        </div>
+        </div>
       </div>
     </div>
   );

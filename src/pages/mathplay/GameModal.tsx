@@ -220,21 +220,24 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
         <div className="flex-1 overflow-y-auto overscroll-contain" style={{ background: `radial-gradient(circle at 15% 0%, color-mix(in srgb, ${f.grad[0]} 18%, transparent), transparent 45%), radial-gradient(circle at 100% 100%, color-mix(in srgb, ${f.grad[1]} 14%, transparent), transparent 50%)` }}>
           {!started ? (
             // 시작 화면
-            <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center px-6 py-8 text-center">
+            <div className="mx-auto flex min-h-full w-full max-w-md flex-col items-center justify-center px-6 py-8 text-center md:max-w-5xl md:flex-row md:gap-14 md:px-10 md:py-10 md:text-left">
+              <div className="flex w-full flex-col items-center md:w-1/2 md:items-start">
               <div className="gz-pop w-48 overflow-hidden rounded-[36px] border-4 border-white shadow-[0_10px_0_0_rgba(0,0,0,0.08),0_20px_40px_rgba(0,0,0,0.15)] sm:w-56">
                 <Thumb id={g.id} size="lg" bob />
               </div>
               <h3 className="font-game mt-6 text-4xl text-ink">{g.title}</h3>
               <p className="mt-2 text-lg text-muted">{g.blurb}</p>
-              <p className="mt-4 rounded-2xl border-2 border-line bg-surface px-4 py-3 text-left text-[0.98rem] shadow-[0_3px_0_0_rgba(0,0,0,0.04)]">
+              <p className="mt-4 w-full max-w-md rounded-2xl border-2 border-line bg-surface px-4 py-3 text-left text-[0.98rem] shadow-[0_3px_0_0_rgba(0,0,0,0.04)]">
                 <span className="font-game text-accent">어떻게 해요? </span>
                 {g.how}
               </p>
+              </div>
+              <div className="flex w-full flex-col items-center md:w-1/2">
               <div className="mt-5 w-full">
                 <p className="font-game text-lg text-ink">
                   레벨 고르기 <span className="text-sm text-muted">(깬 레벨 {cleared}/{MAX_LEVEL})</span>
                 </p>
-                <div className="mt-2 grid grid-cols-5 gap-2">
+                <div className="mt-2 grid w-full grid-cols-5 gap-2 md:max-w-sm md:gap-3">
                   {Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((lv) => {
                     const open = lv <= cleared + 1;
                     const done = lv <= cleared;
@@ -257,7 +260,7 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
                 </div>
               </div>
               {g.credit && (
-                <p className="mt-4 w-full rounded-2xl border-2 border-line bg-surface px-3 py-2 text-left text-sm shadow-[0_3px_0_0_rgba(0,0,0,0.04)]">
+                <p className="mt-4 w-full max-w-md rounded-2xl border-2 border-line bg-surface px-3 py-2 text-left text-sm shadow-[0_3px_0_0_rgba(0,0,0,0.04)]">
                   <span className="font-game text-accent">🌍 세계의 놀이에서 영감</span>
                   <span className="mt-0.5 block text-muted">
                     {g.credit.country}의 {g.credit.site}에도 ‘{g.credit.what}’이(가) 있어요. 이 게임은 그 아이디어를 바탕으로 새로 만들었어요.{" "}
@@ -281,6 +284,7 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
               <button type="button" onClick={randomOne} className="font-game mt-4 min-h-[44px] px-4 text-lg text-muted underline underline-offset-4 hover:text-ink">
                 🎲 다른 게임 할래요
               </button>
+              </div>
             </div>
           ) : (
             <div className="mx-auto max-w-4xl px-3 py-3 sm:px-5 sm:py-5">
