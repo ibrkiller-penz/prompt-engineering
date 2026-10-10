@@ -105,7 +105,7 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     cta: "공부하러 가기 →",
   },
   {
-    path: "/science/",
+    path: "https://ai-study-science.web.app/",
     external: true,
     title: "온라인 과학 체험관 (빌드중)",
     tag: "예측 → 조작 → 관찰 · 시뮬레이션",

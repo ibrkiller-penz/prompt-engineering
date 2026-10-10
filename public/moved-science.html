@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>온라인 과학 체험관 · 새 주소로 이동</title>
+<link rel="icon" href="/favicon.ico"><meta name="robots" content="noindex">
+<style>body{font-family:system-ui,"Malgun Gothic",sans-serif;background:#f4faf7;color:#1d2b24;margin:0;padding:48px 16px;text-align:center;line-height:1.7}a{color:#1e8152;font-weight:700}</style>
+</head><body>
+<p>온라인 과학 체험관이 새 주소로 옮겨졌어요.</p>
+<p><a id="go" href="https://ai-study-science.web.app/">새 주소로 이동하기 →</a></p>
+<script>
+(function(){
+  var p=location.pathname.replace(/^\/science\/?/,"");
+  var to="https://ai-study-science.web.app/"+p+location.search+location.hash;
+  document.getElementById("go").href=to;
+  location.replace(to);
+})();
+</script>
+</body></html>

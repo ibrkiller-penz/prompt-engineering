@@ -2,7 +2,25 @@
   "hosting": {
     "site": "penedu",
     "public": "dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "science/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/science",
+        "destination": "/moved-science.html"
+      },
+      {
+        "source": "/science/**",
+        "destination": "/moved-science.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }
