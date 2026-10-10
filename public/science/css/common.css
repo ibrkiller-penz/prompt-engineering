@@ -258,3 +258,19 @@ body.present .predict .q,body.present .predict h2{font-size:20px}
   .predict .opts button{min-height:38px;font-size:14px}
   .bottom-row{margin-top:8px}
 }
+/* 휴대폰: 예측에 답하면 질문 문장을 접고, 조작 칸은 여러 개씩 한 줄에 */
+@media (max-width:899px){
+  .predict.answered .q,.predict.answered h2{display:none}
+  .predict.answered{padding:6px 10px}
+  .predict.answered .opts button{min-height:34px;font-size:14px}
+  .stage .controls{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:4px}
+  .stage .controls label{flex:1 1 100%;font-size:14px;gap:6px}
+  .stage .controls label input[type=range]{flex:1 1 180px;max-width:none;width:auto}
+  .stage .controls button{min-height:34px;font-size:14px;padding:0 10px}
+  .stage .controls input[type=range]{height:22px}
+  .stage .readout{font-size:14px}
+  .stage p.note{display:none}
+  .bottom-row{margin-top:6px}
+  .bottom-row .note{display:none}
+  #openInfo{min-height:40px;font-size:15px}
+}

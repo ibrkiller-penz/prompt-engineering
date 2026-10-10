@@ -184,7 +184,7 @@ function initExp(){
     var pb=root.querySelectorAll(".opts button");
     pb.forEach(function(b){b.addEventListener("click",function(){
       if(Exp.choice!=null&&Exp.revealed)return;
-      Exp.choice=+b.dataset.i;pb.forEach(function(x){x.setAttribute("aria-pressed",x===b)});
+      Exp.choice=+b.dataset.i;pb.forEach(function(x){x.setAttribute("aria-pressed",x===b)});root.querySelector(".predict").classList.add("answered");
       document.getElementById("stage").classList.remove("locked");
       if(EXP.start)EXP.start();
     })});
@@ -215,5 +215,5 @@ function initExp(){
 }
 window.Sci={initHome:initHome,initGallery:initGallery,initExp:initExp,esc:esc,FLOORS:FLOORS,
   /* 캔버스를 CSS 너비에 맞춰 선명하게 */
-  fit:function(cv,ratio){var pw=cv.parentNode.clientWidth,capH=innerHeight*(innerWidth<900?0.34:0.55),capW=Math.max(200,capH/ratio),w=Math.min(pw,capW),dpr=window.devicePixelRatio||1;cv.style.width=w+"px";cv.width=Math.round(w*dpr);cv.height=Math.round(w*ratio*dpr);cv.style.height=(w*ratio)+"px";var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:w*ratio}}};
+  fit:function(cv,ratio){var pw=cv.parentNode.clientWidth,capH=innerHeight*(innerWidth<900?0.30:0.55),capW=Math.max(200,capH/ratio),w=Math.min(pw,capW),dpr=window.devicePixelRatio||1;cv.style.width=w+"px";cv.width=Math.round(w*dpr);cv.height=Math.round(w*ratio*dpr);cv.style.height=(w*ratio)+"px";var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:w*ratio}}};
 })();
