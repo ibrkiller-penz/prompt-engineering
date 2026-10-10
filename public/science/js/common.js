@@ -320,7 +320,6 @@ function initExp(){
       '<p class="hp-t">💡 알고 보니…</p><div class="seg" role="group" aria-label="설명 수준"><button type="button" data-lv="easy" aria-pressed="true">쉬운 설명</button><button type="button" data-lv="detail" aria-pressed="false">자세한 설명</button></div><div id="whyBody" class="why"></div>'+
       '<p class="hp-t">🧪 더 해보기</p><ul>'+EXP.more.map(function(x){return "<li>"+esc(x)+"</li>"}).join("")+'</ul>'+
       '<div class="hp-notes" id="hpNotes"></div>'+
-      '<p class="hp-foot">Exploratorium에서 영감을 받았으나 관련 없는 독립 사이트예요. 기록은 이 기기에만 저장돼요.</p>'+
       '<button type="button" class="kb primary" id="helpOk">알겠어요!</button>';
     function showWhy(l){document.getElementById("whyBody").innerHTML=EXP.why[l].map(function(p){return "<p>"+p+"</p>"}).join("");help.querySelectorAll("[data-lv]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.lv===l)})}
     help.querySelectorAll("[data-lv]").forEach(function(b){b.addEventListener("click",function(){showWhy(b.dataset.lv)})});showWhy("easy");
