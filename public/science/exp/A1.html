@@ -23,7 +23,7 @@ var EXP={
   function rnd(){Bstart=Math.round(110+Math.random()*30);len.value=Bstart}
   function draw(){
    var s=Sci.fit(cv,.55),c=s.c,w=s.w,h=s.h,k=w/600,col=getComputedStyle(document.body).color;
-   c.clearRect(0,0,w,h);c.strokeStyle=col;c.fillStyle=col;c.lineWidth=Math.max(3,3*k);c.lineCap="round";c.font=(15*Math.max(k,.8))+"px sans-serif";
+   c.clearRect(0,0,w,h);c.strokeStyle=col;c.fillStyle=col;c.lineWidth=Math.max(3,3*k);c.lineCap="round";c.font=(18*Math.max(k,1))+"px sans-serif";
    /* kind "short": 꺾쇠가 선 안쪽을 향함(<—>) → 짧아 보임 / "long": 바깥을 향함(>—<) → 길어 보임 */
    function line(y,L,kind,label){
     var x0=(w-L*k)/2,x1=x0+L*k,f=22*k;
