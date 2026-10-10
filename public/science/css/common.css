@@ -323,3 +323,4 @@ body.in-modal .bottom-row{margin-top:6px}
   body.in-modal .stage-body>canvas{display:block}
   body.in-modal .bottom-row{margin-top:8px}
 }
+html.fit-ok{overflow:hidden}

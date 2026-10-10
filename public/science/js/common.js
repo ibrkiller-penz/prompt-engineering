@@ -278,9 +278,10 @@ function initExp(){
     /* 창 안에서 한 화면을 넘으면 전체를 비율만큼 줄여 한 화면에 맞춤 (너무 작아지면 그대로 두고 스크롤) */
     function fitOneScreen(){
       if(!document.body.classList.contains("in-modal"))return;
-      document.body.style.zoom="1";
+      document.body.style.zoom="1";document.documentElement.classList.remove("fit-ok");
       var sh=document.documentElement.scrollHeight,ih=innerHeight;
-      if(sh>ih+2){var z=ih/sh;document.body.style.zoom=z>=0.72?String(z):"1"}
+      if(sh>ih+2){var z=ih/sh;document.body.style.zoom=z>=0.72?String(z):"1";
+        var sh2=document.documentElement.scrollHeight;if(z>=0.72&&sh2>ih+2)document.body.style.zoom=String(z*ih/sh2);if(z>=0.72)document.documentElement.classList.add("fit-ok")}
     }
     fitOneScreen();
     window.addEventListener("resize",fitOneScreen);
