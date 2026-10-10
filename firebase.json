@@ -43,6 +43,16 @@
         "source": "/aibasic/**",
         "destination": "https://ai-study-math.web.app/aibasic/",
         "type": 301
+      },
+      {
+        "source": "/science",
+        "destination": "https://ai-study-science.web.app/",
+        "type": 301
+      },
+      {
+        "source": "/science/**",
+        "destination": "https://ai-study-science.web.app/",
+        "type": 301
       }
     ]
   }

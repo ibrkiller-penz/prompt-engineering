@@ -22,7 +22,7 @@ jobs:
       # prebuild 가 /aibasic 복원·패치·HappyMpX.zip 받기를 자동으로 한다
       - run: npm run build
       # 인공지능 수학·수학 체험·인공지능 기초는 ai-study-math 로 옮김: penedu 배포본에서는 뺀다(옛 주소는 firebase.json 에서 새 주소로 이동)
-      - run: rm -rf dist/aibasic dist/mathplay dist/aimath
+      - run: rm -rf dist/aibasic dist/mathplay dist/aimath dist/science
       - name: Deploy to Firebase Hosting
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
