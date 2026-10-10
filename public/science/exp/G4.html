@@ -70,9 +70,9 @@ var EXP={
     h+='<g>'+(out[k]?'<circle cx="'+cx+'" cy="90" r="34" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 5"/><text x="'+cx+'" y="95" text-anchor="middle" font-size="14">빠짐</text>':
      '<circle cx="'+cx+'" cy="90" r="34" fill="'+(on?"#ffe066":"var(--bg)")+'" fill-opacity="'+(on?(0.35+0.65*Math.min(1,b)):1)+'" stroke="currentColor" stroke-width="3"/>'+
      (on?'<circle cx="'+cx+'" cy="90" r="'+(38+10*Math.min(1,b))+'" fill="none" stroke="#f59f00" stroke-width="2" stroke-dasharray="3 4" opacity="'+(0.3+0.7*Math.min(1,b))+'"/>':'')+
-     '<path d="M'+(cx-10)+' 118 L'+(cx-6)+' 94 L'+cx+' 108 L'+(cx+6)+' 94 L'+(cx+10)+' 118" fill="none" stroke="currentColor" stroke-width="2"/>'+
-     '<text x="'+cx+'" y="86" text-anchor="middle" font-size="12" fill="#222" style="fill:'+(on?"#222":"currentColor")+'">'+(on?"켜짐":"꺼짐")+'</text>'+
-     '<text x="'+cx+'" y="102" text-anchor="middle" font-size="15" font-weight="700" style="fill:'+(on?"#222":"currentColor")+'">'+(on?Math.round(b*100)+"%":"")+'</text>')+
+     '<path d="M'+(cx-9)+' 119 L'+(cx-5)+' 110 L'+cx+' 116 L'+(cx+5)+' 110 L'+(cx+9)+' 119" fill="none" stroke="currentColor" stroke-width="2"/>'+
+     '<text x="'+cx+'" y="76" text-anchor="middle" font-size="12" fill="#222" style="fill:'+(on?"#222":"currentColor")+'">'+(on?"켜짐":"꺼짐")+'</text>'+
+     '<text x="'+cx+'" y="96" text-anchor="middle" font-size="15" font-weight="700" style="fill:'+(on?"#222":"currentColor")+'">'+(on?Math.round(b*100)+"%":"")+'</text>')+
      '<rect x="'+(cx-18)+'" y="124" width="36" height="16" rx="3" fill="var(--card)" stroke="currentColor" stroke-width="2.5"/>'+
      '<text x="'+cx+'" y="30" text-anchor="middle" font-size="15" font-weight="700">전구 '+(k+1)+'</text></g>';
    }

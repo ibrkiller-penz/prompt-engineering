@@ -38,10 +38,10 @@ var EXP={
    /* 눈금 */
    c.save();c.globalAlpha=.7;c.font=Math.max(10,w*.028)+"px sans-serif";c.textAlign="center";for(var k=0;k<=100;k+=25){c.beginPath();c.moveTo(X(k),py+bt/2);c.lineTo(X(k),py+bt/2+5);c.stroke();c.fillText(k,X(k),py+bt/2+17)}c.restore();
    function weight(m,xx,shape,name,fill){
-    if(m<=0)return;var sz=w*.045+m*w*.012,cx=X(xx),top=py-bt/2-sz;
+    if(m<=0)return;var sz=w*.085+m*w*.008,cx=X(xx),top=py-bt/2-sz;
     c.save();c.fillStyle=fill;c.strokeStyle=col;c.lineWidth=2;c.beginPath();
     if(shape==="sq")c.rect(cx-sz/2,top,sz,sz);else c.arc(cx,top+sz/2,sz/2,0,7);
-    c.fill();c.stroke();c.fillStyle="#102";c.font="bold "+Math.max(11,sz*.38)+"px sans-serif";c.textAlign="center";c.fillText(name+" "+m+"kg",cx,top+sz/2+4);c.restore()}
+    c.fill();c.stroke();c.fillStyle="#102";c.font="bold "+Math.max(10,sz*.26)+"px sans-serif";c.textAlign="center";c.fillText(name,cx,top+sz/2-1);c.fillText(m+"kg",cx,top+sz/2+Math.max(11,sz*.28));c.restore()}
    weight(+ma.value,+xa.value,"sq","A","#ffa8a8");weight(+mb.value,+xb.value,"ci","B","#a5d8ff");
    if(showCom){var cx=X(com());c.save();c.fillStyle="#e03131";c.strokeStyle=col;c.lineWidth=1.5;c.beginPath();c.moveTo(cx,py-bt/2-2);c.lineTo(cx-8,py-bt/2-17);c.lineTo(cx+8,py-bt/2-17);c.closePath();c.fill();c.stroke();c.restore()}
    c.restore();

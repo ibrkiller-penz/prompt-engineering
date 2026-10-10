@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>다리를 튼튼하게 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+:root{--b-comp:#c92a2a;--b-ten:#1c6dd0;--b-fail:#e67700;--b-water:#d0e8ff;--b-bank:#c8b48a;--b-sel:#0a7d4f}
+@media (prefers-color-scheme:dark){:root{--b-comp:#ff6b6b;--b-ten:#4da3ff;--b-fail:#ffa94d;--b-water:#173352;--b-bank:#5c4f33;--b-sel:#4cc38a}}
+.g2-cv:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.g2-legend{font-size:13px;color:var(--sub);margin:6px 0 0;display:flex;gap:14px;flex-wrap:wrap}
+.g2-legend svg{vertical-align:middle}
+.g2-log{font-size:14px;margin:6px 0 0;padding-left:20px}
+.g2-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"G2",
+ predict:{q:"같은 막대로 다리를 만들 때, 어떤 모양이 가장 무거운 짐을 버틸까요?",
+  options:["사각형을 이어 붙인 모양","삼각형을 이어 붙인 모양","막대만 많이 쓰면 모양은 상관없다"],answer:1,
+  feedback:["사각형은 모서리가 돌아가면서 평행사변형으로 찌그러질 수 있어요. 직접 시험해 보세요.","맞아요! 삼각형은 세 변의 길이가 정해지면 모양이 바뀌지 않아서 다리를 단단하게 만들어요.","막대 수보다 막대를 어떻게 잇느냐가 더 중요해요. 같은 개수로도 버티는 무게가 크게 달라요."]},
+ steps:["점을 하나 누르고(또는 화살표 키로 고르고 Enter) 다른 점을 누르면 막대가 생겨요. 같은 두 점을 다시 이으면 막대가 지워져요. 막대는 가까운 점(가로·세로 2칸 이내)끼리만 이을 수 있어요.","맨 아래 줄은 차가 지나가는 길이라 양쪽 받침대까지 막대로 이어져 있어야 해요.","'평평한 길만', '사각형 다리', '삼각형 다리'로 먼저 시험해 보고, 내 다리도 만들어 보세요.","'하중 올리기'를 누르면 무게가 점점 커지고, 가장 먼저 무너지는 막대가 표시돼요. 하중 위치도 바꿔 보세요."],
+ observe:["평평한 길만 있을 때와 사각형 다리는 왜 무게를 거의 버티지 못했나요?","사각형 칸에 대각선 막대를 하나 넣으면 어떻게 달라지나요?","눌리는(압축) 막대와 당겨지는(인장) 막대는 다리의 어디에 많나요?","가장 먼저 무너진 막대는 길었나요, 짧았나요? 눌려서 휘었나요, 당겨져서 끊어졌나요?","막대를 더 적게 쓰고도 더 무거운 무게를 버티는 다리를 만들 수 있나요?"],
+ more:["빨대와 클립(또는 이쑤시개와 지점토)으로 사각형과 삼각형을 만들고 모서리를 눌러 보세요. 어느 쪽이 찌그러지나요?","주변 철교, 송전탑, 크레인, 지붕 뼈대에서 삼각형 구조를 찾아보세요.","종이 한 장을 두 책 사이에 걸치고 동전을 올려 본 뒤, 종이를 아코디언처럼 접어서 다시 해 보세요."],
+ why:{easy:["사각형은 각 모서리가 경첩처럼 돌아갈 수 있어서, 옆에서 밀면 막대 길이는 그대로인 채 평행사변형으로 찌그러져요.","삼각형은 세 변의 길이가 정해지면 모양이 하나로 정해져요. 막대가 늘어나거나 줄어들지 않는 한 모양이 바뀌지 않아서 단단해요.","삼각형으로 짠 다리(트러스)에서는 짐의 무게가 여러 막대로 나뉘어 전달돼요. 어떤 막대는 눌리고(압축), 어떤 막대는 당겨져요(인장).","막대는 당기는 힘보다 누르는 힘에 약한 경우가 많아요. 특히 길고 가는 막대는 누르면 옆으로 휘어 버려요. 그래서 눌리는 막대는 짧게 만드는 게 좋아요."],
+  detail:["단순 구조 모델(근사): 막대 끝은 핀(자유롭게 도는 연결)으로 이어져 있고, 무게는 연결점에만 걸리며, 막대는 길이 방향의 힘(축력)만 받는 이상적인 트러스로 계산해요. 막대 자체 무게는 무시해요.","계산 방법: 모든 막대를 같은 재료의 용수철(강성 k = EA/L)로 보고, 연결점의 힘의 평형 K·u = F를 풀어(직접 강성법) 각 막대의 축력을 구해요. 이 모델은 선형이라서 무게가 2배면 모든 막대 힘도 2배예요.","무너짐 기준: 인장은 100 kg 무게의 힘까지 버텨요. 압축은 오일러 좌굴(P<sub>cr</sub> = π²EI/L²)처럼 길이의 제곱에 반비례해 약해진다고 보고 min(100, 120/L²) kg으로 정했어요(L: 칸 수). 한계에 가장 먼저 닿는 막대가 '가장 먼저 무너지는 부분'이에요.","형태 불안정(메커니즘): 막대만으로 모양이 정해지지 않으면 강성 행렬이 특이해져서, 막대 길이가 변하지 않고도 연결점이 움직일 수 있어요. 이때는 무게를 조금만 올려도 무너진다고 판단하고, 크게 움직이는 점을 표시해요.","2차원에서 핀 연결 구조가 단단하려면 대략 '막대 수 + 받침 반력 수 ≥ 2 × 연결점 수'가 필요해요(맥스웰 조건, 필요조건). 삼각형을 이어 붙이면 이 조건을 자연스럽게 만족해요.","실제 다리는 연결부가 단단히 고정되어 굽힘도 버티고, 재료가 휘어도 바로 끊어지지 않는 등 훨씬 복잡해요. 화면의 숫자는 비교를 위한 값이에요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" class="g2-cv" tabindex="0" role="application" aria-roledescription="다리 만들기 판" aria-label="다리 만들기 판. 화살표 키로 점을 옮기고 Enter 또는 스페이스로 점을 골라 막대를 이어요. Esc는 선택 취소." aria-describedby="kbd"></canvas>'+
+   '<p class="note" id="kbd" style="margin:4px 0 0">키보드: 판을 누르거나 Tab으로 들어간 뒤 화살표로 이동, Enter/스페이스로 선택·연결, Esc로 취소</p>'+
+   '<div class="g2-legend" aria-hidden="true"><span><svg width="34" height="10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--b-comp)" stroke-width="5"/></svg> 실선: 눌림(압축)</span><span><svg width="34" height="10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--b-ten)" stroke-width="4" stroke-dasharray="7 4"/></svg> 점선: 당김(인장)</span><span><svg width="16" height="14"><path d="M3 3l10 8M13 3L3 11" stroke="var(--b-fail)" stroke-width="3"/></svg> 먼저 무너짐</span></div>'+
+   '<p class="readout" id="info" aria-live="polite" style="min-height:1.5em;margin:6px 0 0"></p>'+
+   '<div class="controls"><span id="pl">예시</span><div class="g2-group" role="group" aria-labelledby="pl"><button type="button" data-p="flat">평평한 길만</button><button type="button" data-p="box">사각형 다리</button><button type="button" data-p="tri">삼각형 다리</button></div></div>'+
+   '<div class="controls"><span id="ll">하중 위치</span><div class="g2-group" role="group" aria-labelledby="ll"><button type="button" id="lL" aria-label="하중을 왼쪽으로">◀</button><span class="readout" id="lR" style="min-width:5.5em;text-align:center"></span><button type="button" id="lRgt" aria-label="하중을 오른쪽으로">▶</button></div></div>'+
+   '<div class="controls"><button class="primary" id="test" type="button">하중 올리기</button><button id="undo" type="button">마지막 막대 지우기</button><button id="clr" type="button">모두 지우기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>'+
+   '<ul class="g2-log" id="log" aria-label="시험 기록"></ul>'+
+   '<p class="note">단순 구조 모델(근사)이에요: 핀 연결 트러스, 같은 재료의 막대, 한 점에 걸린 무게로 계산해요. 한 칸 = 1 m로 봐요.</p>';
+  var cv=el.querySelector("#cv"),info=el.querySelector("#info"),msg=el.querySelector("#msg"),log=el.querySelector("#log");
+  var COLS=7,ROWS=3,DECK=2,N=COLS*ROWS,SUP=[DECK*COLS+0,DECK*COLS+COLS-1],TCAP=100,CK=120;
+  var mem=[],sel=null,cur=DECK*COLS+3,loadX=3,focused=false,res=null,anim=null,raf=0,geo=null;
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+  function nx(i){return i%COLS}function ny(i){return Math.floor(i/COLS)}
+  function id(x,y){return y*COLS+x}
+  function gcd(a,b){return b?gcd(b,a%b):a}
+  function len(m){return Math.hypot(nx(m[0])-nx(m[1]),ny(m[0])-ny(m[1]))}
+  function find(a,b){for(var i=0;i<mem.length;i++)if((mem[i][0]===a&&mem[i][1]===b)||(mem[i][0]===b&&mem[i][1]===a))return i;return -1}
+  function valid(a,b){var dx=Math.abs(nx(a)-nx(b)),dy=Math.abs(ny(a)-ny(b));if(dx>2||dy>2)return "너무 멀어요. 가로·세로 2칸 안의 점끼리만 이을 수 있어요.";if(gcd(dx,dy)!==1)return "중간에 다른 점을 지나가요. 한 칸씩 나눠서 이어 주세요.";return ""}
+  function name(i){return "왼쪽에서 "+(nx(i)+1)+"번째, 위에서 "+(ny(i)+1)+"번째 점"+(SUP.indexOf(i)>=0?"(받침대)":"")+(ny(i)===DECK?"(길)":"")}
+  function capC(L){return Math.min(TCAP,CK/(L*L))}
+  /* ---- 해석: 직접 강성법 ---- */
+  function analyze(){
+   for(var x=0;x<COLS-1;x++)if(find(id(x,DECK),id(x+1,DECK))<0)return {err:"맨 아래 줄(길)이 받침대에서 받침대까지 이어져 있지 않아요. 비어 있는 칸: "+(x+1)+"~"+(x+2)+"번째 점 사이"};
+   var act={},map={},n=0,i,j;
+   mem.forEach(function(m){act[m[0]]=act[m[1]]=1});
+   for(i=0;i<N;i++)if(act[i]&&SUP.indexOf(i)<0){map[i]=n;n+=2}
+   var K=[];for(i=0;i<n;i++){K.push(new Float64Array(n));K[i][i]=1e-6}
+   var F=new Float64Array(n),ld=id(loadX,DECK);F[map[ld]+1]=-1;
+   function P(i){return [nx(i),ROWS-1-ny(i)]}
+   mem.forEach(function(m){
+    var a=P(m[0]),b=P(m[1]),L=Math.hypot(b[0]-a[0],b[1]-a[1]),c=(b[0]-a[0])/L,s=(b[1]-a[1])/L,k=1/L,e=[c,s,-c,-s],idx=[];
+    [m[0],m[1]].forEach(function(nd,q){var base=map[nd];idx.push(base==null?-1:base,base==null?-1:base+1)});
+    /* 요소 강성 k·(g gᵀ), g=[-c,-s,c,s] */
+    var g=[-c,-s,c,s];
+    for(var p=0;p<4;p++)for(var r=0;r<4;r++)if(idx[p]>=0&&idx[r]>=0)K[idx[p]][idx[r]]+=k*g[p]*g[r];
+   });
+   /* 가우스 소거(부분 피벗) */
+   var A=K.map(function(r){return Array.prototype.slice.call(r)}),b=Array.prototype.slice.call(F);
+   for(i=0;i<n;i++){
+    var pv=i;for(j=i+1;j<n;j++)if(Math.abs(A[j][i])>Math.abs(A[pv][i]))pv=j;
+    var tmp=A[i];A[i]=A[pv];A[pv]=tmp;var tb=b[i];b[i]=b[pv];b[pv]=tb;
+    for(j=i+1;j<n;j++){var f=A[j][i]/A[i][i];if(!f)continue;for(var k=i;k<n;k++)A[j][k]-=f*A[i][k];b[j]-=f*b[i]}
+   }
+   var u=new Float64Array(n);
+   for(i=n-1;i>=0;i--){var sum=b[i];for(j=i+1;j<n;j++)sum-=A[i][j]*u[j];u[i]=sum/A[i][i]}
+   var disp={},umax=0;
+   for(i=0;i<N;i++){var d=map[i]==null?[0,0]:[u[map[i]],u[map[i]+1]];disp[i]=d;umax=Math.max(umax,Math.hypot(d[0],d[1]))}
+   if(!isFinite(umax)||umax>1e3){
+    var moving=[];for(i=0;i<N;i++)if(Math.hypot(disp[i][0],disp[i][1])>0.25*umax)moving.push(i);
+    return {mech:true,disp:disp,umax:umax,moving:moving,W:0};
+   }
+   var forces=mem.map(function(m){var a=P(m[0]),bb=P(m[1]),L=Math.hypot(bb[0]-a[0],bb[1]-a[1]),c=(bb[0]-a[0])/L,s=(bb[1]-a[1])/L;
+    var du=[disp[m[1]][0]-disp[m[0]][0],disp[m[1]][1]-disp[m[0]][1]];return (du[0]*c+du[1]*s)/L});/* +: 인장 */
+   var W=Infinity,fi=-1;
+   forces.forEach(function(f,q){if(Math.abs(f)<1e-9)return;var cap=f>0?TCAP:capC(len(mem[q]));var w=cap/Math.abs(f);if(w<W){W=w;fi=q}});
+   return {mech:false,disp:disp,umax:umax,forces:forces,W:W,fail:fi};
+  }
+  /* ---- 그리기 ---- */
+  function layout(w){var m=26,sp=(w-2*m)/(COLS-1);return {m:m,sp:sp,top:22}}
+  function XY(i,g,dd){var x=g.m+nx(i)*g.sp,y=g.top+ny(i)*g.sp;if(dd){x+=dd[0]*g.sp;y-=dd[1]*g.sp}return [x,y]}
+  function draw(){
+   var s=Sci.fit(cv,.66),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,g=layout(w);geo=g;
+   c.clearRect(0,0,w,h);
+   var deckY=g.top+DECK*g.sp;
+   /* 강과 언덕 */
+   c.fillStyle=css("--b-water");c.fillRect(g.m,deckY+30,w-2*g.m,h-deckY-30);
+   c.fillStyle=css("--b-bank");c.beginPath();c.moveTo(0,deckY+8);c.lineTo(g.m+6,deckY+8);c.lineTo(g.m-4,h);c.lineTo(0,h);c.fill();
+   c.beginPath();c.moveTo(w,deckY+8);c.lineTo(w-g.m-6,deckY+8);c.lineTo(w-g.m+4,h);c.lineTo(w,h);c.fill();
+   /* 변형 배율 */
+   var frac=0,dsc=0,showF=false;
+   if(res&&!res.err){
+    if(anim){frac=anim.p}else frac=1;
+    if(res.mech){dsc=0.45*frac/res.umax}else{dsc=0.12*frac/res.umax;showF=true}
+   }
+   function D(i){return dsc?[res.disp[i][0]*dsc,res.disp[i][1]*dsc]:null}
+   /* 막대 */
+   var maxF=0;if(showF)res.forces.forEach(function(f,q){var cap=f>0?TCAP:capC(len(mem[q]));maxF=Math.max(maxF,Math.abs(f)/cap)});
+   mem.forEach(function(m,q){
+    var a=XY(m[0],g,D(m[0])),b=XY(m[1],g,D(m[1]));
+    c.save();c.lineCap="round";
+    if(showF){var f=res.forces[q],cap=f>0?TCAP:capC(len(m));
+     var use=Math.abs(f)*res.W*frac/cap;/* 사용률 */
+     if(Math.abs(f)<1e-6){c.strokeStyle=ink;c.globalAlpha=.35;c.lineWidth=2}
+     else{c.strokeStyle=f>0?css("--b-ten"):css("--b-comp");c.lineWidth=2+5*Math.min(1,use);if(f>0)c.setLineDash([8,5])}
+     var broken=!anim&&q===res.fail;
+     if(broken){var mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,ox=(b[0]-a[0])*0.08,oy=(b[1]-a[1])*0.08;
+      c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(mx-ox,my-oy+(f<0?6:0));c.moveTo(mx+ox,my+oy+(f<0?6:0));c.lineTo(b[0],b[1]);c.stroke();c.setLineDash([]);
+      c.strokeStyle=css("--b-fail");c.lineWidth=4;c.beginPath();c.moveTo(mx-8,my-8);c.lineTo(mx+8,my+8);c.moveTo(mx+8,my-8);c.lineTo(mx-8,my+8);c.stroke();
+      c.lineWidth=2;c.beginPath();c.arc(mx,my,15,0,7);c.stroke();
+      c.font="bold 12px sans-serif";c.fillStyle=css("--b-fail");var lb="먼저 무너짐("+(f<0?"휘어짐":"끊어짐")+")",tw=c.measureText(lb).width;
+      c.fillText(lb,Math.max(2,Math.min(w-tw-2,mx-tw/2)),my<g.top+20?my+30:my-20);c.restore();return}
+    }else{c.strokeStyle=ink;c.lineWidth=4;if(res&&res.mech)c.globalAlpha=.85}
+    c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();c.restore();
+   });
+   /* 점 */
+   for(var i=0;i<N;i++){var p=XY(i,g,D(i));c.fillStyle=ink;c.globalAlpha=.55;c.beginPath();c.arc(p[0],p[1],3.2,0,7);c.fill();c.globalAlpha=1}
+   if(res&&res.mech&&frac>0)res.moving.forEach(function(i){var p=XY(i,g,D(i));c.strokeStyle=css("--b-fail");c.lineWidth=2.5;c.beginPath();c.arc(p[0],p[1],10,0,7);c.stroke();c.fillStyle=css("--b-fail");c.font="bold 13px sans-serif";c.fillText("!",p[0]-2,p[1]-13)});
+   /* 받침대 */
+   SUP.forEach(function(i){var p=XY(i,g);c.fillStyle=ink;c.beginPath();c.moveTo(p[0],p[1]+3);c.lineTo(p[0]-11,p[1]+20);c.lineTo(p[0]+11,p[1]+20);c.closePath();c.fill()});
+   c.font="11px sans-serif";c.fillStyle=ink;c.fillText("받침",2,deckY+34);c.fillText("받침",w-26,deckY+34);
+   /* 하중 */
+   var ld=id(loadX,DECK),lp=XY(ld,g,D(ld)),W=res&&!res.err?Math.round(res.W*frac):0;
+   c.strokeStyle=ink;c.lineWidth=1.5;c.beginPath();c.moveTo(lp[0],lp[1]+4);c.lineTo(lp[0],lp[1]+24);c.stroke();
+   c.fillStyle=ink;c.fillRect(lp[0]-17,lp[1]+24,34,22);c.fillStyle=getComputedStyle(document.body).backgroundColor;c.font="bold 11px sans-serif";
+   var t=res&&!res.err?(res.mech?(frac>0.05?"?":"0"):String(W)):"짐";c.fillText(t,lp[0]-c.measureText(t).width/2,lp[1]+39);
+   c.fillStyle=ink;c.fillText("kg",lp[0]+19,lp[1]+39);
+   /* 선택/커서 */
+   if(sel!=null){var sp=XY(sel,g);c.strokeStyle=css("--b-sel");c.lineWidth=3;c.beginPath();c.arc(sp[0],sp[1],11,0,7);c.stroke()}
+   if(focused){var cp=XY(cur,g);c.strokeStyle=css("--b-sel");c.lineWidth=2;c.setLineDash([4,3]);c.strokeRect(cp[0]-15,cp[1]-15,30,30);c.setLineDash([])}
+  }
+  function totalLen(){return mem.reduce(function(s,m){return s+len(m)},0)}
+  function upd(){
+   el.querySelector("#lR").textContent=(loadX+1)+"번째 점";
+   info.textContent="막대 "+mem.length+"개 · 재료 길이 합 "+totalLen().toFixed(1)+" m"+(sel!=null?" · 선택: "+name(sel):"");
+  }
+  function changed(){res=null;stopAnim();msg.textContent="";upd();draw()}
+  function stopAnim(){if(raf)cancelAnimationFrame(raf);raf=0;anim=null}
+  function tap(i){
+   if(sel==null){sel=i;msg.textContent=name(i)+"를 골랐어요. 이을 점을 고르세요.";upd();draw();return}
+   if(sel===i){sel=null;msg.textContent="선택을 취소했어요.";upd();draw();return}
+   var k=find(sel,i);
+   if(k>=0){mem.splice(k,1);res=null;stopAnim();msg.textContent="막대를 지웠어요.";sel=i;upd();draw();return}
+   var v=valid(sel,i);if(v){msg.textContent=v;sel=i;upd();draw();return}
+   mem.push([sel,i]);res=null;stopAnim();msg.textContent="막대를 이었어요. 이어서 다른 점을 고르면 계속 이어져요.";sel=i;upd();draw();
+  }
+  function test(){
+   stopAnim();sel=null;var r=analyze();res=r;
+   if(r.err){msg.textContent=r.err;draw();return}
+   anim={p:0,t0:performance.now()};
+   var dur=r.mech?1200:2200,reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+   function step(now){anim.p=Math.min(1,(now-anim.t0)/dur);anim.p=1-Math.pow(1-anim.p,2);draw();
+    if(!reduce&&anim.p<1)raf=requestAnimationFrame(step);else{anim=null;raf=0;done(r)}}
+   if(reduce){anim=null;done(r)}else raf=requestAnimationFrame(step);
+   msg.textContent="무게를 올리는 중…";
+  }
+  function done(r){
+   draw();var line;
+   if(r.mech){msg.textContent="무게를 올리자마자 모양이 찌그러졌어요! 막대 길이는 그대로인데 연결점이 돌아가며 움직일 수 있어서(형태 불안정) 버티지 못해요. 크게 움직인 점에 ! 표시를 했어요. 대각선 막대로 삼각형을 만들어 보세요.";line="막대 "+mem.length+"개 → 형태 불안정, 0 kg"}
+   else{var f=r.forces[r.fail],L=len(mem[r.fail]);
+    msg.textContent="약 "+Math.round(r.W)+" kg에서 표시된 막대가 먼저 "+(f<0?"눌려서 휘었어요(좌굴, 길이 "+L.toFixed(1)+" m)":"당겨져서 끊어졌어요(인장)")+". 재료 1 m당 "+(r.W/totalLen()).toFixed(1)+" kg을 버텼어요.";
+    line="막대 "+mem.length+"개(길이 "+totalLen().toFixed(1)+" m), 하중 "+(loadX+1)+"번째 점 → "+Math.round(r.W)+" kg";}
+   log.insertAdjacentHTML("afterbegin","<li>"+Sci.esc(line)+"</li>");while(log.children.length>4)log.removeChild(log.lastChild);
+   Exp.reveal();
+  }
+  /* ---- 예시 ---- */
+  function preset(k){
+   mem=[];var x;
+   for(x=0;x<COLS-1;x++)mem.push([id(x,2),id(x+1,2)]);
+   if(k==="box"){for(x=0;x<COLS-1;x++)mem.push([id(x,1),id(x+1,1)]);for(x=0;x<COLS;x++)mem.push([id(x,1),id(x,2)])}
+   if(k==="tri"){/* 프랫 트러스 */
+    for(x=1;x<COLS-2;x++)mem.push([id(x,1),id(x+1,1)]);
+    for(x=1;x<COLS-1;x++)mem.push([id(x,1),id(x,2)]);
+    mem.push([id(0,2),id(1,1)],[id(6,2),id(5,1)],[id(1,1),id(2,2)],[id(2,1),id(3,2)],[id(4,1),id(3,2)],[id(5,1),id(4,2)]);
+   }
+   sel=null;changed();msg.textContent={flat:"평평한 길만 놓았어요.",box:"사각형을 이어 붙인 다리예요.",tri:"삼각형을 이어 붙인 다리(트러스)예요."}[k]+" '하중 올리기'를 눌러 보세요.";
+  }
+  /* ---- 입력 ---- */
+  function pick(e){var r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,g=geo,best=-1,bd=1e9;
+   for(var i=0;i<N;i++){var p=XY(i,g),d=Math.hypot(p[0]-x,p[1]-y);if(d<bd){bd=d;best=i}}return bd<=Math.max(22,g.sp*0.5)?best:-1}
+  cv.addEventListener("pointerdown",function(e){var i=pick(e);if(i<0)return;e.preventDefault();cur=i;tap(i);cv.focus({preventScroll:true})});
+  cv.addEventListener("focus",function(){focused=true;draw()});
+  cv.addEventListener("blur",function(){focused=false;draw()});
+  cv.addEventListener("keydown",function(e){
+   var x=nx(cur),y=ny(cur),k=e.key;
+   if(k==="ArrowLeft")x=Math.max(0,x-1);else if(k==="ArrowRight")x=Math.min(COLS-1,x+1);else if(k==="ArrowUp")y=Math.max(0,y-1);else if(k==="ArrowDown")y=Math.min(ROWS-1,y+1);
+   else if(k==="Enter"||k===" "){e.preventDefault();tap(cur);return}
+   else if(k==="Escape"){sel=null;msg.textContent="선택을 취소했어요.";upd();draw();return}
+   else return;
+   e.preventDefault();cur=id(x,y);msg.textContent="커서: "+name(cur)+(sel!=null&&sel!==cur?(find(sel,cur)>=0?" · Enter: 막대 지우기":" · Enter: 막대 잇기"):"");draw();
+  });
+  el.querySelectorAll("[data-p]").forEach(function(b){b.addEventListener("click",function(){preset(b.dataset.p)})});
+  el.querySelector("#lL").addEventListener("click",function(){loadX=Math.max(1,loadX-1);changed()});
+  el.querySelector("#lRgt").addEventListener("click",function(){loadX=Math.min(COLS-2,loadX+1);changed()});
+  el.querySelector("#test").addEventListener("click",test);
+  el.querySelector("#undo").addEventListener("click",function(){if(mem.length){mem.pop();changed();msg.textContent="마지막 막대를 지웠어요."}});
+  el.querySelector("#clr").addEventListener("click",function(){mem=[];sel=null;changed()});
+  window.addEventListener("resize",function(){if(!raf)draw()});
+  preset("flat");msg.textContent="맨 아래 길만 놓여 있어요. 점을 이어 다리를 만들거나 예시를 골라 보세요.";
+ }
+};
+Sci.initExp();
+</script></body></html>

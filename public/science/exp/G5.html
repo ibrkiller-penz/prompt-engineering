@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>톱니바퀴 돌리기 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px 12px;margin:8px 0 0;font-size:15px}.stat div{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--bg)}.stat b{font-variant-numeric:tabular-nums}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"G5",
+ predict:{q:"왼쪽의 큰 톱니바퀴(톱니 24개)를 한 바퀴 돌리면, 맞물린 오른쪽 작은 톱니바퀴(톱니 12개)는 어떻게 될까요?",options:["한 바퀴 돌아요(같은 속도)","두 바퀴 돌아요(더 빨리)","반 바퀴 돌아요(더 느리게)"],answer:1,
+  feedback:["톱니 수가 다르면 같은 속도로 돌지 않아요. 아래에서 확인해 보세요.","맞아요! 작은 톱니바퀴는 톱니 수가 반이라서 같은 시간에 두 배로 돌아요.","톱니가 적은 쪽이 더 빨리 돌아요. 아래에서 확인해 보세요."]},
+ steps:["'구동 바퀴 돌리기' 슬라이더(← → 키)를 움직이거나 '자동 돌리기'를 눌러 보세요. 빨간 점이 표시된 톱니를 눈으로 따라가요.","각 바퀴의 '톱니 수' 슬라이더로 톱니 수를 바꿔 보세요. 2개의 톱니바퀴가 맞물리는 방향도 관찰해요.","아래 숫자에서 속도비와 힘(돌림힘)의 변화를 확인해요."],
+ observe:["왼쪽 바퀴가 한 바퀴 돌 때 오른쪽 바퀴는 몇 바퀴 도나요? 톱니 수의 비와 비교해 보세요.","두 바퀴의 회전 방향은 같나요, 반대인가요?","오른쪽 바퀴를 크게(톱니를 많이) 하면 속도는 어떻게 바뀌나요?","톱니가 같은 수일 때는 어떻게 돌아가요?"],
+ more:["자전거 기어(앞 톱니바퀴와 뒤 톱니바퀴)를 관찰해 보세요. 오르막에서는 뒤쪽 큰 톱니, 평지 빠른 속도에서는 작은 톱니를 쓰는 이유를 생각해 보세요.","종이로 톱니바퀴 2개를 만들어 톱니 수를 세고 한 바퀴 돌려 비교해 보세요.","시계 안에는 큰 톱니바퀴와 작은 톱니바퀴가 여러 개 맞물려 있어요. 초침, 분침, 시침의 속도 비는 어떻게 만들까요?"],
+ why:{easy:["톱니바퀴가 맞물려 돌아갈 때는 한쪽 톱니가 지나간 개수만큼 다른 쪽 톱니도 지나가요.","그래서 톱니가 적은 작은 바퀴는 같은 수의 톱니를 지나가려고 더 많이 돌아야 해요. 큰 바퀴가 한 바퀴 돌면 작은 바퀴는 더 많이 돌아요.","맞물린 두 바퀴는 서로 반대 방향으로 돌아요.","작은 바퀴를 돌릴 때는 더 빠르게 돌지만 힘은 약해지고, 큰 바퀴가 되면 느리지만 힘이 세져요. 속도와 힘은 서로 맞바꿔요(이상적인 경우)."],
+  detail:["맞물린 톱니바퀴의 접촉점에서 지나가는 톱니 수가 같으므로 N₁θ₁ = N₂θ₂ (회전 방향은 반대). 각속도비 ω₂/ω₁ = N₁/N₂ 예요(구동 바퀴 N₁, 피동 바퀴 N₂).","이상적인 기어는 에너지를 잃지 않으므로 동력 P = τω가 같아서 돌림힘(토크)비 τ₂/τ₁ = N₂/N₁ 예요. 속도가 N₁/N₂배가 되면 토크는 N₂/N₁배가 돼요.","톱니의 크기(모듈)는 같아야 맞물려요. 피치원 반지름은 톱니 수에 비례해요(r = mN/2).","이 체험은 마찰과 틈(백래시)을 무시한 이상적인 기어(근사)이고, 톱니 모양은 단순화했어요. 실제 기어는 맞물림이 매끄럽도록 인벌류트 곡선 모양의 톱니를 써요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="맞물린 두 톱니바퀴 그림"></canvas>'+
+   '<div class="controls"><label>구동 바퀴(왼쪽) 톱니 수 <input id="n1" type="range" min="8" max="40" step="1" value="24" aria-label="왼쪽 구동 바퀴 톱니 수"><span class="readout" id="r1"></span></label></div>'+
+   '<div class="controls"><label>피동 바퀴(오른쪽) 톱니 수 <input id="n2" type="range" min="8" max="40" step="1" value="12" aria-label="오른쪽 피동 바퀴 톱니 수"><span class="readout" id="r2"></span></label></div>'+
+   '<div class="controls"><label>구동 바퀴 돌리기 <input id="an" type="range" min="0" max="1080" step="1" value="0" aria-label="구동 바퀴를 돌린 각도(도)"><span class="readout" id="ra"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="pl" type="button" aria-pressed="false">자동 돌리기</button><button id="rs" type="button">처음으로</button></div>'+
+   '<div class="stat" id="st"></div><p class="note">마찰과 틈을 무시한 이상적인 기어(근사)예요. 빨간 점이 있는 톱니는 같은 톱니를 따라가기 위한 표시예요. 바퀴 이름 옆 글자로도 회전 방향을 알려 줘요.</p>';
+  var cv=el.querySelector("#cv"),n1=el.querySelector("#n1"),n2=el.querySelector("#n2"),an=el.querySelector("#an"),pl=el.querySelector("#pl"),st=el.querySelector("#st");
+  var RAD=Math.PI/180,raf=0,last=0,touched=false,ang=0;
+  function gear(c,x,y,N,m,phase,mark,col,fill,label){
+   var rp=N*m/2,ro=rp+m*.55,ri=rp-m*.65,i,a,tw=Math.PI/N;
+   c.save();c.translate(x,y);c.rotate(phase);c.fillStyle=fill;c.strokeStyle=col;c.lineWidth=2;c.beginPath();
+   for(i=0;i<N;i++){a=i*2*tw;
+    var p=[[a-tw*.95,ri],[a-tw*.5,ro],[a+tw*.5,ro],[a+tw*.95,ri]];
+    p.forEach(function(q,j){var px=Math.cos(q[0])*q[1],py=Math.sin(q[0])*q[1];if(i===0&&j===0)c.moveTo(px,py);else c.lineTo(px,py)});
+    var b=a+2*tw-tw*.95;c.lineTo(Math.cos(b)*ri,Math.sin(b)*ri)}
+   c.closePath();c.fill();c.stroke();
+   c.beginPath();c.arc(0,0,rp*.18,0,7);c.stroke();
+   /* 표시: 0번 톱니 위 빨간 점과 중심 선 */
+   c.fillStyle="#e03131";c.beginPath();c.arc(Math.cos(0)*(ro+0),0,0,0,0);c.fill();
+   c.beginPath();c.moveTo(rp*.18,0);c.lineTo(rp*.82,0);c.lineWidth=3;c.strokeStyle="#e03131";c.stroke();
+   c.beginPath();c.arc(rp*.82,0,Math.max(3,m*.4),0,7);c.fill();
+   c.restore();
+  }
+  function draw(){
+   var s=Sci.fit(cv,.95),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,N1=+n1.value,N2=+n2.value,m=Math.min(w*.03,w*.94/(N1+N2+2));
+   var r1=N1*m/2,r2=N2*m/2,total=2*(r1+r2),cx1=(w-total)/2+r1,cx2=cx1+r1+r2,cy=h/2;
+   var th1=ang*RAD,th2=Math.PI+Math.PI/N2-th1*N1/N2;
+   c.clearRect(0,0,w,h);c.fillStyle=col;c.strokeStyle=col;c.font=Math.max(12,w*.037)+"px sans-serif";
+   gear(c,cx1,cy,N1,m,th1,true,col,"#a5d8ff");
+   gear(c,cx2,cy,N2,m,th2,true,col,"#ffd8a8");
+   c.textAlign="center";c.fillStyle=col;
+   c.fillText("구동 바퀴 · 톱니 "+N1+"개 (시계 방향)",cx1,Math.max(18,cy-r1-m-6));
+   c.fillText("피동 바퀴 · 톱니 "+N2+"개 (반시계 방향)",cx2,Math.min(h-8,cy+r2+m+20));
+   c.textAlign="left";
+   var turns1=ang/360,turns2=turns1*N1/N2;
+   an.setAttribute("aria-valuetext",turns1.toFixed(2)+"바퀴");
+   el.querySelector("#r1").textContent=N1+"개";el.querySelector("#r2").textContent=N2+"개";el.querySelector("#ra").textContent=turns1.toFixed(2)+"바퀴";
+   var gcd=function(a,b){return b?gcd(b,a%b):a},g=gcd(N1,N2);
+   st.innerHTML='<div>속도비 (피동 ÷ 구동) <b>'+N1+' : '+N2+'</b> = <b>'+(N1/N2).toFixed(2)+'배</b></div>'+
+    '<div>구동 바퀴 <b>'+turns1.toFixed(2)+'</b>바퀴 → 피동 바퀴 <b>'+turns2.toFixed(2)+'</b>바퀴</div>'+
+    '<div>힘(돌림힘)비 (피동 ÷ 구동) <b>'+(N2/N1).toFixed(2)+'배</b> (이상적)</div>'+
+    '<div>맞물린 두 바퀴의 방향 <b>서로 반대</b></div>'+
+    '<div>빨간 점이 다시 만나는 때 <b>구동 '+(N2/g)+'바퀴 / 피동 '+(N1/g)+'바퀴</b></div>';
+   cv.setAttribute("aria-label","톱니바퀴 두 개. 구동 바퀴 톱니 "+N1+"개, 피동 바퀴 톱니 "+N2+"개. 구동 바퀴가 "+turns1.toFixed(2)+"바퀴 돌 때 피동 바퀴는 반대 방향으로 "+turns2.toFixed(2)+"바퀴 돌았어요.");
+  }
+  function t1(){if(!touched){touched=true;Exp.reveal()}}
+  function tick(ts){if(!last)last=ts;var dt=(ts-last)/1000;last=ts;ang=(ang+dt*60)%1080;an.value=Math.round(ang);draw();raf=requestAnimationFrame(tick)}
+  function stop(){if(raf)cancelAnimationFrame(raf);raf=0;last=0;pl.setAttribute("aria-pressed","false");pl.textContent="자동 돌리기"}
+  an.addEventListener("input",function(){ang=+an.value;t1();draw()});
+  [n1,n2].forEach(function(i){i.addEventListener("input",function(){draw()})});
+  pl.addEventListener("click",function(){if(raf){stop();return}t1();pl.setAttribute("aria-pressed","true");pl.textContent="멈추기";ang=+an.value;raf=requestAnimationFrame(tick)});
+  el.querySelector("#rs").addEventListener("click",function(){stop();ang=0;an.value=0;n1.value=24;n2.value=12;draw()});
+  window.addEventListener("pagehide",stop);document.addEventListener("visibilitychange",function(){if(document.hidden&&raf)stop()});
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

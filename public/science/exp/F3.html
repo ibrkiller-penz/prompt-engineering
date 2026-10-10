@@ -6,7 +6,7 @@
 @media (prefers-color-scheme:dark){:root{--q-p:#4da3ff;--q-s:#ff8a4c;--q-ground:#2a2418;--q-rock:#9aa7bd;--q-soft:#e0a956;--q-grid:#2c3649}}
 .f3-seg{display:flex;gap:6px;flex-wrap:wrap}
 .f3-quiz input[type=number]{min-height:44px;width:7em;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);padding:0 10px;font:inherit}
-.f3-quiz[hidden]{display:none}
+.f3-quiz[hidden],#freeC[hidden]{display:none}
 </style></head>
 <body><div class="wrap"><div id="app"></div></div>
 <script src="../js/common.js"></script>
@@ -79,7 +79,7 @@ var EXP={
    var T=tEnd||60;c.clearRect(0,0,w,h);c.font="11px sans-serif";
    /* 눈금: 1초 잔눈금, 10초 굵은 눈금 */
    for(var x=0;x<=T;x++){var X=pl+x/T*gw;c.strokeStyle=css("--q-grid");c.lineWidth=x%10===0?1.4:(T<=60||x%5===0?0.5:0);if(c.lineWidth){c.beginPath();c.moveTo(X,pt);c.lineTo(X,pt+gh);c.stroke()}
-    if(x%10===0){c.fillStyle=ink;c.fillText(x+"초",X-8,h-6)}}
+    if(x%(T>60?20:10)===0){c.fillStyle=ink;var lb=x+"초",tw=c.measureText(lb).width;c.fillText(lb,Math.min(Math.max(0,X-tw/2),w-tw),h-6)}}
    var rows=[[false,"단단한 암반",css("--q-rock")],[true,"무른 땅(퇴적층)",css("--q-soft")]],rh=gh/2;
    /* 같은 배율로 그림: 무른 땅 최대값 기준 */
    var mx=1e-6;for(var u=0;u<T;u+=0.05)mx=Math.max(mx,Math.abs(trace(u,true)));

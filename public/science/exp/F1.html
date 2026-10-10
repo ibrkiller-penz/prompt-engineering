@@ -46,7 +46,7 @@ var EXP={
   }
   function hm(t){var h=Math.floor(t),m=Math.round((t-h)*60);return (h<10?"0":"")+h+":"+(m<10?"0":"")+m}
   function draw(){
-   var s=Sci.fit(cv,1.15),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,t=+tm.value,S=sun(dec,t);
+   var s=Sci.fit(cv,1.28),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,t=+tm.value,S=sun(dec,t);
    c.clearRect(0,0,w,h);c.font=Math.max(12,w*.038)+"px sans-serif";c.lineCap="round";c.fillStyle=col;c.strokeStyle=col;
    /* 옆모습: 해가 있는 수직 단면 */
    var gy=.5*w,bx=.66*w,sh=.12*w,tipY=gy-sh,maxLen=bx-.06*w,Lpx=S.L*sh,clip=Lpx>maxLen,Ld=Math.min(Lpx,maxLen);
@@ -66,10 +66,10 @@ var EXP={
    c.fillText("고도 "+Math.round(S.alt/R)+"°",bx+w*.1,tipY-4);
    c.fillText("해",sx-5,sy-w*.05);
    /* 위에서 본 모습 */
-   var cx=.5*w,cy=h-.26*w,r=.22*w,sc=r/3;
-   c.fillText("② 위에서 내려다본 모습 (위쪽이 북쪽)",6,.62*w);
+   var cx=.5*w,cy=h-.27*w,r=.22*w,sc=r/3;
+   c.fillText("② 위에서 내려다본 모습 (위쪽이 북쪽)",6,.65*w);
    c.lineWidth=2;c.beginPath();c.arc(cx,cy,r,0,7);c.stroke();
-   c.textAlign="center";c.fillText("북(N)",cx,cy-r-6);c.fillText("남(S)",cx,cy+r+16);c.textAlign="left";c.fillText("동(E)",cx+r+5,cy+5);c.textAlign="right";c.fillText("서(W)",cx-r-5,cy+5);c.textAlign="left";
+   c.save();c.globalAlpha=.8;c.textAlign="center";c.fillText("북",cx,cy-r+16);c.fillText("남",cx,cy+r-8);c.fillText("동",cx+r-12,cy+5);c.fillText("서",cx-r+12,cy+5);c.restore();c.textAlign="left";
    /* 하루의 그림자 끝 점 */
    c.save();c.globalAlpha=.5;for(var q=8;q<=16;q++){var Q=sun(dec,q),ll=Math.min(Q.L*sc,r);c.beginPath();c.arc(cx-Math.sin(Q.az)*ll,cy+Math.cos(Q.az)*ll,3,0,7);c.fill()}c.restore();
    var sl=Math.min(S.L*sc,r),ex=cx-Math.sin(S.az)*sl,ey=cy+Math.cos(S.az)*sl;

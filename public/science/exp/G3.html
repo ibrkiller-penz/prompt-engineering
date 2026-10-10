@@ -34,7 +34,7 @@ var EXP={
    c.clearRect(0,0,w,h);c.fillStyle=col;c.strokeStyle=col;c.font=Math.max(12,w*.037)+"px sans-serif";c.lineWidth=3;c.lineCap="round";
    if(mode==="L")lever(c,w,h);else pulley(c,w,h)
   }
-  function arrow(c,x,y,dy,label,al){c.save();c.lineWidth=3;c.strokeStyle="#e03131";c.fillStyle="#e03131";c.beginPath();c.moveTo(x,y);c.lineTo(x,y+dy);c.stroke();var d=dy>0?1:-1;c.beginPath();c.moveTo(x,y+dy);c.lineTo(x-6,y+dy-8*d);c.lineTo(x+6,y+dy-8*d);c.closePath();c.fill();c.font="bold "+Math.max(12,c.canvas.width/(window.devicePixelRatio||1)*.037)+"px sans-serif";c.textAlign=al||"center";c.fillText(label,x,y+(d>0?-6:dy-6)+(d>0?0:0));c.restore()}
+  function arrow(c,x,y,dy,label,al){c.save();c.lineWidth=3;c.strokeStyle="#e03131";c.fillStyle="#e03131";c.beginPath();c.moveTo(x,y);c.lineTo(x,y+dy);c.stroke();var d=dy>0?1:-1;c.beginPath();c.moveTo(x,y+dy);c.lineTo(x-6,y+dy-8*d);c.lineTo(x+6,y+dy-8*d);c.closePath();c.fill();c.font="bold "+Math.max(12,c.canvas.width/(window.devicePixelRatio||1)*.037)+"px sans-serif";c.textAlign=al||"center";if(al==="left")c.fillText(label,x+10,y+dy/2+4);else c.fillText(label,x,y+(d>0?-6:dy-6));c.restore()}
   function lever(c,w,h){
    var x0=.07*w,Lp=.86*w,py=h*.55,fxp=x0+Lp*fx/100,t=th*RAD,Ld=fx,Ea=100-fx,F=W*Ld/Ea,dE=Ea*Math.sin(t),dL=Ld*Math.sin(t);
    /* 받침점 */
@@ -44,7 +44,7 @@ var EXP={
    c.fillStyle="#c9a26b";c.beginPath();c.rect(x0,py-7,Lp,14);c.fill();c.stroke();c.restore();
    /* 짐: 막대 왼쪽 끝 위 */
    var lx=fxp+(x0-fxp)*Math.cos(t),ly=py+(x0-fxp)*Math.sin(t),ex=fxp+(x0+Lp-fxp)*Math.cos(t),ey=py+(x0+Lp-fxp)*Math.sin(t);
-   var bs=w*.11;c.save();c.fillStyle="#74c0fc";c.beginPath();c.rect(lx-bs/2,ly-7-bs,bs,bs);c.fill();c.stroke();c.fillStyle="#102";c.textAlign="center";c.font="bold "+Math.max(12,w*.037)+"px sans-serif";c.fillText("짐 60N",lx,ly-7-bs/2+4);c.restore();
+   var bs=w*.15;c.save();c.fillStyle="#74c0fc";c.beginPath();c.rect(lx-bs/2+w*.03,ly-7-bs,bs,bs);c.fill();c.stroke();c.fillStyle="#102";c.textAlign="center";c.font="bold "+Math.max(12,w*.037)+"px sans-serif";c.font="bold "+Math.max(11,w*.032)+"px sans-serif";c.fillText("짐 60N",lx+w*.03,ly-7-bs/2+4);c.restore();
    arrow(c,ex,ey-w*.15,w*.13,"힘 "+F.toFixed(0)+" N");
    c.save();c.textAlign="center";c.globalAlpha=.8;c.font=Math.max(11,w*.033)+"px sans-serif";c.fillText("짐팔 "+Ld+" cm",(x0+fxp)/2,py+w*.2);c.fillText("힘팔 "+Ea+" cm",(fxp+x0+Lp)/2,py+w*.2);
    c.lineWidth=1.5;c.beginPath();c.moveTo(x0,py+w*.155);c.lineTo(fxp,py+w*.155);c.moveTo(fxp,py+w*.155);c.lineTo(x0+Lp,py+w*.155);c.stroke();c.restore();
@@ -53,10 +53,10 @@ var EXP={
    stat([["필요한 힘","F = "+F.toFixed(0)+" N"],["손이 내려간 거리",dE.toFixed(1)+" cm"],["짐이 올라간 높이",dL.toFixed(1)+" cm"],["내가 한 일",(F*dE/100).toFixed(2)+" J"],["짐에게 한 일",(W*dL/100).toFixed(2)+" J"],["거리 비","손 ÷ 짐 = "+(Ea/Ld).toFixed(2)+" 배"]]);
   }
   function pulley(c,w,h){
-   var top=h*.1,bx0=w*.2,bx1=w*.8,F=W/n,hh=pull/n,sc=h*.0075,load0=h*.7,by=load0-hh*sc*1.0-0;
+   var top=h*.17,bx0=w*.2,bx1=w*.8,F=W/n,hh=pull/n,sc=h*.0075,load0=h*.7,by=load0-hh*sc*1.0-0;
    /* 천장 */
    c.save();c.fillStyle="#999";c.fillRect(bx0-10,top-10,bx1-bx0+20,10);c.strokeRect(bx0-10,top-10,bx1-bx0+20,10);c.restore();
-   c.textAlign="center";c.fillText("고정된 천장",w/2,top-16>10?top-16:12);
+   c.textAlign="center";c.fillText("고정된 천장",w/2,top-18);
    /* 움직도르래 블록(짐 위) */
    var blk=w*.34,bxm=(bx0+bx1)/2-w*.06,left=bxm-blk/2,right=bxm+blk/2,i,ys=by-w*.07;
    c.save();c.lineWidth=2.5;
@@ -66,7 +66,7 @@ var EXP={
    c.save();c.lineWidth=2;c.beginPath();c.moveTo(bxm,ys+w*.035);c.lineTo(bxm,by);c.stroke();c.fillStyle="#74c0fc";var bs=w*.12;c.fillRect(bxm-bs/2,by,bs,bs*.8);c.strokeRect(bxm-bs/2,by,bs,bs*.8);c.fillStyle="#102";c.font="bold "+Math.max(12,w*.037)+"px sans-serif";c.fillText("짐 60N",bxm,by+bs*.8/2+4);c.restore();
    /* 당기는 줄 */
    var px=right+w*.1;c.save();c.lineWidth=2.5;c.beginPath();c.moveTo(right>left?left+blk*(n===1?.5:1):right,top);c.lineTo(px,top);c.lineTo(px,top+pull*sc*1.0+h*.12);c.stroke();c.restore();
-   arrow(c,px,top+pull*sc+h*.12,h*.14,"힘 "+F.toFixed(0)+" N");
+   arrow(c,px,top+pull*sc+h*.12,h*.14,"힘 "+F.toFixed(0)+" N","left");
    if(ctl.querySelector("#rnn")){ctl.querySelector("#rnn").textContent=n+"개";ctl.querySelector("#rpl").textContent=pull+" cm"}
    c.save();c.globalAlpha=.8;c.font=Math.max(11,w*.033)+"px sans-serif";c.textAlign="left";c.fillText("받치는 줄 "+n+"개 (개념도)",8,h-8);c.restore();
    cv.setAttribute("aria-label","도르래 개념도. 짐을 받치는 줄 "+n+"개. 필요한 힘 "+F.toFixed(0)+"뉴턴. 줄을 "+pull+"센티미터 당기면 짐은 "+hh.toFixed(1)+"센티미터 올라감");

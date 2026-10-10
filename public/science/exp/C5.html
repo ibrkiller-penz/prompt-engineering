@@ -70,7 +70,9 @@ var EXP={
   function arrow(c,x,y,dx,dy,color,label){
    var L=Math.hypot(dx,dy);if(L<3)return;c.save();c.strokeStyle=color;c.fillStyle=color;c.lineWidth=2.5;c.beginPath();c.moveTo(x,y);c.lineTo(x+dx,y+dy);c.stroke();
    var a=Math.atan2(dy,dx);c.beginPath();c.moveTo(x+dx,y+dy);c.lineTo(x+dx-9*Math.cos(a-.45),y+dy-9*Math.sin(a-.45));c.lineTo(x+dx-9*Math.cos(a+.45),y+dy-9*Math.sin(a+.45));c.closePath();c.fill();
-   c.font="bold 12px sans-serif";c.fillText(label,x+dx+(dx>=0?4:-c.measureText(label).width-4),y+dy+(dy>0?12:-4));c.restore();
+   c.font="bold 12px sans-serif";var tw=c.measureText(label).width,cw=cv.clientWidth,ch=cv.clientHeight,lx=x+dx+(dx>=0?4:-tw-4),ly=y+dy+(dy>0?12:-4);
+   if(lx+tw>cw-2)lx=x-tw-8;if(lx<2)lx=2;if(ly>ch-3){ly=y+dy-2;lx=x+8}if(ly<12)ly=12;
+   c.fillText(label,lx,ly);c.restore();
   }
   function draw(now){
    var s=Sci.fit(cv,.6),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,V=view(w,h);

@@ -45,9 +45,9 @@ var EXP={
    c.save();c.fillStyle="#ffd43b";c.strokeStyle="#e8890c";c.lineWidth=3;c.beginPath();c.arc(cx,cy,w*.06,0,7);c.fill();c.stroke();c.restore();
    lab(c,"태양",cx,cy+w*.06+15);
    /* 대표 위치 이름 */
-   lab(c,"동지 12/21 (북반구 겨울)",w-4,cy-er-12,"right");
+   lab(c,"동지 12/21",w-4,cy+er+20,"right");lab(c,"(북반구 겨울)",w-4,cy+er+36,"right");
    lab(c,"춘분 3/20",cx,cy-ry-er-22);
-   lab(c,"하지 6/21 (북반구 여름)",4,cy-er-12,"left");
+   lab(c,"하지 6/21",4,cy+er+20,"left");lab(c,"(북반구 여름)",4,cy+er+36,"left");
    lab(c,"추분 9/23",cx,cy+ry+er+22);
    [[1,0],[0,-1],[-1,0],[0,1]].forEach(function(p){c.save();c.beginPath();c.arc(cx+p[0]*rx,cy+p[1]*ry,3,0,7);c.fill();c.restore()});
    var ex=cx+rx*Math.cos(ph),ey=cy-ry*Math.sin(ph);
@@ -60,7 +60,7 @@ var EXP={
    c.lineWidth=3;c.beginPath();c.moveTo(ex-ax,ey+ay);c.lineTo(ex+ax,ey-ay);c.stroke();
    c.beginPath();c.arc(ex+ax,ey-ay,4,0,7);c.fill();c.restore();
    c.fillText("북극",ex+ax+6,ey-ay-2);
-   c.fillText("↑ 늘 같은 방향",w*.62,h-8);
+   c.fillText("자전축은 1년 내내 같은 방향(북극성 쪽)",6,h-8);
    /* 숫자 */
    var r=calc();
    rl.textContent=dateStr(+lam.value);rtl.textContent=(+tilt.value).toFixed(1)+"°";
