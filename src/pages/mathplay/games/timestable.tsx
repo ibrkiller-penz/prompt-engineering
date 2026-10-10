@@ -34,8 +34,9 @@ export default function TimesTableGame() {
   const H = trayY + TILE * 2 + 40;
   const cellX = (c: number) => gx0 + (c + 1) * CS;
   const cellY = (r: number) => gy0 + (r + 1) * CS;
-  const tilesW = puz.tiles.length * (TILE * 2 + 8) - 8;
-  const tileCx = (i: number) => (VW - tilesW) / 2 + TILE + i * (TILE * 2 + 8);
+  const step = Math.min(TILE * 2 + 8, (VW - 48 - TILE * 2) / Math.max(1, puz.tiles.length - 1));
+  const tilesW = (puz.tiles.length - 1) * step + TILE * 2;
+  const tileCx = (i: number) => (VW - tilesW) / 2 + TILE + i * step;
   const tileCy = trayY + TILE + 8;
   const slotCenter = (s: Slot): [number, number] => (s.k === "cell" ? [cellX(s.c) + CS / 2, cellY(s.r) + CS / 2] : s.k === "rowH" ? [gx0 + CS / 2, cellY(s.r) + CS / 2] : [cellX(s.c) + CS / 2, gy0 + CS / 2]);
   const openSlots = puz.slots.filter((s) => filled[slotKey(s)] === undefined);
