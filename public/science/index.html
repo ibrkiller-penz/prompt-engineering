@@ -1,37 +1,8 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>온라인 과학 체험관</title>
-<meta name="description" content="예측하고, 만져 보고, 이유를 확인하는 온라인 과학 체험관. 4개 층 44개 체험.">
+<title>과학 체험관 · 살빠진 임선생과 함께하는 교육자료</title>
+<meta name="description" content="먼저 예측하고, 만져 보고, 이유를 찾아요! 4개 층 48가지 과학 체험.">
+<meta name="theme-color" content="#8fd3ff">
 <link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="css/common.css"></head>
-<body><div class="wrap">
-<header class="top"><a class="home" href="https://penedu.web.app/">← 교육자료 허브</a></header>
-
-<section class="hero" aria-labelledby="hTitle">
-  <div class="hero-txt">
-    <p class="kicker">예측 → 조작 → 관찰 → 이유 확인</p>
-    <h1 id="hTitle">🔬 온라인 과학 체험관</h1>
-    <p class="lead"><span id="greet">나만의 탐험 이름을 정해요</span></p>
-    <label class="name-row">탐험 이름 <input id="name-in" type="text" maxlength="10" placeholder="예: 과학왕" aria-label="탐험 이름"></label>
-  </div>
-  <div class="stats" aria-label="내 기록">
-    <div class="stat"><span>⭐ 별</span><b id="stat-stars">0 / 0</b></div>
-    <div class="stat"><span>🔥 연속 탐험</span><b id="stat-streak">0일</b></div>
-    <div class="stat"><span>🏅 배지</span><b id="stat-badges">0 / 0</b></div>
-  </div>
-</section>
-
-<section class="mission-row" aria-live="polite">
-  <div class="mission" id="mission"></div>
-  <button id="random" class="btn" type="button">🎲 아무 체험이나!</button>
-</section>
-
-<h2 class="sec">층 고르기</h2>
-<p class="note">건물을 따라 올라가요. 각 층 안에서 체험을 골라요.</p>
-<div id="floors" class="floors"></div>
-
-<h2 class="sec">내 배지</h2>
-<div id="badges" class="badges"></div>
-
-<p style="margin-top:20px"><a class="btn" href="gallery/">모든 체험 검색하기</a></p>
-<footer class="foot">Exploratorium에서 영감을 받았으나 관련 없는 독립 사이트입니다. 로그인·서버 저장·개인정보 수집이 없어요. 기록은 이 기기 브라우저에만 남아요. 수업 투사용은 주소 뒤에 <code>?present=1</code>을 붙여요.</footer>
-</div><script src="js/common.js"></script><script>Sci.initHome()</script></body></html>
+<body><div class="wrap" id="app"></div>
+<script src="js/common.js"></script><script>Sci.initHome()</script></body></html>
