@@ -154,3 +154,79 @@ body.present .card p{font-size:20px}
 .done-chip[hidden]{display:none}
 @media (min-width:720px){.hero{grid-template-columns:1.2fr 1fr;align-items:center}.stats{grid-template-columns:1fr 1fr 1fr}.mission-row{grid-template-columns:1fr auto;align-items:center}.floors{grid-template-columns:1fr 1fr}}
 @media (max-width:520px){.floor{grid-template-columns:1fr}.floor-emoji{width:64px;height:64px;font-size:36px}}
+
+/* ---- 4차: 친숙한 분위기 + S-Core Dream 4·5·6 ----
+   폰트 파일은 public/science/fonts/ 에 두세요(아래 이름). 설치된 PC에서는 local()로 바로 쓰입니다. */
+@font-face{font-family:"S-Core Dream";font-weight:400;font-display:swap;src:local("SCoreDream-4Regular"),local("S-CoreDream-4Regular"),url("../fonts/SCoreDream-4Regular.woff2") format("woff2")}
+@font-face{font-family:"S-Core Dream";font-weight:500;font-display:swap;src:local("SCoreDream-5Medium"),local("S-CoreDream-5Medium"),url("../fonts/SCoreDream-5Medium.woff2") format("woff2")}
+@font-face{font-family:"S-Core Dream";font-weight:700;font-display:swap;src:local("SCoreDream-6Bold"),local("S-CoreDream-6Bold"),url("../fonts/SCoreDream-6Bold.woff2") format("woff2")}
+:root{--font:"S-Core Dream","Pretendard Variable",Pretendard,system-ui,-apple-system,"Malgun Gothic",sans-serif;--bg:#fffaf2;--card:#ffffff;--r:22px;--cream:#fff4df;--shadow:0 4px 0 rgba(30,60,40,.10)}
+@media (prefers-color-scheme:dark){:root{--bg:#131b17;--card:#1b2a23;--cream:#2a2618}}
+body{font-family:var(--font);font-weight:400;background:var(--bg);background-image:radial-gradient(circle at 12% 0%,rgba(255,214,140,.25),transparent 40%),radial-gradient(circle at 92% 12%,rgba(120,210,170,.22),transparent 38%)}
+h1,h2,h3,.card h2,.card h3,.floor h2,.tile h3,.predict h2,.mission strong{font-weight:700}
+b,strong{font-weight:700}
+button,.btn,.tabs [role=tab],.chip,.tag,.badge,.done-chip,.seg button{font-weight:500}
+.btn.primary,button.primary{font-weight:700}
+header.top{border-radius:0 0 22px 22px;box-shadow:0 4px 0 rgba(0,0,0,.06)}
+.card,.tile,.stage,.predict,.panel{border-radius:var(--r)}
+.stage{background:linear-gradient(180deg,#ffffff,#fffdf8);box-shadow:var(--shadow);border:2px solid #e6efe9;padding:14px}
+button,.btn{border-radius:999px;box-shadow:0 3px 0 rgba(30,60,40,.10);transition:transform .12s}
+button:active,.btn:active{transform:translateY(2px);box-shadow:none}
+button.primary,.btn.primary{box-shadow:0 4px 0 #13593a}
+.predict{background:var(--cream);border:2px solid #f5b841;box-shadow:var(--shadow)}
+.predict .opts button{border-radius:18px}
+.controls input[type=range]{accent-color:#f08a24;height:28px}
+.controls label{font-size:17px;font-weight:500}
+.tabs{border-bottom:0;gap:6px}
+.tabs [role=tab]{border:0;background:var(--card);border-radius:999px;box-shadow:var(--shadow);padding:0 16px;margin-bottom:6px}
+.tabs [role=tab][aria-selected=true]{background:#1e8152;color:#fff;border:0}
+.panel{box-shadow:var(--shadow);border:2px solid #e6efe9}
+.panel li{font-size:17px}
+footer.foot{border-top:0;text-align:center}
+.note{color:#5d6b62}
+.tile{border:2px solid #e6efe9;box-shadow:0 5px 0 rgba(30,60,40,.09)}
+.tile-art{border-radius:0}
+.tile h3{font-weight:700}
+.tile p{font-weight:400}
+
+/* ---- 5차: 체험 한 화면 배치 (스크롤 최소화) ---- */
+.wrap{padding:0 12px 16px;max-width:1100px}
+header.top{padding:8px 12px;margin:0 -12px 6px;gap:8px;flex-wrap:nowrap}
+header.top .home{font-size:16px;white-space:nowrap}
+header.top .crumb{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+header.top .nav{min-width:40px;min-height:40px;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+.exp-title{font-size:clamp(20px,4.4vw,28px);margin:2px 0 8px;line-height:1.25;color:var(--brand)}
+.exp-grid{display:grid;gap:10px}
+.predict{padding:10px 12px;margin:0}
+.predict h2{font-size:16px;margin:0 0 2px}
+.predict .q{font-size:16px;line-height:1.5;margin:0 0 8px}
+.predict .opts{gap:6px}
+.predict .opts button{min-height:40px;font-size:15px;padding:0 12px;flex:1 1 auto}
+.predict .res{font-size:15px;margin-top:6px;min-height:0}
+.predict .res:empty{display:none}
+.stage{padding:10px;margin:0}
+.stage .controls{margin-top:6px;gap:8px 12px}
+.controls label{font-size:15px}
+.controls input[type=range]{height:24px}
+.controls button{min-height:40px;font-size:15px;padding:0 12px}
+.stage .note,.stage p.note{font-size:13px;margin:4px 0 0;line-height:1.5}
+.bottom-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.bottom-row .note{margin:0;font-size:14px;flex:1 1 200px}
+#openInfo{min-height:44px}
+dialog#info{border:0;border-radius:24px;padding:16px 18px;width:min(640px,94vw);max-height:88vh;overflow:auto;background:var(--card);color:var(--ink);box-shadow:0 12px 40px rgba(0,0,0,.25)}
+dialog#info::backdrop{background:rgba(20,30,25,.35)}
+.info-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.info-head h2{font-size:19px;margin:0;color:var(--brand)}
+#closeInfo{min-width:44px;min-height:44px;font-size:18px}
+dialog#info .tabs{margin-top:8px}
+dialog#info .panel{border-radius:0 0 18px 18px}
+dialog#info .panel li{font-size:16px}
+dialog#info .foot-note{font-size:12px;color:var(--sub);margin:12px 0 0}
+.foot-note{font-size:12px}
+@media (min-width:900px){
+  .exp-grid{grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);align-items:start;gap:14px}
+  .predict{position:sticky;top:12px}
+  .exp-title{font-size:26px}
+}
+body.present .exp-title{font-size:30px}
+body.present .predict .q,body.present .predict h2{font-size:20px}

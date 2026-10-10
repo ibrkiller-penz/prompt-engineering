@@ -155,22 +155,25 @@ function initExp(){
     recordPlay(id);
     var P=EXP.predict;
     var root=document.getElementById("app");
+    var tabsHtml=[["try","① 해보기"],["obs","② 관찰 질문"],["why","③ 왜 그럴까?"],["more","④ 더 해보기"]].map(function(t,i){return '<button role="tab" id="t-'+t[0]+'" aria-controls="p-'+t[0]+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'">'+t[1]+"</button>"}).join("");
     root.innerHTML=
-      '<header class="top"><a class="home" href="'+BASE+'">🔬 온라인 과학 체험관</a><span class="crumb">› <a href="'+BASE+"gallery/?f="+fid+'">'+esc(fl.emoji+" "+fl.name)+'</a></span></header>'+
-      '<div class="exp-head"><h1>'+esc(me.id)+'. '+esc(me.title)+'</h1><span class="done-chip" id="doneChip" hidden>✔ 완료</span></div>'+
-      '<p class="exp-q">'+esc(me.question)+"</p>"+
-      '<section class="predict" aria-labelledby="ph"><h2 id="ph">먼저 예측해 보세요</h2><p>'+esc(P.q)+'</p><div class="opts" role="group" aria-label="예측 선택">'+
-        P.options.map(function(o,i){return '<button type="button" data-i="'+i+'" aria-pressed="false">'+esc(o)+"</button>"}).join("")+
-      '</div><p class="note">예측은 저장되지 않아요. 맞고 틀림은 중요하지 않아요.</p><div class="res" id="predRes" aria-live="polite"></div></section>'+
-      '<section class="stage locked" id="stage" aria-label="체험 영역"><div class="stage-body" id="stageBody"></div></section>'+
-      '<div class="tabs" role="tablist" aria-label="체험 안내">'+
-        [["try","① 해보기"],["obs","② 관찰 질문"],["why","③ 왜 그럴까?"],["more","④ 더 해보기"]].map(function(t,i){return '<button role="tab" id="t-'+t[0]+'" aria-controls="p-'+t[0]+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'">'+t[1]+"</button>"}).join("")+"</div>"+
-      '<div class="panel" role="tabpanel" id="p-try" aria-labelledby="t-try"><ol>'+EXP.steps.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ol></div>"+
-      '<div class="panel" role="tabpanel" id="p-obs" aria-labelledby="t-obs" hidden><ul>'+EXP.observe.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ul></div>"+
-      '<div class="panel" role="tabpanel" id="p-why" aria-labelledby="t-why" hidden><div class="seg" role="group" aria-label="설명 수준"><button type="button" data-lv="easy" aria-pressed="true">쉬운 설명</button><button type="button" data-lv="detail" aria-pressed="false">자세한 설명</button></div><div id="whyBody"></div></div>'+
-      '<div class="panel" role="tabpanel" id="p-more" aria-labelledby="t-more" hidden><ul>'+EXP.more.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ul></div>"+
-      '<nav class="pager" aria-label="체험 이동">'+(prev?'<a class="btn" href="'+prev.id+'.html'+(present?"?present=1":"")+'">← '+esc(prev.title)+"</a>":"<span></span>")+(next?'<a class="btn primary" href="'+next.id+'.html'+(present?"?present=1":"")+'">'+esc(next.title)+" →</a>":'<a class="btn" href="'+BASE+"gallery/?f="+fid+'">층으로 돌아가기</a>')+"</nav>"+
-      '<footer class="foot">Exploratorium에서 영감을 받았으나 관련 없는 독립 사이트입니다. 진행 기록은 이 기기 브라우저에만 저장되고, 어디로도 보내지 않습니다.</footer>';
+      '<header class="top"><a class="home" href="'+BASE+'">🔬 과학관</a><span class="crumb"><a href="'+BASE+"gallery/?f="+fid+'">'+esc(fl.emoji+" "+fl.name)+'</a></span><span class="done-chip" id="doneChip" hidden>✔ 완료</span>'+
+        (prev?'<a class="nav" href="'+prev.id+'.html'+(present?"?present=1":"")+'" aria-label="이전 체험">‹</a>':'')+(next?'<a class="nav" href="'+next.id+'.html'+(present?"?present=1":"")+'" aria-label="다음 체험">›</a>':'')+'</header>'+
+      '<h1 class="exp-title">'+esc(me.id)+'. '+esc(me.title)+'</h1>'+
+      '<div class="exp-grid">'+
+        '<section class="predict" aria-labelledby="ph"><h2 id="ph">🤔 먼저 예측해 보세요</h2><p class="q">'+esc(P.q)+'</p><div class="opts" role="group" aria-label="예측 선택">'+
+          P.options.map(function(o,i){return '<button type="button" data-i="'+i+'" aria-pressed="false">'+esc(o)+"</button>"}).join("")+
+        '</div><div class="res" id="predRes" aria-live="polite"></div></section>'+
+        '<section class="stage locked" id="stage" aria-label="체험 영역"><div class="stage-body" id="stageBody"></div></section>'+
+      '</div>'+
+      '<div class="bottom-row"><button type="button" class="primary" id="openInfo" aria-haspopup="dialog">📖 설명·관찰 질문 보기</button><span class="note">'+esc(me.question)+'</span></div>'+
+      '<dialog id="info" aria-labelledby="infoTitle"><div class="info-head"><h2 id="infoTitle">'+esc(me.title)+'</h2><button type="button" id="closeInfo" aria-label="닫기">✕</button></div>'+
+        '<div class="tabs" role="tablist" aria-label="체험 안내">'+tabsHtml+'</div>'+
+        '<div class="panel" role="tabpanel" id="p-try" aria-labelledby="t-try"><ol>'+EXP.steps.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ol></div>"+
+        '<div class="panel" role="tabpanel" id="p-obs" aria-labelledby="t-obs" hidden><ul>'+EXP.observe.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ul></div>"+
+        '<div class="panel" role="tabpanel" id="p-why" aria-labelledby="t-why" hidden><div class="seg" role="group" aria-label="설명 수준"><button type="button" data-lv="easy" aria-pressed="true">쉬운 설명</button><button type="button" data-lv="detail" aria-pressed="false">자세한 설명</button></div><div id="whyBody"></div></div>'+
+        '<div class="panel" role="tabpanel" id="p-more" aria-labelledby="t-more" hidden><ul>'+EXP.more.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ul></div>"+
+        '<p class="foot-note">진행 기록은 이 기기 브라우저에만 저장되고, 어디로도 보내지 않아요. Exploratorium에서 영감을 받았으나 관련 없는 독립 사이트입니다.</p></dialog>';
     if(isDone(s,id))document.getElementById("doneChip").hidden=false;
     Exp.stageEl=document.getElementById("stageBody");
     /* 체험 영역을 실제로 만졌는지 기록(버튼만 누른 경우는 별 제외) */
@@ -185,21 +188,26 @@ function initExp(){
       document.getElementById("stage").classList.remove("locked");
       if(EXP.start)EXP.start();
     })});
+    /* 설명 창 */
+    var info=document.getElementById("info");
+    document.getElementById("openInfo").addEventListener("click",function(){if(info.showModal)info.showModal();else info.setAttribute("open","")});
+    document.getElementById("closeInfo").addEventListener("click",function(){info.close?info.close():info.removeAttribute("open")});
+    info.addEventListener("click",function(e){if(e.target===info)info.close()});
     /* 탭 */
-    var tabs=[].slice.call(root.querySelectorAll('[role=tab]'));
+    var tabs=[].slice.call(info.querySelectorAll('[role=tab]'));
     function sel(t){tabs.forEach(function(x){var on=x===t;x.setAttribute("aria-selected",on);x.tabIndex=on?0:-1;document.getElementById(x.getAttribute("aria-controls")).hidden=!on});t.focus()}
     tabs.forEach(function(t,i){t.addEventListener("click",function(){sel(t)});t.addEventListener("keydown",function(e){
       var k=e.key==="ArrowRight"?1:e.key==="ArrowLeft"?-1:0;if(k){e.preventDefault();sel(tabs[(i+k+tabs.length)%tabs.length])}})});
     /* 설명 수준 */
     var why=document.getElementById("whyBody");
     function showWhy(l){why.innerHTML=EXP.why[l].map(function(p){return "<p>"+p+"</p>"}).join("");
-      root.querySelectorAll("[data-lv]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.lv===l)})}
-    root.querySelectorAll("[data-lv]").forEach(function(b){b.addEventListener("click",function(){showWhy(b.dataset.lv)})});
+      info.querySelectorAll("[data-lv]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.lv===l)})}
+    info.querySelectorAll("[data-lv]").forEach(function(b){b.addEventListener("click",function(){showWhy(b.dataset.lv)})});
     showWhy("easy");
     EXP.init(Exp.stageEl);
   });
 }
 window.Sci={initHome:initHome,initGallery:initGallery,initExp:initExp,esc:esc,FLOORS:FLOORS,
   /* 캔버스를 CSS 너비에 맞춰 선명하게 */
-  fit:function(cv,ratio){var w=cv.parentNode.clientWidth-0,dpr=window.devicePixelRatio||1;cv.style.width="100%";cv.width=Math.round(w*dpr);cv.height=Math.round(w*ratio*dpr);cv.style.height=(w*ratio)+"px";var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:w*ratio}}};
+  fit:function(cv,ratio){var pw=cv.parentNode.clientWidth,capW=Math.max(240,(window.innerHeight*0.5)/ratio),w=Math.min(pw,capW),dpr=window.devicePixelRatio||1;cv.style.width=w+"px";cv.width=Math.round(w*dpr);cv.height=Math.round(w*ratio*dpr);cv.style.height=(w*ratio)+"px";var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:w*ratio}}};
 })();

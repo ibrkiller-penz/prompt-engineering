@@ -69,7 +69,7 @@ var EXP={
    var cx=.5*w,cy=h-.27*w,r=.22*w,sc=r/3;
    c.fillText("② 위에서 내려다본 모습 (위쪽이 북쪽)",6,.65*w);
    c.lineWidth=2;c.beginPath();c.arc(cx,cy,r,0,7);c.stroke();
-   c.save();c.globalAlpha=.8;c.textAlign="center";c.fillText("북",cx,cy-r+16);c.fillText("남",cx,cy+r-8);c.fillText("동",cx+r-12,cy+5);c.fillText("서",cx-r+12,cy+5);c.restore();c.textAlign="left";
+   c.save();c.globalAlpha=.8;c.textAlign="center";c.fillText("북",cx,cy-r-8);c.fillText("남",cx,cy+r-8);c.fillText("동",cx+r-12,cy+5);c.fillText("서",cx-r+12,cy+5);c.restore();c.textAlign="left";
    /* 하루의 그림자 끝 점 */
    c.save();c.globalAlpha=.5;for(var q=8;q<=16;q++){var Q=sun(dec,q),ll=Math.min(Q.L*sc,r);c.beginPath();c.arc(cx-Math.sin(Q.az)*ll,cy+Math.cos(Q.az)*ll,3,0,7);c.fill()}c.restore();
    var sl=Math.min(S.L*sc,r),ex=cx-Math.sin(S.az)*sl,ey=cy+Math.cos(S.az)*sl;
@@ -78,7 +78,7 @@ var EXP={
    var dx=cx+Math.sin(S.az)*r,dy=cy-Math.cos(S.az)*r;
    c.save();c.fillStyle="#ffd43b";c.strokeStyle="#e8890c";c.lineWidth=3;c.beginPath();c.arc(dx,dy,w*.032,0,7);c.fill();c.stroke();c.restore();
    c.fillText("해",dx+(Math.sin(S.az)>=0?8:-26),dy-(Math.cos(S.az)>=0?10:-14));
-   c.fillText("그림자 끝",Math.min(Math.max(ex+8,4),w-64),Math.min(Math.max(ey+(Math.cos(S.az)>=0?16:-8),14),h-4));
+   c.fillText("그림자 끝",Math.min(Math.max(ex+10,4),w-72),Math.min(Math.max(ey+(Math.cos(S.az)>=0?20:-12),16),h-6));
    rt.textContent=hm(t);
    var altD=S.alt/R;
    st.innerHTML='<span>시각 <b>'+hm(t)+'</b></span><span>태양 고도 <b>'+altD.toFixed(0)+'°</b></span><span>그림자 길이 = 막대 높이의 <b>'+S.L.toFixed(1)+'</b>배</span>';
