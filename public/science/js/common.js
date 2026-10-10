@@ -297,17 +297,18 @@ function initExp(){
         '<div class="st-th gz-pop">'+thumb(me,IDX[id],true,true)+'</div>'+
         '<h3 id="stT">'+esc(me.title)+'</h3><p class="st-b">'+esc(me.question)+'</p>'+
         '<p class="st-how"><b>어떻게 해요? </b>'+esc(how)+'</p>'+
-        '<div class="st-pred"><p class="st-pt">🤔 먼저 예측해 보세요</p><p class="st-q">'+esc(P.q)+'</p>'+
-          '<div class="st-opts" role="group" aria-label="예측 고르기">'+P.options.map(function(o,i){return '<button type="button" data-i="'+i+'" aria-pressed="false"><span class="n">'+"ABCD"[i]+'</span><span>'+esc(o)+'</span></button>'}).join("")+'</div>'+
-          '<p class="st-note">예측은 저장되지 않아요. 맞고 틀림보다 이유를 생각하는 게 중요해요.</p></div>'+
-        '<button type="button" class="st-go" id="goBtn" disabled>▶ 예측을 골라요</button>'+
+        '<button type="button" class="st-go" id="goBtn">▶ 체험 시작!</button>'+
         '<button type="button" class="st-alt" id="randBtn">🎲 다른 체험 할래요</button>'+
       '</section>'+
       /* 체험 화면 */
       '<section class="play" id="playView" hidden>'+
         '<div class="help" id="help" hidden></div>'+
-        '<div class="play-top"><p class="say info" id="myPred"></p><div id="predRes" hidden></div></div>'+
-        '<div class="board stage" id="stage" aria-label="체험 영역"><div class="stage-body" id="stageBody"></div></div>'+
+        '<div class="play-top">'+
+          '<div class="pred-card gz-pop" id="predCard"><p class="pc-t">🤔 먼저 예측해 보세요</p><p class="pc-q">'+esc(P.q)+'</p>'+
+            '<div class="st-opts" role="group" aria-label="예측 고르기">'+P.options.map(function(o,i){return '<button type="button" data-i="'+i+'"><span class="n">'+"ABCD"[i]+'</span><span>'+esc(o)+'</span></button>'}).join("")+'</div>'+
+            '<p class="st-note">그림을 보고 골라요. 예측은 저장되지 않고, 맞고 틀림보다 이유를 생각하는 게 중요해요.</p></div>'+
+          '<p class="say info" id="myPred" hidden></p><div id="predRes" hidden></div></div>'+
+        '<div class="board stage locked" id="stage" aria-label="체험 영역"><div class="stage-body" id="stageBody"></div><p class="lock-tip" aria-hidden="true">예측을 먼저 골라요</p></div>'+
         '<div class="play-bot"><button type="button" class="kb soft" id="helpBtn">❓ 어떻게 해요 · 왜 그럴까?</button><span class="done-chip" id="doneChip"'+(starsOf(s.done[id])?"":" hidden")+'>'+stars3(starsOf(s.done[id]))+'</span></div>'+
       '</section>'+
      '</div>';
@@ -337,26 +338,33 @@ function initExp(){
       else{var L=d.experiences.filter(function(e){return e.id!==id});location.href=BASE+"exp/"+L[Math.floor(Math.random()*L.length)].id+".html"}
     }
     document.getElementById("randBtn").addEventListener("click",goRandom);
-    /* 예측 고르기 → 시작 */
-    var opts=[].slice.call(app.querySelectorAll(".st-opts button")),go=document.getElementById("goBtn");
-    opts.forEach(function(b){b.addEventListener("click",function(){
-      Exp.choice=+b.dataset.i;opts.forEach(function(x){x.setAttribute("aria-pressed",x===b)});
-      go.disabled=false;go.textContent="▶ 체험 시작!";
-    })});
+    /* 시작 → 체험 화면(그림은 보이되 잠금) → 예측을 고르면 잠금 해제 */
+    var go=document.getElementById("goBtn");
     go.addEventListener("click",function(){
-      if(Exp.choice==null)return;
       recordPlay(id);
       document.getElementById("startView").hidden=true;
-      var pv=document.getElementById("playView");pv.hidden=false;
-      document.getElementById("myPred").innerHTML='<span class="face">🙂</span><span><b>내 예측:</b> '+esc(P.options[Exp.choice])+' — 직접 해 보고 확인해요!</span>';
+      document.getElementById("playView").hidden=false;
       Exp.stageEl=document.getElementById("stageBody");
+      var stage=document.getElementById("stage");
       /* 체험 영역을 실제로 만졌는지 기록(확인·다시 하기 같은 버튼만 누른 경우는 별 제외) */
-      ["pointerdown","keydown","input","change"].forEach(function(t){document.getElementById("stage").addEventListener(t,function(e){if(e.target.closest&&e.target.closest("button"))return;Exp.touched=true},true)});
+      ["pointerdown","keydown","input","change"].forEach(function(t){stage.addEventListener(t,function(e){if(stage.classList.contains("locked"))return;if(e.target.closest&&e.target.closest("button"))return;Exp.touched=true},true)});
       EXP.init(Exp.stageEl);
-      if(EXP.start)EXP.start();
+      /* 잠긴 동안에는 키보드로도 조작되지 않게 */
+      stage.setAttribute("inert","");
       /* 그림 아래의 고정 설명 문장·안내 카드는 도움말로 옮겨 화면을 줄임(결과 메시지·id 있는 글은 그대로) */
       var fixed=[].slice.call(Exp.stageEl.querySelectorAll("p.note:not([id]):not([aria-live]), :scope > .tip"));
       fixed.forEach(function(n){document.getElementById("hpNotes").appendChild(n)});
+      var opts=[].slice.call(document.querySelectorAll("#predCard .st-opts button"));
+      opts.forEach(function(b){b.addEventListener("click",function(){
+        Exp.choice=+b.dataset.i;
+        document.getElementById("predCard").hidden=true;
+        var mp=document.getElementById("myPred");mp.hidden=false;
+        mp.innerHTML='<span class="face">🙂</span><span><b>내 예측:</b> '+esc(P.options[Exp.choice])+' — 직접 해 보고 확인해요!</span><button type="button" class="re" id="rePick">바꾸기</button>';
+        document.getElementById("rePick").addEventListener("click",function(){if(Exp.revealed)return;mp.hidden=true;document.getElementById("predCard").hidden=false;stage.classList.add("locked");stage.setAttribute("inert","");fitOneScreen()});
+        stage.classList.remove("locked");stage.removeAttribute("inert");
+        if(EXP.start)EXP.start();
+        fitOneScreen();
+      })});
       fitOneScreen();window.addEventListener("resize",fitOneScreen);
       setTimeout(fitOneScreen,350);setTimeout(fitOneScreen,1200);
       window.scrollTo(0,0);

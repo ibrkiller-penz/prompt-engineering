@@ -254,3 +254,31 @@ body.present .st-opts button{font-size:20px;min-height:60px}
 .pf-bs .n{margin-top:4px;font-weight:500}
 .pf-bs .h{font-size:12px;color:var(--muted)}
 .pf-reset{margin-top:8px;min-height:44px;border:0;background:none;color:var(--muted);font-size:14px;font-weight:700;text-decoration:underline;text-underline-offset:4px}
+
+/* ───── 체험 화면 위 예측 카드 + 잠긴 그림 ───── */
+.pred-card{border:2px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:20px;background:#fff;padding:12px 14px;box-shadow:0 5px 0 rgba(0,0,0,.06)}
+.pc-t{font-size:18px;font-weight:500;color:var(--accent)}
+.pc-q{margin-top:2px;font-size:15px;font-weight:500}
+.pred-card .st-opts{margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.pred-card .st-opts button{min-height:46px;font-size:15px}
+.pred-card .st-note{margin-top:6px;text-align:center}
+.board.stage{position:relative}
+.board.locked .stage-body{opacity:.45;filter:saturate(.7);pointer-events:none}
+.lock-tip{display:none}
+.board.locked .lock-tip{display:block;position:absolute;left:50%;top:14px;transform:translateX(-50%);margin:0;border-radius:99px;background:var(--ink);color:#fff;padding:6px 14px;font-size:14px;font-weight:500;white-space:nowrap;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.say .re{margin-left:auto;flex:0 0 auto;min-height:32px;border:2px solid var(--line);border-radius:12px;background:#fff;padding:0 10px;font-size:13px;font-weight:500;color:var(--muted)}
+.play-top:has(#predRes[hidden]) .say.info{margin:0}
+
+/* ───── PC: 체험 판은 왼쪽 넓게, 예측·결과는 오른쪽 칸 (좌우 여백 줄이고 세로 길이 줄이기) ───── */
+@media (min-width:900px){
+  .play{max-width:1240px;display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"help help" "board side" "board bot";grid-template-rows:auto auto 1fr;gap:12px 16px;align-items:start}
+  .help{grid-area:help;margin:0}
+  .play-top{grid-area:side;margin:0}
+  .board{grid-area:board}
+  .play-bot{grid-area:bot;margin:0;flex-direction:column;align-items:stretch}
+  .play-bot .kb{width:100%}
+  .pred-card .st-opts{grid-template-columns:1fr}
+  .board .stage-body{display:flex;flex-direction:column;align-items:stretch}
+}
+.lock-tip::before{content:"👆 "}
+@media (min-width:900px){.lock-tip::before{content:"👉 "}}
