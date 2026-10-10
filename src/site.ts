@@ -97,6 +97,14 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     ],
   },
   {
+    path: "/aibasic/",
+    external: true,
+    title: "인공지능 기초",
+    tag: "고등 · 교과서를 이야기와 계단식으로",
+    desc: "고등학교 인공지능 기초 교과서를 이야기와 계단식 학습으로 쉽게 풀어 쓴 학습 사이트예요. 용어 사전도 있어요.",
+    cta: "공부하러 가기 →",
+  },
+  {
     path: "/aimath",
     title: "인공지능 수학",
     tag: "고등 진로선택 · 단원별 학습",

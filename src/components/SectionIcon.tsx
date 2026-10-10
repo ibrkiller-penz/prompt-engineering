@@ -149,6 +149,18 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 인공지능 기초 — 책 + 반짝이는 AI 점
+  "/aibasic/": {
+    from: "#0f766e",
+    to: "#2dd4bf",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 14c5-2 10-2 14 1 4-3 9-3 14-1v19c-5-2-10-2-14 1-4-3-9-3-14-1z" />
+        <path d="M24 15v19" strokeWidth="2" />
+        <circle cx="35" cy="10" r="2.4" fill="#fff" stroke="none" />
+      </g>
+    ),
+  },
   // 인공지능 수학 — 시그마 + 연결 점(신경망)
   "/aimath": {
     from: "#4f46e5",
