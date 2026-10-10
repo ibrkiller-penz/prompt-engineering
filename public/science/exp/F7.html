@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>별까지의 거리는 어떻게 잴까? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"F7",
+ predict:{q:"같은 별을 지구 궤도의 반대쪽 두 곳(반년 간격)에서 보면 배경의 별에 비해 어떻게 보일까요?",options:["전혀 움직이지 않는다","가까운 별일수록 조금 더 움직여 보인다","먼 별일수록 많이 움직인다"],answer:1,
+  feedback:["가까운 별은 배경의 먼 별들에 비해 조금 움직여 보여요.","맞아요. 이 작은 이동을 시차라고 하고, 시차로 별까지의 거리를 재요.","반대예요. 멀수록 움직임(시차)이 작아요."]},
+ steps:["별 거리 슬라이더로 별을 가까이 또는 멀리 옮겨요.","'A 위치에서 보기'와 'B 위치에서 보기'를 눌러 두 곳에서 본 모습을 비교해요.","두 위치에서 별이 얼마나 옮겨 보이는지 확인하고 거리를 추정해요."],
+ observe:["거리를 줄이면 별의 이동은 커지나요, 작아지나요?","배경의 먼 별들은 두 위치에서 이동이 보이나요?","이동 각도(시차)와 거리는 어떤 관계인가요?"],
+ more:["한 손가락을 눈앞에 두고 왼쪽 눈과 오른쪽 눈을 번갈아 감아 보세요. 가까운 손가락이 더 많이 움직여 보여요.","두 눈 사이 거리를 알고 있으면 같은 원리로 가까운 물건까지의 거리를 어림해 볼 수 있어요."],
+ why:{easy:["지구는 1년에 한 번 태양 둘레를 돌아요. 반년이 지나면 지구는 궤도의 반대쪽에 있어요.","그래서 가까운 별은 배경의 먼 별들 사이에서 조금 움직여 보여요. 이 움직임이 클수록 별이 가까워요."],
+  detail:["연주시차 p(초각)와 거리 d(파섹)는 d = 1/p의 관계예요. 1파섹은 시차가 1초각인 거리이고 약 3.26광년이에요.","이 체험의 그림은 시차를 보기 쉽게 확대해 그렸어요. 실제 시차는 매우 작아서(가장 가까운 별도 1초각 미만) 망원경과 정밀한 측정이 필요해요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="배경 별 사이에서 가까운 별이 두 위치에 따라 이동해 보이는 모습"></canvas>'+
+   '<div class="controls"><label>별까지의 거리 <input id="dist" type="range" min="1" max="50" value="10" aria-label="별까지의 거리 (파섹)"><span class="readout" id="rd"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="va" type="button">A 위치에서 보기</button><button id="vb" type="button">B 위치에서 보기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3em"></p>';
+  var cv=el.querySelector("#cv"),dist=el.querySelector("#dist"),rd=el.querySelector("#rd"),msg=el.querySelector("#msg"),va=el.querySelector("#va"),vb=el.querySelector("#vb"),view="A",seen={A:false,B:false},css=getComputedStyle(document.documentElement);
+  var stars=[];for(var i=0;i<60;i++)stars.push([((i*7919)%997)/997,((i*104729)%991)/991]);
+  function shift(){var p=1/(+dist.value);return p}
+  function draw(){
+   var s=Sci.fit(cv,.6),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,sub=css.getPropertyValue("--sub").trim(),brand=css.getPropertyValue("--brand").trim();
+   c.clearRect(0,0,w,h);
+   c.fillStyle=sub;stars.forEach(function(q){c.beginPath();c.arc(q[0]*w,q[1]*h,1.6,0,Math.PI*2);c.fill()});
+   var p=shift(),px=w*.3*p/(1+p),cx=w/2,cy=h/2,sx=view==="A"?cx-px/2:cx+px/2;
+   c.save();c.setLineDash([5,5]);c.strokeStyle=sub;c.beginPath();c.arc(view==="A"?cx+px/2:cx-px/2,cy,9,0,Math.PI*2);c.stroke();c.restore();
+   c.beginPath();c.arc(sx,cy,11,0,Math.PI*2);c.fillStyle=brand;c.fill();
+   c.fillStyle=ink;c.font="14px sans-serif";c.textAlign="center";c.fillText("가까운 별",sx,cy-18);c.fillText("지금 보는 위치: "+view,w/2,h*.92);
+   rd.textContent=(+dist.value)+" 파섹 (약 "+Math.round((+dist.value)*3.26)+" 광년)";
+  }
+  function reveal(){
+   if(seen.A&&seen.B){var p=shift();msg.textContent="두 위치에서 본 별의 이동(시차)은 약 "+p.toFixed(3)+"초각이에요. 거리 = 1 ÷ 시차 ≈ "+(+dist.value)+" 파섹이에요.";Exp.reveal()}
+  }
+  va.addEventListener("click",function(){view="A";seen.A=true;draw();reveal()});
+  vb.addEventListener("click",function(){view="B";seen.B=true;draw();reveal()});
+  dist.addEventListener("input",function(){msg.textContent="";seen={A:false,B:false};draw()});
+  window.addEventListener("resize",draw);draw();
+ }
+};
+Sci.initExp();
+</script></body></html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>낮은 언제나 12시간일까? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"F9",
+ predict:{q:"북반구 여름, 같은 날 적도와 북극 근처 중 어디에서 낮이 더 길까요?",options:["적도","북극 근처","둘이 같다"],answer:1,
+  feedback:["적도는 어느 날이든 낮과 밤이 거의 같아요(약 12시간).","맞아요. 지구 자전축이 기울어 있어서 북극 근처는 여름에 해가 거의 지지 않아요.","같지 않아요. 위도에 따라 낮의 길이가 달라요."]},
+ steps:["위도 슬라이더로 사는 곳의 위도를 골라 보세요.","날짜 슬라이더로 계절을 옮겨 보세요.","막대에서 낮(밝은 부분)의 길이를 확인하고, 적도와 비교해 보세요."],
+ observe:["적도에서는 날짜를 바꿔도 낮이 거의 같나요?","위도가 높을수록 여름 낮과 겨울 낮의 차이는 커지나요?","어떤 위도와 날짜에서는 해가 전혀 지지 않나요?"],
+ more:["해가 가장 긴 날(6월 무렵)과 가장 짧은 날(12월 무렵)의 낮 길이를 우리 지역에서 찾아 비교해 보세요.","손전등과 공을 이용해 자전축을 기울였을 때 빛이 닿는 부분이 어떻게 바뀌는지 관찰해 보세요."],
+ why:{easy:["지구는 자전축이 약 23.4° 기울어진 채로 태양을 돌아요. 그래서 계절마다 해가 떠 있는 시간이 달라져요.","적도는 어느 계절에도 낮과 밤이 거의 같아요. 북극 가까이로 갈수록 여름에는 낮이 아주 길어지고, 겨울에는 아주 짧아져요."],
+  detail:["낮의 길이 D(시간)는 D = (24/π)·arccos(−tanφ·tanδ) 로 근사해요. φ는 위도, δ는 태양의 적위(약 −23.4°~+23.4°)예요.","|tanφ·tanδ| ≥ 1이면 해가 계속 뜨거나(백야·극야) 계속 지지 않아요. 대기 굴절과 해의 크기는 무시한 근사예요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="낮과 밤의 길이를 나타낸 막대. 선택한 위도와 적도를 비교해요"></canvas>'+
+   '<div class="controls"><label>위도 <input id="lat" type="range" min="0" max="90" value="37" aria-label="위도"><span class="readout" id="rl"></span></label></div>'+
+   '<div class="controls"><label>날짜 <input id="day" type="range" min="1" max="365" value="172" aria-label="날짜"><span class="readout" id="rdy"></span></label></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3em"></p>';
+  var cv=el.querySelector("#cv"),lat=el.querySelector("#lat"),day=el.querySelector("#day"),rl=el.querySelector("#rl"),rdy=el.querySelector("#rdy"),msg=el.querySelector("#msg"),css=getComputedStyle(document.documentElement);
+  var MN=[31,28,31,30,31,30,31,31,30,31,30,31];
+  function dateStr(n){var m=0,d=n;while(d>MN[m]){d-=MN[m];m++}return (m+1)+"월 "+d+"일"}
+  function dayLen(phi,n){var delta=-23.44*Math.cos(2*Math.PI*(n+10)/365)*Math.PI/180,x=-Math.tan(phi*Math.PI/180)*Math.tan(delta);if(x>=1)return 0;if(x<=-1)return 24;return 24*Math.acos(x)/Math.PI}
+  function fmt(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60);return hh+"시간 "+mm+"분"}
+  function bar(c,y,w,D,col,label,sub,ink){
+    var x0=w*.1,bw=w*.8,bh=h0*.14;
+    c.fillStyle=sub;c.globalAlpha=.25;c.fillRect(x0,y,bw,bh);c.globalAlpha=1;
+    var a=12-D/2,b=12+D/2;if(D>=24){a=0;b=24}
+    if(D>0){c.fillStyle=col;c.fillRect(x0+bw*Math.max(0,a)/24,y,bw*(Math.min(24,b)-Math.max(0,a))/24,bh)}
+    c.fillStyle=ink;c.font="14px sans-serif";c.fillText(label+" · 낮 "+fmt(D),x0,y-8);
+    c.font="12px sans-serif";c.fillStyle=sub;c.fillText("0시",x0,y+bh+16);c.textAlign="end";c.fillText("24시",x0+bw,y+bh+16);c.textAlign="start";
+  }
+  var h0=0;
+  function draw(){
+   var s=Sci.fit(cv,.5),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,sub=css.getPropertyValue("--sub").trim(),brand=css.getPropertyValue("--brand").trim(),orange="#f59e0b";
+   h0=h;c.clearRect(0,0,w,h);
+   var n=+day.value,phi=+lat.value,D=dayLen(phi,n),E=dayLen(0,n);
+   bar(c,h*.3,w,D,brand,phi+"° 지역",sub,ink);
+   bar(c,h*.72,w,E,orange,"적도(0°)",sub,ink);
+   rl.textContent=phi+"°";rdy.textContent=dateStr(n);
+   msg.textContent=phi+"° 지역의 "+dateStr(n)+" 낮은 "+(D>=24?"하루 종일 밝아요(백야).":D<=0?"하루 종일 어두워요(극야).":fmt(D)+"이에요. 적도는 "+fmt(E)+"이에요.");
+  }
+  lat.addEventListener("input",function(){draw();Exp.reveal()});
+  day.addEventListener("input",function(){draw();Exp.reveal()});
+  window.addEventListener("resize",draw);draw();
+ }
+};
+Sci.initExp();
+</script></body></html>

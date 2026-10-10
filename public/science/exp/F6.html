@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>밀물과 썰물은 왜 하루에 두 번일까? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"F6",
+ predict:{q:"달이 지구의 바닷물을 당기면, 하루 동안 밀물은 몇 번 올까요?",options:["하루에 한 번","하루에 약 두 번","한 달에 한 번"],answer:1,
+  feedback:["한 번이 아니에요. 달 쪽과 그 반대쪽, 두 곳에서 바닷물이 부풀어요.","맞아요. 두 개의 부푼 곳이 지구와 함께 돌면서 약 12시간 25분마다 밀물이 와요.","달은 한 달에 한 번 모양이 바뀌지만, 밀물과 썰물은 하루에 두 번이에요."]},
+ steps:["달의 방향 슬라이더로 달이 있는 쪽을 바꿔 보세요.","'시간 흘리기'를 누르거나 시간 슬라이더를 움직여 지구가 도는 것을 봐요.","아래 그래프에서 바닷물 높이가 하루 동안 어떻게 바뀌는지 확인해요."],
+ observe:["지구가 한 바퀴 도는 동안 밀물(높은 물)은 몇 번 오나요?","달의 방향을 바꾸면 부푼 바다의 방향도 같이 바뀌나요?","높은 물과 낮은 물 사이의 시간 간격은 대략 얼마인가요?"],
+ more:["컵에 물을 담고 가까이 둔 공을 옆으로 움직여 물 표면이 어떻게 변하는지 관찰해 보세요.","해안의 밀물 시각을 달력 앱이나 조석표에서 찾아 시간 간격을 확인해 보세요."],
+ why:{easy:["달은 가까운 쪽의 바닷물을 당기고, 지구는 달 반대쪽 바다가 덜 당겨져요. 그래서 달 쪽과 반대쪽 두 곳에서 바닷물이 부풀어요.","지구는 하루에 한 바퀴 돌기 때문에, 해안은 하루에 부푼 곳을 두 번 지나가요. 그래서 밀물과 썰물이 하루에 두 번씩 와요."],
+  detail:["조석력은 달의 인력이 지구 중심과 그 표면의 각 점에 주는 힘의 차이에서 생겨요. 이 차이는 거리 제곱에 반비례하고 방향에 따라 두 개의 부풀음(cos 2θ 형태)을 만들어요.","이 체험은 달 하나만 고려한 근사이고, 해의 영향·해안 지형·바다의 깊이는 무시했어요. 바닷물 부풀음은 보기 쉽도록 과장해서 그렸어요. 달은 하루에 약 50분씩 늦게 떠서 실제 밀물 간격은 약 12시간 25분이에요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="위에서 본 지구와 달 방향으로 부푼 바닷물. 아래 그래프는 하루 동안의 바닷물 높이"></canvas>'+
+   '<div class="controls"><label>달의 방향 <input id="mo" type="range" min="0" max="359" value="0" aria-label="달의 방향"><span class="readout" id="rm"></span></label></div>'+
+   '<div class="controls"><label>시간 <input id="hr" type="range" min="0" max="24" step="0.1" value="0" aria-label="시간 (시)"><span class="readout" id="rh"></span></label></div>'+
+   '<div class="controls"><button id="play" type="button">시간 흘리기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3em"></p>';
+  var cv=el.querySelector("#cv"),mo=el.querySelector("#mo"),hr=el.querySelector("#hr"),rm=el.querySelector("#rm"),rh=el.querySelector("#rh"),msg=el.querySelector("#msg"),play=el.querySelector("#play"),timer=null,css=getComputedStyle(document.documentElement);
+  function draw(){
+   var s=Sci.fit(cv,.85),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,sub=css.getPropertyValue("--sub").trim(),brand=css.getPropertyValue("--brand").trim(),soft=css.getPropertyValue("--soft").trim();
+   c.clearRect(0,0,w,h);
+   var cx=w/2,cy=h*.36,R=Math.min(w*.2,h*.22),k=R*.3,th=+mo.value*Math.PI/180,t=+hr.value;
+   c.beginPath();
+   for(var i=0;i<=360;i++){var a=i*Math.PI/180,r=R+k*Math.cos(2*(a-th)),x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);if(i)c.lineTo(x,y);else c.moveTo(x,y)}
+   c.closePath();c.fillStyle=soft;c.fill();c.strokeStyle=brand;c.lineWidth=2;c.stroke();
+   c.beginPath();c.arc(cx,cy,R*.6,0,Math.PI*2);c.fillStyle=sub;c.globalAlpha=.35;c.fill();c.globalAlpha=1;
+   c.fillStyle=ink;c.font="14px sans-serif";c.textAlign="center";c.fillText("지구",cx,cy+4);
+   var mx=cx+(R+k+26)*Math.cos(th),my=cy+(R+k+26)*Math.sin(th);
+   c.beginPath();c.arc(mx,my,9,0,Math.PI*2);c.fillStyle=ink;c.fill();c.fillText("달",mx,my-14);
+   var pa=2*Math.PI*t/24,pr=R+k*Math.cos(2*(pa-th)),px=cx+pr*Math.cos(pa),py=cy+pr*Math.sin(pa);
+   c.beginPath();c.arc(px,py,6,0,Math.PI*2);c.fillStyle="#f59e0b";c.fill();
+   c.textAlign="start";
+   var gy=h*.8,gh=h*.14,x0=w*.06,gw=w*.88;
+   c.strokeStyle=sub;c.lineWidth=1;c.beginPath();c.moveTo(x0,gy);c.lineTo(x0+gw,gy);c.stroke();
+   c.strokeStyle=brand;c.lineWidth=2.5;c.beginPath();
+   for(var j=0;j<=240;j++){var tt=j/10,v=Math.cos(2*(2*Math.PI*tt/24-th)),X=x0+gw*tt/24,Y=gy-gh*v;if(j)c.lineTo(X,Y);else c.moveTo(X,Y)}
+   c.stroke();
+   var mxg=x0+gw*t/24,myg=gy-gh*Math.cos(2*(pa-th));
+   c.fillStyle="#f59e0b";c.beginPath();c.arc(mxg,myg,6,0,Math.PI*2);c.fill();
+   c.fillStyle=sub;c.font="12px sans-serif";c.fillText("0시",x0,h*.97);c.textAlign="end";c.fillText("24시",x0+gw,h*.97);c.textAlign="start";
+   var v=Math.cos(2*(pa-th)),state=v>0.9?"밀물(높은 물)":v<-0.9?"썰물(낮은 물)":"중간";
+   rm.textContent=Math.round(+mo.value)+"°";rh.textContent=t.toFixed(1)+"시 · "+state;
+   msg.textContent="지금 해안 바닷물은 "+state+"이에요. 밀물은 하루에 두 번 와요.";
+  }
+  mo.addEventListener("input",function(){draw();Exp.reveal()});
+  hr.addEventListener("input",function(){draw();Exp.reveal()});
+  play.addEventListener("click",function(){
+   if(timer){clearInterval(timer);timer=null;play.textContent="시간 흘리기";return}
+   play.textContent="멈추기";timer=setInterval(function(){if(!document.body.contains(cv)){clearInterval(timer);return}hr.value=((+hr.value)+0.2)%24;draw()},60)});
+  window.addEventListener("resize",draw);draw();
+ }
+};
+Sci.initExp();
+</script></body></html>

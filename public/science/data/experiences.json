@@ -646,6 +646,65 @@
    "minutes": 4,
    "needsMic": false,
    "status": "done"
+  },
+  {
+   "id": "F6",
+   "gallery": "look",
+   "title": "밀물과 썰물은 왜 하루에 두 번일까?",
+   "question": "달은 바닷물을 어떻게 움직일까?",
+   "topics": [
+    "지구·우주",
+    "달",
+    "바다"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "done"
+  },
+  {
+   "id": "F7",
+   "gallery": "look",
+   "title": "별까지의 거리는 어떻게 잴까?",
+   "question": "가까운 별은 배경에서 왜 움직여 보일까?",
+   "topics": [
+    "지구·우주",
+    "별",
+    "거리"
+   ],
+   "level": 3,
+   "minutes": 5,
+   "needsMic": false,
+   "status": "done"
+  },
+  {
+   "id": "F8",
+   "gallery": "look",
+   "title": "행성은 멀수록 천천히 돌까?",
+   "question": "태양에서 멀수록 한 바퀴 도는 시간은 어떻게 될까?",
+   "topics": [
+    "지구·우주",
+    "중력"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "done"
+  },
+  {
+   "id": "F9",
+   "gallery": "look",
+   "title": "낮은 언제나 12시간일까?",
+   "question": "위도와 날짜에 따라 낮의 길이는 어떻게 달라질까?",
+   "topics": [
+    "지구·우주",
+    "계절",
+    "위도"
+   ],
+   "level": 2,
+   "minutes": 4,
+   "needsMic": false,
+   "status": "done"
   }
  ]
 }

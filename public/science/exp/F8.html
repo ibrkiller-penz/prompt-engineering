@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>행성은 멀수록 천천히 돌까? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"F8",
+ predict:{q:"태양에서 멀리 있는 행성일수록, 태양 둘레를 한 바퀴 도는 데 걸리는 시간은?",options:["더 짧다","같다","더 길다"],answer:2,
+  feedback:["멀수록 천천히 돌아요. 태양의 힘이 약해서 속도가 느려요.","행성마다 달라요. 멀수록 한 바퀴에 걸리는 시간이 길어요.","맞아요. 궤도가 길고 속도가 느려서 한 바퀴 시간이 길어져요."]},
+ steps:["행성을 골라 보세요.","시간 빠르기 슬라이더로 공전 속도를 정해요.","'시간 흘리기'를 누르고 행성이 도는 모습과 공전 주기를 비교해요."],
+ observe:["목성은 지구보다 몇 배쯤 천천히 한 바퀴 도나요?","행성이 태양에서 멀수록 주기는 어떻게 변하나요?","가까운 행성은 빨리 움직여 보이나요?"],
+ more:["실 끝에 공을 달고 짧게 또는 길게 줄을 바꿔 가며 같은 속도로 돌려 보세요. 어떤 차이가 있나요?","달력 한 장에 가장 빨리 도는 행성과 가장 느린 행성 주기를 적어 보세요."],
+ why:{easy:["행성이 태양에서 멀수록 태양의 끌어당기는 힘이 약해요. 그래서 천천히 움직이고, 한 바퀴 도는 데 더 오래 걸려요.","그런데 궤도 길이도 길어서, 주기는 거리가 멀어질수록 훨씬 길어져요."],
+  detail:["케플러 제3법칙: 주기 T의 제곱은 궤도 긴반지름 a의 세제곱에 비례해요(T² ∝ a³). 지구 기준으로 a를 천문단위(AU)로 쓰면 T(년)² = a(AU)³ 예요.","이 체험은 원 궤도를 가정한 모식도예요. 실제 궤도는 타원이고, 그림의 거리도 보기 쉽게 조정했어요."]},
+ init:function(el){
+  var P=[{n:"수성",a:0.39,T:0.24},{n:"금성",a:0.72,T:0.62},{n:"지구",a:1,T:1},{n:"화성",a:1.52,T:1.88},{n:"목성",a:5.2,T:11.86}];
+  el.innerHTML='<canvas id="cv" role="img" aria-label="태양 둘레를 도는 행성들의 궤도. 고른 행성의 위치가 움직여요"></canvas>'+
+   '<div class="controls"><label>행성 <select id="pl" aria-label="행성 고르기">'+P.map(function(p,i){return '<option value="'+i+'"'+(i===2?' selected':'')+'>'+p.n+'</option>'}).join("")+'</select></label>'+
+   '<label>시간 빠르기 <input id="sp" type="range" min="1" max="40" value="12" aria-label="시간 빠르기"></label></div>'+
+   '<div class="controls"><button class="primary" id="play" type="button">시간 흘리기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3em"></p>';
+  var cv=el.querySelector("#cv"),pl=el.querySelector("#pl"),sp=el.querySelector("#sp"),play=el.querySelector("#play"),msg=el.querySelector("#msg"),css=getComputedStyle(document.documentElement);
+  var ang=[0,1,2,3,4].map(function(i){return i*1.3}),run=false,rafId=0,picked=false;
+  function draw(){
+   var s=Sci.fit(cv,.75),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,sub=css.getPropertyValue("--sub").trim(),brand=css.getPropertyValue("--brand").trim();
+   c.clearRect(0,0,w,h);
+   var cx=w*.5,cy=h*.5,R=Math.min(w*.46,h*.46),sel=+pl.value;
+   P.forEach(function(p,i){var r=R*Math.pow(p.a/5.2,0.6);c.save();c.setLineDash([4,5]);c.strokeStyle=sub;c.globalAlpha=i===sel?1:.35;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.stroke();c.restore()});
+   c.beginPath();c.arc(cx,cy,14,0,Math.PI*2);c.fillStyle="#f59e0b";c.fill();c.fillStyle=ink;c.font="13px sans-serif";c.textAlign="center";c.fillText("태양",cx,cy+30);
+   P.forEach(function(p,i){var r=R*Math.pow(p.a/5.2,0.6),x=cx+r*Math.cos(ang[i]),y=cy+r*Math.sin(ang[i]);c.beginPath();c.arc(x,y,i===sel?9:6,0,Math.PI*2);c.fillStyle=i===sel?brand:sub;c.fill();if(i===sel){c.fillStyle=ink;c.fillText(p.n,x,y-14)}});
+   var p=P[sel];msg.textContent=p.n+": 궤도 반지름 "+p.a+" AU, 공전 주기 "+p.T+"년 (지구 = 1년)";
+   c.textAlign="start";
+  }
+  function step(){if(!run||!document.body.contains(cv)){run=false;return}var p=P[+pl.value],k=(+sp.value)*0.0005*2*Math.PI/p.T;ang[+pl.value]+=k;draw();rafId=requestAnimationFrame(step)}
+  play.addEventListener("click",function(){if(run){run=false;play.textContent="시간 흘리기";return}run=true;play.textContent="멈추기";rafId=requestAnimationFrame(step);if(picked)Exp.reveal()});
+  pl.addEventListener("change",function(){picked=true;draw();Exp.reveal()});
+  sp.addEventListener("input",function(){draw()});
+  window.addEventListener("resize",draw);draw();
+ }
+};
+Sci.initExp();
+</script></body></html>

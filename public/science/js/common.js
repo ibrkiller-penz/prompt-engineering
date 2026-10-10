@@ -176,7 +176,7 @@ function initExp(){
     /* 체험 영역을 실제로 만졌는지 기록(버튼만 누른 경우는 별 제외) */
     ["pointerdown","keydown","input","change"].forEach(function(t){document.getElementById("stage").addEventListener(t,function(e){
       if(e.target.closest&&e.target.closest("button"))return; /* 확인·다시 하기 같은 버튼은 조작이 아님 */
-      Exp.touched=true})});
+      Exp.touched=true},true)});
     /* 예측 */
     var pb=root.querySelectorAll(".opts button");
     pb.forEach(function(b){b.addEventListener("click",function(){
