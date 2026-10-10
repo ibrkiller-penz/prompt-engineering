@@ -198,7 +198,7 @@ function buildGeometry(rows: string[]) {
     const cx = sx / n;
     const cy = sy / n;
     // 라벨(아이콘·원·이름)이 차지하는 상자 전체가 같은 나라 안에 들어가는 칸을 고른다.
-    // 상자: 가로 ±0.45칸, 세로 −0.85~+0.85칸(CELL=40px 기준 약 ±18px, −34~+34px).
+    // 상자: 아이콘(왼쪽)과 원·이름(오른쪽)을 나란히 둔 가로 약 −30~+24px, 세로 약 −14~+14px(CELL=40px).
     // 그런 칸이 여럿이면 경계에서 가장 먼 칸, 같으면 무게중심에 가까운 칸.
     const inside = (px: number, py: number) => {
       const ix = Math.floor(px);
@@ -211,7 +211,7 @@ function buildGeometry(rows: string[]) {
       const ax = x + 0.5;
       const ay = y + 0.5;
       let miss = 0;
-      for (let sx = -0.45; sx <= 0.451; sx += 0.15) for (let sy = -0.85; sy <= 0.851; sy += 0.17) {
+      for (let sx = -0.75; sx <= 0.651; sx += 0.1) for (let sy = -0.4; sy <= 0.401; sy += 0.1) {
         if (!inside(ax + sx, ay + sy)) miss++;
       }
       let dEdge = Math.min(x + 0.5, W - x - 0.5, y + 0.5, H - y - 0.5) ** 2;
@@ -465,15 +465,15 @@ export default function MapColorGame() {
             )}
           {geo.labels.map(([x, y], r) => (
             <g key={r} pointerEvents="none" transform={`translate(${x * CELL} ${y * CELL})`}>
-              <g transform="translate(0 -12)">
+              <g transform="translate(-17 -1)">
                 <Icon kind={r} />
               </g>
-              <circle cx="0" cy="17" r="12" fill="#fff" stroke={bad.has(r) ? "#dc2626" : "#7c2d12"} strokeWidth="2.5" />
-              <text x="0" y="24" textAnchor="middle" fontSize="19" fill={bad.has(r) ? "#b91c1c" : "#422006"}>
+              <circle cx="11" cy="0" r="12" fill="#fff" stroke={bad.has(r) ? "#dc2626" : "#7c2d12"} strokeWidth="2.5" />
+              <text x="11" y="6" textAnchor="middle" fontSize="16" fill={bad.has(r) ? "#b91c1c" : "#422006"}>
                 {p.names[r]}
               </text>
               {bad.has(r) && (
-                <text x="15" y="-14" fontSize="18" fill="#dc2626" stroke="#fff" strokeWidth="3" paintOrder="stroke">
+                <text x="24" y="-14" fontSize="18" fill="#dc2626" stroke="#fff" strokeWidth="3" paintOrder="stroke">
                   !
                 </text>
               )}
