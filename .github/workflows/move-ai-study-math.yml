@@ -1,6 +1,8 @@
-# 인공지능 수학·인공지능 기초를 ai-study-math 프로젝트로 옮기는 수동 배포. 필요한 비밀값: AI_STUDY_MATH_TOKEN
-name: Move to ai-study-math
+# ai-study-math 사이트 배포(main 에 올라가면 자동, 또는 Actions 에서 수동 실행). 필요한 비밀값: AI_STUDY_MATH_TOKEN
+name: Deploy ai-study-math
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 jobs:
   deploy:
