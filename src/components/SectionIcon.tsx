@@ -161,6 +161,19 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 온라인 과학 체험관 — 원자 모양(타원 세 개)
+  "/science/": {
+    from: "#0e7490",
+    to: "#22d3ee",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="2.6">
+        <ellipse cx="24" cy="24" rx="16" ry="6.5" />
+        <ellipse cx="24" cy="24" rx="16" ry="6.5" transform="rotate(60 24 24)" />
+        <ellipse cx="24" cy="24" rx="16" ry="6.5" transform="rotate(-60 24 24)" />
+        <circle cx="24" cy="24" r="3" fill="#fff" stroke="none" />
+      </g>
+    ),
+  },
   // 인공지능 수학 — 시그마 + 연결 점(신경망)
   "/aimath": {
     from: "#4f46e5",
@@ -204,10 +217,17 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
   },
 };
 
+// 전체 주소(https://…/aimath/)와 끝 슬래시 차이를 흡수해서 아이콘을 찾는다
+function iconKey(path: string): string | undefined {
+  const p = path.startsWith("http") ? new URL(path).pathname : path;
+  return [p, p.replace(/\/$/, ""), p.endsWith("/") ? p : `${p}/`].find((k) => ICONS[k]);
+}
+
 export default function SectionIcon({ path, size = 48 }: { path: string; size?: number }) {
-  const icon = ICONS[path];
-  if (!icon) return null;
-  const id = `g${path.replace(/[^a-z0-9]/gi, "")}`;
+  const key = iconKey(path);
+  if (!key) return null;
+  const icon = ICONS[key];
+  const id = `g${key.replace(/[^a-z0-9]/gi, "")}`;
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden className="shrink-0 drop-shadow-sm">
       <defs>
