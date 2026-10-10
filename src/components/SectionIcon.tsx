@@ -204,8 +204,12 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
   },
 };
 
+/** 바깥 주소(https://…/aimath/)도 같은 꼭지로 보고 아이콘을 찾는다. */
+const norm = (p: string) => p.replace(/^https?:\/\/[^/]+/, "").replace(/\/$/, "");
+
 export default function SectionIcon({ path, size = 48 }: { path: string; size?: number }) {
-  const icon = ICONS[path];
+  const key = Object.keys(ICONS).find((k) => norm(k) === norm(path));
+  const icon = key ? ICONS[key] : undefined;
   if (!icon) return null;
   const id = `g${path.replace(/[^a-z0-9]/gi, "")}`;
   return (
