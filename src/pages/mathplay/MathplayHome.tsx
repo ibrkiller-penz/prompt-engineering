@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HUB_NAME } from "../../site";
 import SectionIcon from "../../components/SectionIcon";
-import BuildingMap from "./BuildingMap";
 import GameModal from "./GameModal";
 import Profile, { BADGES } from "./Profile";
 import Thumb from "./Thumb";
@@ -147,30 +146,23 @@ export default function MathplayHome() {
         </button>
       </div>
 
-      {/* 큰 배너: 왼쪽 글과 단추, 오른쪽 놀이터 건물 그림 */}
-      <header className="mx-auto mt-2 max-w-6xl px-4">
-        <div className="relative grid overflow-hidden rounded-[32px] text-white shadow-[0_8px_0_0_rgba(0,0,0,0.08)] md:grid-cols-[1fr_0.8fr]" style={{ background: "linear-gradient(135deg, #8fd3ff 0%, #b49bff 55%, #ff9ac6 100%)" }}>
-          <span className="absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-white/15" aria-hidden />
-          <div className="relative px-6 pb-3 pt-6 sm:px-10 sm:pt-8">
-            <div className="flex items-center gap-3">
-              <SectionIcon path="/mathplay" size={44} />
-              <h1 className="font-game text-4xl drop-shadow-[0_3px_0_rgba(0,0,0,0.15)] sm:text-5xl">수학 놀이터</h1>
+      {/* 얇은 머리글: 제목과 '아무 게임이나' 한 줄(층 선택은 아래 층 버튼) */}
+      <header className="mx-auto mt-3 max-w-6xl px-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] px-5 py-4 text-white shadow-[0_6px_0_0_rgba(0,0,0,0.08)]" style={{ background: "linear-gradient(135deg, #8fd3ff 0%, #b49bff 55%, #ff9ac6 100%)" }}>
+          <div className="flex min-w-0 items-center gap-3">
+            <SectionIcon path="/mathplay" size={40} />
+            <div className="min-w-0">
+              <h1 className="font-game text-3xl leading-tight drop-shadow-[0_2px_0_rgba(0,0,0,0.15)] sm:text-4xl">수학 놀이터</h1>
+              <p className="text-sm font-semibold opacity-95">생각 없이 놀다 보면 어느새 수학이 쏙쏙!</p>
             </div>
-            <p className="mt-2 max-w-md text-base font-semibold opacity-95">생각 없이 놀다 보면 어느새 수학이 쏙쏙!</p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={randomGame}
-                className="font-game min-h-[60px] rounded-full bg-white px-7 text-2xl text-[#7b61ff] shadow-[0_6px_0_0_rgba(0,0,0,0.18)] transition hover:scale-105 active:translate-y-[4px] active:shadow-[0_2px_0_0_rgba(0,0,0,0.18)]"
-              >
-                🎲 아무 게임이나!
-              </button>
-            </div>
-            <p className="mt-4 text-sm font-semibold opacity-90">👉 건물의 층을 눌러서 들어가 봐요</p>
           </div>
-          <div className="relative px-4 pb-4 md:pt-4">
-            <BuildingMap onPick={(k) => pick(k)} stars={floorStars} />
-          </div>
+          <button
+            type="button"
+            onClick={randomGame}
+            className="font-game min-h-[48px] rounded-full bg-white px-5 text-lg text-[#7b61ff] shadow-[0_5px_0_0_rgba(0,0,0,0.18)] transition hover:scale-105 active:translate-y-[3px] active:shadow-[0_2px_0_0_rgba(0,0,0,0.18)]"
+          >
+            🎲 아무 게임이나!
+          </button>
         </div>
       </header>
 
