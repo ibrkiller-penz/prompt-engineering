@@ -2,7 +2,67 @@
   "hosting": {
     "site": "penedu",
     "public": "dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    "ignore": [
+      "firebase.json",
+      "firebase.ai-study.json",
+      "**/.*",
+      "**/node_modules/**",
+      "aimath/**",
+      "aibasic/**",
+      "mathplay/**"
+    ],
+    "redirects": [
+      {
+        "source": "/mathplay/",
+        "destination": "https://ai-study-math.web.app/mathplay/",
+        "type": 301
+      },
+      {
+        "source": "/aibasic/",
+        "destination": "https://ai-study-math.web.app/aibasic/",
+        "type": 301
+      },
+      {
+        "source": "/aimath/",
+        "destination": "https://ai-study-math.web.app/aimath/",
+        "type": 301
+      },
+      {
+        "source": "/aimath",
+        "destination": "https://ai-study-math.web.app/aimath/",
+        "type": 301
+      },
+      {
+        "source": "/aimath/**",
+        "destination": "https://ai-study-math.web.app/aimath/**",
+        "type": 301
+      },
+      {
+        "source": "/aibasic",
+        "destination": "https://ai-study-math.web.app/aibasic/",
+        "type": 301
+      },
+      {
+        "source": "/aibasic/**",
+        "destination": "https://ai-study-math.web.app/aibasic/**",
+        "type": 301
+      },
+      {
+        "source": "/mathplay",
+        "destination": "https://ai-study-math.web.app/mathplay/",
+        "type": 301
+      },
+      {
+        "source": "/mathplay/**",
+        "destination": "https://ai-study-math.web.app/mathplay/**",
+        "type": 301
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }
