@@ -254,7 +254,7 @@ function initExp(){
     var pb=root.querySelectorAll(".opts button");
     pb.forEach(function(b){b.addEventListener("click",function(){
       if(Exp.choice!=null&&Exp.revealed)return;
-      Exp.choice=+b.dataset.i;pb.forEach(function(x){x.setAttribute("aria-pressed",x===b)});root.querySelector(".predict").classList.add("answered");
+      Exp.choice=+b.dataset.i;pb.forEach(function(x){x.setAttribute("aria-pressed",x===b)});root.querySelector(".predict").classList.add("answered");if(typeof fitOneScreen==="function")fitOneScreen();
       document.getElementById("stage").classList.remove("locked");
       if(EXP.start)EXP.start();
     })});
@@ -275,6 +275,15 @@ function initExp(){
     info.querySelectorAll("[data-lv]").forEach(function(b){b.addEventListener("click",function(){showWhy(b.dataset.lv)})});
     showWhy("easy");
     EXP.init(Exp.stageEl);
+    /* 창 안에서 한 화면을 넘으면 전체를 비율만큼 줄여 한 화면에 맞춤 (너무 작아지면 그대로 두고 스크롤) */
+    function fitOneScreen(){
+      if(!document.body.classList.contains("in-modal"))return;
+      document.body.style.zoom="1";
+      var sh=document.documentElement.scrollHeight,ih=innerHeight;
+      if(sh>ih+2){var z=ih/sh;document.body.style.zoom=z>=0.72?String(z):"1"}
+    }
+    fitOneScreen();
+    window.addEventListener("resize",fitOneScreen);
     /* 그림 아래의 고정 설명 문장은 설명 창으로 옮겨 화면을 줄임 (결과 메시지·id 있는 글은 그대로) */
     var fixedNotes=[].slice.call(Exp.stageEl.querySelectorAll("p.note:not([id]):not([aria-live]), :scope > .tip"));
     if(fixedNotes.length){var box=document.createElement("div");box.className="stage-notes";fixedNotes.forEach(function(n){box.appendChild(n)});info.insertBefore(box,info.querySelector(".foot-note"))}
