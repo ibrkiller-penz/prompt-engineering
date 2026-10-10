@@ -149,6 +149,34 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 인공지능 기초 — 책 + 반짝이는 AI 점
+  "/aibasic/": {
+    from: "#0f766e",
+    to: "#2dd4bf",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 14c5-2 10-2 14 1 4-3 9-3 14-1v19c-5-2-10-2-14 1-4-3-9-3-14-1z" />
+        <path d="M24 15v19" strokeWidth="2" />
+        <circle cx="35" cy="10" r="2.4" fill="#fff" stroke="none" />
+      </g>
+    ),
+  },
+  // 온라인 과학 체험 — 플라스크 + 거품
+  "/science/": {
+    from: "#1f6fd1",
+    to: "#22c3a6",
+    glyph: (
+      <g>
+        <path d="M19.5 9.5h9" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+        <path d="M21.5 9.5v10L12.4 34.6a3 3 0 0 0 2.6 4.4h18a3 3 0 0 0 2.6-4.4L26.5 19.5v-10" fill="none" stroke="#fff" strokeWidth="3" strokeLinejoin="round" />
+        <path d="M16.2 29h15.6l3.4 5.9a2.4 2.4 0 0 1-2.1 3.6H14.9a2.4 2.4 0 0 1-2.1-3.6z" fill="#fff" />
+        <circle cx="22" cy="24.5" r="1.7" fill="#fff" />
+        <circle cx="26.2" cy="21.5" r="1.2" fill="#fff" />
+        <circle cx="34.5" cy="12.5" r="2.4" fill="none" stroke="#fff" strokeWidth="2" />
+        <circle cx="39" cy="7.5" r="1.6" fill="#fff" />
+      </g>
+    ),
+  },
   // 인공지능 수학 — 시그마 + 연결 점(신경망)
   "/aimath": {
     from: "#4f46e5",
@@ -163,19 +191,17 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
-  // 온라인 과학 체험 — 플라스크 + 거품
-  "https://ai-study-science.web.app/": {
-    from: "#1f6fd1",
-    to: "#22c3a6",
+  // 온라인 수학 체험 — 네 칸 조각(테트로미노) + 반짝임
+  "/mathplay": {
+    from: "#0ea5a4",
+    to: "#34d399",
     glyph: (
       <g>
-        <path d="M19.5 9.5h9" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
-        <path d="M21.5 9.5v10L12.4 34.6a3 3 0 0 0 2.6 4.4h18a3 3 0 0 0 2.6-4.4L26.5 19.5v-10" fill="none" stroke="#fff" strokeWidth="3" strokeLinejoin="round" />
-        <path d="M16.2 29h15.6l3.4 5.9a2.4 2.4 0 0 1-2.1 3.6H14.9a2.4 2.4 0 0 1-2.1-3.6z" fill="#fff" />
-        <circle cx="22" cy="24.5" r="1.7" fill="#fff" />
-        <circle cx="26.2" cy="21.5" r="1.2" fill="#fff" />
-        <circle cx="34.5" cy="12.5" r="2.4" fill="none" stroke="#fff" strokeWidth="2" />
-        <circle cx="39" cy="7.5" r="1.6" fill="#fff" />
+        <rect x="9" y="13" width="9.5" height="9.5" rx="2.2" fill="#fff" />
+        <rect x="19.3" y="13" width="9.5" height="9.5" rx="2.2" fill="#fff" fillOpacity=".85" />
+        <rect x="19.3" y="23.3" width="9.5" height="9.5" rx="2.2" fill="#fff" fillOpacity=".85" />
+        <rect x="29.6" y="23.3" width="9.5" height="9.5" rx="2.2" fill="#fff" />
+        <path d="M36 8v6M33 11h6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
       </g>
     ),
   },
@@ -194,10 +220,25 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
   },
 };
 
+// 전체 주소(https://…/aimath/)와 끝 슬래시 차이를 흡수해서 아이콘을 찾는다
+// 다른 사이트 첫 화면(경로가 "/")으로 가는 카드는 사이트 주소로 아이콘을 고른다
+const HOSTS: Record<string, string> = { "ai-study-science.web.app": "/science/" };
+function iconKey(path: string): string | undefined {
+  if (ICONS[path]) return path; // 해피스탬프·노래공방처럼 전체 주소로 등록된 아이콘
+  let p = path;
+  if (path.startsWith("http")) {
+    const u = new URL(path);
+    if (HOSTS[u.hostname] && (u.pathname === "/" || u.pathname === "")) return HOSTS[u.hostname];
+    p = u.pathname;
+  }
+  return [p, p.replace(/\/$/, ""), p.endsWith("/") ? p : `${p}/`].find((k) => ICONS[k]);
+}
+
 export default function SectionIcon({ path, size = 48 }: { path: string; size?: number }) {
-  const icon = ICONS[path];
-  if (!icon) return null;
-  const id = `g${path.replace(/[^a-z0-9]/gi, "")}`;
+  const key = iconKey(path);
+  if (!key) return null;
+  const icon = ICONS[key];
+  const id = `g${key.replace(/[^a-z0-9]/gi, "")}`;
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden className="shrink-0 drop-shadow-sm">
       <defs>

@@ -95,17 +95,18 @@ export default function LessonPage() {
 
       {/* 섹션 탭: 사이트 헤더가 스크롤에 숨으면 그 자리에 올라붙는다(Layout 의 --hdr 변수) */}
       <div className="sticky z-10 -mx-4 mt-4 flex items-stretch border-y border-line bg-surface/95 backdrop-blur" style={{ top: "var(--hdr, 93px)" }}>
-        <ul className="flex min-w-0 flex-1 overflow-x-auto px-2 text-sm font-semibold">
+        {/* 폰 360px 에서도 7개가 한 줄에 들어가도록 탭이 남은 폭을 고르게 나눠 갖는다(flex-1). 좁으면 가로 스크롤. */}
+        <ul className="flex min-w-0 flex-1 overflow-x-auto px-1 text-sm font-semibold">
           {NAV.filter(([id]) => id !== "prereq" || lesson.prereq).map(([id, label]) => (
-            <li key={id}>
-              <a href={`#${id}`} onClick={(e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); }} className="flex min-h-[44px] items-center whitespace-nowrap px-2.5 text-muted hover:text-accent">
+            <li key={id} className="flex flex-1">
+              <a href={`#${id}`} onClick={(e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); }} className="flex min-h-[44px] flex-1 items-center justify-center whitespace-nowrap px-1 text-muted hover:text-accent">
                 {label}
               </a>
             </li>
           ))}
         </ul>
-        <button type="button" onClick={goPractice} className="flex shrink-0 items-center gap-1 border-l border-line bg-accent-soft px-3 text-sm font-extrabold text-accent">
-          🪜 문제{st.basic.tried > 0 && !st.complete ? ` ${st.basic.done}/${st.basic.total}` : ""}
+        <button type="button" onClick={goPractice} className="flex shrink-0 items-center gap-1 border-l border-line bg-accent-soft px-2.5 text-sm font-extrabold text-accent sm:px-3">
+          🪜 문제{st.basic.tried > 0 && !st.complete && <span className="text-xs font-bold">{st.basic.done}/{st.basic.total}</span>}
         </button>
       </div>
 

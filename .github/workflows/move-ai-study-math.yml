@@ -1,0 +1,37 @@
+# ai-study-math 사이트 배포(main 에 올라가면 자동, 또는 Actions 에서 수동 실행). 필요한 비밀값: AI_STUDY_MATH_TOKEN
+name: Deploy ai-study-math
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: 루트에 허브 화면을 두고, 앱 화면은 app.html 로 옮긴다
+        run: |
+          mv dist/index.html dist/app.html
+          cp ai-study-hub/index.html dist/index.html
+          cat > firebase.ai-study.json <<'JSON'
+          {
+            "hosting": {
+              "site": "ai-study-math",
+              "public": "dist",
+              "ignore": ["firebase.json", "firebase.ai-study.json", "**/.*", "**/node_modules/**"],
+              "rewrites": [{ "source": "**", "destination": "/app.html" }]
+            }
+          }
+          JSON
+      - name: Deploy to ai-study-math
+        env:
+          FIREBASE_TOKEN: ${{ secrets.AI_STUDY_MATH_TOKEN }}
+        run: |
+          test -n "$FIREBASE_TOKEN" || { echo "AI_STUDY_MATH_TOKEN 비밀값이 없습니다"; exit 1; }
+          npx --yes firebase-tools@13 deploy --only hosting --config firebase.ai-study.json --project ai-study-math --non-interactive

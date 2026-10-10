@@ -5,21 +5,54 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "science/**"
+      "**/node_modules/**"
     ],
     "rewrites": [
       {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/aimath",
+        "destination": "https://ai-study-math.web.app/aimath/",
+        "type": 301
+      },
+      {
+        "source": "/aimath/**",
+        "destination": "https://ai-study-math.web.app/aimath/",
+        "type": 301
+      },
+      {
+        "source": "/mathplay",
+        "destination": "https://ai-study-math.web.app/mathplay/",
+        "type": 301
+      },
+      {
+        "source": "/mathplay/**",
+        "destination": "https://ai-study-math.web.app/mathplay/",
+        "type": 301
+      },
+      {
+        "source": "/aibasic",
+        "destination": "https://ai-study-math.web.app/aibasic/",
+        "type": 301
+      },
+      {
+        "source": "/aibasic/**",
+        "destination": "https://ai-study-math.web.app/aibasic/",
+        "type": 301
+      },
+      {
         "source": "/science",
-        "destination": "/moved-science.html"
+        "destination": "https://ai-study-science.web.app/",
+        "type": 301
       },
       {
         "source": "/science/**",
-        "destination": "/moved-science.html"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
+        "destination": "https://ai-study-science.web.app/",
+        "type": 301
       }
     ]
   }

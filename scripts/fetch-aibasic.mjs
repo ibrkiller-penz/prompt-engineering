@@ -1,9 +1,9 @@
-// /aibasic 소스는 저장소에 없다(교재 이미지 포함). 다른 PC 에서 배포하기 전에 현재 배포본을 public/aibasic 으로 내려받는다.
+// /aibasic 소스는 저장소에 없다(교재 이미지 포함). 다른 PC 에서 배포하기 전에 현재 배포본(인공지능 기초는 ai-study-math 에 있음)을 public/aibasic 으로 내려받는다.
 // 사용: node scripts/fetch-aibasic.mjs   (이미 있는 파일은 건너뜀. 다시 받으려면 --force)
 import fs from "node:fs";
 import path from "node:path";
 
-const BASE = "https://penedu.web.app/aibasic/";
+const BASE = "https://ai-study-math.web.app/aibasic/";
 const OUT = path.resolve("public/aibasic");
 const force = process.argv.includes("--force");
 
