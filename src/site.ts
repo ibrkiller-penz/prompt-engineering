@@ -107,7 +107,7 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
   {
     path: "https://ai-study-science.web.app/",
     external: true,
-    title: "온라인 과학 체험관",
+    title: "온라인 과학 체험",
     tag: "예측 → 조작 → 관찰 · 시뮬레이션",
     desc: "먼저 예측하고, 직접 만져 보고, 이유를 확인해요. 4개 층 48가지 체험에서 별을 모아요.",
     more: "읽는 사이트가 아니라 조작하는 사이트예요. 체험마다 예측 → 조작 → 관찰 → 쉬운/자세한 설명 순서로 진행하고, 수업 투사용 보기(?present=1)가 있어요. 로그인·서버 저장 없이 브라우저 안에서만 동작해요.",

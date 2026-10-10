@@ -1,4 +1,4 @@
-/* 온라인 과학 체험관 공통 스크립트
+/* 온라인 과학 체험 공통 스크립트
    - 수학 놀이터(mathplay)와 같은 구성: 허브(프로필·등급·미션·배지·층별 타일) → 체험 창(시작 화면 → 체험)
    - 체험 파일(exp/*.html)은 window.EXP 를 정의하고 Sci.initExp() 를 부른다. 체험 내용 코드는 Exp.stageEl 안에 그린다.
    - 기록은 이 기기 브라우저(localStorage)에만 저장한다. 서버로 보내지 않는다. */
@@ -112,7 +112,7 @@ function homeHTML(d,s,f){
   var h='';
   h+='<div class="hub-top"><a class="back" href="https://penedu.web.app/"><span>←</span> 살빠진 임선생과 함께하는 교육자료</a>'+
      '<button type="button" class="me" data-act="profile" aria-label="내 프로필 열기"><span class="av">'+esc(s.avatar||"🐣")+'</span><span class="nm">'+esc(s.name||"이름 정하기")+'</span><span class="st">⭐ '+tot+'</span></button></div>';
-  h+='<header class="hub-head"><div class="hh-l"><span class="hh-ic" aria-hidden="true">🔬</span><div><h1>과학 체험관</h1><p>먼저 예측하고, 만져 보고, 이유를 찾아요!</p></div></div>'+
+  h+='<header class="hub-head"><div class="hh-l"><span class="hh-ic" aria-hidden="true">🔬</span><div><h1>온라인 과학 체험</h1><p>먼저 예측하고, 만져 보고, 이유를 찾아요!</p></div></div>'+
      '<button type="button" class="hh-rand" data-act="random">🎲 아무 체험이나!</button></header>';
   h+='<section class="hub-stats" aria-label="내 탐험 현황">'+
      '<button type="button" class="sc" data-act="profile"><p class="k">내 등급</p><p class="v">'+rk.icon+' '+rk.name+'</p><div class="bar"><i style="width:'+rk.pct+'%"></i></div><p class="s">'+(rk.next?'다음 '+rk.next.icon+'까지 ⭐ '+(rk.next.at-tot):"최고 등급!")+'</p></button>'+
@@ -132,7 +132,7 @@ function homeHTML(d,s,f){
        '<div class="fs-p"><p>⭐ '+got+' / '+all+'</p><div class="bar"><i style="width:'+(all?got*100/all:0)+'%;background:linear-gradient(90deg,'+fl.grad[0]+','+fl.grad[1]+')"></i></div></div></div>'+
        '<ul class="tiles">'+items.map(function(e){return '<li>'+tile(e,s,today.id)+'</li>'}).join("")+'</ul></section>';
   });
-  h+='<details class="hub-more"><summary>🔬 이 체험관은 어떤 곳인가요?</summary><p>예측 → 조작 → 관찰 → 이유 확인 순서로 진행하는 웹 과학 체험이에요. 체험마다 별을 모으고, 다섯 번 해내면 별 세 개가 돼요. 기록은 이 기기의 브라우저에만 저장되고 어디로도 보내지 않아요.</p><p>Exploratorium에서 영감을 받았지만 관련 없는 독립 사이트예요. 체험 내용과 그림은 모두 새로 만들었어요. 수업 화면용으로 크게 보려면 주소 뒤에 <code>?present=1</code>을 붙여요.</p></details>';
+  h+='<details class="hub-more"><summary>🔬 온라인 과학 체험은 어떤 곳인가요?</summary><p>예측 → 조작 → 관찰 → 이유 확인 순서로 진행하는 웹 과학 체험이에요. 체험마다 별을 모으고, 다섯 번 해내면 별 세 개가 돼요. 기록은 이 기기의 브라우저에만 저장되고 어디로도 보내지 않아요.</p><p>Exploratorium에서 영감을 받았지만 관련 없는 독립 사이트예요. 체험 내용과 그림은 모두 새로 만들었어요. 수업 화면용으로 크게 보려면 주소 뒤에 <code>?present=1</code>을 붙여요.</p></details>';
   return h;
 }
 function initHome(){
@@ -170,7 +170,7 @@ function gameHeadHTML(e,s,showBack){
     '<div class="g-tx"><h2>'+esc(e.title)+'</h2><p>'+stars3(n,true)+' '+f.emoji+' '+f.label+' '+f.name+'</p></div>'+
     '<button type="button" class="g-ic" data-g="help" aria-label="하는 방법 보기">❓</button>'+
     '<button type="button" class="g-ic hide-sm" data-g="random" aria-label="다른 체험 아무거나">🎲</button>'+
-    (showBack?'<a class="g-ic g-x" href="'+BASE+'" aria-label="체험관으로 돌아가기">✕</a>':'<button type="button" class="g-ic g-x" data-g="close" aria-label="체험 끄기">✕</button>')+
+    (showBack?'<a class="g-ic g-x" href="'+BASE+'" aria-label="온라인 과학 체험으로 돌아가기">✕</a>':'<button type="button" class="g-ic g-x" data-g="close" aria-label="체험 끄기">✕</button>')+
   '</header>';
 }
 function ensureModal(){
@@ -287,7 +287,7 @@ function initExp(){
     var me=d.experiences[IDX[id]],fl=floorOf(me),s=load(),P=EXP.predict;
     /* 체험 그림이 읽는 색 변수: 층 색으로 맞춤 */
     var R=document.documentElement.style;R.setProperty("--zone",fl.zone);R.setProperty("--brand",fl.zone);R.setProperty("--soft",fl.soft);
-    document.title=me.title+" · 과학 체험관";
+    document.title=me.title+" · 온라인 과학 체험";
     var how=EXP.steps.slice(0,2).join(" ");
     var app=document.getElementById("app");
     app.innerHTML=(IN_MODAL?"":gameHeadHTML(me,s,true))+
