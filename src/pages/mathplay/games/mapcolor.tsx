@@ -197,11 +197,18 @@ function buildGeometry(rows: string[]) {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (p.cells[y][x] === r) { sx += x + 0.5; sy += y + 0.5; n++; }
     const cx = sx / n;
     const cy = sy / n;
+    // 라벨은 나라 안에서 경계(다른 나라·바다·지도 가장자리)에서 가장 멀리 떨어진 칸에 둔다.
+    // 같으면 무게중심에 가까운 칸. 그래야 글자와 집 그림이 경계선에 걸리지 않는다.
     let best: [number, number] = [0, 0];
-    let bd = 1e9;
+    let bestScore = -1e9;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (p.cells[y][x] === r) {
-      const d = (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2;
-      if (d < bd) { bd = d; best = [x + 0.5, y + 0.5]; }
+      let dEdge = Math.min(x + 0.5, W - x - 0.5, y + 0.5, H - y - 0.5) ** 2;
+      for (let y2 = 0; y2 < H; y2++) for (let x2 = 0; x2 < W; x2++) {
+        if (p.cells[y2][x2] !== r) dEdge = Math.min(dEdge, (x - x2) ** 2 + (y - y2) ** 2);
+      }
+      const dC = (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2;
+      const score = dEdge - 0.01 * dC;
+      if (score > bestScore) { bestScore = score; best = [x + 0.5, y + 0.5]; }
     }
     return best;
   });
