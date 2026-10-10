@@ -279,3 +279,33 @@ body.present .predict .q,body.present .predict h2{font-size:20px}
 .more-controls summary::-webkit-details-marker{display:none}
 .more-controls[open] summary{margin-bottom:4px}
 .more-controls .controls{margin-top:4px}
+
+/* ---- 6차: 체험 창 (mathplay 게임 창 방식) ---- */
+.exp-modal{position:fixed;inset:0;z-index:60;background:rgba(20,30,25,.5);display:flex;align-items:stretch;justify-content:center}
+.exp-modal[hidden]{display:none}
+.em-box{width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.em-head{display:flex;align-items:center;gap:10px;padding:8px 12px;color:#fff;flex:0 0 auto}
+.em-thumb{width:46px;height:46px;flex:0 0 auto;border-radius:14px;border:2px solid rgba(255,255,255,.7);background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px}
+.em-txt{flex:1;min-width:0}
+.em-title{margin:0;font-size:18px;line-height:1.25;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.em-sub{margin:0;font-size:12px;opacity:.9;font-weight:500}
+.em-btns{display:flex;gap:6px;flex:0 0 auto}
+.em-ic{width:44px;height:44px;min-width:44px;border-radius:999px;border:0;background:rgba(255,255,255,.92);color:#1d2b24;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.15);padding:0}
+.em-ic:disabled{opacity:.4}
+.em-ic:active{transform:translateY(2px);box-shadow:none}
+.em-close{background:#ff4d6d;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.25);outline:3px solid rgba(255,255,255,.7);outline-offset:-3px}
+.em-frame{flex:1 1 auto;width:100%;border:0;background:transparent;min-height:0}
+@media (min-width:900px){
+  .exp-modal{padding:3vh 2vw}
+  .em-box{width:min(1140px,96vw);height:94vh;border-radius:28px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .em-head{padding:12px 16px}
+  .em-title{font-size:22px}
+}
+/* 창 안: 머리글·바닥글 숨기고 체험만 */
+body.in-modal{background:var(--bg)}
+body.in-modal .top,body.in-modal .foot,body.in-modal .exp-title,body.in-modal .foot-note{display:none}
+body.in-modal .wrap{padding:8px 10px 12px;max-width:none}
+body.in-modal .bottom-row{margin-top:6px}
+/* 체험 선택 칸: 큰 둥근 칸 */
+.predict .opts button{border-radius:18px;font-size:16px;font-weight:500;background:#fff;border:2px solid #e6efe9}
+.predict .opts button[aria-pressed=true]{background:#e6f5ec;border-color:#1e8152;color:#13593a}

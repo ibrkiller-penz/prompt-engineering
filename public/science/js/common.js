@@ -44,6 +44,72 @@ function floorStats(list,s,fid){var all=list.filter(function(e){return FLOOR_OF[
 function badgeStates(list,s){var n=list.filter(function(e){return isDone(s,e.id)}).length,t=list.length;
  return BADGES.map(function(b){var on=b.floor?floorStats(list,s,b.floor).done===floorStats(list,s,b.floor).total&&floorStats(list,s,b.floor).total>0:b.on(n,t);return {b:b,on:on}})}
 
+
+/* ---- 체험 창: 허브·갤러리에서 누르면 화면 가득 창으로 열림 (mathplay 방식) ---- */
+var modalList=[],modalIndex=-1,modalChanged=false;
+function ensureModal(){
+  if(document.getElementById("expModal"))return document.getElementById("expModal");
+  var m=document.createElement("div");m.id="expModal";m.className="exp-modal";m.hidden=true;
+  m.innerHTML='<div class="em-box" role="dialog" aria-modal="true" aria-label="체험">'+
+    '<header class="em-head"><span class="em-thumb" id="emThumb" aria-hidden="true"></span>'+
+    '<div class="em-txt"><h2 class="em-title" id="emTitle"></h2><p class="em-sub" id="emSub"></p></div>'+
+    '<div class="em-btns"><button type="button" class="em-ic" data-act="help" aria-label="설명 보기">❓</button>'+
+    '<button type="button" class="em-ic" data-act="prev" aria-label="이전 체험">‹</button>'+
+    '<button type="button" class="em-ic" data-act="next" aria-label="다음 체험">›</button>'+
+    '<button type="button" class="em-ic em-close" data-act="close" aria-label="닫기">✕</button></div></header>'+
+    '<iframe class="em-frame" id="emFrame" title="체험 화면"></iframe></div>';
+  document.body.appendChild(m);
+  m.addEventListener("click",function(e){
+    var b=e.target.closest("[data-act]");if(!b)return;
+    var act=b.dataset.act;
+    if(act==="close")closeExp();
+    else if(act==="help"){var f=document.getElementById("emFrame");var ob=f.contentDocument&&f.contentDocument.getElementById("openInfo");if(ob)ob.click()}
+    else if(act==="prev"&&modalIndex>0)showModal(modalIndex-1);
+    else if(act==="next"&&modalIndex<modalList.length-1)showModal(modalIndex+1);
+  });
+  m.addEventListener("click",function(e){if(e.target===m)closeExp()});
+  document.addEventListener("keydown",function(e){
+    if(m.hidden)return;
+    if(e.key==="Escape")closeExp();
+    if(e.key==="ArrowLeft"&&modalIndex>0)showModal(modalIndex-1);
+    if(e.key==="ArrowRight"&&modalIndex<modalList.length-1)showModal(modalIndex+1);
+  });
+  return m;
+}
+function showModal(i){
+  var m=ensureModal(),it=modalList[i];if(!it)return;
+  modalIndex=i;
+  m.querySelector("#emTitle").textContent=it.id+". "+it.title;
+  m.querySelector("#emSub").textContent=it.floor+" · "+it.gname;
+  m.querySelector("#emThumb").textContent=it.icon;
+  m.querySelector(".em-head").style.background="linear-gradient(90deg,"+it.grad[0]+","+it.grad[1]+")";
+  m.querySelector("[data-act=prev]").disabled=i<=0;
+  m.querySelector("[data-act=next]").disabled=i>=modalList.length-1;
+  m.querySelector("#emFrame").src=it.href+(/\?/.test(it.href)?"&":"?")+"modal=1";
+  m.hidden=false;document.body.style.overflow="hidden";
+}
+function openExp(href,id){
+  var idx=modalList.findIndex(function(x){return x.id===id});
+  if(idx<0){location.href=href;return}
+  showModal(idx);
+}
+function closeExp(){
+  var m=document.getElementById("expModal");if(!m||m.hidden)return;
+  m.hidden=true;m.querySelector("#emFrame").src="about:blank";document.body.style.overflow="";
+  if(modalChanged)location.reload();
+}
+function setModalList(d,pick){
+  modalList=d.experiences.filter(pick).map(function(e){var f=FLOORS[FLOOR_OF[e.gallery]-1];return {id:e.id,title:e.title,href:BASE+"exp/"+e.id+".html"+(present?"?present=1":""),grad:f.grad,floor:f.emoji+" "+f.name,gname:GNAME[e.gallery],icon:ICON[e.id]||f.emoji}});
+  if(!setModalList.bound){
+    setModalList.bound=true;
+    document.addEventListener("click",function(e){
+      var a=e.target.closest&&e.target.closest("a.exp-open");if(!a||e.metaKey||e.ctrlKey||e.shiftKey)return;
+      e.preventDefault();openExp(a.getAttribute("href"),a.dataset.id);
+    });
+    window.addEventListener("message",function(e){if(e.data&&e.data.sciDone)modalChanged=true});
+  }
+}
+
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function load2(){return fetch(BASE+"data/experiences.json").then(function(r){return r.json()})}
 function stars(n){return "★★★".slice(0,n)+"☆☆☆".slice(0,3-n)}
@@ -52,7 +118,7 @@ var ICON={A1:"📏",A2:"🎨",A3:"👁️",A4:"⬜",A5:"🟥",A6:"🛞",A7:"👀
 function tile(e,s){
   var done=isDone(s,e.id),fresh=!s.plays[e.id],href=BASE+"exp/"+e.id+".html"+(present?"?present=1":"");
   var g=FLOORS[FLOOR_OF[e.gallery]-1],c=g.grad;
-  return '<a class="tile'+(done?" is-done":"")+'" href="'+href+'" style="--c1:'+c[0]+';--c2:'+c[1]+'">'+
+  return '<a class="tile exp-open'+(done?" is-done":"")+'" data-id="'+e.id+'" href="'+href+'" style="--c1:'+c[0]+';--c2:'+c[1]+'">'+
     '<div class="tile-art" aria-hidden="true"><span>'+(ICON[e.id]||g.emoji)+'</span></div>'+
     '<div class="tile-body"><div class="tile-top">'+(done?'<span class="tag ok">✔ 완료</span>':fresh?'<span class="tag new">NEW</span>':'<span class="tag">'+e.minutes+'분</span>')+'<span class="lv" title="난이도">'+stars(e.level)+'</span></div>'+
     '<h3>'+esc(e.id)+'. '+esc(e.title)+'</h3><p>'+esc(e.question)+'</p>'+
@@ -78,7 +144,8 @@ function initHome(){
     m.innerHTML=pick?'<span class="mission-l">🎯 오늘의 미션</span><strong>'+esc(pick.title)+'</strong><a class="btn primary" href="'+BASE+"exp/"+pick.id+'.html">지금 해 보기 →</a>':'<span class="mission-l">🎉</span><strong>모든 체험을 마쳤어요!</strong>';
     /* 아무 체험이나 */
     var r=document.getElementById("random");
-    r.addEventListener("click",function(){var pool=todo.length?todo:list;var p=pool[Math.floor(Math.random()*pool.length)];location.href=BASE+"exp/"+p.id+".html"+(present?"?present=1":"")});
+    setModalList(d,function(){return true});
+    r.addEventListener("click",function(){var pool=todo.length?todo:list;var p=pool[Math.floor(Math.random()*pool.length)];openExp(BASE+"exp/"+p.id+".html",p.id)});
     /* 층 */
     document.getElementById("floors").innerHTML=FLOORS.map(function(f){
       var fs=floorStats(list,s,f.id),pct=fs.total?Math.round(fs.done*100/fs.total):0;
@@ -123,6 +190,7 @@ function initGallery(){
       shown.textContent=r.length+"개";
     }
     [sel,lv,mic].forEach(function(el){el.addEventListener("change",render)});q.addEventListener("input",render);render();
+    setModalList(d,function(e){return fid?FLOOR_OF[e.gallery]===fid:true});
   });
 }
 
@@ -138,6 +206,7 @@ window.Exp={
     if(!Exp.counted&&Exp.choice!=null&&Exp.touched){
       recordDone(EXP.id);Exp.counted=true;
       var d=document.getElementById("doneChip");if(d)d.hidden=false;
+      if(window.parent&&window.parent!==window)window.parent.postMessage({sciDone:EXP.id},location.origin);
     }
     if(Exp.revealed)return;Exp.revealed=true;
     var P=EXP.predict,res=document.getElementById("predRes");
@@ -147,6 +216,7 @@ window.Exp={
 };
 function initExp(){
   var id=EXP.id;
+  if(/[?&]modal=1/.test(location.search))document.body.classList.add("in-modal");
   load2().then(function(d){
     var list=d.experiences,done=list.filter(function(e){return e.status==="done"}),
         me=list.filter(function(e){return e.id===id})[0],g=d.galleries.filter(function(x){return x.id===me.gallery})[0],
