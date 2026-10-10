@@ -287,7 +287,7 @@ export default function GameModal({ id, onClose, onOpen }: { id: string; onClose
               </div>
             </div>
           ) : (
-            <div className="mx-auto max-w-4xl px-3 py-3 sm:px-5 sm:py-5">
+            <div className="mx-auto max-w-4xl px-3 py-3 sm:px-5 sm:py-5 md:max-w-6xl md:px-8">
               {Game ? (
                 <Suspense fallback={<p className="font-game p-10 text-center text-2xl text-muted">불러오는 중… 🎮</p>}>
                   <StageContext.Provider value={stage}>
