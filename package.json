@@ -27,6 +27,8 @@
     "preview": "vite preview",
     "deploy": "npm run build && npx firebase-tools deploy --only hosting",
     "pdfs": "node scripts/make-pdfs.mjs",
-    "prebuild": "node scripts/prepare-aibasic.mjs"
+    "prebuild": "node scripts/prepare-aibasic.mjs",
+    "build:ai": "vite build --mode ai-study",
+    "deploy:ai": "npm run build:ai && firebase-tools deploy --only hosting --config firebase.ai-study.json --project ai-study-math"
   }
 }

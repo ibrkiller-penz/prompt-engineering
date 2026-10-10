@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { HUB_NAME, SECTIONS } from "../site";
+import { HUB_NAME, SECTIONS, VISIBLE_SECTIONS } from "../site";
 import SectionIcon from "../components/SectionIcon";
 
 type Section = (typeof SECTIONS)[number];
@@ -167,7 +167,7 @@ export default function Hub() {
           </div>
         </div>
 
-        {SECTIONS.filter((s) => s.featured).map((s) => (
+        {VISIBLE_SECTIONS.filter((s) => s.featured).map((s) => (
           <Link
             key={s.path}
             to={s.path}
@@ -194,7 +194,7 @@ export default function Hub() {
         ))}
 
         <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-          {SECTIONS.filter((s) => !s.featured).map((s) => {
+          {VISIBLE_SECTIONS.filter((s) => !s.featured).map((s) => {
             const cls =
               "group block h-full rounded-card border border-line bg-surface p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg";
             const inner = <CardBody s={s} />;
