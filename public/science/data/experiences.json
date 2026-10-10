@@ -56,7 +56,7 @@
    "level": 1,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "A3",
@@ -70,7 +70,7 @@
    "level": 1,
    "minutes": 3,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "A4",
@@ -84,7 +84,7 @@
    "level": 1,
    "minutes": 3,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "A5",
@@ -98,7 +98,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "A6",
@@ -112,7 +112,7 @@
    "level": 2,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "A7",
@@ -126,7 +126,7 @@
    "level": 1,
    "minutes": 3,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "B1",
@@ -140,7 +140,7 @@
    "level": 1,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "B2",
@@ -154,7 +154,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "B3",
@@ -168,7 +168,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": true,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "B4",
@@ -182,7 +182,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "B5",
@@ -196,7 +196,7 @@
    "level": 2,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "B6",
@@ -210,7 +210,7 @@
    "level": 2,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "C1",
@@ -224,7 +224,7 @@
    "level": 1,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "C2",
@@ -238,7 +238,7 @@
    "level": 1,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "C3",
@@ -252,7 +252,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "C4",
@@ -266,7 +266,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "C5",
@@ -280,7 +280,7 @@
    "level": 3,
    "minutes": 6,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "C6",
@@ -294,7 +294,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "C7",
@@ -309,7 +309,7 @@
    "level": 3,
    "minutes": 6,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "D1",
@@ -323,7 +323,7 @@
    "level": 1,
    "minutes": 3,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "D2",
@@ -337,7 +337,7 @@
    "level": 1,
    "minutes": 3,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "D3",
@@ -351,7 +351,7 @@
    "level": 2,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "D4",
@@ -365,7 +365,7 @@
    "level": 1,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "D5",
@@ -379,7 +379,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "E1",
@@ -393,7 +393,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "E2",
@@ -407,7 +407,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "E3",
@@ -421,7 +421,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "E4",
@@ -435,7 +435,7 @@
    "level": 1,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "E5",
@@ -449,7 +449,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "F1",
@@ -463,7 +463,7 @@
    "level": 2,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "F2",
@@ -477,7 +477,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "F3",
@@ -491,7 +491,7 @@
    "level": 3,
    "minutes": 6,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "F4",
@@ -505,7 +505,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "G1",
@@ -519,7 +519,7 @@
    "level": 1,
    "minutes": 3,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "G2",
@@ -533,7 +533,7 @@
    "level": 3,
    "minutes": 10,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "G3",
@@ -547,7 +547,7 @@
    "level": 2,
    "minutes": 5,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "G4",
@@ -561,7 +561,7 @@
    "level": 2,
    "minutes": 6,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   },
   {
    "id": "G5",
@@ -575,7 +575,7 @@
    "level": 2,
    "minutes": 4,
    "needsMic": false,
-   "status": "planned"
+   "status": "done"
   }
  ]
 }

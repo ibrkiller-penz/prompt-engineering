@@ -30,7 +30,7 @@ var EXP={
    '<div class="controls"><button class="primary" id="go" type="button">공 차기</button><button id="clr" type="button">기록 지우기</button></div>'+
    '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>'+
    '<ul class="c5-log" id="log" aria-label="찬 공 기록"></ul>'+
-   '<p class="note">근사 모델이에요: 축구공 크기, 처음 각도 12°, 공기 저항과 마그누스 힘의 계수는 단순화한 값이에요. 공의 회전 모습은 보기 쉽게 느리게 그렸어요.</p>';
+   '<p class="note">근사 모델이에요: 축구공 크기, 처음 각도 12°, 공기 저항과 마그누스 힘의 계수는 단순화한 값이에요. 높이 차이가 잘 보이도록 세로 방향을 가로보다 늘려 그렸고, 공의 회전 모습은 느리게 그렸어요. 힘 화살표는 중력을 기준으로 한 상대 크기예요.</p>';
   var cv=el.querySelector("#cv"),spd=el.querySelector("#spd"),rps=el.querySelector("#rps"),msg=el.querySelector("#msg"),log=el.querySelector("#log");
   var segB=el.querySelectorAll("[data-s]"),spin=1;
   var M=0.43,R=0.11,A=Math.PI*R*R,RHO=1.2,CD=0.25,G=9.81,ANG=12*Math.PI/180,DT=0.002;
@@ -53,18 +53,19 @@ var EXP={
   }
   function readouts(){el.querySelector("#spdR").textContent=spd.value+" m/s (시속 "+Math.round(spd.value*3.6)+" km)";el.querySelector("#rpsR").textContent=(spin===0?"— (회전 없음)":"1초에 "+rps.value+"바퀴");rps.disabled=spin===0}
   function view(w,h){
-   var xmax=45,ymax=6;
+   var xmax=40,ymax=3;
    shots.concat(cur?[cur]:[]).concat(ref?[ref]:[]).forEach(function(p){xmax=Math.max(xmax,p.range+2);ymax=Math.max(ymax,p.maxY+1)});
-   var padL=28,padB=24,padT=10,padR=10,sc=Math.min((w-padL-padR)/xmax,(h-padB-padT)/ymax);
-   return {sc:sc,ox:padL,oy:h-padB,xmax:(w-padL-padR)/sc,ymax:(h-padB-padT)/sc};
+   var padL=30,padB=24,padT=14,padR=10;ymax*=1.15;
+   /* 세로는 가로보다 늘려 그림(높이 차이가 잘 보이도록) */
+   return {sx:(w-padL-padR)/xmax,sy:(h-padB-padT)/ymax,ox:padL,oy:h-padB,xmax:xmax,ymax:ymax};
   }
   function drawPath(c,V,p,color,dash,upto,label){
    c.save();c.strokeStyle=color;c.lineWidth=dash?1.5:2.5;c.setLineDash(dash?[5,5]:[]);c.beginPath();
    var last=null;
-   for(var i=0;i<p.pts.length;i+=3){var q=p.pts[i];if(upto!=null&&q[0]>upto)break;var X=V.ox+q[1]*V.sc,Y=V.oy-q[2]*V.sc;if(!last)c.moveTo(X,Y);else c.lineTo(X,Y);last=q}
-   if(upto==null){var e=p.pts[p.pts.length-1];c.lineTo(V.ox+e[1]*V.sc,V.oy-e[2]*V.sc);last=e}
+   for(var i=0;i<p.pts.length;i+=3){var q=p.pts[i];if(upto!=null&&q[0]>upto)break;var X=V.ox+q[1]*V.sx,Y=V.oy-q[2]*V.sy;if(!last)c.moveTo(X,Y);else c.lineTo(X,Y);last=q}
+   if(upto==null){var e=p.pts[p.pts.length-1];c.lineTo(V.ox+e[1]*V.sx,V.oy-e[2]*V.sy);last=e}
    c.stroke();c.restore();
-   if(label&&last){c.fillStyle=color;c.fillText(label,Math.min(V.ox+last[1]*V.sc+4,V.ox+V.xmax*V.sc-40),V.oy-last[2]*V.sc-6)}
+   if(label&&last){c.fillStyle=color;c.fillText(label,Math.min(V.ox+last[1]*V.sx+4,V.ox+V.xmax*V.sx-40),V.oy-last[2]*V.sy-6)}
    return last;
   }
   function arrow(c,x,y,dx,dy,color,label){
@@ -75,14 +76,15 @@ var EXP={
    c.fillText(label,lx,ly);c.restore();
   }
   function draw(now){
-   var s=Sci.fit(cv,.6),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,V=view(w,h);
+   var s=Sci.fit(cv,.55),c=s.c,w=s.w,h=s.h,ink=getComputedStyle(document.body).color,V=view(w,h);
    c.clearRect(0,0,w,h);c.font="12px sans-serif";
    c.fillStyle=css("--s-grass");c.fillRect(0,V.oy,w,h-V.oy);
    c.strokeStyle=ink;c.lineWidth=1;c.beginPath();c.moveTo(0,V.oy);c.lineTo(w,V.oy);c.stroke();
    /* 눈금 */
    c.fillStyle=ink;c.globalAlpha=.75;
-   for(var m=0;m<=V.xmax;m+=10){var X=V.ox+m*V.sc;c.beginPath();c.moveTo(X,V.oy);c.lineTo(X,V.oy+5);c.stroke();c.fillText(m+"m",X-8,V.oy+18)}
-   for(var k=5;k<V.ymax;k+=5){var Y=V.oy-k*V.sc;c.fillText(k+"m",2,Y+4);c.save();c.setLineDash([2,6]);c.beginPath();c.moveTo(V.ox,Y);c.lineTo(w,Y);c.stroke();c.restore()}
+   for(var m=0;m<=V.xmax;m+=10){var X=V.ox+m*V.sx;c.beginPath();c.moveTo(X,V.oy);c.lineTo(X,V.oy+5);c.stroke();var lb=m+"m";c.fillText(lb,Math.min(X-8,w-c.measureText(lb).width-2),V.oy+18)}
+   var ys=V.ymax>12?5:V.ymax>5?2:1;
+   for(var k=ys;k<V.ymax;k+=ys){var Y=V.oy-k*V.sy;c.fillText(k+"m",2,Y+4);c.save();c.setLineDash([2,6]);c.beginPath();c.moveTo(V.ox,Y);c.lineTo(w,Y);c.stroke();c.restore()}
    c.globalAlpha=1;
    var cols=[css("--s-old1"),css("--s-old2"),css("--s-old3")];
    shots.forEach(function(p,i){drawPath(c,V,p,cols[i%3],false,null,"①②③④⑤⑥⑦⑧⑨"[p.no-1]||String(p.no))});
@@ -90,14 +92,14 @@ var EXP={
    if(cur){
     var tt=now!=null?(now-t0)/1000*0.6:cur.T,col=css("--s-now"),q=drawPath(c,V,cur,col,false,Math.min(tt,cur.T),"");
     if(q){
-     var X=V.ox+q[1]*V.sc,Y=V.oy-q[2]*V.sc,r=Math.max(7,R*V.sc),ang=-cur.s*tt*2*Math.PI*cur.n*0.15;
+     var X=V.ox+q[1]*V.sx,Y=V.oy-q[2]*V.sy,r=7,ang=-cur.s*tt*2*Math.PI*cur.n*0.15;
      c.fillStyle="#fff";c.strokeStyle=ink;c.lineWidth=1.5;c.beginPath();c.arc(X,Y,r,0,7);c.fill();c.stroke();
      c.strokeStyle="#222";c.beginPath();c.moveTo(X-r*Math.cos(ang),Y-r*Math.sin(ang));c.lineTo(X+r*Math.cos(ang),Y+r*Math.sin(ang));c.stroke();
      c.fillStyle="#222";c.beginPath();c.arc(X+r*.6*Math.cos(ang),Y+r*.6*Math.sin(ang),2.2,0,7);c.fill();
      /* 힘 화살표(길이는 중력 기준 비율, 근사) */
-     var vx=q[3],vy=q[4],v=Math.hypot(vx,vy),CL=cur.s===0?0:Math.min(0.35,R*2*Math.PI*cur.n/v),fm=0.5*RHO*CL*A*v*v,unit=30/(M*G);
+     var vx=q[3],vy=q[4],v=Math.hypot(vx,vy),dvx=vx*V.sx,dvy=vy*V.sy,dv=Math.hypot(dvx,dvy)||1,CL=cur.s===0?0:Math.min(0.35,R*2*Math.PI*cur.n/v),fm=0.5*RHO*CL*A*v*v,unit=30/(M*G);
      arrow(c,X,Y,0,M*G*unit,ink,"중력");
-     if(fm>0.02)arrow(c,X,Y,cur.s*(-vy/v)*fm*unit,-cur.s*(vx/v)*fm*unit,col,"마그누스 힘");
+     if(fm>0.02)arrow(c,X,Y,cur.s*(-dvy/dv)*fm*unit,-cur.s*(dvx/dv)*fm*unit,col,"마그누스 힘");
     }
    }
   }
