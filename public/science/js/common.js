@@ -206,8 +206,20 @@ function initExp(){
     showWhy("easy");
     EXP.init(Exp.stageEl);
     /* 그림 아래의 고정 설명 문장은 설명 창으로 옮겨 화면을 줄임 (결과 메시지·id 있는 글은 그대로) */
-    var fixedNotes=[].slice.call(Exp.stageEl.querySelectorAll("p.note:not([id]):not([aria-live])"));
+    var fixedNotes=[].slice.call(Exp.stageEl.querySelectorAll("p.note:not([id]):not([aria-live]), :scope > .tip"));
     if(fixedNotes.length){var box=document.createElement("div");box.className="stage-notes";fixedNotes.forEach(function(n){box.appendChild(n)});info.insertBefore(box,info.querySelector(".foot-note"))}
+    /* 휴대폰: 첫 조작 줄과 주요 실행 버튼만 보이고, 나머지 설정은 '설정 더 보기'로 접음 (노드를 옮길 뿐이라 기능은 그대로) */
+    if(innerWidth<900){
+      var blocks=[].slice.call(Exp.stageEl.querySelectorAll(":scope > .controls"));
+      var rest=blocks.slice(1).filter(function(b){return !b.querySelector("button.primary")&&!/확인|놓기|출발|던지|흘리기|시작|생성|보기|만들|계산/.test(b.textContent)});
+      if(rest.length>=1){
+        var det=document.createElement("details");det.className="more-controls";
+        det.innerHTML='<summary>⚙️ 설정 더 보기</summary>';
+        rest.forEach(function(b){det.appendChild(b)});
+        var anchor=Exp.stageEl.querySelector(":scope > .controls");
+        Exp.stageEl.insertBefore(det,anchor?anchor.nextSibling:null);
+      }
+    }
     /* 그림 아래의 고정 설명 문장은 설명 창으로 옮겨 화면을 줄임 (결과 메시지·id 있는 글은 그대로) */
     var fixedNotes=[].slice.call(Exp.stageEl.querySelectorAll("p.note:not([id]):not([aria-live])"));
     if(fixedNotes.length){var box=document.createElement("div");box.className="stage-notes";fixedNotes.forEach(function(n){box.appendChild(n)});info.insertBefore(box,info.querySelector(".foot-note"))}

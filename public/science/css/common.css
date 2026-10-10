@@ -274,3 +274,8 @@ body.present .predict .q,body.present .predict h2{font-size:20px}
   .bottom-row .note{display:none}
   #openInfo{min-height:40px;font-size:15px}
 }
+.more-controls{margin-top:6px;border-radius:14px;background:var(--cream);padding:6px 10px}
+.more-controls summary{min-height:36px;display:flex;align-items:center;font-size:14px;font-weight:500;cursor:pointer;list-style:none}
+.more-controls summary::-webkit-details-marker{display:none}
+.more-controls[open] summary{margin-bottom:4px}
+.more-controls .controls{margin-top:4px}
