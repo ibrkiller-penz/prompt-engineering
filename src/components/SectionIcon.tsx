@@ -163,6 +163,22 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 온라인 과학 체험 — 플라스크 + 거품
+  "https://ai-study-science.web.app/": {
+    from: "#1f6fd1",
+    to: "#22c3a6",
+    glyph: (
+      <g>
+        <path d="M19.5 9.5h9" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+        <path d="M21.5 9.5v10L12.4 34.6a3 3 0 0 0 2.6 4.4h18a3 3 0 0 0 2.6-4.4L26.5 19.5v-10" fill="none" stroke="#fff" strokeWidth="3" strokeLinejoin="round" />
+        <path d="M16.2 29h15.6l3.4 5.9a2.4 2.4 0 0 1-2.1 3.6H14.9a2.4 2.4 0 0 1-2.1-3.6z" fill="#fff" />
+        <circle cx="22" cy="24.5" r="1.7" fill="#fff" />
+        <circle cx="26.2" cy="21.5" r="1.2" fill="#fff" />
+        <circle cx="34.5" cy="12.5" r="2.4" fill="none" stroke="#fff" strokeWidth="2" />
+        <circle cx="39" cy="7.5" r="1.6" fill="#fff" />
+      </g>
+    ),
+  },
   // 손발전기 — 번개 + 돌리는 손잡이
   "/handgen/": {
     from: "#f59e0b",
