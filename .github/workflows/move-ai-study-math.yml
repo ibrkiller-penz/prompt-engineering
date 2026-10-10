@@ -13,16 +13,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: 시작 페이지를 인공지능 수학으로, 인공지능 기초는 /aibasic/
+      - name: 루트에 허브 화면을 두고, 앱 화면은 app.html 로 옮긴다
         run: |
+          mv dist/index.html dist/app.html
+          cp ai-study-hub/index.html dist/index.html
           cat > firebase.ai-study.json <<'JSON'
           {
             "hosting": {
               "site": "ai-study-math",
               "public": "dist",
               "ignore": ["firebase.json", "firebase.ai-study.json", "**/.*", "**/node_modules/**"],
-              "redirects": [{ "source": "/", "destination": "/aimath", "type": 302 }],
-              "rewrites": [{ "source": "**", "destination": "/index.html" }]
+              "rewrites": [{ "source": "**", "destination": "/app.html" }]
             }
           }
           JSON
