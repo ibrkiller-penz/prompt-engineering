@@ -1,0 +1,34 @@
+# 인공지능 수학·인공지능 기초를 ai-study-math 프로젝트로 옮기는 수동 배포. 필요한 비밀값: AI_STUDY_MATH_TOKEN
+name: Move to ai-study-math
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: 시작 페이지를 인공지능 수학으로, 인공지능 기초는 /aibasic/
+        run: |
+          cat > firebase.ai-study.json <<'JSON'
+          {
+            "hosting": {
+              "site": "ai-study-math",
+              "public": "dist",
+              "ignore": ["firebase.json", "firebase.ai-study.json", "**/.*", "**/node_modules/**"],
+              "redirects": [{ "source": "/", "destination": "/aimath", "type": 302 }],
+              "rewrites": [{ "source": "**", "destination": "/index.html" }]
+            }
+          }
+          JSON
+      - name: Deploy to ai-study-math
+        env:
+          FIREBASE_TOKEN: ${{ secrets.AI_STUDY_MATH_TOKEN }}
+        run: |
+          test -n "$FIREBASE_TOKEN" || { echo "AI_STUDY_MATH_TOKEN 비밀값이 없습니다"; exit 1; }
+          npx --yes firebase-tools@13 deploy --only hosting --config firebase.ai-study.json --project ai-study-math --non-interactive
