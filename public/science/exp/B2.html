@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>울렁울렁 맥놀이 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.big{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"B2",
+ predict:{q:"440Hz 소리와 444Hz 소리를 함께 들려주면 1초에 몇 번 '울렁'하고 커졌다 작아질까요?",options:["2번","4번","8번"],answer:1,
+  feedback:["아쉬워요. 두 주파수의 차이(444−440=4)만큼 울렁여요. 직접 세어 보세요.","맞아요! 울렁이는 횟수는 두 주파수의 차이와 같아요.","아쉬워요. 두 주파수의 차이(444−440=4)만큼 울렁여요. 직접 세어 보세요."]},
+ steps:["'소리 켜기'를 눌러요. 소리는 이 버튼을 눌러야만 나요. 기기 볼륨은 작게 시작하세요.","'두 번째 소리와의 차이' 슬라이더(또는 ← → 키)를 4Hz 정도로 두고, 소리가 커졌다 작아지는 것을 세어 보세요.","차이를 0, 1, 10, 20Hz로 바꿔 보며 울렁이는 빠르기를 비교해요.","그림의 위쪽 물결은 첫 번째 소리, 아래쪽은 두 소리를 합친 모양이에요. 점선이 울렁임(겉모양)이에요."],
+ observe:["차이가 0Hz이면 울렁임이 있나요?","차이를 키우면 울렁임이 빨라지나요, 느려지나요?","차이가 20Hz 정도로 커지면 소리가 어떻게 들리나요?"],
+ more:["같은 음의 기타 줄 두 개를 살짝 다르게 조율하고 함께 울려서 울렁임을 들어 보세요. 줄을 조이면 울렁임이 빨라지거나 느려져요.","선풍기 두 대를 약간 다른 속도로 돌리면 소리가 울렁이는지 귀 기울여 보세요."],
+ why:{easy:["두 소리의 물결이 어떤 때는 함께 높아져서 소리가 커지고, 어떤 때는 서로 반대여서 작아져요.","주파수가 조금 다르면 이 '커짐'과 '작아짐'이 일정한 간격으로 반복되어 울렁울렁 들려요.","1초에 울렁이는 횟수는 두 소리의 주파수 차이와 같아요."],
+  detail:["sin(2πf₁t)+sin(2πf₂t) = 2·cos(π(f₁−f₂)t)·sin(π(f₁+f₂)t) 예요. 소리는 평균 주파수 (f₁+f₂)/2 로 들리고, 크기(겉모양)가 cos(π|Δf|t)로 변해요.","크기는 한 주기 동안 두 번 최대가 되므로 맥놀이 주파수는 |f₁−f₂| 예요.","피아노 조율사나 악기 연주자가 음을 맞출 때 이 맥놀이가 느려져 사라지는 것을 이용해요. 차이가 약 15Hz 이상으로 커지면 울렁임보다 거친 소리로 들려요(근사적인 값, 사람마다 달라요)."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="두 소리 파형과 합친 파형. 합친 파형의 크기가 주기적으로 커졌다 작아지는 모양"></canvas>'+
+   '<p class="note" id="info" aria-live="off"></p>'+
+   '<div class="controls"><label>두 번째 소리와의 차이 <input id="df" type="range" min="0" max="20" step="1" value="4" aria-label="두 번째 소리와의 주파수 차이 0에서 20 헤르츠"><span class="big" id="rd"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="pl" type="button">🔊 소리 켜기</button><span class="note">볼륨 상한이 고정되어 있어요. 기기 볼륨은 작게 시작하세요.</span></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var cv=el.querySelector("#cv"),df=el.querySelector("#df"),rd=el.querySelector("#rd"),pl=el.querySelector("#pl"),msg=el.querySelector("#msg"),info=el.querySelector("#info");
+  var F1=440,ctx=null,o1=null,o2=null,g=null,playing=false,t0=0,raf=0;
+  function draw(){
+   var s=Sci.fit(cv,.7),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,brand=getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()||"#0076fb";
+   var d=+df.value,T=1,f2=F1+d,N=Math.floor(w);
+   c.clearRect(0,0,w,h);c.font="13px sans-serif";c.fillStyle=col;
+   var m1=h*.2,m2=h*.69,a1=h*.12,a2=h*.24;
+   c.globalAlpha=.3;c.strokeStyle=col;c.lineWidth=1;c.beginPath();c.moveTo(0,m1);c.lineTo(w,m1);c.moveTo(0,m2);c.lineTo(w,m2);c.stroke();c.globalAlpha=1;
+   c.fillText("첫 번째 소리 440Hz (1초 중 일부를 그림)",6,12);c.fillText("두 소리를 합친 모양 (1초)",6,h*.385);
+   /* 위: 첫 소리(아주 촘촘해서 일부만) */
+   c.strokeStyle=col;c.lineWidth=1.5;c.beginPath();
+   for(var i=0;i<=N;i++){var t=i/N*0.03;var y=Math.sin(2*Math.PI*F1*t);i?c.lineTo(i/N*w,m1-y*a1):c.moveTo(0,m1-y*a1)}c.stroke();
+   /* 아래: 합 — 픽셀마다 최소/최대 */
+   c.strokeStyle=brand;c.lineWidth=1;c.beginPath();
+   for(var x=0;x<N;x++){var mn=9,mx=-9;for(var k=0;k<24;k++){var tt=(x+k/24)/N*T,v=(Math.sin(2*Math.PI*F1*tt)+Math.sin(2*Math.PI*f2*tt))/2;if(v<mn)mn=v;if(v>mx)mx=v}
+    c.moveTo(x+.5,m2-mx*a2);c.lineTo(x+.5,m2-mn*a2)}c.stroke();
+   /* 겉모양 점선 */
+   c.setLineDash([6,5]);c.strokeStyle="#d9480f";c.lineWidth=2;
+   [1,-1].forEach(function(sg){c.beginPath();for(var i=0;i<=N;i++){var t=i/N*T,e=Math.abs(Math.cos(Math.PI*d*t));var py=m2-sg*e*a2;i?c.lineTo(i/N*w,py):c.moveTo(0,py)}c.stroke()});
+   c.setLineDash([]);
+   /* 시간 눈금(1초) */
+   c.fillStyle=col;c.fillText("0초",3,h-4);c.fillText("1초",w-26,h-4);
+   if(playing){var ph=((ctx.currentTime-t0)%1);var px=ph*w;c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.moveTo(px,m2-a2-6);c.lineTo(px,m2+a2+6);c.stroke()}
+   rd.textContent=d+" Hz";
+   info.textContent="두 번째 소리 "+f2+"Hz. 1초에 울렁임 "+d+"번"+(d===0?" (같은 소리라 울렁임이 없어요)":"")+". 점선은 합친 소리의 크기(겉모양)예요.";
+  }
+  function loop(){draw();raf=playing?requestAnimationFrame(loop):0}
+  function stop(){
+   playing=false;pl.textContent="🔊 소리 켜기";
+   if(ctx){var c=ctx,a=o1,b=o2,gg=g;ctx=null;o1=o2=g=null;try{gg.gain.setTargetAtTime(0,c.currentTime,.015)}catch(e){}
+    setTimeout(function(){try{a.stop();b.stop()}catch(e){}try{c.close()}catch(e){}},120)}
+   draw();
+  }
+  function start(){
+   try{
+    var AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();
+    o1=ctx.createOscillator();o2=ctx.createOscillator();o1.frequency.value=F1;o2.frequency.value=F1+(+df.value);
+    g=ctx.createGain();g.gain.value=0;
+    var a=ctx.createGain(),b=ctx.createGain();a.gain.value=.06;b.gain.value=.06; /* 합쳐도 최대 0.12 */
+    o1.connect(a);o2.connect(b);a.connect(g);b.connect(g);g.connect(ctx.destination);
+    o1.start();o2.start();g.gain.setTargetAtTime(1,ctx.currentTime,.03);
+    if(ctx.state==="suspended")ctx.resume();
+    t0=ctx.currentTime;playing=true;pl.textContent="🔇 소리 끄기";
+    msg.textContent="소리가 나고 있어요. 소리가 커졌다 작아지는 횟수를 세어 보세요.";Exp.reveal();loop();
+   }catch(e){msg.textContent="이 기기에서는 소리를 낼 수 없어요. 그림만 볼 수 있어요.";playing=false;ctx=null}
+  }
+  pl.addEventListener("click",function(){playing?stop():start()});
+  df.addEventListener("input",function(){if(o2)o2.frequency.setTargetAtTime(F1+(+df.value),ctx.currentTime,.02);if(!playing)draw()});
+  document.addEventListener("visibilitychange",function(){if(document.hidden&&playing)stop()});
+  window.addEventListener("pagehide",function(){if(playing)stop()});
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

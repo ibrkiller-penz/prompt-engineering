@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>내 목소리 보기 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.priv{border:1px solid var(--ok);border-radius:10px;padding:8px 12px;margin:0 0 10px;font-size:14px;color:var(--ink);background:var(--soft)}.lbl{font-weight:600;margin:10px 0 2px;font-size:14px}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"B3",
+ predict:{q:"'아', '이', '우'를 같은 높이로 소리 내면, 소리의 '스펙트럼(주파수별 세기 그림)'은 어떨까요?",options:["세 소리가 모두 똑같다","높이가 같아도 세기가 큰 주파수 위치가 소리마다 다르다","'우'만 다르고 '아'와 '이'는 같다"],answer:1,
+  feedback:["아쉬워요. 높이가 같아도 모음에 따라 센 주파수 위치가 달라요. 직접 확인해 보세요.","맞아요! 입 모양에 따라 세게 울리는 주파수 영역이 달라져 모음이 구별돼요.","아쉬워요. 세 모음 모두 서로 달라요. 직접 확인해 보세요."]},
+ steps:["'마이크 켜기'를 눌러 허락하면 내 목소리를 볼 수 있어요. 마이크가 없거나 허락하지 않으면 '샘플 소리'로 같은 체험을 할 수 있어요.","'아', '이', '우'를 같은 높이로 길게 소리 내 보며 아래 스펙트럼 그림의 봉우리 위치를 보세요.","샘플 소리 버튼(아·이·우)을 눌러 소리와 그림을 비교해요. 소리는 버튼을 눌러야만 나요.","다 했으면 '끄기'를 눌러요."],
+ observe:["'아'일 때와 '이'일 때 스펙트럼의 높은 봉우리가 있는 위치가 어떻게 다른가요?","같은 모음을 더 높은 소리로 내면 봉우리가 촘촘한 간격이 어떻게 바뀌나요?","조용할 때와 소리 낼 때 파형(위 그림)은 어떻게 달라요?"],
+ more:["'아→이→우'를 천천히 이어서 소리 내며 입 모양과 스펙트럼 변화를 관찰해 보세요.","손으로 목을 가볍게 대고 소리 내면 성대가 떨리는 것을 느낄 수 있어요."],
+ why:{easy:["목소리는 성대가 떨려서 나는 소리가 입과 목 안을 지나며 만들어져요.","입 모양과 혀 위치가 바뀌면 입안 공간이 달라져서 어떤 높이의 소리는 크게, 어떤 소리는 작게 울려요.","그래서 높이가 같아도 '아', '이', '우'가 서로 다르게 들려요."],
+  detail:["성대 진동은 기본 주파수 f₀와 그 정수배 성분(배음)을 가진 소리를 만들어요. 스펙트럼에서 f₀ 간격의 촘촘한 봉우리들이 보이는 이유예요.","성도(입·목 공간)는 특정 주파수 영역을 강조하는 공명 필터처럼 작용해요. 강조된 영역을 포먼트(formant)라고 하고, 모음은 주로 처음 두 포먼트(F1, F2)로 구분돼요. 대략 '이'는 F1이 낮고 F2가 높고, '아'는 F1이 높고, '우'는 F1·F2가 모두 낮아요(사람마다 달라요).","샘플 소리는 톱니파 발진기를 대역통과 필터 둘에 통과시킨 근사 모형이에요. 실제 목소리와 완전히 같지는 않아요. 이 화면은 FFT(빠른 푸리에 변환)로 주파수 성분을 나눠 보여 줘요."]},
+ init:function(el){
+  el.innerHTML='<p class="priv" role="note">🔒 마이크 소리는 이 브라우저 안에서만 처리돼요. 어디에도 전송하거나 저장하지 않고, 스피커로 다시 내보내지도 않아요.</p>'+
+   '<div class="lbl">파형 (시간에 따른 공기 압력 변화)</div><canvas id="cw" role="img" aria-label="소리 파형 그래프"></canvas>'+
+   '<div class="lbl">스펙트럼 (0~4000Hz, 주파수별 세기)</div><canvas id="cs" role="img" aria-label="소리 스펙트럼 그래프. 가로는 주파수, 세로는 세기"></canvas>'+
+   '<div class="controls"><button class="primary" id="mic" type="button">🎤 마이크 켜기</button><button id="stop" type="button">⏹ 끄기</button></div>'+
+   '<div class="controls" role="group" aria-label="샘플 소리"><span>샘플 소리:</span><button type="button" data-v="a">아</button><button type="button" data-v="i">이</button><button type="button" data-v="u">우</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var cw=el.querySelector("#cw"),cs=el.querySelector("#cs"),msg=el.querySelector("#msg");
+  /* 모음별 대략의 포먼트(Hz) — 근사 */
+  var FM={a:[800,1250],i:[300,2300],u:[330,850]},NAME={a:"아",i:"이",u:"우"};
+  var ctx=null,an=null,stream=null,src=null,nodes=[],mode="",raf=0,cur="",buf=null,fb=null,gotData=false;
+  function colors(){return {col:getComputedStyle(document.body).color,brand:getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()||"#0076fb"}}
+  function draw(){
+   var k=colors(),a=Sci.fit(cw,.32),c=a.c,w=a.w,h=a.h;
+   c.clearRect(0,0,w,h);c.strokeStyle=k.col;c.globalAlpha=.3;c.beginPath();c.moveTo(0,h/2);c.lineTo(w,h/2);c.stroke();c.globalAlpha=1;
+   c.strokeStyle=k.brand;c.lineWidth=2;c.beginPath();
+   if(an&&buf){an.getFloatTimeDomainData(buf);var off=0,n=Math.min(buf.length-1,Math.floor(buf.length/2));
+    for(var j=1;j<buf.length-n;j++){if(buf[j-1]<0&&buf[j]>=0){off=j;break}}
+    var gain=mode==="mic"?3:6;
+    for(var i=0;i<=w;i+=2){var v=buf[off+Math.floor(i/w*n)]||0;var y=h/2-Math.max(-1,Math.min(1,v*gain))*h*.45;i?c.lineTo(i,y):c.moveTo(i,y)}
+   }else{c.moveTo(0,h/2);c.lineTo(w,h/2)}
+   c.stroke();
+   var b=Sci.fit(cs,.5),d=b.c,W=b.w,H=b.h;d.clearRect(0,0,W,H);
+   d.font="12px sans-serif";d.fillStyle=k.col;d.strokeStyle=k.col;
+   var padB=18;d.globalAlpha=.3;d.beginPath();d.moveTo(0,H-padB);d.lineTo(W,H-padB);d.stroke();d.globalAlpha=1;
+   for(var f=0;f<=4000;f+=1000){var x=f/4000*(W-1);d.fillText(f+(f?"":"Hz"),Math.min(x+2,W-34),H-4);d.globalAlpha=.25;d.beginPath();d.moveTo(x,0);d.lineTo(x,H-padB);d.stroke();d.globalAlpha=1}
+   if(an&&fb){an.getByteFrequencyData(fb);var hz=ctx.sampleRate/an.fftSize,nb=Math.floor(4000/hz),bw=(W)/nb;
+    d.fillStyle=k.brand;var maxv=0,maxi=0;
+    for(var q=1;q<nb;q++){var hh=fb[q]/255*(H-padB-4);d.fillRect((q)*bw,H-padB-hh,Math.max(1,bw-.5),hh);if(fb[q]>maxv){maxv=fb[q];maxi=q}}
+    if(maxv>60){d.fillStyle=k.col;d.fillText("가장 센 곳 약 "+Math.round(maxi*hz)+"Hz",4,14)}
+    if(maxv>60&&!gotData){gotData=true;Exp.reveal()}
+   }
+  }
+  function loop(){draw();raf=an?requestAnimationFrame(loop):0}
+  function stop(){
+   if(raf)cancelAnimationFrame(raf);raf=0;
+   if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}
+   if(ctx){var c=ctx;nodes.forEach(function(n){try{if(n.stop)n.stop();n.disconnect()}catch(e){}});
+    try{if(src)src.disconnect()}catch(e){}
+    ctx=null;an=null;src=null;nodes=[];setTimeout(function(){try{c.close()}catch(e){}},60)}
+   mode="";cur="";el.querySelectorAll("[data-v]").forEach(function(b){b.setAttribute("aria-pressed","false")});
+   draw();
+  }
+  function mkctx(){var AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();an=ctx.createAnalyser();an.fftSize=4096;an.smoothingTimeConstant=.6;buf=new Float32Array(an.fftSize);fb=new Uint8Array(an.frequencyBinCount);if(ctx.state==="suspended")ctx.resume()}
+  function sample(v){
+   stop();
+   try{
+    mkctx();mode="sample";cur=v;
+    var o=ctx.createOscillator();o.type="sawtooth";o.frequency.value=130;
+    var out=ctx.createGain();out.gain.value=.1; /* 상한 */
+    FM[v].forEach(function(f,idx){var bp=ctx.createBiquadFilter();bp.type="bandpass";bp.frequency.value=f;bp.Q.value=6;var gg=ctx.createGain();gg.gain.value=idx?0.6:1;o.connect(bp);bp.connect(gg);gg.connect(out);nodes.push(bp,gg)});
+    out.connect(an);an.connect(ctx.destination);nodes.push(o,out);o.start();
+    el.querySelectorAll("[data-v]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.v===v)});
+    msg.textContent="샘플 '"+NAME[v]+"' 소리예요 (기본 130Hz, 근사 모형). 봉우리 위치를 보세요. 소리는 끄기 버튼으로 멈춰요.";
+    loop();
+   }catch(e){stop();msg.textContent="이 기기에서는 소리를 낼 수 없어요."}
+  }
+  el.querySelector("#mic").addEventListener("click",function(){
+   stop();
+   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){msg.textContent="이 브라우저에서는 마이크를 쓸 수 없어요. 샘플 소리로 체험해 보세요. (아래 샘플 버튼)";return}
+   msg.textContent="마이크 허락을 기다리는 중이에요...";
+   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false}}).then(function(s){
+    stream=s;mkctx();mode="mic";src=ctx.createMediaStreamSource(s);src.connect(an); /* 스피커로 연결하지 않음 */
+    msg.textContent="마이크가 켜졌어요. '아', '이', '우'를 같은 높이로 소리 내 보세요.";loop();
+   }).catch(function(){stop();msg.textContent="마이크를 사용할 수 없어요(없거나 허락하지 않음). 대신 샘플 소리로 체험해 보세요. (아래 샘플 버튼)"});
+  });
+  el.querySelector("#stop").addEventListener("click",function(){stop();msg.textContent="멈췄어요."});
+  el.querySelectorAll("[data-v]").forEach(function(b){b.setAttribute("aria-pressed","false");b.addEventListener("click",function(){sample(b.dataset.v)})});
+  document.addEventListener("visibilitychange",function(){if(document.hidden&&ctx)stop()});
+  window.addEventListener("pagehide",stop);
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

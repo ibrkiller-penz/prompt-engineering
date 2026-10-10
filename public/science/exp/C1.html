@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>진자 실험실 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.tbl{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left}.stat{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 0}.stat div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 12px}.stat b{font-variant-numeric:tabular-nums}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"C1",
+ predict:{q:"같은 길이의 줄에 달린 추의 무게(질량)를 2배로 하면, 한 번 왕복하는 시간(주기)은 어떻게 될까요?",options:["더 짧아진다(빨라진다)","거의 같다","더 길어진다(느려진다)"],answer:1,
+  feedback:["확인해 보세요. 무거워도 더 빨라지지는 않아요. 직접 재 보면 알 수 있어요.","좋아요! 질량은 주기에 영향을 주지 않아요. 아래에서 직접 확인해 보세요.","확인해 보세요. 무거워도 더 느려지지는 않아요. 직접 재 보면 알 수 있어요."]},
+ steps:["길이·질량·각도를 슬라이더(또는 ← → 키)로 정하고 '놓기'를 눌러요.","추가 한 번 왕복하는 시간(주기)이 자동으로 측정돼요. 아래 기록표에 쌓여요.","질량만 바꿔서 다시 재 보고, 그다음 길이만, 각도만 바꿔 보세요. 한 번에 하나씩만 바꾸는 것이 중요해요."],
+ observe:["질량을 바꿨을 때 주기가 달라졌나요?","길이를 4배로 하면 주기는 몇 배가 되나요?","각도를 크게 하면 주기가 조금이라도 달라지나요?"],
+ more:["실이 달린 열쇠고리나 동전으로 직접 진자를 만들어 보세요. 10번 왕복하는 시간을 재서 10으로 나누면 더 정확해요.","같은 진자에 클립을 더 달아 무겁게 한 뒤 비교해 보세요.","진자시계는 이 성질을 이용해요. 길이를 조절해서 시간을 맞춰요."],
+ why:{easy:["진자는 중력이 아래로 잡아당겨서 흔들려요. 추가 무거우면 중력도 그만큼 세지만, 움직이기 힘든 정도(관성)도 똑같이 커져요. 그래서 서로 상쇄되어 주기가 같아요.","줄이 길수록 추가 가야 할 길이 길고 천천히 움직여서 주기가 길어져요.","각도가 아주 크지 않다면 주기는 각도와 거의 상관없어요. 이 사실을 처음 알아낸 사람이 갈릴레이로 알려져 있어요."],
+  detail:["작은 각도에서 주기는 T ≈ 2π√(L/g) 로 근사돼요(L: 줄 길이, g: 중력가속도 9.8 m/s²). 질량 m은 식에 없어요.","운동 방정식은 θ'' = −(g/L) sin θ 예요. 중력 성분 mg sin θ 와 관성 mL θ'' 에서 m이 약분돼요.","각도가 클수록 sin θ ≈ θ 근사가 나빠져서 실제 주기는 위 식보다 조금 길어요(예: 60°에서 약 7%). 이 체험은 sin θ 를 그대로 써서 계산한 값이에요. 줄은 질량이 없고 공기 저항·마찰은 없다고 가정한 이상적인 모델(근사)이에요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="천장에 매달린 진자. 길이, 질량, 시작 각도를 바꾸고 주기를 측정하는 그림"></canvas>'+
+   '<div class="stat" aria-live="polite"><div>측정한 주기 <b id="meas">-</b></div><div>작은 각도 근사식 2π√(L/g) <b id="theo">-</b></div><div>흔들린 시간 <b id="clk">0.0 초</b></div></div>'+
+   '<div class="controls"><label>줄 길이 <input id="L" type="range" min="0.2" max="2" step="0.05" value="1"><span class="readout" id="Lr"></span></label></div>'+
+   '<div class="controls"><label>추 질량 <input id="M" type="range" min="0.1" max="3" step="0.1" value="1"><span class="readout" id="Mr"></span></label></div>'+
+   '<div class="controls"><label>시작 각도 <input id="A" type="range" min="5" max="60" step="1" value="20"><span class="readout" id="Ar"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">놓기</button><button id="pz" type="button">멈춤</button><button id="spd" type="button" aria-pressed="false">4배 빠르게 보기</button><button id="clr" type="button">기록 지우기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em">중력은 지구(9.8 m/s²)로 정했어요. 시간 측정값은 시뮬레이션 시간이에요.</p>'+
+   '<table class="tbl" id="tbl" hidden><thead><tr><th>길이</th><th>질량</th><th>각도</th><th>주기</th></tr></thead><tbody></tbody></table>';
+  var cv=el.querySelector("#cv"),G=9.8,$=function(s){return el.querySelector(s)};
+  var sL=$("#L"),sM=$("#M"),sA=$("#A"),runs=[],th=0,om=0,t=0,running=false,paused=false,fast=false,cross=null,done=false,last=0,raf=0;
+  function vals(){return {L:+sL.value,m:+sM.value,a:+sA.value}}
+  function labels(){var v=vals();$("#Lr").textContent=v.L.toFixed(2)+" m";$("#Mr").textContent=v.m.toFixed(1)+" kg";$("#Ar").textContent=v.a+"°";$("#theo").textContent=(2*Math.PI*Math.sqrt(v.L/G)).toFixed(2)+" 초"}
+  function reset(){var v=vals();th=v.a*Math.PI/180;om=0;t=0;running=false;cross=null;done=false;$("#clk").textContent="0.0 초";$("#meas").textContent="-"}
+  function acc(x){return -(G/vals().L)*Math.sin(x)}
+  function step(h){var a=acc(th);th+=om*h+.5*a*h*h;var a2=acc(th);om+=.5*(a+a2)*h}
+  function addRun(T){var v=vals();runs.unshift({L:v.L,m:v.m,a:v.a,T:T});if(runs.length>6)runs.pop();
+   var tb=$("#tbl");tb.hidden=false;tb.querySelector("tbody").innerHTML=runs.map(function(r){return "<tr><td>"+r.L.toFixed(2)+" m</td><td>"+r.m.toFixed(1)+" kg</td><td>"+r.a+"°</td><td><b>"+r.T.toFixed(2)+" 초</b></td></tr>"}).join("")}
+  function frame(ts){
+   var dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+   if(running&&!paused){var sim=dt*(fast?4:1),n=Math.ceil(sim/.002),h=sim/n;
+    for(var i=0;i<n;i++){var p=th,tp=t;step(h);t+=h;
+     if(p>0&&th<=0){var tc=tp+h*p/(p-th);
+      if(cross===null)cross=tc;else if(!done){var T=tc-cross;done=true;$("#meas").textContent=T.toFixed(2)+" 초";addRun(T);
+        var v=vals();$("#msg").textContent="길이 "+v.L.toFixed(2)+" m, 질량 "+v.m.toFixed(1)+" kg, 각도 "+v.a+"° 에서 주기는 "+T.toFixed(2)+" 초예요. 이제 하나만 바꿔서 다시 재 보세요.";Exp.reveal()}}}
+    $("#clk").textContent=t.toFixed(1)+" 초"}
+   draw();raf=requestAnimationFrame(frame)}
+  function draw(){
+   var s=Sci.fit(cv,.8),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,v=vals();
+   c.clearRect(0,0,w,h);c.strokeStyle=col;c.fillStyle=col;c.lineWidth=2;
+   var px=w/2,py=14,sc=(h-50)/2.1,len=v.L*sc,bx=px+len*Math.sin(th),by=py+len*Math.cos(th);
+   c.beginPath();c.moveTo(px-50,py);c.lineTo(px+50,py);c.lineWidth=4;c.stroke();c.lineWidth=2;
+   c.save();c.setLineDash([4,5]);c.globalAlpha=.5;c.beginPath();c.moveTo(px,py);c.lineTo(px,py+len+20);c.stroke();
+   var a0=vals().a*Math.PI/180;[-1,1].forEach(function(sg){c.beginPath();c.moveTo(px,py);c.lineTo(px+sg*(len+10)*Math.sin(a0),py+(len+10)*Math.cos(a0));c.stroke()});c.restore();
+   c.beginPath();c.moveTo(px,py);c.lineTo(bx,by);c.stroke();
+   var r=10+9*Math.sqrt(v.m);c.beginPath();c.arc(bx,by,r,0,7);c.fillStyle="#0076fb";c.fill();c.stroke();
+   c.fillStyle="#fff";c.font="bold 13px sans-serif";c.textAlign="center";c.textBaseline="middle";c.fillText(v.m.toFixed(1)+"kg",bx,by);
+   c.fillStyle=col;c.textAlign="left";c.textBaseline="alphabetic";c.fillText("길이 "+v.L.toFixed(2)+" m",8,h-8)}
+  [sL,sM,sA].forEach(function(s){s.addEventListener("input",function(){labels();reset()})});
+  $("#go").addEventListener("click",function(){reset();running=true;paused=false;$("#pz").textContent="멈춤";$("#msg").textContent="주기를 재는 중이에요. 추가 한 번 왕복할 때까지 기다려요."});
+  $("#pz").addEventListener("click",function(){if(!running)return;paused=!paused;this.textContent=paused?"계속":"멈춤"});
+  $("#spd").addEventListener("click",function(){fast=!fast;this.setAttribute("aria-pressed",fast)});
+  $("#clr").addEventListener("click",function(){runs=[];$("#tbl").hidden=true});
+  labels();reset();raf=requestAnimationFrame(frame);window.addEventListener("pagehide",function(){cancelAnimationFrame(raf)});
+ }
+};
+Sci.initExp();
+</script></body></html>

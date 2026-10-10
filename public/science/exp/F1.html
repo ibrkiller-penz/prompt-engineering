@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>그림자 시계 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+.tip{margin-top:12px;border:1px dashed var(--brand);border-radius:12px;padding:12px;background:var(--bg)}
+.tip h3{margin:0 0 6px;font-size:16px}
+.tip ol{margin:6px 0;padding-left:22px}
+.tip input[type=number]{min-height:44px;width:96px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);padding:0 8px;font:inherit}
+.warn{color:var(--warn);font-weight:600}
+.stat{display:flex;gap:8px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:15px}
+.stat b{font-variant-numeric:tabular-nums}
+</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"F1",
+ predict:{q:"맑은 날 막대를 세워 두면 그림자 길이가 하루 동안 변해요. 그림자가 가장 짧은 때는 언제일까요?",options:["아침 해가 막 뜬 때","한낮, 해가 가장 높이 뜬 때","해가 지기 직전"],answer:1,
+  feedback:["아침엔 해가 낮게 떠서 그림자가 아주 길어요. 아래에서 확인해 보세요.","맞아요! 해가 가장 높을 때 그림자가 가장 짧아요.","저녁에도 해가 낮아서 그림자가 길어요. 아래에서 확인해 보세요."]},
+ steps:["'시각' 슬라이더(또는 ← → 키)를 움직여 해와 그림자가 어떻게 바뀌는지 보세요. 위 그림은 옆에서 본 모습, 아래 그림은 위에서 내려다본 모습이에요.","'그림자가 가장 짧은 때 확인'을 눌러 보세요.","계절 버튼(봄·가을 / 여름 / 겨울)을 바꾸며 같은 시각의 그림자 길이를 비교해 보세요.","화면 맨 아래 '야외에서 직접 재기' 카드를 읽고, 맑은 날 밖에서 직접 재어 보세요."],
+ observe:["그림자가 가장 짧을 때 해는 어느 방향(동·남·서)에 있나요?","그림자는 해와 같은 쪽에 생기나요, 반대쪽에 생기나요?","같은 12시라도 여름과 겨울의 그림자 길이는 얼마나 달라요?","해가 높아질수록 그림자 길이는 어떻게 변하나요?"],
+ more:["맑은 날 1시간마다 막대 그림자 끝에 분필로 표시하고 시각을 적어 보세요. 점들이 이어진 모양을 관찰해 보세요.","같은 막대로 계절이 다른 달(예: 6월과 12월)에 한낮 그림자를 재서 비교해 보세요.","막대 높이와 그림자 길이로 태양 고도(해의 높이 각도)를 계산해 보세요. 아래 카드의 계산기를 써도 좋아요."],
+ why:{easy:["그림자는 해 반대쪽에 생겨요. 해가 높이 뜰수록 빛이 위에서 곧게 내려와서 그림자가 짧아져요.","해가 낮게 뜨면 빛이 비스듬히 들어와서 그림자가 길게 늘어나요.","해는 하루 동안 동쪽에서 떠서 남쪽 하늘에서 가장 높이 올라갔다가 서쪽으로 져요. 그래서 한낮에 그림자가 가장 짧아요.","여름엔 한낮에도 해가 아주 높이 떠서 그림자가 짧고, 겨울엔 한낮에도 해가 낮아서 그림자가 길어요. 이건 지구의 기울어진 자전축 때문이에요."],
+  detail:["막대 높이 h, 태양 고도 α일 때 그림자 길이 L = h / tan α 예요. 고도가 커지면 tan α가 커져서 L이 줄어요.","태양 고도는 위도 φ, 태양의 적위 δ(하지 약 +23.4°, 춘·추분 0°, 동지 약 −23.4°), 시간각 H(태양시 기준 1시간당 15°)로 계산해요: sin α = sin φ sin δ + cos φ cos δ cos H.","이 체험은 위도 37°(우리나라 중부)를 근사해요. 시각은 '태양시'(해가 정남쪽에 오는 때를 12시로 한 시각)이고, 균시차·경도 차이·대기 굴절은 무시했어요. 실제 시계의 정오는 지역에 따라 이와 30분 안팎 차이 날 수 있어요.","정오(남중) 고도는 α = 90° − φ + δ 예요. 위도 37°에서 하지엔 약 76°, 춘·추분엔 53°, 동지엔 약 30°예요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="태양 고도와 그림자 그림"></canvas>'+
+   '<div class="controls"><label>시각 <input id="tm" type="range" min="8" max="16" step="0.25" value="9" aria-label="태양시 시각"><span class="readout" id="rt"></span></label></div>'+
+   '<div class="controls" role="group" aria-label="계절 선택"><button type="button" data-d="0" aria-pressed="false">봄·가을(춘분·추분)</button><button type="button" data-d="23.44" aria-pressed="false">여름(하지)</button><button type="button" data-d="-23.44" aria-pressed="true">겨울(동지)</button></div>'+
+   '<div class="controls"><button class="primary" id="min" type="button">그림자가 가장 짧은 때 확인</button></div>'+
+   '<p class="stat" id="st"></p><p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>'+
+   '<div class="tip" id="tip"><h3>🌤️ 야외에서 직접 재기</h3>'+
+   '<p class="warn">⚠️ 해를 절대 직접 쳐다보지 마세요. 그림자만 보세요. 어른과 함께, 차가 다니지 않는 안전한 곳에서 해요.</p>'+
+   '<p>준비물: 곧은 막대(길이 1m쯤) 또는 긴 자, 분필이나 돌멩이, 줄자, 시계, 평평한 맨땅이나 운동장</p>'+
+   '<ol><li>햇빛이 잘 드는 평평한 곳에 막대를 똑바로 세우고 흔들리지 않게 고정해요. (실에 추를 달아 수직인지 확인하면 좋아요.)</li>'+
+   '<li>한 시간마다 그림자 끝에 표시하고 시각을 적어요.</li><li>막대 밑에서 표시한 곳까지 줄자로 재요.</li><li>아래 계산기에 막대 높이와 그림자 길이를 넣어 태양 고도를 구해 보세요.</li></ol>'+
+   '<div class="controls"><label>막대 높이(cm) <input id="ih" type="number" min="1" max="1000" value="100" inputmode="decimal"></label><label>그림자 길이(cm) <input id="il" type="number" min="1" max="5000" value="100" inputmode="decimal"></label></div>'+
+   '<p class="note" id="calc" aria-live="polite"></p></div>';
+  var LAT=37*Math.PI/180,R=Math.PI/180;
+  var cv=el.querySelector("#cv"),tm=el.querySelector("#tm"),rt=el.querySelector("#rt"),st=el.querySelector("#st"),msg=el.querySelector("#msg");
+  var seasonBtns=[].slice.call(el.querySelectorAll("[data-d]")),dec=-23.44;
+  function sun(d,t){
+   var del=d*R,H=(t-12)*15*R,s=Math.sin(LAT)*Math.sin(del)+Math.cos(LAT)*Math.cos(del)*Math.cos(H);
+   var al=Math.asin(s),ca=Math.cos(al),az=0;
+   if(ca>1e-6){var c=(Math.sin(del)-s*Math.sin(LAT))/(ca*Math.cos(LAT));c=Math.max(-1,Math.min(1,c));az=Math.acos(c);if(H>0)az=2*Math.PI-az}
+   return {alt:al,az:az,L:1/Math.tan(al)}
+  }
+  function hm(t){var h=Math.floor(t),m=Math.round((t-h)*60);return (h<10?"0":"")+h+":"+(m<10?"0":"")+m}
+  function draw(){
+   var s=Sci.fit(cv,1.28),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,t=+tm.value,S=sun(dec,t);
+   c.clearRect(0,0,w,h);c.font=Math.max(12,w*.038)+"px sans-serif";c.lineCap="round";c.fillStyle=col;c.strokeStyle=col;
+   /* 옆모습: 해가 있는 수직 단면 */
+   var gy=.5*w,bx=.66*w,sh=.12*w,tipY=gy-sh,maxLen=bx-.06*w,Lpx=S.L*sh,clip=Lpx>maxLen,Ld=Math.min(Lpx,maxLen);
+   c.fillText("① 해 쪽에서 본 옆모습",6,16);
+   c.save();c.globalAlpha=.18;c.fillRect(0,gy,w,.05*w);c.restore();
+   c.lineWidth=3;c.beginPath();c.moveTo(0,gy);c.lineTo(w,gy);c.stroke();
+   c.save();c.globalAlpha=.45;c.lineWidth=Math.max(6,w*.02);c.beginPath();c.moveTo(bx,gy+1);c.lineTo(bx-Ld,gy+1);c.stroke();c.restore();
+   if(clip){c.save();c.setLineDash([4,4]);c.lineWidth=2;c.beginPath();c.moveTo(bx-Ld,gy+1);c.lineTo(bx-Ld-14,gy+1);c.stroke();c.restore();c.fillText("더 길어요 ←",bx-Ld+4,gy+w*.075)}
+   else c.fillText("그림자",Math.max(4,bx-Ld/2-18),gy+w*.075);
+   c.lineWidth=Math.max(4,w*.012);c.beginPath();c.moveTo(bx,gy);c.lineTo(bx,tipY);c.stroke();
+   c.fillText("막대",bx+8,gy-sh/2);
+   var rl=.3*w,sx=bx+Math.cos(S.alt)*rl,sy=tipY-Math.sin(S.alt)*rl;
+   c.save();c.lineWidth=2.5;c.strokeStyle="#e8890c";c.beginPath();c.moveTo(bx,tipY);c.lineTo(sx,sy);c.stroke();
+   c.fillStyle="#ffd43b";c.strokeStyle="#e8890c";c.lineWidth=3;c.beginPath();c.arc(sx,sy,w*.04,0,7);c.fill();c.stroke();c.restore();
+   c.save();c.setLineDash([5,4]);c.lineWidth=1.5;c.beginPath();c.moveTo(bx,tipY);c.lineTo(bx+rl*.8,tipY);c.stroke();c.setLineDash([]);
+   c.lineWidth=2.5;c.beginPath();c.arc(bx,tipY,w*.09,-S.alt,0);c.stroke();c.restore();
+   c.fillText("고도 "+Math.round(S.alt/R)+"°",bx+w*.1,tipY-4);
+   c.fillText("해",sx-5,sy-w*.05);
+   /* 위에서 본 모습 */
+   var cx=.5*w,cy=h-.27*w,r=.22*w,sc=r/3;
+   c.fillText("② 위에서 내려다본 모습 (위쪽이 북쪽)",6,.65*w);
+   c.lineWidth=2;c.beginPath();c.arc(cx,cy,r,0,7);c.stroke();
+   c.save();c.globalAlpha=.8;c.textAlign="center";c.fillText("북",cx,cy-r+16);c.fillText("남",cx,cy+r-8);c.fillText("동",cx+r-12,cy+5);c.fillText("서",cx-r+12,cy+5);c.restore();c.textAlign="left";
+   /* 하루의 그림자 끝 점 */
+   c.save();c.globalAlpha=.5;for(var q=8;q<=16;q++){var Q=sun(dec,q),ll=Math.min(Q.L*sc,r);c.beginPath();c.arc(cx-Math.sin(Q.az)*ll,cy+Math.cos(Q.az)*ll,3,0,7);c.fill()}c.restore();
+   var sl=Math.min(S.L*sc,r),ex=cx-Math.sin(S.az)*sl,ey=cy+Math.cos(S.az)*sl;
+   c.save();c.globalAlpha=.55;c.lineWidth=Math.max(6,w*.02);c.beginPath();c.moveTo(cx,cy);c.lineTo(ex,ey);c.stroke();c.restore();
+   c.beginPath();c.arc(cx,cy,5,0,7);c.fill();
+   var dx=cx+Math.sin(S.az)*r,dy=cy-Math.cos(S.az)*r;
+   c.save();c.fillStyle="#ffd43b";c.strokeStyle="#e8890c";c.lineWidth=3;c.beginPath();c.arc(dx,dy,w*.032,0,7);c.fill();c.stroke();c.restore();
+   c.fillText("해",dx+(Math.sin(S.az)>=0?8:-26),dy-(Math.cos(S.az)>=0?10:-14));
+   c.fillText("그림자 끝",Math.min(Math.max(ex+8,4),w-64),Math.min(Math.max(ey+(Math.cos(S.az)>=0?16:-8),14),h-4));
+   rt.textContent=hm(t);
+   var altD=S.alt/R;
+   st.innerHTML='<span>시각 <b>'+hm(t)+'</b></span><span>태양 고도 <b>'+altD.toFixed(0)+'°</b></span><span>그림자 길이 = 막대 높이의 <b>'+S.L.toFixed(1)+'</b>배</span>';
+   cv.setAttribute("aria-label","태양시 "+hm(t)+", 태양 고도 "+altD.toFixed(0)+"도, 그림자 길이는 막대 높이의 "+S.L.toFixed(1)+"배");
+  }
+  tm.addEventListener("input",draw);
+  seasonBtns.forEach(function(b){b.addEventListener("click",function(){dec=+b.dataset.d;seasonBtns.forEach(function(x){x.setAttribute("aria-pressed",x===b)});draw()})});
+  el.querySelector("#min").addEventListener("click",function(){
+   tm.value=12;draw();var S=sun(dec,12),n=sun(23.44,12),m=sun(-23.44,12),e=sun(0,12);
+   msg.textContent="12시(태양시)에 해가 정남쪽에서 가장 높이 떠서 그림자가 가장 짧아요. 이때 고도는 지금 계절에서 "+Math.round(S.alt/R)+"°예요. (한낮 고도: 여름 약 "+Math.round(n.alt/R)+"°, 봄·가을 약 "+Math.round(e.alt/R)+"°, 겨울 약 "+Math.round(m.alt/R)+"°)";
+   Exp.reveal()});
+  var ih=el.querySelector("#ih"),il=el.querySelector("#il"),cc=el.querySelector("#calc");
+  function calc(){var a=+ih.value,b=+il.value;if(!(a>0&&b>0)){cc.textContent="0보다 큰 숫자를 넣어 주세요.";return}
+   cc.textContent="태양 고도 ≈ "+(Math.atan(a/b)/R).toFixed(1)+"° (막대 높이 ÷ 그림자 길이의 역탄젠트)"}
+  ih.addEventListener("input",calc);il.addEventListener("input",calc);calc();
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>색을 섞어 보자 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>var EXP={
+ id:"A2",
+ predict:{q:"빨강·초록·파랑 빛을 모두 가장 세게 겹치면 어떤 색이 될까요?",options:["검정에 가까운 색","흰색","갈색"],answer:1,
+  feedback:["빛은 겹칠수록 밝아져요. 직접 확인해 보세요.","빛은 섞을수록 밝아져서 흰색이 돼요.","빛은 겹칠수록 밝아져요. 직접 확인해 보세요."]},
+ steps:["위쪽 '목표 색'을 보고, 아래 슬라이더(또는 ← → 키)로 '내 색'을 비슷하게 만들어 보세요.","'빛 섞기'와 '물감 섞기'를 번갈아 눌러 보고, 같은 목표 색을 두 방식으로 만들어 보세요.","'확인하기'를 눌러 목표와 내 색이 얼마나 가까운지 확인하고 '모두 최대' 버튼도 눌러 보세요."],
+ observe:["빛 섞기에서 세 색을 모두 최대로 하면 어떻게 되나요?","물감 섞기에서 세 색을 모두 최대로 하면 어떻게 되나요?","목표 색을 맞추려면 두 방식에서 슬라이더를 올려야 하는 쪽이 어떻게 달랐나요?"],
+ more:["손전등 위에 빨강·초록·파랑 셀로판지를 씌워 어두운 방의 벽에서 겹쳐 보세요(눈에 직접 비추지 마세요).","수채 물감으로 청록·자홍·노랑을 섞어 보고, 화면과 결과가 완전히 같지 않은 이유를 이야기해 보세요."],
+ why:{easy:["빛은 색을 '더하는' 방식이에요. 빨강·초록·파랑 빛이 겹칠수록 눈에 들어오는 빛이 많아져 밝아지고, 모두 겹치면 흰색이 돼요.","물감은 빛을 '빼는' 방식이에요. 물감은 어떤 색의 빛을 흡수하고 나머지만 되돌려 보내요. 물감을 섞을수록 흡수되는 빛이 늘어 어두워져요.","그래서 빛과 물감은 섞을 때 반대처럼 보여요. 이 화면의 물감 섞기는 아주 단순하게 만든 '근사' 모형이에요."],
+  detail:["가산혼합(additive): 화면의 빛은 세기를 더해요. R, G, B 세기를 (r,g,b)로 두면 겹친 색이 곧 (r,g,b)예요. 사람 눈의 세 종류 원뿔세포가 각각 다른 파장대에 반응하기 때문에 세 가지 빛만으로 많은 색을 만들 수 있어요.","감산혼합(subtractive): 시안(C)은 빨강 빛을, 마젠타(M)는 초록 빛을, 노랑(Y)은 파랑 빛을 흡수해요. 이 체험은 흰 종이에서 반사되는 빛의 R,G,B 성분이 각각 (255−c), (255−m), (255−y)가 되는 이상적인 필터 모형(근사)을 써요.","실제 물감은 안료가 빛을 퍼뜨리고 겹침에 따라 흡수 곡선이 복잡하게 바뀌어서, 세 색을 모두 섞어도 완전한 검정이 아니라 어두운 갈색·회색이 되는 경우가 많아요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="목표 색과 내 색, 그리고 세 원이 겹친 그림"></canvas>'+
+   '<div class="controls"><div class="seg" role="group" aria-label="섞는 방식"><button type="button" id="mL" aria-pressed="true">💡 빛 섞기</button><button type="button" id="mP" aria-pressed="false">🎨 물감 섞기</button></div></div>'+
+   '<div class="controls"><label><span id="l0" style="min-width:6.5em"></span><input id="s0" type="range" min="0" max="255" value="0"><span class="readout" id="r0"></span></label></div>'+
+   '<div class="controls"><label><span id="l1" style="min-width:6.5em"></span><input id="s1" type="range" min="0" max="255" value="0"><span class="readout" id="r1"></span></label></div>'+
+   '<div class="controls"><label><span id="l2" style="min-width:6.5em"></span><input id="s2" type="range" min="0" max="255" value="0"><span class="readout" id="r2"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="chk" type="button">확인하기</button><button id="mx" type="button">모두 최대</button><button id="zr" type="button">모두 0</button><button id="nw" type="button">새 목표 색</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:3.2em"></p>';
+  var cv=el.querySelector("#cv"),msg=el.querySelector("#msg");
+  var mode="L",vals={L:[0,0,0],P:[0,0,0]},target={L:[0,0,0],P:[0,0,0]},checked=false;
+  var NAMES={L:["빨강(R)","초록(G)","파랑(B)"],P:["청록(C)","자홍(M)","노랑(Y)"]};
+  var sl=[0,1,2].map(function(i){return el.querySelector("#s"+i)});
+  function newTarget(){["L","P"].forEach(function(m){var t;do{t=[0,0,0].map(function(){return Math.floor(Math.random()*6)*51})}while(t[0]+t[1]+t[2]===0||t[0]+t[1]+t[2]===765);target[m]=t});checked=false}
+  function rgb(m,v){return m==="L"?v.slice():[255-v[0],255-v[1],255-v[2]]}
+  function css(c){return "rgb("+c[0]+","+c[1]+","+c[2]+")"}
+  function sync(){for(var i=0;i<3;i++){sl[i].value=vals[mode][i];el.querySelector("#l"+i).textContent=NAMES[mode][i];sl[i].setAttribute("aria-label",NAMES[mode][i]+" 세기");el.querySelector("#r"+i).textContent=vals[mode][i]}
+   el.querySelector("#mL").setAttribute("aria-pressed",mode==="L");el.querySelector("#mP").setAttribute("aria-pressed",mode==="P")}
+  function draw(){
+   var s=Sci.fit(cv,.95),c=s.c,w=s.w,h=s.h,k=w/600,ink=getComputedStyle(document.body).color;
+   c.clearRect(0,0,w,h);c.font=(15*Math.max(k,.85))+"px sans-serif";c.textAlign="center";
+   var tc=rgb(mode,target[mode]),mc=rgb(mode,vals[mode]);
+   var sw=w*.4,sh=h*.26,y0=h*.07;
+   function swatch(x,col,label){c.fillStyle=col;c.fillRect(x,y0,sw,sh);c.strokeStyle=ink;c.lineWidth=2;c.strokeRect(x,y0,sw,sh);c.fillStyle=ink;c.fillText(label,x+sw/2,y0-8)}
+   swatch(w*.07,css(tc),"목표 색");swatch(w*.53,css(mc),"내 색");
+   /* 겹침 그림 */
+   var py=h*.42,ph=h*.56;
+   c.fillStyle=mode==="L"?"#000":"#fff";c.fillRect(w*.07,py,w*.86,ph);c.strokeStyle=ink;c.strokeRect(w*.07,py,w*.86,ph);
+   var R=Math.min(ph*.2,w*.15),cx=w/2,cy=py+ph*.36;
+   var pos=[[cx-R*.62,cy-R*.5],[cx+R*.62,cy-R*.5],[cx,cy+R*.62]];
+   var cols=mode==="L"?[[vals.L[0],0,0],[0,vals.L[1],0],[0,0,vals.L[2]]]:[[255-vals.P[0],255,255],[255,255-vals.P[1],255],[255,255,255-vals.P[2]]];
+   c.globalCompositeOperation=mode==="L"?"lighter":"multiply";
+   for(var i=0;i<3;i++){c.fillStyle=css(cols[i]);c.beginPath();c.arc(pos[i][0],pos[i][1],R,0,7);c.fill()}
+   c.globalCompositeOperation="source-over";
+   var lab=["R","G","B"],lab2=["C","M","Y"],lc=mode==="L"?"#fff":"#000";
+   c.lineWidth=2;
+   for(i=0;i<3;i++){c.setLineDash([[],[7,4],[2,4]][i]);c.strokeStyle=mode==="L"?"#bbb":"#555";c.beginPath();c.arc(pos[i][0],pos[i][1],R,0,7);c.stroke();
+    c.setLineDash([]);c.fillStyle=lc;c.font="bold "+(15*Math.max(k,.85))+"px sans-serif";
+    c.fillText((mode==="L"?lab:lab2)[i],pos[i][0]+(i===0?-R*.55:i===1?R*.55:0),pos[i][1]+(i===2?R*.7:-R*.55))}
+   c.setLineDash([]);
+   c.fillStyle=lc;c.font=(13*Math.max(k,.85))+"px sans-serif";
+   c.fillText(mode==="L"?"검은 방에서 빛을 겹친 모습":"흰 종이에 물감 필터를 겹친 모습(근사)",w/2,py+ph-8);
+  }
+  function upd(){sync();draw()}
+  sl.forEach(function(s,i){s.addEventListener("input",function(){vals[mode][i]=+s.value;el.querySelector("#r"+i).textContent=s.value;checked=false;draw()})});
+  el.querySelector("#mL").addEventListener("click",function(){mode="L";msg.textContent="빛 섞기: 세기를 더할수록 밝아져요.";upd()});
+  el.querySelector("#mP").addEventListener("click",function(){mode="P";msg.textContent="물감 섞기(근사): 색을 더할수록 빛을 더 흡수해서 어두워져요.";upd()});
+  el.querySelector("#mx").addEventListener("click",function(){vals[mode]=[255,255,255];msg.textContent=mode==="L"?"세 빛을 모두 최대로 겹치면 흰색이 돼요.":"세 물감을 모두 최대로 섞으면 (이상적인 모형에서는) 검정이 돼요. 실제 물감은 어두운 갈색에 가까워요.";upd();Exp.reveal()});
+  el.querySelector("#zr").addEventListener("click",function(){vals[mode]=[0,0,0];msg.textContent=mode==="L"?"빛이 없으면 검정이에요.":"물감이 없으면 흰 종이 그대로예요.";upd()});
+  el.querySelector("#nw").addEventListener("click",function(){newTarget();msg.textContent="새 목표 색이에요. 슬라이더로 맞춰 보세요.";upd()});
+  el.querySelector("#chk").addEventListener("click",function(){var t=target[mode],v=vals[mode],d=Math.sqrt(t.reduce(function(a,x,i){return a+(x-v[i])*(x-v[i])},0));
+   var rec=NAMES[mode].map(function(n,i){return n.replace(/\(.*\)/,"")+" "+t[i]}).join(", ");
+   msg.textContent=(d<=60?"거의 같아요! ":"아직 차이가 있어요. ")+"목표 색의 값은 "+rec+" 이에요. (차이 "+Math.round(d)+" / 최대 약 441)";
+   checked=true;Exp.reveal()});
+  newTarget();upd();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

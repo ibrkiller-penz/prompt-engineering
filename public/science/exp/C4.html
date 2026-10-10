@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>팔을 모으면 빨라져요 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.stat{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0 0}.stat div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:14px}.stat b{font-variant-numeric:tabular-nums}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"C4",
+ predict:{q:"돌고 있는 의자 위에서 양손에 추를 들고 팔을 쭉 벌린 채 돌다가 팔을 몸 쪽으로 모으면, 도는 속도는 어떻게 될까요?",options:["느려진다","그대로다","빨라진다"],answer:2,
+  feedback:["확인해 보세요. 질량이 회전축에 가까워지면 오히려 더 빨리 돌아요.","확인해 보세요. 돌리는 힘을 주지 않았는데도 속도가 달라져요.","좋아요! 팔을 모으면 회전 속도가 빨라져요."]},
+ steps:["추 무게를 정해요. 위에서 내려다본 그림에서 몸은 가운데, 추는 양쪽 손에 있어요.","'팔 모으기' 버튼 또는 슬라이더(← → 키)로 팔의 길이(회전축에서 추까지의 거리)를 바꿔요.","도는 빠르기와 '각운동량(L)' 숫자를 보세요. '팔 벌리기'로 다시 벌려 보고, 추 무게도 바꿔 보세요."],
+ observe:["팔을 모으면 도는 빠르기는 얼마나 달라졌나요?","그때 각운동량 L의 값은 변했나요?","추가 무거울수록 팔을 모았을 때 속도 변화는 더 큰가요, 작은가요?"],
+ more:["회전의자에 앉아 책 두 권을 양손에 들고 팔을 벌렸다 모아 보세요. 누가 밀어 주지 않아도 속도가 달라지는 것을 느낄 수 있어요. 어지럽지 않게 천천히 하고, 어른과 함께 안전한 곳에서 해 보세요.","피겨 스케이트 선수가 스핀을 할 때 팔과 다리를 몸에 붙이는 모습을 영상이나 사진에서 찾아보세요."],
+ why:{easy:["도는 물체는 '돌려진 정도'를 담고 있는데, 바깥에서 힘으로 돌리거나 멈추지 않으면 그 양이 변하지 않아요. 이것을 각운동량 보존이라고 해요.","팔을 모으면 무게가 축에 가까워져서 돌리기 쉬운 상태가 돼요. 같은 양을 유지해야 하니 대신 더 빨리 돌아요.","팔을 벌리면 반대로 천천히 돌아요."],
+  detail:["각운동량 L = Iω (I: 관성모멘트, ω: 각속도). 바깥 토크가 없으면 L이 일정해요.","이 체험의 모델: I = I₀ + 2mr² (I₀ = 2.0 kg·m²는 몸통의 근사값, m: 추 하나의 질량, r: 축에서 추까지 거리). 팔 자체의 질량은 무시한 근사예요.","팔을 모으면 I가 줄고 L = Iω 가 일정하므로 ω = L/I 가 커져요. 운동 에너지 ½Iω² = L²/(2I) 는 커지는데, 이는 사람이 팔을 당기며 한 일(근육 에너지) 때문이에요. 즉 에너지가 보존되는 것이 아니라 각운동량이 보존돼요.","마찰과 공기 저항은 없다고 가정했어요(근사)."]},
+ init:function(el){
+  var $=function(s){return el.querySelector(s)},I0=2.0,w0=1.2,RMAX=1.0,RMIN=.25;
+  el.innerHTML='<canvas id="cv" role="img" aria-label="위에서 내려다본 회전 의자. 가운데 몸과 양쪽 손의 추"></canvas>'+
+   '<div class="stat" aria-live="off"><div>팔 길이 r <b id="sr"></b></div><div>관성모멘트 I <b id="sI"></b></div><div>각속도 ω <b id="sw"></b></div><div>초당 회전 <b id="sn"></b></div><div>각운동량 L=Iω <b id="sL"></b></div><div>운동 에너지 <b id="sK"></b></div></div>'+
+   '<div class="controls"><label>팔 길이 <input id="R" type="range" min="25" max="100" step="1" value="100" aria-label="팔 길이(축에서 추까지 거리, cm)"><span class="readout" id="Rr"></span></label></div>'+
+   '<div class="controls"><label>추 하나의 질량 <input id="M" type="range" min="1" max="4" step="0.5" value="2"><span class="readout" id="Mr"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="in" type="button">팔 모으기</button><button id="out" type="button">팔 벌리기</button><button id="pz" type="button">멈춤</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em">마찰이 없고 바깥에서 돌리는 힘이 없는 이상적인 경우예요(근사).</p>';
+  var cv=$("#cv"),sR=$("#R"),sM=$("#M"),r=RMAX,rt=RMAX,ang=0,om=w0,L=0,paused=false,raf=0,last=0,reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function m(){return +sM.value}
+  function I(){return I0+2*m()*r*r}
+  function restart(){r=rt=RMAX;sR.value=100;om=w0;L=I()*om;lab()}
+  function lab(){$("#Mr").textContent=m().toFixed(1)+" kg";$("#Rr").textContent=Math.round(r*100)+" cm"}
+  function frame(ts){var dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+   if(Math.abs(r-rt)>1e-4){var d=.6*dt;r=Math.abs(rt-r)<d?rt:r+(rt>r?d:-d);sR.value=Math.round(r*100);lab()}
+   om=L/I();if(!paused)ang+=om*dt;
+   if(r<=.5&&!Exp.revealed){Exp.reveal();$("#msg").textContent="팔을 모으니 ω가 "+(om/w0).toFixed(1)+"배가 됐어요. 각운동량 L은 그대로예요."}
+   $("#sr").textContent=r.toFixed(2)+" m";$("#sI").textContent=I().toFixed(2)+" kg·m²";$("#sw").textContent=om.toFixed(2)+" rad/s";$("#sn").textContent=(om/(2*Math.PI)).toFixed(2)+" 바퀴";$("#sL").textContent=L.toFixed(2)+" kg·m²/s";$("#sK").textContent=(.5*I()*om*om).toFixed(2)+" J";
+   draw();raf=requestAnimationFrame(frame)}
+  function draw(){
+   var s=Sci.fit(cv,.75),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,cx=w/2,cy=h/2,k=Math.min(w,h)*.42/1.1;
+   c.clearRect(0,0,w,h);c.strokeStyle=col;c.fillStyle=col;
+   c.save();c.globalAlpha=.3;c.lineWidth=1;c.beginPath();c.arc(cx,cy,RMAX*k,0,7);c.stroke();c.setLineDash([3,5]);c.beginPath();c.arc(cx,cy,RMIN*k,0,7);c.stroke();c.restore();
+   c.font="12px sans-serif";c.textAlign="center";c.fillText("가장 멀리(1.0 m)",cx,cy-RMAX*k-6);
+   c.save();c.translate(cx,cy);c.rotate(ang);
+   c.lineWidth=5;c.lineCap="round";c.beginPath();c.moveTo(-r*k,0);c.lineTo(r*k,0);c.stroke();
+   c.fillStyle="#cbd5e1";c.beginPath();c.arc(0,0,.28*k,0,7);c.fill();c.lineWidth=2;c.stroke();
+   c.fillStyle=col;c.beginPath();c.moveTo(0,-.28*k);c.lineTo(.12*k,-.12*k);c.lineTo(-.12*k,-.12*k);c.closePath();c.fill();
+   var pr=9+5*m();[-1,1].forEach(function(sg,i){c.beginPath();c.arc(sg*r*k,0,pr,0,7);c.fillStyle="#d9480f";c.fill();c.lineWidth=2;c.stroke();c.fillStyle="#fff";c.font="bold 12px sans-serif";c.textAlign="center";c.textBaseline="middle";c.fillText(m().toFixed(1),sg*r*k,0)});
+   c.restore();
+   c.fillStyle=col;c.textAlign="left";c.font="12px sans-serif";c.fillText("▲ = 몸의 앞쪽 · 점선 원 = 가장 모은 위치(0.25 m)",6,h-6)}
+  sR.addEventListener("input",function(){r=rt=+sR.value/100;lab()});
+  sM.addEventListener("input",restart);
+  $("#in").addEventListener("click",function(){rt=RMIN;$("#msg").textContent="팔을 모으는 중..."});
+  $("#out").addEventListener("click",function(){rt=RMAX;$("#msg").textContent="팔을 벌리는 중... 속도가 어떻게 되는지 보세요."});
+  $("#pz").addEventListener("click",function(){paused=!paused;this.textContent=paused?"계속":"멈춤"});
+  restart();if(reduce){paused=true;$("#pz").textContent="계속"}
+  raf=requestAnimationFrame(frame);window.addEventListener("pagehide",function(){cancelAnimationFrame(raf)});
+ }
+};
+Sci.initExp();
+</script></body></html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>소리를 없애는 소리 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.big{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}.seg2{display:flex;gap:8px;flex-wrap:wrap}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"B6",
+ predict:{q:"똑같은 소리 두 개를 겹치는데, 두 번째 소리의 물결이 정확히 반대(위상차 180°)이면 합쳐진 소리는 어떻게 될까요?",options:["거의 사라져 조용해진다","두 배로 커진다","그대로다"],answer:0,
+  feedback:["맞아요! 마루와 골이 서로 상쇄돼요. 직접 확인해 보세요.","아쉬워요. 위상차가 0°일 때 두 배가 되고, 180°에서는 사라져요. 직접 확인해 보세요.","아쉬워요. 위상차에 따라 크기가 달라져요. 직접 확인해 보세요."]},
+ steps:["'소리 켜기'를 눌러요. 소리는 이 버튼을 눌러야만 나요. 기기 볼륨은 작게 시작하세요. 처음에는 위상차 0°(합쳐서 가장 큼)예요.","'위상차' 슬라이더(또는 ← → 키)나 0°·90°·180° 버튼으로 두 번째 소리의 시작 타이밍을 바꿔 보세요.","180°에 가까워질 때 합쳐진 소리가 어떻게 작아지는지 듣고, 그림의 합친 물결(맨 아래)을 보세요.","다 했으면 '소리 끄기'를 눌러요."],
+ observe:["위상차가 몇 도일 때 합쳐진 물결이 가장 커지고, 몇 도일 때 가장 작아지나요?","위상차 90°일 때 합친 소리의 크기는 0°일 때와 비교해 어떤가요?","노이즈 캔슬링 이어폰은 이 원리를 어떻게 쓸까요?"],
+ more:["스마트폰 스피커 두 개 위치를 바꿔 같은 높은 소리를 틀고 귀를 움직이면 크기가 변하는 곳이 있는지 들어 보세요(실제 공간에서는 위치에 따라 위상차가 달라져요).","소음 차단 이어폰을 쓰는 사람이라면, 켰을 때와 껐을 때 낮은 소리(에어컨 소리 등)가 어떻게 다른지 비교해 보세요."],
+ why:{easy:["소리는 공기가 눌렸다 풀렸다 하는 물결이에요. 두 물결이 만나면 더해져요.","한 물결이 올라갈 때 다른 물결이 똑같이 내려가면 서로 상쇄되어 거의 평평해져요. 소리가 거의 사라져요.","노이즈 캔슬링 이어폰은 주변 소리를 마이크로 듣고, 반대 모양의 소리를 만들어 겹쳐서 소음을 줄여요."],
+  detail:["두 사인파 sin(ωt)+sin(ωt+φ) = 2cos(φ/2)·sin(ωt+φ/2) 예요. 합친 소리의 크기는 2|cos(φ/2)|(한 파의 크기를 1로 할 때)예요. φ=0°이면 2, 180°이면 0이에요.","이 체험은 컴퓨터 안에서 두 신호를 더한 거예요. 실제 공간의 스피커 두 개는 위치에 따라 경로 차이가 생겨서, 장소마다 위상차가 달라 어떤 곳은 커지고 어떤 곳은 작아져요.","실제 능동 소음 제어는 소음의 주파수가 일정하고 이어폰 안의 위치가 고정일 때 효과가 좋고, 낮고 일정한 소음에 특히 잘 맞아요. 모든 소리를 완벽히 없애지는 못해요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="첫 번째 소리, 두 번째 소리, 합친 소리의 파형을 위아래로 보여 주는 그림"></canvas>'+
+   '<div class="controls"><label>위상차 <input id="ph" type="range" min="0" max="360" step="5" value="0" aria-label="두 번째 소리의 위상차 0에서 360도"><span class="big" id="rd"></span></label></div>'+
+   '<div class="controls"><div class="seg2" role="group" aria-label="위상차 바로 선택"><button type="button" data-p="0">0°</button><button type="button" data-p="90">90°</button><button type="button" data-p="180">180°</button></div><button class="primary" id="pl" type="button">🔊 소리 켜기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var cv=el.querySelector("#cv"),ph=el.querySelector("#ph"),rd=el.querySelector("#rd"),pl=el.querySelector("#pl"),msg=el.querySelector("#msg");
+  var F=440,ctx=null,o1=null,o2=null,dl=null,gn=null,moved=false;
+  function amp(){return Math.abs(Math.cos(+ph.value*Math.PI/360))}
+  function draw(){
+   var s=Sci.fit(cv,.9),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,br=getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()||"#0076fb";
+   var p=+ph.value*Math.PI/180,T=3/F,rows=[h*.18,h*.47,h*.86],A=h*.095;
+   c.clearRect(0,0,w,h);c.font="13px sans-serif";c.fillStyle=col;
+   var names=["첫 번째 소리 (실선)","두 번째 소리 (점선), 위상차 "+ph.value+"°","합친 소리 (굵은 선)"];
+   rows.forEach(function(m,i){c.globalAlpha=.3;c.strokeStyle=col;c.lineWidth=1;c.beginPath();c.moveTo(0,m);c.lineTo(w,m);c.stroke();c.globalAlpha=1;c.fillText(names[i],6,i===2?h*.645:m-A-5)});
+   function line(m,fn,lw,color,dash){c.strokeStyle=color;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();for(var i=0;i<=w;i+=2){var t=i/w*T,y=m-fn(t)*A;i?c.lineTo(i,y):c.moveTo(0,y)}c.stroke();c.setLineDash([])}
+   line(rows[0],function(t){return Math.sin(2*Math.PI*F*t)},2,col);
+   line(rows[1],function(t){return Math.sin(2*Math.PI*F*t-p)},2,col,[6,5]);
+   line(rows[2],function(t){return (Math.sin(2*Math.PI*F*t)+Math.sin(2*Math.PI*F*t-p))/2*2},3.5,br);
+   c.fillStyle=col;c.fillText("합친 소리 크기: 최대의 "+Math.round(amp()*100)+"%",6,h-4);
+   rd.textContent=ph.value+"°";
+  }
+  function setDelay(){if(ctx)dl.delayTime.setTargetAtTime((+ph.value/360)/F,ctx.currentTime,.02)}
+  function stop(){
+   pl.textContent="🔊 소리 켜기";
+   if(ctx){var c=ctx,a=o1,b=o2,g=gn;ctx=null;o1=o2=dl=gn=null;try{g.gain.setTargetAtTime(0,c.currentTime,.015)}catch(e){}
+    setTimeout(function(){try{a.stop();b.stop()}catch(e){}try{c.close()}catch(e){}},120)}
+  }
+  function start(){
+   try{
+    var AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();
+    o1=ctx.createOscillator();o2=ctx.createOscillator();o1.frequency.value=F;o2.frequency.value=F;
+    dl=ctx.createDelay(.01);dl.delayTime.value=(+ph.value/360)/F;
+    var a=ctx.createGain(),b=ctx.createGain();gn=ctx.createGain();a.gain.value=.06;b.gain.value=.06;gn.gain.value=0; /* 합쳐도 최대 0.12 */
+    o1.connect(a);a.connect(gn);o2.connect(dl);dl.connect(b);b.connect(gn);gn.connect(ctx.destination);
+    o1.start();o2.start();gn.gain.setTargetAtTime(1,ctx.currentTime,.03);
+    if(ctx.state==="suspended")ctx.resume();pl.textContent="🔇 소리 끄기";
+    msg.textContent="소리가 나고 있어요(440Hz). 위상차를 바꿔 보세요.";Exp.reveal();
+   }catch(e){ctx=null;msg.textContent="이 기기에서는 소리를 낼 수 없어요. 그림으로 확인해요."}
+  }
+  function note(){var v=+ph.value;if(!ctx)return;msg.textContent=v>=170&&v<=190?"거의 상쇄돼서 조용해요!":v===0||v===360?"가장 크게 합쳐져요.":"합친 소리 크기는 최대의 "+Math.round(amp()*100)+"%예요."}
+  pl.addEventListener("click",function(){ctx?stop():start()});
+  ph.addEventListener("input",function(){setDelay();draw();note()});
+  el.querySelectorAll("[data-p]").forEach(function(b){b.addEventListener("click",function(){ph.value=b.dataset.p;setDelay();draw();note()})});
+  document.addEventListener("visibilitychange",function(){if(document.hidden)stop()});
+  window.addEventListener("pagehide",stop);
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

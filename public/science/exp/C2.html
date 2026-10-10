@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>달에서 던지면? · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.seg2{display:flex;gap:6px;flex-wrap:wrap}.stat{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 0}.stat div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:14px}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"C2",
+ predict:{q:"같은 속도, 같은 각도로 공을 던져요. 중력이 지구의 약 1/6인 달에서는 지구에서보다 대략 몇 배 멀리 날아갈까요? (공기 저항은 무시해요)",options:["비슷하게(1배 정도)","약 2배","약 6배"],answer:2,
+  feedback:["확인해 보세요. 중력이 약해지면 공이 훨씬 오래 떠 있어요.","가까워요! 직접 던져서 정확히 얼마인지 확인해 보세요.","좋아요! 도착 거리는 중력에 반비례해서 약 6배가 돼요."]},
+ steps:["장소(지구·달·화성), 각도, 속도를 정해요. 슬라이더는 ← → 키로도 조작할 수 있어요.","'던지기'를 눌러 공이 날아가는 모습을 봐요. 달과 화성은 오래 걸려서 빨리 감기로 보여 줘요.","같은 각도와 속도로 장소만 바꿔 다시 던져서 세 곡선을 비교해 보세요."],
+ observe:["같은 조건에서 달·화성·지구의 도착 거리는 각각 몇 m였나요?","지구에서 가장 멀리 가는 각도는 몇 도 근처인가요? 달에서도 같나요?","각도를 30°와 60°로 바꾸면 도착 거리는 어떻게 비슷하거나 다른가요?"],
+ more:["운동장에서 공을 45°로 던져 보고 몇 걸음 갔는지 세어 보세요. 달에서는 그 6배 정도 간다고 생각하면 어떨까요?","물을 뿜는 분수나 호스의 물줄기도 포물선을 그려요. 각도를 바꿔 어디까지 가는지 관찰해 보세요."],
+ why:{easy:["던진 공은 위로 올라가다가 중력에 끌려 내려와요. 중력이 약하면 천천히 끌려 내려오니까 오래 떠 있고, 그동안 앞으로도 계속 가서 더 멀리 가요.","달의 중력은 지구의 약 1/6, 화성은 약 3/8(0.38)이에요. 그래서 달에서 약 6배, 화성에서 약 2.6배 멀리 가요.","같은 속도라면 보통 45° 근처에서 가장 멀리 가요. 이것은 어느 별에서나 같아요."],
+  detail:["공기 저항이 없을 때 수평으로 던진 도착 거리(같은 높이로 돌아올 때)는 R = v² sin2θ / g, 최고점 높이는 H = v² sin²θ / (2g), 떠 있는 시간은 T = 2v sinθ / g 예요.","같은 v, θ에서 R은 1/g에 비례해요. g(지구) = 9.8, g(달) = 1.62, g(화성) = 3.71 m/s² 이므로 R(달)/R(지구) ≈ 6.05, R(화성)/R(지구) ≈ 2.64 예요.","이 체험은 모든 장소에서 공기 저항을 무시한 근사예요. 달에는 공기가 거의 없어서 잘 맞지만, 지구에서는 실제로 공기 저항 때문에 더 짧게 날아가요."]},
+ init:function(el){
+  var $=function(s){return el.querySelector(s)},BODY={earth:{n:"지구",g:9.8,dash:[],mk:0,col:"#0076fb"},moon:{n:"달",g:1.62,dash:[10,6],mk:1,col:"#d9480f"},mars:{n:"화성",g:3.71,dash:[2,6],mk:2,col:"#0a7d4f"}};
+  el.innerHTML='<canvas id="cv" role="img" aria-label="공을 던졌을 때 지구, 달, 화성에서 그려지는 포물선을 비교하는 그래프"></canvas>'+
+   '<div class="controls"><div class="seg2" role="group" aria-label="장소 선택"><button type="button" data-b="earth" aria-pressed="true">지구 9.8</button><button type="button" data-b="moon" aria-pressed="false">달 1.62</button><button type="button" data-b="mars" aria-pressed="false">화성 3.71</button></div><span class="note">(중력가속도, m/s²)</span></div>'+
+   '<div class="controls"><label>각도 <input id="A" type="range" min="10" max="80" step="1" value="45"><span class="readout" id="Ar"></span></label></div>'+
+   '<div class="controls"><label>던지는 속도 <input id="V" type="range" min="5" max="40" step="1" value="20"><span class="readout" id="Vr"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="go" type="button">던지기</button><button id="clr" type="button">궤적 지우기</button></div>'+
+   '<div class="stat" id="stat" aria-live="polite"></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em">공기 저항은 무시한 근사예요. 선 모양과 글자로 장소를 구분해요(지구=실선 ●, 달=긴 점선 ■, 화성=짧은 점선 ▲).</p>';
+  var cv=$("#cv"),sA=$("#A"),sV=$("#V"),body="earth",throws=[],cur=null,raf=0,last=0;
+  var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function par(g,a,v){var r=a*Math.PI/180;return {g:g,a:a,v:v,vx:v*Math.cos(r),vy:v*Math.sin(r),T:2*v*Math.sin(r)/g,R:v*v*Math.sin(2*r)/g,H:v*v*Math.pow(Math.sin(r),2)/(2*g)}}
+  function lab(){$("#Ar").textContent=sA.value+"°";$("#Vr").textContent=sV.value+" m/s"}
+  function nice(x){var p=Math.pow(10,Math.floor(Math.log(x)/Math.LN10)),m=x/p;return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p}
+  function extents(){var X=20,Y=8,all=throws.slice();
+   Object.keys(BODY).forEach(function(k){var p=par(BODY[k].g,+sA.value,+sV.value);X=Math.max(X,p.R);Y=Math.max(Y,p.H)});
+   throws.forEach(function(t){X=Math.max(X,t.p.R);Y=Math.max(Y,t.p.H)});return {X:X*1.08,Y:Y*1.15}}
+  function marker(c,x,y,k,r){c.beginPath();if(k===0)c.arc(x,y,r,0,7);else if(k===1)c.rect(x-r,y-r,2*r,2*r);else{c.moveTo(x,y-r*1.2);c.lineTo(x+r*1.1,y+r*.9);c.lineTo(x-r*1.1,y+r*.9);c.closePath()}}
+  function draw(){
+   var s=Sci.fit(cv,.6),c=s.c,w=s.w,h=s.h,col=getComputedStyle(document.body).color,ex=extents(),m=36,b=26;
+   var sc=Math.min((w-m-10)/ex.X,(h-b-10)/ex.Y),x0=m,y0=h-b;
+   c.clearRect(0,0,w,h);c.font="12px sans-serif";c.lineWidth=1;c.strokeStyle=col;c.fillStyle=col;
+   var st=nice(ex.X/6);c.globalAlpha=.25;
+   for(var x=0;x<=ex.X;x+=st){c.beginPath();c.moveTo(x0+x*sc,y0);c.lineTo(x0+x*sc,10);c.stroke()}
+   var sy=nice(ex.Y/3);for(var y=0;y<=ex.Y;y+=sy){c.beginPath();c.moveTo(x0,y0-y*sc);c.lineTo(w-6,y0-y*sc);c.stroke()}
+   c.globalAlpha=1;c.textAlign="center";for(x=0;x<=ex.X;x+=st)c.fillText(x+"m",x0+x*sc,y0+16);
+   c.textAlign="right";for(y=sy;y<=ex.Y;y+=sy)c.fillText(y+"m",x0-4,y0-y*sc+4);
+   c.lineWidth=2;c.beginPath();c.moveTo(x0,y0);c.lineTo(w-6,y0);c.stroke();
+   var r0=sA.value*Math.PI/180;c.beginPath();c.moveTo(x0,y0);c.lineTo(x0+40*Math.cos(r0),y0-40*Math.sin(r0));c.strokeStyle="#888";c.stroke();
+   throws.concat(cur&&throws.indexOf(cur)<0?[cur]:[]).forEach(function(t){
+    var B=BODY[t.b],p=t.p,tt=t===cur?Math.min(cur.t,p.T):p.T;
+    c.strokeStyle=B.col;c.fillStyle=B.col;c.lineWidth=2.5;c.setLineDash(B.dash);c.beginPath();
+    for(var i=0;i<=60;i++){var u=tt*i/60,X=p.vx*u,Y=p.vy*u-.5*p.g*u*u;(i?c.lineTo:c.moveTo).call(c,x0+X*sc,y0-Y*sc)}c.stroke();c.setLineDash([]);
+    var X2=p.vx*tt,Y2=p.vy*tt-.5*p.g*tt*tt;marker(c,x0+X2*sc,y0-Y2*sc,B.mk,6);c.fill();
+    if(tt>=p.T-1e-9){c.textAlign="center";c.fillStyle=col;c.fillText(B.n+" "+p.R.toFixed(p.R<100?1:0)+"m",Math.min(w-40,Math.max(x0+30,x0+p.R*sc)),y0-8-14*(t.b==="moon"?0:t.b==="mars"?1:2))}})
+  }
+  function stat(){var h="";["earth","moon","mars"].forEach(function(k){var t=null;throws.forEach(function(q){if(q.b===k)t=q});if(t)h+="<div>"+BODY[k].n+": 도착 "+t.p.R.toFixed(1)+" m · 최고 "+t.p.H.toFixed(1)+" m · "+t.p.T.toFixed(1)+" 초 (각도 "+t.p.a+"°, 속도 "+t.p.v+")</div>"});$("#stat").innerHTML=h}
+  function frame(ts){var dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+   if(cur&&cur.t<cur.p.T){cur.t+=dt*cur.rate;if(cur.t>=cur.p.T){cur.t=cur.p.T;land()}}
+   draw();raf=requestAnimationFrame(frame)}
+  function land(){var t=cur;throws=throws.filter(function(q){return q.b!==t.b});throws.push(t);stat();
+   var e=null,mo=null;throws.forEach(function(q){if(q.b==="earth"&&q.p.a===t.p.a&&q.p.v===t.p.v)e=q;if(q.b==="moon"&&q.p.a===t.p.a&&q.p.v===t.p.v)mo=q});
+   $("#msg").textContent=BODY[t.b].n+"에서 "+t.p.R.toFixed(1)+" m 날아갔어요."+(e&&mo?" 같은 조건에서 달은 지구의 "+(mo.p.R/e.p.R).toFixed(1)+"배예요.":" 같은 각도와 속도로 다른 장소에서도 던져 비교해 보세요.");
+   Exp.reveal()}
+  $("#go").addEventListener("click",function(){var p=par(BODY[body].g,+sA.value,+sV.value),rate=Math.max(1,p.T/3.5);
+   if(reduce){cur={b:body,p:p,t:p.T,rate:1};land();draw();return}
+   cur={b:body,p:p,t:0,rate:rate};$("#msg").textContent=BODY[body].n+"에서 던지는 중"+(rate>1.05?" (빨리 감기 "+rate.toFixed(1)+"배)":"")+"..."});
+  $("#clr").addEventListener("click",function(){throws=[];cur=null;stat();$("#msg").textContent="궤적을 지웠어요."});
+  el.querySelectorAll("[data-b]").forEach(function(b){b.addEventListener("click",function(){body=b.dataset.b;el.querySelectorAll("[data-b]").forEach(function(x){x.setAttribute("aria-pressed",x===b)})})});
+  [sA,sV].forEach(function(s){s.addEventListener("input",lab)});
+  lab();raf=requestAnimationFrame(frame);window.addEventListener("pagehide",function(){cancelAnimationFrame(raf)});
+ }
+};
+Sci.initExp();
+</script></body></html>

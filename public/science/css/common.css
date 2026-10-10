@@ -1,0 +1,106 @@
+:root{--bg:#f4faf7;--card:#ffffff;--ink:#1d2b24;--sub:#55665c;--line:#cfe3d8;--brand:#1e8152;--brand-ink:#ffffff;--ok:#1e8152;--warn:#c2410c;--soft:#deefe7;--yellow:#fff8c7;--navy:#3d478f;--accent:#f26b1d;--r:14px}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1d17;--card:#16261f;--ink:#e7f3ec;--sub:#9fb8aa;--line:#2b4438;--brand:#4fc38b;--brand-ink:#06150e;--ok:#4fc38b;--warn:#f0a85a;--soft:#1d3a2e;--yellow:#353012;--navy:#2c3370;--accent:#f59a63}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Pretendard Variable",Pretendard,system-ui,-apple-system,"Malgun Gothic",sans-serif}
+a{color:var(--brand)}
+.wrap{max-width:1000px;margin:0 auto;padding:0 16px 48px}
+header.top{padding:12px 16px;margin:0 -16px 8px;background:var(--navy);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+header.top a.home{font-weight:700;text-decoration:none;color:#fff}
+header.top .crumb a{color:#fff}
+.crumb{color:#dfe3f5;font-size:14px}
+h1{font-size:clamp(22px,4.5vw,32px);line-height:1.3;margin:8px 0;color:var(--brand)}
+.lead{color:var(--sub);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;text-decoration:none;color:var(--ink);min-height:44px}
+.card:hover,.card:focus-visible{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px var(--soft)}
+.card h2,.card h3{margin:0 0 4px;font-size:18px}
+.card p{margin:0;color:var(--sub);font-size:14px}
+.card .ico{font-size:28px;line-height:1}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0}
+.chip{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:2px 9px;color:var(--sub);background:var(--bg)}
+.card.planned{opacity:.55}
+.card .ico{background:var(--soft);border-radius:12px;width:52px;height:52px;display:flex;align-items:center;justify-content:center}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.filters select,.filters input{min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);padding:0 12px;font:inherit}
+button,.btn{min-height:44px;min-width:44px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;padding:0 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+button.primary,.btn.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
+button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,[role=tab]:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+button[aria-pressed=true]{background:var(--soft);border-color:var(--brand);font-weight:600}
+/* 체험 */
+.exp-q{color:var(--sub);margin:0 0 12px}
+.stage{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;position:relative;min-height:62vh}
+.stage.locked .stage-body{opacity:.25;pointer-events:none;filter:blur(1px)}
+.stage canvas{display:block;width:100%;height:auto;touch-action:none}
+.predict{background:var(--yellow);border:2px solid var(--accent);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.predict h2{font-size:17px;margin:0 0 8px}
+.predict .opts{display:flex;gap:8px;flex-wrap:wrap}
+.predict .res{margin-top:10px;font-weight:600}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.controls label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.controls input[type=range]{width:min(320px,70vw);height:44px;accent-color:var(--brand)}
+.readout{font-variant-numeric:tabular-nums;color:var(--sub)}
+.tabs{display:flex;gap:4px;margin:18px 0 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs [role=tab]{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:0 14px;white-space:nowrap}
+.tabs [role=tab][aria-selected=true]{border-bottom-color:var(--brand);color:var(--brand);font-weight:700}
+.panel{background:var(--card);border:1px solid var(--line);border-top:0;border-radius:0 0 var(--r) var(--r);padding:16px}
+.panel[hidden]{display:none}
+.panel ul,.panel ol{padding-left:22px;margin:0}
+.seg{display:inline-flex;gap:6px;margin-bottom:10px}
+.pager{display:flex;justify-content:space-between;gap:8px;margin-top:18px;flex-wrap:wrap}
+.note{font-size:13px;color:var(--sub)}
+footer.foot{margin-top:32px;font-size:13px;color:var(--sub);border-top:1px solid var(--line);padding-top:14px}
+/* 교사용 보기 */
+body.present{font-size:20px}
+body.present .tabs,body.present .panel,body.present .pager,body.present .predict h2+p{display:none}
+body.present button,body.present .btn{min-height:56px;font-size:20px}
+body.present .stage{min-height:70vh}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---- 2차 조정: 글자 크기·배치 (휴대폰 우선, PC는 여유 있게) ---- */
+body{font-size:17px;line-height:1.75}
+.lead{font-size:18px}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.3}
+.card h2,.card h3{font-size:20px;line-height:1.4}
+.card p{font-size:15px;line-height:1.6}
+.chip,.chips{font-size:13px}
+.card{padding:18px}
+.exp-q{font-size:18px}
+.predict{padding:18px}
+.predict h2{font-size:19px}
+.predict p{font-size:17px}
+.predict .opts button{min-height:48px;font-size:16px;padding:0 18px}
+.predict .res{font-size:17px}
+.predict .opts{gap:10px}
+.controls{gap:14px 18px;margin-top:14px}
+.controls label{font-size:17px;width:100%}
+.controls input[type=range]{width:min(420px,100%);flex:1 1 220px;max-width:420px}
+.controls button{font-size:16px}
+.stage{padding:14px;min-height:0}
+.tabs [role=tab]{font-size:17px;min-height:48px}
+.panel{font-size:17px;padding:18px}
+.panel li{margin-bottom:6px}
+button,.btn{font-size:16px;min-height:48px}
+.filters select,.filters input{min-height:48px;font-size:16px}
+.note{font-size:14px}
+footer.foot{font-size:14px}
+header.top a.home{font-size:18px}
+.crumb{font-size:15px}
+body.present{font-size:22px}
+body.present .card h2,body.present .card h3{font-size:26px}
+body.present .card p{font-size:20px}
+@media (max-width:600px){
+  .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .filters input{grid-column:1/-1}
+  .filters .note{grid-column:1/-1}
+  .filters select{width:100%}
+  .grid{grid-template-columns:1fr}
+  .card{padding:16px}
+}
+@media (max-width:520px){
+  .tabs{display:grid;grid-template-columns:1fr 1fr;overflow:visible}
+  .tabs [role=tab]{border-bottom:2px solid var(--line);font-size:16px;padding:0 6px;justify-content:center}
+  .tabs [role=tab][aria-selected=true]{border-bottom:3px solid var(--brand);background:var(--soft)}
+  .stage canvas{max-height:58vh}
+  .pager .btn{flex:1 1 100%;justify-content:center;text-align:center}
+  .predict .opts button{flex:1 1 100%}
+}

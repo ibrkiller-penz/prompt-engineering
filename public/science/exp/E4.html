@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>운동하면 맥박이 변해요 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.timer{font-size:48px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;margin:6px 0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.row label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row input[type=number]{min-height:44px;width:92px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);padding:0 8px}
+.safe{border:1px solid var(--warn);border-radius:10px;padding:8px 12px;font-size:14px;margin:0 0 8px}.bar{height:14px;background:var(--line);border-radius:7px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--brand)}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"E4",
+ predict:{q:"제자리에서 힘차게 뛰고 난 직후의 맥박은, 가만히 앉아 있을 때와 비교하면 어떨까요?",options:["더 느려진다","더 빨라진다","똑같다"],answer:1,
+  feedback:["운동하면 몸이 산소를 더 많이 쓰기 때문에 반대로 빨라져요. 직접 재 보세요.","맞아요! 운동하면 몸이 더 많은 산소가 필요해서 심장이 더 빨리 뛰어요.","거의 항상 달라져요. 직접 세어서 확인해 보세요."]},
+ steps:["안전 먼저: 몸이 안 좋거나 어지러우면 이 활동을 하지 마세요. 목 옆이나 손목(엄지 쪽)에 검지·중지를 대고 맥박을 찾아요.","'10초 재기'를 누르고 10초 동안 맥박이 뛰는 횟수를 속으로 세어 숫자를 입력해요. (처음에는 가만히 앉아서)","제자리 걷기나 가벼운 뛰기를 30초 정도 하고 곧바로 다시 재요. 2분 쉬고 한 번 더 재요. 그리고 '그래프 그리기'를 눌러요."],
+ observe:["운동 직후 맥박은 가만히 있을 때보다 얼마나 늘었나요? (1분 기준 값을 비교해요)","2분 쉬고 나면 맥박은 어떻게 변했나요?","친구와 비교하면 같은 값인가요? 사람마다 왜 다를까요?"],
+ more:["운동 종류(걷기, 줄넘기)나 시간을 바꿔 맥박이 어떻게 달라지는지 비교해 보세요. 다른 조건은 같게 해야 해요.","10초 대신 30초를 세어 2배 해 보고, 10초×6과 비슷한지 비교해 보세요."],
+ why:{easy:["운동하면 근육이 힘을 내느라 산소를 더 많이 써요. 산소는 피가 날라 줘요.","그래서 심장이 더 빨리, 더 힘차게 뛰어서 피를 많이 보내요. 맥박이 빨라지는 이유예요.","쉬면 근육이 필요한 산소가 줄어서 맥박이 천천히 원래대로 돌아와요."],
+  detail:["맥박은 심장이 수축할 때 동맥이 밀려 늘어나며 손가락으로 느껴지는 박동으로, 보통 심박수와 같아요. 10초 동안 센 횟수에 6을 곱해 1분당 값(bpm)으로 어림해요.","운동하면 근육의 산소 소비와 이산화탄소 생성이 늘고, 자율신경(교감신경 활성)과 호르몬(아드레날린)이 심박수와 박출량을 늘려 심박출량(= 심박수 × 박출량)을 높여요.","10초 측정은 ±1회 오차가 곱해져 ±6 bpm 정도 흔들릴 수 있어요. 휴식기 값은 나이·체력·긴장·카페인 등에 따라 사람마다 크게 달라요. 이 활동은 건강 진단용이 아니에요."]},
+ init:function(el){
+  var NAMES=["가만히 앉아서","운동 직후","2분 쉰 뒤"],vals=[null,null,null],cur=0,tmr=0,left=10;
+  var h='<div class="safe" role="note">안전: 가볍게만 하고 어지럽거나 아프면 바로 멈춰 쉬세요. 입력한 값은 이 화면에서만 쓰이고 저장되거나 전송되지 않아요.</div>'+
+   '<div class="timer" id="tm" aria-live="off">10</div><div class="bar" aria-hidden="true"><i id="bf"></i></div>'+
+   '<div class="row"><button class="primary" id="st" type="button">10초 재기 시작</button><span class="note" id="tmsg" aria-live="polite">세는 동안 숫자만 기억하고, 끝난 뒤 아래에 적어요.</span></div>';
+  NAMES.forEach(function(n,i){h+='<div class="row"><label>'+(i+1)+'. '+n+' (10초 동안 센 횟수) <input type="number" min="5" max="60" step="1" inputmode="numeric" id="v'+i+'" aria-label="'+n+' 10초 동안 센 맥박 횟수"></label><span class="note" id="r'+i+'"></span></div>'});
+  h+='<div class="row"><button class="primary" id="gr" type="button">그래프 그리기</button><button id="rst" type="button">다시 하기</button></div><canvas id="cv" role="img" aria-label="맥박 비교 막대그래프"></canvas><p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  el.innerHTML=h;
+  var cv=el.querySelector("#cv"),tm=el.querySelector("#tm"),bf=el.querySelector("#bf"),st=el.querySelector("#st"),msg=el.querySelector("#msg"),tmsg=el.querySelector("#tmsg");
+  function stop(){clearInterval(tmr);tmr=0}
+  function ready(){st.textContent="10초 재기 시작";st.disabled=false}
+  st.addEventListener("click",function(){
+   if(tmr)return;left=10;tm.textContent=left;bf.style.width="0";st.disabled=true;st.textContent="재는 중...";tmsg.textContent="지금부터 맥박을 세어 보세요.";
+   var t0=performance.now();tmr=setInterval(function(){var e=(performance.now()-t0)/1000;left=Math.max(0,Math.ceil(10-e));tm.textContent=left;bf.style.width=Math.min(100,e*10)+"%";
+    if(e>=10){stop();tm.textContent="끝!";tmsg.textContent="끝! 센 횟수를 아래 칸에 적어 주세요.";ready();var nx=vals.map(function(v,i){return el.querySelector("#v"+i).value}).findIndex(function(v){return v===""});if(nx>=0)el.querySelector("#v"+nx).focus()}},100)});
+  function read(){for(var i=0;i<3;i++){var s=el.querySelector("#v"+i).value,n=parseInt(s,10);vals[i]=(s!==""&&n>=5&&n<=60)?n:null;el.querySelector("#r"+i).textContent=vals[i]!=null?"→ 1분에 약 "+vals[i]*6+"번":(s!==""?"5~60 사이로 적어 주세요":"")}}
+  for(var i=0;i<3;i++)el.querySelector("#v"+i).addEventListener("input",function(){read();draw()});
+  function draw(){
+   var s=Sci.fit(cv,.6),g=s.c,w=s.w,hh=s.h,col=getComputedStyle(document.body).color,k=Math.max(w/600,.8);
+   g.clearRect(0,0,w,hh);g.font=(13*Math.max(k,.9))+"px sans-serif";g.fillStyle=col;g.strokeStyle=col;
+   var L=44*Math.max(k,.9),T=22,B=40*Math.max(k,.9),Rr=10,pw=w-L-Rr,ph=hh-T-B,YM=Math.max(200,Math.ceil(Math.max.apply(null,vals.map(function(v){return v?v*6:0}))/50)*50);
+   g.lineWidth=1.5;g.beginPath();g.moveTo(L,T);g.lineTo(L,T+ph);g.lineTo(L+pw,T+ph);g.stroke();
+   g.textAlign="right";for(var y=0;y<=YM;y+=50)g.fillText(y,L-5,T+ph-y/YM*ph+4);
+   g.save();g.translate(11,T+ph/2);g.rotate(-Math.PI/2);g.textAlign="center";g.fillText("1분 맥박(회)",0,0);g.restore();
+   var bw=pw/3*.55,fills=["#1b6ec2","#c2410c","#0a7d4f"];
+   NAMES.forEach(function(n,i){var cx=L+pw/3*(i+.5);g.textAlign="center";g.fillStyle=col;g.fillText(n.replace("가만히 앉아서","앉아서"),cx,T+ph+16*Math.max(k,.9));
+    if(vals[i]==null)return;var v=vals[i]*6,bh=v/YM*ph;
+    g.fillStyle=fills[i];g.fillRect(cx-bw/2,T+ph-bh,bw,bh);
+    /* 무늬: 색 외에 구분 */
+    g.save();g.beginPath();g.rect(cx-bw/2,T+ph-bh,bw,bh);g.clip();g.strokeStyle="rgba(255,255,255,.7)";g.lineWidth=2;
+    for(var j=-bh;j<bw+bh;j+=10){if(i===1){g.beginPath();g.moveTo(cx-bw/2+j,T+ph);g.lineTo(cx-bw/2+j+bh,T+ph-bh);g.stroke()}else if(i===2){g.beginPath();g.moveTo(cx-bw/2+j,T+ph-bh);g.lineTo(cx-bw/2+j,T+ph);g.stroke()}}g.restore();
+    g.fillStyle=col;g.fillText(v+"회",cx,T+ph-bh-5)});
+  }
+  el.querySelector("#gr").addEventListener("click",function(){read();draw();
+   if(vals[0]==null||vals[1]==null){msg.textContent="'앉아서'와 '운동 직후' 값을 먼저 적어 주세요.";return}
+   var d=(vals[1]-vals[0])*6;msg.textContent="앉아서 약 "+vals[0]*6+"회 → 운동 직후 약 "+vals[1]*6+"회 ("+(d>=0?"+":"")+d+"회)."+(vals[2]!=null?" 2분 쉰 뒤는 약 "+vals[2]*6+"회예요.":"")+" 10초 측정이라 ±6회 정도 오차가 있어요.";Exp.reveal()});
+  el.querySelector("#rst").addEventListener("click",function(){stop();for(var i=0;i<3;i++)el.querySelector("#v"+i).value="";read();tm.textContent="10";bf.style.width="0";ready();tmsg.textContent="세는 동안 숫자만 기억하고, 끝난 뒤 아래에 적어요.";msg.textContent="";draw()});
+  window.addEventListener("pagehide",stop);window.addEventListener("resize",draw);read();draw();
+ }
+};
+Sci.initExp();
+</script></body></html>

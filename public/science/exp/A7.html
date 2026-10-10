@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>맹점 찾기 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>var EXP={
+ id:"A7",
+ predict:{q:"한쪽 눈을 감고 + 를 계속 보면서 ● 를 천천히 가까이 또는 멀리 옮기면 어떻게 될까요?",options:["● 가 항상 또렷하게 보인다","어떤 거리에서 ● 가 사라진다","● 가 점점 커진다"],answer:1,
+  feedback:["가운데 + 만 보고 있으면 어느 거리에서 ● 가 안 보일 수 있어요. 직접 확인해 보세요.","맞아요! 눈 속에 빛을 못 느끼는 곳(맹점)이 있어서 그 자리에 맺힌 ● 가 사라져요.","점이 커지지는 않아요. 직접 확인해 보세요."]},
+ steps:["오른쪽 눈을 가리고, 왼쪽 눈으로 + 만 계속 바라보세요(곁눈으로 ● 를 확인해요).","거리 슬라이더(또는 ← → 키)로 ● 를 천천히 움직이며 ● 가 사라지는 곳을 찾으세요. 얼굴과 화면 거리는 일정하게 유지하세요.","찾았으면 '사라졌어요!' 를 누르세요. 눈 바꾸기 버튼으로 반대쪽 눈도 해 보세요."],
+ observe:["● 가 사라진 자리는 구멍처럼 보였나요, 배경이 채워진 것처럼 보였나요?","얼굴을 화면에 더 가까이 하면 사라지는 거리가 어떻게 바뀌나요?","● 를 크게 하면 사라지는 범위가 어떻게 바뀌나요?"],
+ more:["흰 종이에 + 와 ● 를 손으로 그려 같은 방법으로 해 보세요.","양쪽 눈을 모두 뜨면 왜 평소에는 맹점을 못 느끼는지 이야기해 보세요."],
+ why:{easy:["우리 눈 안쪽 벽(망막)에는 빛을 느끼는 세포가 있어요. 그런데 눈 속의 신경 다발이 눈 밖으로 나가는 자리에는 이 세포가 없어요. 이 자리가 맹점이에요.","맹점에 맺힌 모양은 보이지 않지만, 뇌가 주변 모습으로 빈자리를 채워 주기 때문에 평소에는 구멍이 있는 줄 몰라요.","두 눈의 맹점은 서로 다른 위치에 있어서, 두 눈을 모두 뜨면 서로 빈자리를 채워 줘요."],
+  detail:["시신경 유두(optic disc)에는 광수용체가 없어요. 맹점은 시선(중심와)에서 귀 쪽으로 약 15도 떨어져 있고 폭은 대략 5도 안팎이에요(개인차).","따라서 눈에서 화면까지 거리를 D, + 와 ● 의 간격을 s라고 하면 s ≈ D·tan 15° ≈ 0.27D, 즉 D ≈ 3.7 s 근처에서 ● 가 사라지는 것을 기대할 수 있어요(근사).","맹점이 채워져 보이는 현상은 지각적 채움(filling-in)이라 불려요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="왼쪽에 + 표시, 오른쪽에 동그란 점. 한쪽 눈을 감고 + 를 보면서 점을 옮기는 그림"></canvas>'+
+   '<div class="controls"><label>+ 와 ● 사이 거리 <input id="d" type="range" min="15" max="85" step="0.5" value="70" aria-label="십자와 점 사이 거리"><span class="readout" id="rd"></span></label></div>'+
+   '<div class="controls"><label>● 크기 <input id="sz" type="range" min="10" max="40" step="1" value="22" aria-label="점 크기"></label></div>'+
+   '<div class="controls"><button id="eye" type="button">눈 바꾸기 (지금: 왼쪽 눈으로 +)</button><button class="primary" id="gone" type="button">사라졌어요!</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:4.8em">먼저 오른쪽 눈을 가리고 왼쪽 눈으로 + 만 보세요. 얼굴을 화면에서 팔 길이쯤 두고 시작하세요.</p>';
+  var cv=el.querySelector("#cv"),d=el.querySelector("#d"),sz=el.querySelector("#sz"),msg=el.querySelector("#msg"),eye=el.querySelector("#eye"),rd=el.querySelector("#rd");
+  var left=true;
+  function draw(){
+   var s=Sci.fit(cv,.34),c=s.c,w=s.w,h=s.h,k=w/600,ink=getComputedStyle(document.body).color,D=+d.value/100*w,r=(+sz.value)/2*Math.max(k,.8)*1.4;
+   var cx=left?w*.08:w*.92,dx=left?cx+D:cx-D;
+   c.clearRect(0,0,w,h);c.strokeStyle=ink;c.fillStyle=ink;c.lineWidth=4;c.lineCap="round";
+   c.beginPath();c.moveTo(cx-14,h/2);c.lineTo(cx+14,h/2);c.moveTo(cx,h/2-14);c.lineTo(cx,h/2+14);c.stroke();
+   c.beginPath();c.arc(dx,h/2,r,0,7);c.fill();
+   c.font=(13*Math.max(k,.85))+"px sans-serif";c.textAlign="center";c.fillText(left?"← 왼쪽 눈으로 이 + 를 보세요":"오른쪽 눈으로 이 + 를 보세요 →",w/2,h-8);
+   rd.textContent="화면 너비의 "+(+d.value).toFixed(0)+"%";
+  }
+  d.addEventListener("input",draw);sz.addEventListener("input",draw);
+  eye.addEventListener("click",function(){left=!left;eye.textContent="눈 바꾸기 (지금: "+(left?"왼":"오른")+"쪽 눈으로 +)";
+   msg.textContent=left?"오른쪽 눈을 가리고 왼쪽 눈으로 + 를 보세요.":"왼쪽 눈을 가리고 오른쪽 눈으로 + 를 보세요.";draw()});
+  el.querySelector("#gone").addEventListener("click",function(){
+   msg.textContent="잘 찾았어요! 이 위치가 맹점이에요. 눈에서 화면까지 거리는 + 와 ● 간격의 약 3.7배쯤일 거예요(근사, 개인차 있음). 예를 들어 간격이 8cm이면 약 30cm예요. 얼굴 거리를 바꾸면 사라지는 간격도 달라져요.";Exp.reveal()});
+  draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

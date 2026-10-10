@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>선 길이가 달라 보여요 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css"></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"A1",
+ predict:{q:"위쪽 선(A)과 아래쪽 선(B)의 실제 길이를 비교하면 어떨까요?",options:["A가 더 길다","B가 더 길다","둘이 같다"],answer:null,
+  feedback:["확인해 보세요. 눈에는 그렇게 보일 수 있어요.","확인해 보세요. 눈에는 그렇게 보일 수 있어요.","처음엔 다르게 보여도, 직접 맞춰 보면 알 수 있어요."]},
+ steps:["아래 B선의 길이를 슬라이더(또는 ← → 키)로 바꿔서 A선과 같아 보이게 맞춰 보세요.","'정답 확인'을 눌러 실제 길이를 비교해요.","'화살촉 방향 바꾸기'를 눌러 B선의 모양을 바꾸고 다시 맞춰 보세요."],
+ observe:["내가 맞춘 길이와 실제 A선 길이는 얼마나 달랐나요?","실제 길이를 알고 나서도 선이 다르게 보이나요?","화살촉 방향을 바꾸면 B선은 길어 보이나요, 짧아 보이나요?"],
+ more:["종이에 같은 길이의 선을 두 개 그리고 한쪽에는 바깥쪽, 다른 쪽에는 안쪽 화살촉을 그려 친구에게 비교해 보게 하세요.","눈을 가늘게 뜨거나 화면을 멀리서 보면 달라 보이는 정도가 변하는지 관찰해 보세요."],
+ why:{easy:["두 선은 길이가 같아도, 끝에 붙은 화살촉 때문에 우리 뇌가 길이를 다르게 판단해요.","바깥쪽으로 벌어진 화살촉이 있는 선은 더 짧아 보이고, 안쪽으로 모인 화살촉이 있는 선은 더 길어 보여요.","실제 길이를 알아도 계속 속는 것은, 눈이 아니라 뇌가 처음부터 모양을 해석하기 때문이에요."],
+  detail:["뮐러-라이어 착시(Müller-Lyer illusion)예요. 선분의 길이 판단이 끝의 꺾쇠(화살촉) 방향에 영향을 받아요.","대표 설명 중 하나는 3차원 단서 가설이에요. 바깥을 향한 꺾쇠는 방 모퉁이처럼 멀리 있는 가장자리, 안을 향한 꺾쇠는 건물 모서리처럼 가까운 것으로 해석해 크기를 보정한다는 생각이에요. 이 외에도 여러 설명이 있고 하나로 확정되지 않았어요.","착시의 크기는 사람과 문화, 환경에 따라 달라질 수 있어요."]},
+ init:function(el){
+  el.innerHTML='<canvas id="cv" role="img" aria-label="위쪽 A선과 아래쪽 B선. B선 길이를 조절해서 A선과 같게 맞추는 그림"></canvas>'+
+   '<div class="controls"><label>B선 길이 <input id="len" type="range" min="80" max="360" value="160" aria-label="B선 길이"><span class="readout" id="rd"></span></label></div>'+
+   '<div class="controls"><button class="primary" id="rev" type="button">정답 확인</button><button id="flip" type="button">화살촉 방향 바꾸기</button><button id="rst" type="button">다시 하기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  var cv=el.querySelector("#cv"),len=el.querySelector("#len"),rd=el.querySelector("#rd"),msg=el.querySelector("#msg");
+  var A=200,Bstart=0,longB=true,state;
+  function rnd(){Bstart=Math.round(110+Math.random()*30);len.value=Bstart}
+  function draw(){
+   var s=Sci.fit(cv,.55),c=s.c,w=s.w,h=s.h,k=w/600,col=getComputedStyle(document.body).color;
+   c.clearRect(0,0,w,h);c.strokeStyle=col;c.fillStyle=col;c.lineWidth=Math.max(3,3*k);c.lineCap="round";c.font=(18*Math.max(k,1))+"px sans-serif";
+   /* kind "short": 꺾쇠가 선 안쪽을 향함(<—>) → 짧아 보임 / "long": 바깥을 향함(>—<) → 길어 보임 */
+   function line(y,L,kind,label){
+    var x0=(w-L*k)/2,x1=x0+L*k,f=22*k;
+    c.beginPath();c.moveTo(x0,y);c.lineTo(x1,y);
+    [[x0,1],[x1,-1]].forEach(function(p){var dx=p[1]*f*(kind==="short"?1:-1);
+      c.moveTo(p[0],y);c.lineTo(p[0]+dx,y-f*.8);c.moveTo(p[0],y);c.lineTo(p[0]+dx,y+f*.8)});
+    c.stroke();
+    c.fillText(label,6,y-4);
+    return [x0,x1]
+   }
+   var a=line(h*.28,A,"short","A");
+   var b=line(h*.68,+len.value,longB?"long":"short","B");
+   if(state==="rev"){
+    c.save();c.setLineDash([6,5]);c.lineWidth=2;c.strokeStyle="#d9480f";
+    [a[0],a[1]].forEach(function(x){c.beginPath();c.moveTo(x,h*.1);c.lineTo(x,h*.9);c.stroke()});c.restore();
+   }
+   rd.textContent=state==="rev"?("A="+A+", B="+len.value):"";
+  }
+  len.addEventListener("input",function(){if(state==="rev"){state="";msg.textContent=""}draw()});
+  el.querySelector("#rev").addEventListener("click",function(){state="rev";draw();var b=+len.value,diff=b-A;
+   msg.textContent=(Math.abs(diff)<=4?"거의 정확하게 맞췄어요! ":"")+"A선은 "+A+", 내가 맞춘 B선은 "+b+"예요. 차이 "+Math.abs(diff)+(diff<0?" (B가 더 짧아요)":diff>0?" (B가 더 길어요)":"")+". 점선이 두 선의 끝이에요.";
+   Exp.reveal()});
+  el.querySelector("#flip").addEventListener("click",function(){longB=!longB;state="";msg.textContent="B선 화살촉이 "+(longB?"바깥":"안쪽")+"으로 바뀌었어요. 다시 맞춰 보세요.";draw()});
+  el.querySelector("#rst").addEventListener("click",function(){rnd();state="";msg.textContent="";draw()});
+  rnd();draw();window.addEventListener("resize",draw);
+ }
+};
+Sci.initExp();
+</script></body></html>

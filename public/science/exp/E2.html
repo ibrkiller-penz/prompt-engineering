@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>씨앗을 키워 보자 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>.pots{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.pot{border:1px solid var(--line);border-radius:10px;padding:8px;font-size:14px}.pot h3{margin:0 0 4px;font-size:15px}
+.pot label{display:flex;justify-content:space-between;align-items:center;gap:4px;margin:2px 0}
+.pot select{min-height:44px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);padding:0 4px;max-width:90px}
+.pot .st{font-size:13px;margin-top:4px;min-height:2.6em}.pot .ok{color:var(--ok)}.pot .bad{color:var(--warn)}</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"E2",
+ predict:{q:"화분 4개에 빛·물·온도를 다르게 주면 14일 뒤 싹의 키는 어떻게 될까요?",options:["조건이 달라도 모두 똑같이 자란다","조건에 따라 자라는 정도가 달라진다","빛·물·온도를 가장 많이 줄수록 항상 제일 잘 큰다"],answer:1,
+  feedback:["조건이 다르면 자라는 정도도 달라져요. 직접 확인해 보세요.","맞아요! 식물은 알맞은 빛·물·온도에서 가장 잘 자라요.","너무 많은 물이나 너무 높은 온도는 오히려 해가 될 수 있어요. 확인해 보세요."]},
+ steps:["1번 화분은 기준(빛 보통, 물 보통, 온도 22℃)이에요. 2~4번 화분의 빛·물·온도를 골라요.","원인을 알려면 기준과 한 가지만 다르게 해야 해요. 화분 아래 '비교 점검' 글을 확인해요.","'시작'을 눌러 14일을 빠르게 지켜보고, 아래 그래프에서 키를 비교해요."],
+ observe:["기준과 한 가지만 다르게 한 화분은 어떤 조건이 원인인지 말할 수 있나요?","두세 가지를 한꺼번에 바꾼 화분은 왜 원인을 알기 어려울까요?","물을 '많음'으로 했을 때 '보통'보다 잘 자랐나요?"],
+ more:["집에서 같은 종류의 씨앗과 같은 화분·흙을 쓰고, 빛(창가/그늘) 한 가지만 다르게 해서 일주일 키워 보세요. 키는 자로 재어 기록해요.","물 주는 양을 컵으로 재면 '많이'나 '조금' 같은 모호한 말보다 정확하게 비교할 수 있어요."],
+ why:{easy:["씨앗이 싹 트고 자라려면 물, 알맞은 온도, 공기가 필요하고, 자라면서는 빛도 필요해요.","원인을 알아내려면 한 번에 한 가지 조건만 바꾸고 나머지는 똑같이 해야 해요. 이것을 '변인 통제'라고 해요.","물이 너무 많으면 뿌리가 숨쉬기 어려워 오히려 잘 못 자랄 수 있어요. 이 화면은 실제 식물이 아니라 단순하게 만든 근사 시뮬레이션이에요."],
+  detail:["바꾸는 조건을 독립변인, 측정하는 값(키)을 종속변인, 똑같이 유지하는 조건을 통제변인이라고 해요. 여러 독립변인을 동시에 바꾸면 효과를 분리할 수 없어요.","근사 모델: 키 h는 로지스틱 성장 dh/dt = r·f·h·(1−h/H)로 계산했어요. f = f빛×f물×f온도이고 각 값은 0~1 사이의 임의 설정값(빛 약 0.45/보통 1/강 1.1, 물 적음 0.4/보통 1/많음 0.6, 온도 10℃ 0.35/22℃ 1/35℃ 0.45)이에요. 실제 측정값이 아니에요.","실제 식물은 종·품종, 흙, 광합성(빛 세기), 증산, 효소 활성의 온도 의존성(최적 온도 곡선) 등에 따라 다르게 반응하고, 요인들이 서로 영향을 주기도 해요."]},
+ init:function(el){
+  var LO=[["약",.45],["보통",1],["강",1.1]],WO=[["적음",.4],["보통",1],["많음",.6]],TO=[["10℃",.35],["22℃",1],["35℃",.45]];
+  var pots=[{l:1,w:1,t:1},{l:0,w:1,t:1},{l:1,w:0,t:1},{l:1,w:1,t:0}];
+  var DAYS=14,H0=.5,HM=20,R=.4,day=0,run=false,raf=0,last=0;
+  function opt(arr,i){return arr.map(function(o,j){return '<option value="'+j+'"'+(j===i?" selected":"")+">"+o[0]+"</option>"}).join("")}
+  var h='<canvas id="cv" role="img" aria-label="화분 4개와 14일 동안 자란 싹의 키를 비교하는 그림"></canvas><canvas id="gr" role="img" aria-label="날짜별 키 그래프"></canvas><div class="pots">';
+  pots.forEach(function(p,i){
+   h+='<div class="pot"><h3>'+(i+1)+'번 화분'+(i?"":" (기준)")+"</h3>"+
+    (i?'<label>빛<select data-i="'+i+'" data-k="l" aria-label="'+(i+1)+'번 빛">'+opt(LO,p.l)+'</select></label><label>물<select data-i="'+i+'" data-k="w" aria-label="'+(i+1)+'번 물">'+opt(WO,p.w)+'</select></label><label>온도<select data-i="'+i+'" data-k="t" aria-label="'+(i+1)+'번 온도">'+opt(TO,p.t)+"</select></label>"
+    :"<div>빛 보통<br>물 보통<br>온도 22℃</div>")+'<div class="st" id="st'+i+'" aria-live="polite"></div></div>'});
+  h+='</div><div class="controls"><button class="primary" id="go" type="button">시작 (14일 빠르게)</button><button id="rst" type="button">다시 하기</button></div><p class="note">근사 모델이에요. 하루를 약 1초로 빠르게 보여 줘요. 실제 식물과 수치는 달라요.</p><p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p>';
+  el.innerHTML=h;
+  var cv=el.querySelector("#cv"),gr=el.querySelector("#gr"),msg=el.querySelector("#msg"),go=el.querySelector("#go");
+  function fac(p){return LO[p.l][1]*WO[p.w][1]*TO[p.t][1]}
+  function ht(p,d){var K=HM,f=fac(p);return K/(1+(K/H0-1)*Math.exp(-R*f*d))}
+  function diff(p){return (p.l!==1)+(p.w!==1)+(p.t!==1)}
+  function names(p){var n=[];if(p.l!==1)n.push("빛");if(p.w!==1)n.push("물");if(p.t!==1)n.push("온도");return n}
+  function status(){pots.forEach(function(p,i){var e=el.querySelector("#st"+i);if(!i){e.textContent="비교 기준";return}
+   var n=diff(p),nm=names(p).join("·");
+   e.className="st "+(n===1?"ok":"bad");
+   e.textContent=n===0?"△ 기준과 같아요. 비교할 게 없어요.":n===1?"✔ "+nm+"만 달라요. 비교할 수 있어요.":"⚠ "+nm+" "+n+"가지가 달라서 원인을 알기 어려워요."})}
+  var SH=["circle","square","triangle","diamond"],DASH=[[],[8,4],[2,4],[10,4,2,4]],COL=["#1b6ec2","#c2410c","#0a7d4f","#8a4fd6"];
+  function draw(){
+   var s=Sci.fit(cv,.6),g=s.c,w=s.w,hh=s.h,col=getComputedStyle(document.body).color,k=Math.max(w/600,.7);
+   g.clearRect(0,0,w,hh);g.font=(13*Math.max(k,.9))+"px sans-serif";g.textAlign="center";g.fillStyle=col;g.strokeStyle=col;
+   var cw=w/4,base=hh-52*k,scale=(hh-110*k)/HM;
+   pots.forEach(function(p,i){
+    var cx=cw*(i+.5),pw=cw*.6,hgt=ht(p,day);
+    /* 흙 상자 */
+    g.fillStyle=getComputedStyle(document.body).getPropertyValue("--line");g.fillRect(cx-pw/2,base,pw,26*k);
+    g.strokeStyle=col;g.lineWidth=2;g.strokeRect(cx-pw/2,base,pw,26*k);
+    /* 줄기 */
+    var top=base-hgt*scale;g.strokeStyle="#2f8f46";g.lineWidth=4*k;g.lineCap="round";g.beginPath();g.moveTo(cx,base);g.lineTo(cx,top);g.stroke();
+    if(hgt>3){g.fillStyle="#2f8f46";var ls=Math.min(hgt,12)*1.4*k+4;g.beginPath();g.ellipse(cx-ls*.7,top+ls*.5,ls*.8,ls*.35,-.5,0,7);g.fill();g.beginPath();g.ellipse(cx+ls*.7,top+ls*.5,ls*.8,ls*.35,.5,0,7);g.fill()}
+    g.fillStyle=col;g.fillText((i+1)+"번 "+ht(p,day).toFixed(1)+"cm",cx,hh-6);
+   });
+   g.textAlign="left";g.fillText("날짜 "+Math.floor(day)+" / "+DAYS+"일",6,16*k+2);
+   /* 그래프 */
+   var s2=Sci.fit(gr,.55),q=s2.c,W=s2.w,H=s2.h;q.clearRect(0,0,W,H);q.font=(13*Math.max(k,.9))+"px sans-serif";q.fillStyle=col;q.strokeStyle=col;
+   var L=40*Math.max(k,.9),T=12,B=32*Math.max(k,.9),Rr=12,pw2=W-L-Rr,ph2=H-T-B;
+   q.lineWidth=1.5;q.beginPath();q.moveTo(L,T);q.lineTo(L,T+ph2);q.lineTo(L+pw2,T+ph2);q.stroke();
+   q.textAlign="right";for(var y=0;y<=20;y+=5)q.fillText(y,L-5,T+ph2-y/HM*ph2+4);
+   q.textAlign="center";for(var d=0;d<=DAYS;d+=2)q.fillText(d,L+d/DAYS*pw2,T+ph2+16);
+   q.fillText("날짜(일)",L+pw2/2,H-3);q.save();q.translate(10,T+ph2/2);q.rotate(-Math.PI/2);q.fillText("키(cm)",0,0);q.restore();
+   pots.forEach(function(p,i){
+    q.strokeStyle=q.fillStyle=COL[i];q.lineWidth=3;q.setLineDash(DASH[i]);q.beginPath();
+    for(var dd=0;dd<=day+1e-9;dd+=.25){var px=L+dd/DAYS*pw2,py=T+ph2-ht(p,dd)/HM*ph2;dd?q.lineTo(px,py):q.moveTo(px,py)}q.stroke();q.setLineDash([]);
+    var ex=L+day/DAYS*pw2,ey=T+ph2-ht(p,day)/HM*ph2,r=5;q.beginPath();
+    if(SH[i]==="circle")q.arc(ex,ey,r,0,7);else if(SH[i]==="square")q.rect(ex-r,ey-r,2*r,2*r);
+    else if(SH[i]==="triangle"){q.moveTo(ex,ey-r-1);q.lineTo(ex+r+1,ey+r);q.lineTo(ex-r-1,ey+r)}else{q.moveTo(ex,ey-r-2);q.lineTo(ex+r+2,ey);q.lineTo(ex,ey+r+2);q.lineTo(ex-r-2,ey)}
+    q.closePath();q.fill();q.textAlign="left";q.fillText(String(i+1),Math.min(ex+8,W-12),ey+4)});
+   q.textAlign="left";q.fillStyle=col;
+  }
+  function loop(ts){if(!run)return;day=Math.min(DAYS,day+Math.min(.1,(ts-last)/1000));last=ts;draw();
+   if(day>=DAYS){run=false;go.textContent="시작 (14일 빠르게)";finish()}else raf=requestAnimationFrame(loop)}
+  function finish(){var hs=pots.map(function(p){return ht(p,DAYS)}),mx=0;hs.forEach(function(v,i){if(v>hs[mx])mx=i});
+   msg.textContent="14일 뒤: "+hs.map(function(v,i){return (i+1)+"번 "+v.toFixed(1)+"cm"}).join(", ")+". 가장 큰 화분은 "+(mx+1)+"번이에요. 한 가지만 다른 화분끼리 비교해 원인을 말해 보세요.";Exp.reveal()}
+  go.addEventListener("click",function(){if(run){run=false;cancelAnimationFrame(raf);go.textContent="계속";return}
+   if(day>=DAYS)day=0;run=true;go.textContent="멈춤";last=performance.now();raf=requestAnimationFrame(loop)});
+  el.querySelector("#rst").addEventListener("click",function(){run=false;cancelAnimationFrame(raf);day=0;go.textContent="시작 (14일 빠르게)";msg.textContent="";draw()});
+  el.querySelectorAll("select").forEach(function(s){s.addEventListener("change",function(){pots[+s.dataset.i][s.dataset.k]=+s.value;status();draw();if(!run&&day>=DAYS)finish()})});
+  status();draw();window.addEventListener("resize",draw);window.addEventListener("pagehide",function(){run=false;cancelAnimationFrame(raf)});
+ }
+};
+Sci.initExp();
+</script></body></html>

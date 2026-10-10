@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>전구에 불을 켜자 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+#bd{display:block;width:100%;max-width:520px;margin:0 auto;height:auto;touch-action:none;color:var(--ink);user-select:none;-webkit-user-select:none}
+#bd text{fill:currentColor;font-family:inherit}
+#bd .term{cursor:pointer}#bd .term:focus{outline:none}#bd .term:focus .ring{stroke:var(--brand);stroke-width:5}
+#bd .wire{cursor:pointer}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 12px;margin:8px 0 0;font-size:15px}.stat div{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--bg)}.stat b{font-variant-numeric:tabular-nums}
+#wl{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column;gap:6px}#wl li{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:2px 4px 2px 12px;font-size:14px;background:var(--bg)}
+.warn{color:var(--warn);font-weight:600}
+</style></head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"G4",
+ predict:{q:"똑같은 전구 2개를 한 줄로 이어(직렬) 켠 것과, 갈래로 나누어 이어(병렬) 켠 것을 전구 1개만 켠 것과 비교하면 밝기는 어떨까요?",options:["직렬이 더 밝고 병렬은 어두워요","직렬은 어두워지고, 병렬은 전구 1개일 때와 같아요","둘 다 전구 1개일 때보다 훨씬 밝아요"],answer:1,
+  feedback:["반대예요. 아래에서 직접 확인해 보세요.","맞아요! 직렬은 전구들이 전압을 나눠 가져서 어둡고, 병렬은 각 전구가 건전지 전압을 그대로 받아요.","전구 수가 늘면 더 밝아질 것 같지만, 연결 방식이 중요해요. 아래에서 확인해 보세요."]},
+ steps:["부품의 동그란 단자(●)를 다른 단자로 끌어다 놓아 선을 이어요. 터치나 키보드에서는 단자를 한 번 누르고(Enter), 이을 다른 단자를 한 번 더 눌러요. Esc로 취소해요.","건전지의 +극과 −극을 전구로 이어 불을 켜 보세요. 전구가 한 개일 때 밝기가 100%예요.","'직렬 2개', '병렬 2개' 예시 버튼으로 비교하고, 아래 '전구 빼기' 버튼으로 하나를 빼 보세요.","선을 지우려면 선을 누르거나 아래 목록의 '지우기'를 눌러요."],
+ observe:["전구 2개를 직렬로 이었을 때 각 전구의 밝기는 얼마인가요? 병렬일 때는요?","직렬에서 전구 한 개를 빼면 다른 전구는 어떻게 되나요? 병렬에서는요?","전체 전류(건전지에서 나가는 전류)는 직렬과 병렬 중 어느 쪽이 더 큰가요?","건전지 +극과 −극을 전구 없이 선으로 바로 이으면 어떤 일이 일어날까요?"],
+ more:["건전지(실제로는 낮은 전압인 1.5 V짜리), 꼬마전구, 전선으로 직접 만들어 보세요. 전구 두 개를 직렬·병렬로 연결해 밝기를 비교하고 한쪽을 빼 보세요.","집의 전등이 병렬일지 직렬일지 생각해 보세요. 한 등을 꺼도 다른 등이 켜져 있는 이유는?","크리스마스 전구 장식 줄은 직렬과 병렬 중 어떤 연결이 쓰였을지 이야기해 보세요(최근 것은 각 전구에 보호 장치가 있어요)."],
+ why:{easy:["전기가 지나가는 길이 끊기지 않고 건전지 +극에서 −극으로 이어져야 전구에 불이 켜져요.","전구를 한 줄로 이으면(직렬) 전기가 지나갈 때 전구들이 힘을 나눠 가져서 각 전구가 더 어두워져요. 한 개가 빠지면 길이 끊겨서 모두 꺼져요.","갈래로 나누어 이으면(병렬) 각 전구가 건전지의 힘을 그대로 받아서 전구 한 개일 때처럼 밝아요. 한 개가 빠져도 다른 길이 있어서 나머지는 켜져 있어요. 다만 건전지에서 나오는 전기가 많아져서 건전지는 더 빨리 닳아요.","건전지의 +극과 −극을 전구 없이 바로 이으면 '합선'이 돼요. 전선이 뜨거워지고 위험해요. 실제로는 절대 하면 안 돼요!"],
+  detail:["이 체험은 이상적인 모델(근사)이에요. 건전지는 전압 V=3(상대 단위)인 이상 전원, 전구는 같은 저항 R의 전구로 보고, 단자를 이은 선은 저항이 0인 도선으로 봐요. 노드 전압을 연립방정식으로 풀어 전구마다 전압을 계산해요.","직렬 전구 n개: 합성저항 nR, 전류 I = V/(nR), 전구 하나의 전압 V/n, 소비전력 P = (V/n)²/R = P₀/n². 전구 2개면 25%, 3개면 약 11%.","병렬 전구 n개: 각 전구의 전압이 V, 소비전력 P₀ 그대로(밝기 100%), 전체 전류 I = nV/R 로 n배.","실제 전구는 필라멘트 온도에 따라 저항이 변하고(밝을수록 저항이 큼), 실제 건전지는 내부 저항이 있어서 전류가 많이 흐르면 전압이 떨어져요. 그래서 실제 밝기는 이 값과 조금 달라요. 합선은 전류가 매우 커져 과열·화재 위험이 있어요."]},
+ init:function(el){
+  var T={bp:{x:130,y:300,d:-1,n:"건전지 +극"},bn:{x:230,y:300,d:-1,n:"건전지 −극"}},BX=[60,180,300],i;
+  for(i=0;i<3;i++){T["b"+(i+1)+"a"]={x:BX[i]-14,y:150,d:1,n:"전구 "+(i+1)+" 왼쪽 단자"};T["b"+(i+1)+"b"]={x:BX[i]+14,y:150,d:1,n:"전구 "+(i+1)+" 오른쪽 단자"}}
+  var IDS=Object.keys(T),wires=[],pending=null,out=[false,false,false],V=3,state=null;
+  el.innerHTML='<svg id="bd" viewBox="0 0 360 400" role="group" aria-label="전선 연결 판. 건전지 1개와 전구 3개. 단자를 끌어다 놓거나 단자를 차례로 선택해 선을 이어요."><g id="layer"></g><path id="tmp" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="6 5" d=""/></svg>'+
+   '<div class="controls" role="group" aria-label="예시 연결"><button type="button" data-p="s2">직렬 2개</button><button type="button" data-p="p2">병렬 2개</button><button type="button" data-p="s3">직렬 3개</button><button type="button" data-p="p3">병렬 3개</button><button type="button" id="one">전구 1개</button></div>'+
+   '<div class="controls" role="group" aria-label="전구 빼기"><button type="button" data-o="0" aria-pressed="false">전구 1 빼기</button><button type="button" data-o="1" aria-pressed="false">전구 2 빼기</button><button type="button" data-o="2" aria-pressed="false">전구 3 빼기</button><button type="button" id="undo">마지막 선 지우기</button><button type="button" id="clr">모두 지우기</button></div>'+
+   '<p class="note" id="msg" aria-live="polite" style="min-height:1.6em"></p><div class="stat" id="st"></div>'+
+   '<h3 style="font-size:15px;margin:12px 0 0">이어진 선 목록</h3><ul id="wl" aria-live="polite"></ul>'+
+   '<p class="note">건전지 3V와 똑같은 전구로 계산한 근사 모델이에요. 밝기 100% = 전구 1개만 연결했을 때. 실제 전구·건전지는 조금 달라요.</p>';
+  var svg=el.querySelector("#bd"),layer=el.querySelector("#layer"),tmp=el.querySelector("#tmp"),msg=el.querySelector("#msg"),st=el.querySelector("#st"),wl=el.querySelector("#wl");
+  function path(a,b){var p=T[a],q=T[b],k=70;return "M"+p.x+" "+p.y+" C"+p.x+" "+(p.y+p.d*k)+" "+q.x+" "+(q.y+q.d*k)+" "+q.x+" "+q.y}
+  /* 회로 계산 */
+  function solve(){
+   var par={};IDS.forEach(function(t){par[t]=t});
+   function f(x){while(par[x]!==x){par[x]=par[par[x]];x=par[x]}return x}
+   wires.forEach(function(w){par[f(w[0])]=f(w[1])});
+   var P=f("bp"),N=f("bn");
+   if(P===N)return {short:true};
+   var bulbs=[];for(var k=0;k<3;k++)if(!out[k])bulbs.push({k:k,a:f("b"+(k+1)+"a"),b:f("b"+(k+1)+"b")});
+   var vol={};vol[P]=V;vol[N]=0;
+   var nodes=[],seen={};bulbs.forEach(function(b){[b.a,b.b].forEach(function(n){if(n!==P&&n!==N&&!seen[n]){seen[n]=1;nodes.push(n)}})});
+   /* 도달 가능 노드 */
+   var reach={};reach[P]=1;reach[N]=1;var ch=true;
+   while(ch){ch=false;bulbs.forEach(function(b){if(b.a!==b.b){if(reach[b.a]&&!reach[b.b]){reach[b.b]=1;ch=true}if(reach[b.b]&&!reach[b.a]){reach[b.a]=1;ch=true}}})}
+   var un=nodes.filter(function(n){return reach[n]}),idx={};un.forEach(function(n,j){idx[n]=j});
+   var m=un.length,A=[],B=[];
+   for(i=0;i<m;i++){A.push(new Array(m).fill(0));B.push(0)}
+   bulbs.forEach(function(b){if(b.a===b.b)return;[[b.a,b.b],[b.b,b.a]].forEach(function(p){var u=p[0],v=p[1];if(idx[u]===undefined)return;A[idx[u]][idx[u]]+=1;if(idx[v]!==undefined)A[idx[u]][idx[v]]-=1;else B[idx[u]]+=vol[v]})});
+   /* 가우스 소거 */
+   for(var c=0;c<m;c++){var pv=c;for(var r=c+1;r<m;r++)if(Math.abs(A[r][c])>Math.abs(A[pv][c]))pv=r;
+    var t=A[c];A[c]=A[pv];A[pv]=t;var tb=B[c];B[c]=B[pv];B[pv]=tb;
+    for(r=0;r<m;r++){if(r===c||Math.abs(A[c][c])<1e-12)continue;var fct=A[r][c]/A[c][c];for(var j=c;j<m;j++)A[r][j]-=fct*A[c][j];B[r]-=fct*B[c]}}
+   un.forEach(function(n,j){vol[n]=Math.abs(A[j][j])<1e-12?0:B[j]/A[j][j]});
+   var res=[0,0,0],cur=0;
+   bulbs.forEach(function(b){var va=vol[b.a],vb=vol[b.b];if(va===undefined||vb===undefined||!reach[b.a]||!reach[b.b]){return}var dv=va-vb;res[b.k]=dv*dv/(V*V);
+    if(b.a===P&&b.b!==P)cur+=(va-vb);else if(b.b===P&&b.a!==P)cur+=(vb-va)});
+   return {short:false,br:res,cur:cur/V}
+  }
+  function render(){
+   var h="",a;
+   /* 건전지 */
+   h+='<rect x="100" y="300" width="160" height="62" rx="8" fill="var(--soft)" stroke="currentColor" stroke-width="3"/><text x="180" y="345" text-anchor="middle" font-size="16" font-weight="700">건전지 3V</text><text x="130" y="324" text-anchor="middle" font-size="20" font-weight="700">+</text><text x="230" y="324" text-anchor="middle" font-size="20" font-weight="700">−</text>';
+   for(var k=0;k<3;k++){
+    var cx=BX[k],b=state&&!state.short?state.br[k]:0,on=b>0.004&&!out[k];
+    h+='<g>'+(out[k]?'<circle cx="'+cx+'" cy="90" r="34" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 5"/><text x="'+cx+'" y="95" text-anchor="middle" font-size="14">빠짐</text>':
+     '<circle cx="'+cx+'" cy="90" r="34" fill="'+(on?"#ffe066":"var(--bg)")+'" fill-opacity="'+(on?(0.35+0.65*Math.min(1,b)):1)+'" stroke="currentColor" stroke-width="3"/>'+
+     (on?'<circle cx="'+cx+'" cy="90" r="'+(38+10*Math.min(1,b))+'" fill="none" stroke="#f59f00" stroke-width="2" stroke-dasharray="3 4" opacity="'+(0.3+0.7*Math.min(1,b))+'"/>':'')+
+     '<path d="M'+(cx-9)+' 119 L'+(cx-5)+' 110 L'+cx+' 116 L'+(cx+5)+' 110 L'+(cx+9)+' 119" fill="none" stroke="currentColor" stroke-width="2"/>'+
+     '<text x="'+cx+'" y="76" text-anchor="middle" font-size="12" fill="#222" style="fill:'+(on?"#222":"currentColor")+'">'+(on?"켜짐":"꺼짐")+'</text>'+
+     '<text x="'+cx+'" y="96" text-anchor="middle" font-size="15" font-weight="700" style="fill:'+(on?"#222":"currentColor")+'">'+(on?Math.round(b*100)+"%":"")+'</text>')+
+     '<rect x="'+(cx-18)+'" y="124" width="36" height="16" rx="3" fill="var(--card)" stroke="currentColor" stroke-width="2.5"/>'+
+     '<text x="'+cx+'" y="30" text-anchor="middle" font-size="15" font-weight="700">전구 '+(k+1)+'</text></g>';
+   }
+   /* 선 */
+   wires.forEach(function(w,j){h+='<g class="wire" data-w="'+j+'"><path d="'+path(w[0],w[1])+'" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="'+path(w[0],w[1])+'" fill="none" stroke="transparent" stroke-width="16"/></g>'});
+   /* 단자 */
+   IDS.forEach(function(id){var t=T[id],sel=pending===id;
+    h+='<g class="term" data-t="'+id+'" tabindex="0" role="button" aria-label="'+t.n+(sel?" (선택됨, 이을 단자를 고르세요)":"")+'" aria-pressed="'+sel+'"><circle cx="'+t.x+'" cy="'+t.y+'" r="24" fill="transparent"/><circle class="ring" cx="'+t.x+'" cy="'+t.y+'" r="'+(sel?13:9)+'" fill="'+(sel?"#ffd43b":"var(--card)")+'" stroke="'+(sel?"#e8890c":"currentColor")+'" stroke-width="3"/>'+(sel?'<text x="'+t.x+'" y="'+(t.y+(t.d>0?-18:-18))+'" text-anchor="middle" font-size="12" font-weight="700">선택</text>':'')+'</g>'});
+   var ae=document.activeElement,keep=ae&&ae.getAttribute&&ae.closest&&ae.closest("#bd")&&ae.getAttribute("data-t");
+   layer.innerHTML=h;
+   if(keep){var n=layer.querySelector('[data-t="'+keep+'"]');if(n)n.focus({preventScroll:true})}
+  }
+  function describe(){
+   var lit=0;
+   if(state&&state.short){msg.innerHTML='<span class="warn">⚠️ 합선! 건전지의 +극과 −극이 전구 없이 바로 이어졌어요. 실제로는 전선이 뜨거워지고 위험해요. 전구는 모두 꺼져요.</span>';st.innerHTML="";return}
+   if(!wires.length){msg.textContent="아직 선이 없어요. 건전지 +극에서 전구 단자로 선을 이어 보세요.";st.innerHTML="";return}
+   var rows=[];for(var k=0;k<3;k++){var b=state.br[k];if(b>0.004&&!out[k])lit++;rows.push("<div>전구 "+(k+1)+" <b>"+(out[k]?"빠짐":b>0.004?"밝기 "+Math.round(b*100)+"%":"꺼짐")+"</b></div>")}
+   rows.push("<div>건전지 전체 전류 <b>"+state.cur.toFixed(2)+"</b><br><span class=\"note\">전구 1개만 켰을 때 = 1</span></div>");
+   st.innerHTML=rows.join("");
+   msg.textContent=lit===0?"불이 켜진 전구가 없어요. 전기가 지나는 길이 건전지 +극에서 전구를 지나 −극까지 이어졌는지 확인해 보세요.":"불이 켜진 전구 "+lit+"개. 밝기는 전구 1개를 켰을 때를 100%로 한 값이에요.";
+   if(lit>=2)Exp.reveal();
+  }
+  function wireLabel(w){return T[w[0]].n+" ↔ "+T[w[1]].n}
+  function list(){wl.innerHTML=wires.length?wires.map(function(w,j){return '<li><span>'+(j+1)+'. '+wireLabel(w)+'</span><button type="button" data-d="'+j+'" aria-label="선 '+(j+1)+' 지우기">지우기</button></li>'}).join(""):'<li><span class="note">아직 이어진 선이 없어요.</span></li>'}
+  function update(){state=solve();render();describe();list()}
+  function connect(a,b){
+   if(a===b)return;
+   for(var j=0;j<wires.length;j++){var w=wires[j];if((w[0]===a&&w[1]===b)||(w[0]===b&&w[1]===a)){msg.textContent="이미 이어진 선이에요.";return}}
+   wires.push([a,b]);update()
+  }
+  function pick(id){
+   if(pending===null){pending=id;msg.textContent=T[id].n+" 선택됨. 이을 다른 단자를 고르세요. (Esc: 취소)";render()}
+   else if(pending===id){pending=null;msg.textContent="선택을 취소했어요.";render()}
+   else{var a=pending;pending=null;connect(a,id)}
+  }
+  /* 포인터 */
+  function toSvg(e){var r=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;return {x:(e.clientX-r.left)/r.width*vb.width,y:(e.clientY-r.top)/r.height*vb.height}}
+  function nearest(p){var best=null,bd=28;IDS.forEach(function(id){var d=Math.hypot(T[id].x-p.x,T[id].y-p.y);if(d<bd){bd=d;best=id}});return best}
+  var drag=null;
+  svg.addEventListener("pointerdown",function(e){
+   var tg=e.target.closest&&e.target.closest("[data-t]"),wg=e.target.closest&&e.target.closest("[data-w]");
+   if(tg){e.preventDefault();var id=tg.getAttribute("data-t");drag={id:id,sx:e.clientX,sy:e.clientY,moved:false,was:pending===id,from:pending};try{svg.setPointerCapture(e.pointerId)}catch(x){}
+    if(pending===null||pending===id){pending=id;render()}}
+   else if(wg){wires.splice(+wg.getAttribute("data-w"),1);update()}
+  });
+  svg.addEventListener("pointermove",function(e){
+   if(!drag)return;if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>8)drag.moved=true;
+   if(drag.moved){var p=toSvg(e),s=T[drag.id];tmp.setAttribute("d","M"+s.x+" "+s.y+" L"+p.x+" "+p.y)}
+  });
+  function end(e,cancel){
+   if(!drag)return;var d=drag;drag=null;tmp.setAttribute("d","");
+   if(cancel){pending=null;render();return}
+   var tgt=nearest(toSvg(e));
+   if(d.moved){pending=null;if(tgt&&tgt!==d.id)connect(d.id,tgt);else{msg.textContent="다른 단자 위에서 놓아야 이어져요.";render()}}
+   else if(d.from!==null&&d.from!==d.id){pending=null;connect(d.from,d.id)}
+   else if(d.was){pending=null;msg.textContent="선택을 취소했어요.";render()}
+   else{pending=d.id;msg.textContent=T[d.id].n+" 선택됨. 이을 다른 단자를 누르거나, 이 단자에서 다른 단자로 끌어다 놓으세요. (Esc: 취소)";render()}
+  }
+  svg.addEventListener("pointerup",function(e){end(e,false)});svg.addEventListener("pointercancel",function(e){end(e,true)});
+  svg.addEventListener("keydown",function(e){
+   var tg=e.target.closest&&e.target.closest("[data-t]");
+   if(e.key==="Escape"&&pending){pending=null;msg.textContent="선택을 취소했어요.";render();return}
+   if(tg&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pick(tg.getAttribute("data-t"))}
+  });
+  wl.addEventListener("click",function(e){var b=e.target.closest("[data-d]");if(b){wires.splice(+b.getAttribute("data-d"),1);update();var nb=wl.querySelector("button");if(nb)nb.focus()}});
+  var PRE={s2:[["bp","b1a"],["b1b","b2a"],["b2b","bn"]],p2:[["bp","b1a"],["bp","b2a"],["b1b","bn"],["b2b","bn"]],
+   s3:[["bp","b1a"],["b1b","b2a"],["b2b","b3a"],["b3b","bn"]],p3:[["bp","b1a"],["bp","b2a"],["bp","b3a"],["b1b","bn"],["b2b","bn"],["b3b","bn"]]};
+  [].forEach.call(el.querySelectorAll("[data-p]"),function(b){b.addEventListener("click",function(){wires=PRE[b.dataset.p].map(function(w){return w.slice()});pending=null;out=[false,false,false];syncOut();update()})});
+  el.querySelector("#one").addEventListener("click",function(){wires=[["bp","b1a"],["b1b","bn"]];pending=null;out=[false,false,false];syncOut();update()});
+  function syncOut(){[].forEach.call(el.querySelectorAll("[data-o]"),function(b){var k=+b.dataset.o;b.setAttribute("aria-pressed",out[k]);b.textContent="전구 "+(k+1)+(out[k]?" 다시 끼우기":" 빼기")})}
+  [].forEach.call(el.querySelectorAll("[data-o]"),function(b){b.addEventListener("click",function(){var k=+b.dataset.o;out[k]=!out[k];syncOut();update()})});
+  el.querySelector("#undo").addEventListener("click",function(){wires.pop();update()});
+  el.querySelector("#clr").addEventListener("click",function(){wires=[];pending=null;out=[false,false,false];syncOut();update()});
+  update();
+ }
+};
+Sci.initExp();
+</script></body></html>

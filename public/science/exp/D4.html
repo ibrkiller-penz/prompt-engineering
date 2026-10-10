@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>체험 · 온라인 과학 체험관</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="../css/common.css">
+<style>
+.mbox{background:var(--bg);border:1px solid var(--line);border-radius:12px;min-height:130px;display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:800;letter-spacing:.12em;text-align:center;padding:8px;flex-wrap:wrap;gap:6px}
+.mbox small{font-size:16px;font-weight:400;letter-spacing:0;color:var(--sub);width:100%}
+.mbox .sh{display:inline-flex;flex-direction:column;align-items:center;font-size:48px;line-height:1.1}
+.mbox .sh i{font-style:normal;font-size:14px;font-weight:600}
+.pad4{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+.pad4 button{min-height:52px;padding:0;font-size:22px;font-weight:700;flex-direction:column;line-height:1.1}
+.pad4 button i{font-style:normal;font-size:12px;font-weight:400}
+.opt{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.opt label{display:flex;gap:6px;align-items:center;min-height:44px}
+.opt input{width:22px;height:22px}
+.rec{margin:8px 0 0;padding-left:20px}
+</style>
+</head>
+<body><div class="wrap"><div id="app"></div></div>
+<script src="../js/common.js"></script>
+<script>
+var EXP={
+ id:"D4",
+ predict:{q:"잠깐 보여 준 숫자를 그대로 순서대로 따라 입력할 때, 한 번에 몇 개쯤 기억할 수 있을까요?",options:["2~3개","5~9개","12개 이상"],answer:1,
+  feedback:["생각보다 더 기억할 수 있는 경우가 많아요. 직접 확인해 보세요.","대부분 그 정도예요. 묶어서 보면 더 늘어날 수도 있어요.","12개는 보통 어려워요. 하지만 '묶는' 방법으로 늘릴 수 있는지 시험해 보세요."]},
+ steps:["종류를 고르세요: 숫자 또는 도형. 숫자는 '3개씩 묶어 보여 주기'를 켜고 끌 수 있어요.","'시작'을 누르면 3개부터 하나씩 보여 줘요. 사라진 뒤 같은 순서대로 아래 버튼(또는 숫자 키)으로 입력해요.","맞히면 한 개 늘어나요. 같은 길이에서 두 번 틀리면 끝나요. 최고 기억 길이를 기록해 두고 방식을 바꿔 비교해요."],
+ observe:["숫자와 도형 중 어느 쪽이 기억하기 쉬웠나요?","3개씩 묶어 보여 줄 때 기억할 수 있는 길이가 달라졌나요?","머릿속으로 소리 내어 외웠나요, 그림처럼 떠올렸나요, 규칙을 찾았나요?"],
+ more:["전화번호를 3-4-4처럼 묶어 외우는 이유를 생각해 보세요.","친구의 최고 기억 길이와 비교하되, 그날의 컨디션에 따라 달라진다는 것도 기억하세요.","1, 2, 3, 4처럼 규칙이 있는 숫자가 나오면 몇 개까지 기억할 수 있을지 예상해 보세요."],
+ why:{easy:["머릿속에는 잠깐 정보를 붙잡아 두는 '작업 기억'이 있어요. 한 번에 담을 수 있는 양은 정해져 있어서 보통 5~9개 정도라고 알려져 있어요.","숫자 여러 개를 하나의 덩어리(묶음)로 만들면 덩어리 수는 적어져서 더 많은 숫자를 기억할 수 있어요. 이것을 '청킹'이라고 해요.","그래서 전화번호나 카드번호를 끊어서 읽어요."],
+  detail:["밀러(Miller, 1956)의 '마법의 숫자 7±2'가 유명하지만, 이후 연구에서는 덩어리를 쓰지 못하게 한 조건에서 약 4개 전후가 한계라는 주장(Cowan 등)도 많아요. 정확한 값은 과제와 방법에 따라 달라요.","청킹(chunking)은 낱개 정보를 의미 있는 단위로 묶어 작업 기억의 용량 한계를 우회하는 방법이에요. 여기서는 '472 915'처럼 3개씩 한꺼번에 보여 주는 것을 근사로 구현했어요.","시연(소리 내어 되뇌기)이나 시각적 부호화도 작업 기억에 영향을 줘요. 이 체험의 점수는 한 번의 간단한 측정이라 오차가 커요."]},
+ init:function(el){
+  var SH=[{s:"●",n:"원"},{s:"▲",n:"세모"},{s:"■",n:"네모"},{s:"◆",n:"마름모"},{s:"★",n:"별"},{s:"♥",n:"하트"}];
+  el.innerHTML='<div class="opt" role="group" aria-label="설정"><label><input type="radio" name="kind" value="digit" checked> 숫자</label><label><input type="radio" name="kind" value="shape"> 도형</label><label id="chl"><input type="checkbox" id="ch"> 3개씩 묶어 보여 주기(숫자)</label></div>'+
+   '<div class="mbox" id="box" aria-live="off" role="img" aria-label="기억 영역">준비</div>'+
+   '<div class="note" id="inp" aria-live="polite" style="min-height:1.6em;margin-top:6px"></div>'+
+   '<div class="pad4" id="pad"></div>'+
+   '<div class="controls"><button type="button" class="primary" id="go">시작</button><button type="button" id="bk">지우기</button><button type="button" id="rst">기록 비우기</button></div>'+
+   '<p class="note" id="msg" role="status" aria-live="polite" style="min-height:2em"></p><div id="rec"></div>';
+  var box=el.querySelector("#box"),inp=el.querySelector("#inp"),pad=el.querySelector("#pad"),go=el.querySelector("#go"),msg=el.querySelector("#msg"),rec=el.querySelector("#rec"),ch=el.querySelector("#ch"),chl=el.querySelector("#chl");
+  var kind="digit",len=3,seq=[],ans=[],fails=0,best=0,phase="idle",timer=null,hist=[];
+  function items(){return kind==="digit"?[0,1,2,3,4,5,6,7,8,9]:[0,1,2,3,4,5]}
+  function lab(v){return kind==="digit"?String(v):SH[v].s}
+  function buildPad(){
+   pad.innerHTML=items().map(function(v){return '<button type="button" data-v="'+v+'" disabled aria-label="'+(kind==="digit"?v:SH[v].n)+'">'+lab(v)+(kind==="digit"?"":"<i>"+SH[v].n+"</i>")+"</button>"}).join("");
+   [].forEach.call(pad.querySelectorAll("button"),function(b){b.addEventListener("click",function(){push(+b.dataset.v)})});
+   pad.style.gridTemplateColumns="repeat("+(kind==="digit"?5:3)+",1fr)";chl.style.display=kind==="digit"?"":"none"}
+  function padOn(on){[].forEach.call(pad.querySelectorAll("button"),function(b){b.disabled=!on})}
+  function showInp(){inp.textContent="입력: "+ans.map(lab).join(" ")+(ans.length<seq.length?" _".repeat(seq.length-ans.length):"")}
+  function newSeq(){seq=[];var it=items();for(var i=0;i<len;i++){var v;do{v=it[Math.floor(Math.random()*it.length)]}while(i&&v===seq[i-1]);seq.push(v)}}
+  function html(v){return kind==="digit"?v:'<span class="sh" aria-hidden="true">'+SH[v].s+"<i>"+SH[v].n+"</i></span>"}
+  function present(){
+   phase="show";padOn(false);ans=[];newSeq();inp.textContent="";box.setAttribute("aria-label","기억할 항목을 보여 주는 중");
+   var chunk=kind==="digit"&&ch.checked,groups=[];
+   if(chunk){for(var i=0;i<seq.length;i+=3)groups.push(seq.slice(i,i+3).join(""))}else{groups=seq.map(function(v){return html(v)})}
+   var i2=0;box.innerHTML="<small>"+len+"개를 기억하세요"+(chunk?" (3개씩 묶음)":"")+"</small>";
+   function tick(){
+    if(i2>=groups.length){box.innerHTML="<small>이제 같은 순서로 입력하세요</small>?";phase="in";padOn(true);showInp();return}
+    box.innerHTML=groups[i2];i2++;
+    timer=setTimeout(function(){box.innerHTML="&nbsp;";timer=setTimeout(tick,chunk?250:200)},chunk?1500:850)}
+   timer=setTimeout(tick,700)}
+  function push(v){
+   if(phase!=="in")return;ans.push(v);showInp();
+   if(ans.length<seq.length)return;
+   phase="fb";padOn(false);
+   var ok=ans.every(function(a,i){return a===seq[i]});
+   if(ok){best=Math.max(best,len);msg.textContent="맞았어요! "+len+"개 성공. 다음은 "+(len+1)+"개예요.";len++;fails=0;if(len>12){return done()}timer=setTimeout(present,1200)}
+   else{fails++;msg.textContent="아쉬워요. 정답은 "+seq.map(lab).join(" ")+" 였어요."+(fails<2?" 같은 길이로 한 번 더 도전해요.":"");
+    if(fails>=2)return done();timer=setTimeout(present,2000)}}
+  function done(){
+   phase="idle";go.disabled=false;go.textContent="다시 시작";padOn(false);
+   var name=(kind==="digit"?(ch.checked?"숫자(3개씩 묶기)":"숫자(낱개)"):"도형");
+   hist.push({n:name,b:best});
+   msg.textContent+=" 끝! 최고 "+best+"개 기억했어요.";
+   rec.innerHTML='<p><b>이번 기록(이 페이지를 닫으면 사라져요)</b></p><ul class="rec">'+hist.map(function(h){return "<li>"+h.n+": 최고 "+h.b+"개</li>"}).join("")+"</ul><p class=\"note\">방식을 바꿔(숫자 낱개 ↔ 묶기, 도형) 비교해 보세요. 측정은 한 번이라 오차가 커요.</p>";
+   Exp.reveal()}
+  function start(){clearTimeout(timer);len=3;fails=0;best=0;msg.textContent="";rec.innerHTML="";go.disabled=true;go.textContent="진행 중";present()}
+  go.addEventListener("click",start);
+  el.querySelector("#bk").addEventListener("click",function(){if(phase==="in"&&ans.length){ans.pop();showInp()}});
+  el.querySelector("#rst").addEventListener("click",function(){hist=[];rec.innerHTML=""});
+  [].forEach.call(el.querySelectorAll("input[name=kind]"),function(r){r.addEventListener("change",function(){if(phase!=="idle")return;kind=r.value;buildPad()})});
+  document.addEventListener("keydown",function(e){if(kind==="digit"&&phase==="in"&&/^[0-9]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey)push(+e.key);else if(e.key==="Backspace"&&phase==="in"){ans.pop();showInp()}});
+  window.addEventListener("pagehide",function(){clearTimeout(timer)});
+  buildPad();
+ }
+};
+Sci.initExp();
+</script></body></html>
