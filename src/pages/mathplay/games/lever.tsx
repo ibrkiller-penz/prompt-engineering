@@ -353,7 +353,7 @@ export default function LeverGame() {
   // 말풍선
   let say: { tone: "info" | "ok" | "bad"; text: string };
   if (asking && !done) {
-    say = { tone: "ok", text: wrongOpts.length ? "아직이에요, 괜찮아요! 수평이면 왼쪽 힘과 오른쪽 힘이 같아요. 오른쪽 힘을 먼저 구해 봐요." : "와, 수평이에요! 그럼 ❓는 몇 kg일까요? 아래에서 골라요!" };
+    say = { tone: wrongOpts.length ? "bad" : "ok", text: wrongOpts.length ? "아직이에요, 괜찮아요! 수평이면 왼쪽 힘과 오른쪽 힘이 같아요. 오른쪽 힘을 먼저 구해 봐요." : "와, 수평이에요! 그럼 ❓는 몇 kg일까요? 아래에서 골라요!" };
   } else if (balanced && (mode === "free" || done)) {
     say = { tone: "ok", text: `와, 수평이에요! 잘했어요! ⭐ 왼쪽 힘 ${left} = 오른쪽 힘 ${right}.${peeked ? " (답을 본 문제는 라운드로 세지 않아요. 새 문제가 나와요.)" : round < ROUNDS ? " 곧 다음 라운드로 가요." : " 레벨 클리어!"}` };
   } else if (mode === "problem" && mine.length === 0) {
@@ -382,7 +382,7 @@ export default function LeverGame() {
       <Board>
         <style>{CSS}</style>
         <p className="font-game mb-2 text-center text-xl">
-          {mode === "problem" ? "아래 추를 끌어다 오른쪽 칸에 놓아 수평을 만들어요!" : "추를 끌어다 칸에 놓아서 막대를 수평으로 만들어 봐요!"}
+          {mode === "problem" ? (myst ? "수평을 만들고 ❓ 동물의 무게를 알아맞혀요!" : "아래 추를 끌어다 오른쪽 칸에 놓아 수평을 만들어요!") : "추를 끌어다 칸에 놓아서 막대를 수평으로 만들어 봐요!"}
         </p>
         <svg
           ref={svgRef}

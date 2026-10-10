@@ -126,26 +126,29 @@ export default function GeoboardGame() {
   };
   /** 끌고 가다가 못 근처에서 방향이 꺾이면 그 못을 고무줄에 걸어요(곧게 지나가기만 하면 걸지 않아요) */
   function checkTurn(x: number, y: number) {
-    const tight = pinNear(x, y, 0.15);
-    if (tight) press(tight, true); // 못 한가운데를 지나가면 바로 걸어요
     const near = pinNear(x, y, 0.3);
     if (near && (!cand.current || !eq(cand.current.pin, near))) cand.current = { pin: near, trailIdx: trail.current.length - 1 };
     const c = cand.current;
     if (!c) return;
     const cx = X(c.pin[0]), cy = Y(c.pin[1]);
     if (Math.hypot(x - cx, y - cy) <= GAP * 0.45) return;
-    cand.current = null; // 못 근처를 벗어났어요: 꺾였는지 살펴봐요
+    cand.current = null; // 못 근처를 벗어났어요: 손가락 길이 꺾였는지 살펴봐요
     const tr = trail.current;
-    let a = tr[0];
-    for (let k = Math.min(c.trailIdx, tr.length - 1); k >= 0; k--) {
-      a = tr[k];
-      if (Math.hypot(a[0] - cx, a[1] - cy) >= GAP * 0.7) break;
+    let mid = tr[c.trailIdx], md = Infinity; // 못에 가장 가까이 갔던 지점
+    for (let k = c.trailIdx; k < tr.length; k++) {
+      const d = Math.hypot(tr[k][0] - cx, tr[k][1] - cy);
+      if (d < md) { md = d; mid = tr[k]; }
     }
-    const v1: [number, number] = [cx - a[0], cy - a[1]], v2: [number, number] = [x - cx, y - cy];
+    let a = tr[0];
+    for (let k = c.trailIdx; k >= 0; k--) {
+      a = tr[k];
+      if (Math.hypot(a[0] - mid[0], a[1] - mid[1]) >= GAP * 0.6) break;
+    }
+    const v1: [number, number] = [mid[0] - a[0], mid[1] - a[1]], v2: [number, number] = [x - mid[0], y - mid[1]];
     const l1 = Math.hypot(...v1), l2 = Math.hypot(...v2);
     if (l1 < 1 || l2 < 1) return;
     const ang = (Math.acos(Math.max(-1, Math.min(1, (v1[0] * v2[0] + v1[1] * v2[1]) / (l1 * l2)))) * 180) / Math.PI;
-    if (ang > 30) press(c.pin, true);
+    if (ang > 8) press(c.pin, true);
   }
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const xy = svgXY(e);
