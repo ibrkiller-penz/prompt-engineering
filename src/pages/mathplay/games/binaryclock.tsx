@@ -159,7 +159,7 @@ function Bulbs({ bits, onToggle, label, size = "lg", guide }: { bits: boolean[];
             <line x1="19" y1="57" x2="41" y2="57" stroke="#92400e" strokeWidth="1.5" />
             <line x1="19" y1="62" x2="41" y2="62" stroke="#92400e" strokeWidth="1.5" />
             <path d="M 24 68 L 36 68 L 33 74 L 27 74 Z" fill="#78350f" />
-            <text x="30" y="36" textAnchor="middle" fontSize={w[i] >= 10 ? 17 : 20} fill={on ? "#78350f" : "#4338ca"} stroke={on ? "#fffbeb" : "#fff"} strokeWidth="3" paintOrder="stroke" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+            <text x="30" y="36" textAnchor="middle" fontSize={w[i] >= 10 ? 17 : 20} fill={on ? "#78350f" : "#4338ca"} stroke={on ? "#fffbeb" : "#fff"} strokeWidth="3" paintOrder="stroke" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
               {w[i]}
             </text>
           </svg>
@@ -209,7 +209,7 @@ function Balloon({ n, ok, sad }: { n: number; ok: boolean; sad: boolean }) {
       `}</style>
       <div className="gz-float">
         <div key={`${n}-${ok}-${sad}`} className={ok ? "bc-yay" : sad ? "bc-shake" : "gz-pop"}>
-          <svg viewBox="0 0 100 150" width="104" height="156" role="img" aria-label={`풍선 숫자 ${n}`} style={{ fontFamily: "Jua, Pretendard Variable, sans-serif", overflow: "visible" }}>
+          <svg viewBox="0 0 100 150" width="104" height="156" role="img" aria-label={`풍선 숫자 ${n}`} style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif", overflow: "visible" }}>
             <defs>
               <radialGradient id={`bc-bal-${ok ? "ok" : "no"}`} cx="0.35" cy="0.3" r="0.75">
                 <stop offset="0" stopColor={c[0]} />

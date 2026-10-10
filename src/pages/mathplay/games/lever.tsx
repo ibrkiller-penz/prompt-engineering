@@ -99,7 +99,7 @@ const CY = 140;
 const ROUNDS = 3;
 const SHELF_Y = 322; // 선반 위 추의 바닥
 const blockH = (w: number) => 22 + w * 8;
-const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const GF = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 const CSS = `
 @keyframes lv-hop { 0%,100% { transform: translateY(0); } 35% { transform: translateY(-14px); } 65% { transform: translateY(0); } 82% { transform: translateY(-5px); } }
 @keyframes lv-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }

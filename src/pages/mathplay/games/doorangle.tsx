@@ -42,7 +42,7 @@ const HY = 40;
 const L = 150; // 문 길이
 const R = 118; // 각도기 반지름
 const rad = (d: number) => (d * Math.PI) / 180;
-const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const GF = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 /** 별 모양 경로(가운데 0,0) */
 const starPath = (ro: number, ri: number) =>
   Array.from({ length: 10 }, (_, i) => {

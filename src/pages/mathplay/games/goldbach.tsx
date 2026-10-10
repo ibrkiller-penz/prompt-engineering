@@ -305,7 +305,7 @@ export default function GoldbachGame() {
                         <ellipse cx="60" cy="64" rx="50" ry="58" fill="url(#gb-bal)" stroke={bal[2]} strokeWidth="4" />
                         <path d="M53 120 L67 120 L60 131 Z" fill={bal[1]} stroke={bal[2]} strokeWidth="3" strokeLinejoin="round" />
                         <ellipse cx="38" cy="38" rx="9" ry="16" fill="#fff" opacity="0.55" transform="rotate(-25 38 38)" />
-                        <text x="60" y="80" textAnchor="middle" fontSize="46" fill="#fff" stroke={bal[2]} strokeWidth="6" paintOrder="stroke" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+                        <text x="60" y="80" textAnchor="middle" fontSize="46" fill="#fff" stroke={bal[2]} strokeWidth="6" paintOrder="stroke" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
                           {q1}
                         </text>
                       </svg>

@@ -51,7 +51,7 @@ export default function BuildingMap({ onPick, stars }: { onPick: (f: Floor) => v
         <animateTransform attributeName="transform" type="skewY" values="0;-6;0" dur="1.6s" repeatCount="indefinite" />
       </path>
       <rect x={W / 2 - 66} y={top - 34} width="132" height="28" rx="14" fill="#fff" stroke="#b45309" strokeWidth="3" />
-      <text x={W / 2} y={top - 14} textAnchor="middle" fontSize="18" fill="#7c2d12" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+      <text x={W / 2} y={top - 14} textAnchor="middle" fontSize="18" fill="#7c2d12" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
         수학 놀이터
       </text>
 
@@ -74,13 +74,13 @@ export default function BuildingMap({ onPick, stars }: { onPick: (f: Floor) => v
             <rect x="80" y={y} width={W - 160} height={fh - 6} rx="14" fill={`url(#bm-${f.key})`} stroke="#fff" strokeWidth="4" />
             {/* 층 이름표 */}
             <rect x="92" y={y + 10} width="92" height="26" rx="13" fill="#fff" />
-            <text x="138" y={y + 29} textAnchor="middle" fontSize="15" fill="#2b2340" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+            <text x="138" y={y + 29} textAnchor="middle" fontSize="15" fill="#2b2340" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
               {f.emoji} {f.label}
             </text>
-            <text x="138" y={y + 58} textAnchor="middle" fontSize="16" fill="#fff" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+            <text x="138" y={y + 58} textAnchor="middle" fontSize="16" fill="#fff" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
               {f.name}
             </text>
-            <text x="138" y={y + 75} textAnchor="middle" fontSize="12" fill="#fff" opacity="0.95" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+            <text x="138" y={y + 75} textAnchor="middle" fontSize="12" fill="#fff" opacity="0.95" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
               ⭐ {got}/{all}
             </text>
             {/* 창문: 그 층 게임 그림 */}

@@ -130,7 +130,7 @@ export default function ColorSquare() {
                   <rect x={x + 4} y={y + 4} width={S - 8} height={S - 8} rx={v ? (S - 8) / 2 : 12} style={{ fill: v ? CHIP[v] : "#fffaf0", stroke: bad[r][c] ? "#dc2626" : v ? `color-mix(in srgb, ${CHIP[v]} 60%, black)` : "#ecd2ab" }} strokeWidth={bad[r][c] ? 4.5 : v ? 3 : 1.5} fillOpacity={v ? 1 : 0.9} />
                   {v > 0 && <rect x={x + 4} y={y + 4} width={S - 8} height={S - 8} rx={(S - 8) / 2} fill="url(#cs-shine)" pointerEvents="none" />}
                   {v > 0 && (
-                    <text x={x + S / 2} y={y + S / 2 + 1} textAnchor="middle" dominantBaseline="middle" fontSize={S * 0.42} fontWeight={800} fill="#fff" pointerEvents="none" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+                    <text x={x + S / 2} y={y + S / 2 + 1} textAnchor="middle" dominantBaseline="middle" fontSize={S * 0.42} fontWeight={800} fill="#fff" pointerEvents="none" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
                       {v}
                     </text>
                   )}

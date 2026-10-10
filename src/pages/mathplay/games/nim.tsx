@@ -9,7 +9,7 @@ const COLORS: [string, string, string][] = [
   ["#fde68a", "#f59e0b", "#92400e"],
   ["#c4b5fd", "#8b5cf6", "#5b21b6"],
 ];
-const GF = "Jua, Pretendard Variable, sans-serif";
+const GF = "S-Core Dream, Pretendard Variable, sans-serif";
 
 function Robot({ mood, size = 56 }: { mood: "think" | "happy" | "sad" | "idle"; size?: number }) {
   return (

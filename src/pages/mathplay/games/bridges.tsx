@@ -359,7 +359,7 @@ export default function BridgesGame() {
         <svg
           viewBox="0 0 700 380"
           className="block h-auto w-full select-none rounded-card"
-          style={{ touchAction: "manipulation", fontFamily: "Jua, Pretendard Variable, sans-serif" }}
+          style={{ touchAction: "manipulation", fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}
           role="group"
           aria-label={`다리 지도. 땅 4곳과 다리 ${bs.length}개`}
         >

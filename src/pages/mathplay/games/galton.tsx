@@ -292,7 +292,7 @@ export default function GaltonGame() {
       ctx.textAlign = "center";
       ctx.lineJoin = "round";
       if (n > 0) {
-        ctx.font = "15px Jua, sans-serif";
+        ctx.font = "15px 'S-Core Dream', sans-serif";
         ctx.strokeStyle = "#1e1b4b";
         ctx.lineWidth = 4;
         ctx.strokeText(String(n), x + L.dx / 2, Math.max(L.binTop + 36, top - 5));
@@ -300,14 +300,14 @@ export default function GaltonGame() {
         ctx.fillText(String(n), x + L.dx / 2, Math.max(L.binTop + 36, top - 5));
       }
       if (pred === b) {
-        ctx.font = "16px Jua, sans-serif";
+        ctx.font = "16px 'S-Core Dream', sans-serif";
         ctx.strokeStyle = "#1e1b4b";
         ctx.lineWidth = 4;
         ctx.strokeText("🚩여기!", x + L.dx / 2, L.binTop + 18);
         ctx.fillStyle = "#fde047";
         ctx.fillText("🚩여기!", x + L.dx / 2, L.binTop + 18);
       }
-      ctx.font = "15px Jua, sans-serif";
+      ctx.font = "15px 'S-Core Dream', sans-serif";
       ctx.fillStyle = "#fff7d6";
       ctx.fillText(String(b + 1), x + L.dx / 2, L.h - 9);
     }
@@ -362,10 +362,10 @@ export default function GaltonGame() {
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       roundRect(ctx, L.cx - 130, hy - 23, 260, 46, 23);
       ctx.fill();
-      ctx.font = "17px Jua, sans-serif";
+      ctx.font = "17px 'S-Core Dream', sans-serif";
       ctx.fillStyle = "#6d28d9";
       ctx.fillText("👆 여기를 눌러 구슬을 떨어뜨려요!", L.cx, hy - 2);
-      ctx.font = "13px Jua, sans-serif";
+      ctx.font = "13px 'S-Core Dream', sans-serif";
       ctx.fillStyle = "#6b6280";
       ctx.fillText("꾹 누르면 계속 떨어져요", L.cx, hy + 15);
     }

@@ -12,7 +12,7 @@ const MIN_W = 320;
 const TRUNK = 54;
 const GROUND = 44;
 const BIG = "min-h-[48px]!";
-const FONT = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const FONT = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 
 const CSS = `
 @keyframes ft-drop{from{transform:translate(var(--dx),var(--dy)) scale(.4);opacity:0}to{transform:none;opacity:1}}

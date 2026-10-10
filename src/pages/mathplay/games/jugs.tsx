@@ -72,7 +72,7 @@ function Jug({ id, g, shown, actual, t, color, target, glow, ghost, party }: { i
         return (
           <g key={k}>
             <line x1={g.w / 2 - (k % step === 0 ? 14 : 8)} y1={y} x2={g.w / 2} y2={y} stroke="#0f766e" strokeWidth={1.5} />
-            {k % step === 0 && <text x={g.w / 2 + 3} y={y + 3.5} fontSize={10} fill="#0f4c47" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>{k}</text>}
+            {k % step === 0 && <text x={g.w / 2 + 3} y={y + 3.5} fontSize={10} fill="#0f4c47" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>{k}</text>}
           </g>
         );
       })}
@@ -85,10 +85,10 @@ function Jug({ id, g, shown, actual, t, color, target, glow, ghost, party }: { i
       <path d={jugPath(g.w, g.h)} fill="none" stroke="#0f766e" strokeWidth={3.5} strokeLinejoin="round" />
       <path d={`M${-g.w / 2 + 8} ${-g.h + 44} V-26`} stroke="#fff" strokeWidth={4} strokeLinecap="round" opacity={0.6} />
       <rect x={-21} y={-g.h - 7} width={42} height={11} rx={5} fill={color} stroke="#0f172a" strokeOpacity={0.35} strokeWidth={1.5} />
-      <text x={0} y={-Math.min(ph, inner) / 2 + 8} textAnchor="middle" fontSize={22} fill="#0b3b46" stroke="#fff" strokeWidth={4} paintOrder="stroke" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+      <text x={0} y={-Math.min(ph, inner) / 2 + 8} textAnchor="middle" fontSize={22} fill="#0b3b46" stroke="#fff" strokeWidth={4} paintOrder="stroke" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
         {actual > 0 ? actual : ""}
       </text>
-      <text x={0} y={22} textAnchor="middle" fontSize={14} fill="#0f4c47" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>{g.cap}L 통</text>
+      <text x={0} y={22} textAnchor="middle" fontSize={14} fill="#0f4c47" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>{g.cap}L 통</text>
       {glow && <path className="jug-glow" d={jugPath(g.w + 10, g.h + 8)} transform="translate(0 4)" fill="none" stroke="#f59e0b" strokeWidth={5} strokeLinejoin="round" />}
     </g>
   );
@@ -291,7 +291,7 @@ export default function JugsGame() {
               <rect x={DRAIN.x} y={DRAIN.y} width={DRAIN.w} height={DRAIN.h} rx={14} fill="#94a3b8" stroke="#334155" strokeWidth={3} />
               <ellipse cx={DRAIN.x + DRAIN.w / 2} cy={DRAIN.y + 16} rx={30} ry={9} fill="#1e293b" />
               {[-16, -8, 0, 8, 16].map((dx) => <line key={dx} x1={DRAIN.x + DRAIN.w / 2 + dx} y1={DRAIN.y + 9} x2={DRAIN.x + DRAIN.w / 2 + dx} y2={DRAIN.y + 23} stroke="#64748b" strokeWidth={2} />)}
-              <text x={DRAIN.x + DRAIN.w / 2} y={DRAIN.y + 40} textAnchor="middle" fontSize={13} fill="#0f172a" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>🕳️ 배수구</text>
+              <text x={DRAIN.x + DRAIN.w / 2} y={DRAIN.y + 40} textAnchor="middle" fontSize={13} fill="#0f172a" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>🕳️ 배수구</text>
               {(overIdx === -2 || (hint?.kind === "empty")) && <rect className="jug-glow" x={DRAIN.x - 4} y={DRAIN.y - 4} width={DRAIN.w + 8} height={DRAIN.h + 8} rx={16} fill="none" stroke="#f59e0b" strokeWidth={5} />}
             </g>
             {gs.map((g, i) => {

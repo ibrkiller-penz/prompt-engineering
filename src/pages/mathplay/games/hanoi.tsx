@@ -9,7 +9,7 @@ const VH = 360;
 const BASE = 300;
 const PX = [110, 300, 490];
 const PEG_NAME = ["왼쪽", "가운데", "오른쪽"];
-const FONT = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const FONT = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 const COLORS: [string, string, string][] = [
   ["#fda4af", "#f43f5e", "#9f1239"],
   ["#fdba74", "#f97316", "#9a3412"],

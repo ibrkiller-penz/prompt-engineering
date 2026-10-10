@@ -92,7 +92,7 @@ const H_LO = 0.42;
 const H_HI = 1.1;
 
 const R_FRAC = 0.25; // 바퀴 반지름 = 장면 높이 × R_FRAC
-const FONT = "Jua, Pretendard Variable, sans-serif";
+const FONT = "S-Core Dream, Pretendard Variable, sans-serif";
 
 function sceneH(W: number) {
   return clamp(W * 0.45, 170, 250);

@@ -60,7 +60,7 @@ const GY = 140;
 const TH_MAX = 2 * Math.PI;
 const BIG = "!min-h-[48px] !text-base";
 const ROUNDS = 3;
-const GF = "Jua, Pretendard Variable, sans-serif";
+const GF = "S-Core Dream, Pretendard Variable, sans-serif";
 function starPath(x: number, y: number, r1: number, r2: number) {
   let d = "";
   for (let i = 0; i < 10; i++) {

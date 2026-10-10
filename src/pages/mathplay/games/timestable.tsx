@@ -8,7 +8,7 @@ const ROUNDS = 3;
 const VW = 372;
 const CS = 56;
 const TILE = 26; // 조각 반지름
-const JUA = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const JUA = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 
 export default function TimesTableGame() {
   const level = useStage();

@@ -3,7 +3,7 @@ import { Board, GButton, cheer, oops, stageClear, tick, useStage } from "./kit";
 import { BIG, Pill, Talk } from "./easykit";
 import { cpuAdd, makeRounds, moverWins, safeNumbers, winningAdd, type GRound } from "./gotit.logic";
 
-const GF = "Jua, Pretendard Variable, sans-serif";
+const GF = "S-Core Dream, Pretendard Variable, sans-serif";
 const COLS = 10;
 const CELL = 34;
 const ROW_H = 50;

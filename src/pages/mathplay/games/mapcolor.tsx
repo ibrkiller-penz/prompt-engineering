@@ -140,7 +140,7 @@ const PALETTE = [
   { fill: "#c084fc", dark: "#7e22ce", name: "보라" },
 ];
 const REDUCE = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-const JUA = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const JUA = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 
 /** 나라마다 붙는 작은 그림 (집 또는 나무), 가운데가 0,0 */
 function Icon({ kind }: { kind: number }) {

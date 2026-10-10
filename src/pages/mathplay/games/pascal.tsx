@@ -45,7 +45,7 @@ const PAL: Record<string, Pal> = {
 };
 const ALLPAL: [string, Pal][] = [...ROWPAL.map((p, i) => [`r${i}`, p] as [string, Pal]), ...Object.entries(PAL)];
 const BALLOON = ["#f43f5e", "#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4"];
-const FONT = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const FONT = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 const BW = CW - 6;
 const BH = RH - 6;
 const FLOOR = 30;

@@ -1,13 +1,2 @@
-import { useEffect } from "react";
-
-/** 게임 글꼴(Jua)을 한 번만 불러온다. 못 불러오면 기본 글꼴로 보인다. */
-export function useGameFont() {
-  useEffect(() => {
-    if (document.getElementById("gz-font")) return;
-    const l = document.createElement("link");
-    l.id = "gz-font";
-    l.rel = "stylesheet";
-    l.href = "https://fonts.googleapis.com/css2?family=Jua&display=swap";
-    document.head.appendChild(l);
-  }, []);
-}
+/** 게임 글꼴(에스코어 드림 4·5·6)은 index.css 의 @font-face 로 불러온다. 이 훅은 호환용으로 남겨 둔다. */
+export function useGameFont() {}

@@ -87,7 +87,7 @@ const ROUNDS = 3;
 const W = 400;
 const H = 320;
 const WALK = 1.5; // 걸어가는 데 걸리는 시간(초)
-const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const GF = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 /** 풀밭 장식(꽃·풀) */
 const DECOR: [number, number, string][] = [[24, 30, "🌼"], [380, 28, "🌷"], [30, 300, "🌱"], [372, 304, "🌼"], [200, 14, "🌱"], [14, 160, "🌷"], [392, 170, "🌱"], [120, 312, "🌷"], [290, 312, "🌱"]];
 const CSS = `

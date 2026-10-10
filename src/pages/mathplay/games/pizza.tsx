@@ -258,7 +258,7 @@ function FractionBars({ items, guide = true }: { items: { n: number; k: number; 
         const cw = W / it.n;
         return (
           <g key={r}>
-            <text x={X0} y={y - 4} fontSize="13" fill="#7c2d12" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>
+            <text x={X0} y={y - 4} fontSize="13" fill="#7c2d12" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
               {it.label} {it.k}/{it.n}
             </text>
             {Array.from({ length: it.n }, (_, i) => (

@@ -4,7 +4,7 @@ import { BIG, Pill, Stars, Talk } from "./easykit";
 import { allOff, levelRounds, press, solve, starsFor, type Board as Grid } from "./lightsout.logic";
 
 const ROUNDS = 3;
-const FONT = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const FONT = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 type Msg = { t: string; tone: "info" | "ok" | "bad" };
 
 /** 귀여운 전구: 켜지면 노랗게 빛나고, 꺼지면 졸린 얼굴 */

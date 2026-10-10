@@ -247,7 +247,7 @@ export default function FibStairsGame() {
           .fs-shake{animation:fs-shake .3s ease-in-out 2}
           @media (prefers-reduced-motion: reduce){.fs-hop,.fs-cheer,.fs-shake{animation:none}}
         `}</style>
-        <svg viewBox={`0 0 ${VW} ${VH}`} className="block h-auto w-full select-none rounded-card" style={{ touchAction: "manipulation", fontFamily: "Jua, Pretendard Variable, sans-serif" }} role="group" aria-label={`${n}칸 계단. 지금 ${pos}칸째. 계단을 눌러 올라가요`}>
+        <svg viewBox={`0 0 ${VW} ${VH}`} className="block h-auto w-full select-none rounded-card" style={{ touchAction: "manipulation", fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }} role="group" aria-label={`${n}칸 계단. 지금 ${pos}칸째. 계단을 눌러 올라가요`}>
           <defs>
             <linearGradient id="fs-sky" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="#7dd3fc" />

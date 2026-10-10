@@ -47,7 +47,7 @@ function Tank({ n, h, t, anim, mood }: { n: number; h: number; t: number; anim: 
             </g>
           </g>
         ))}
-        {fish === 0 && <text x={150} y={130} textAnchor="middle" fontSize={20} fill="#fff" style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}>텅 비었어요…</text>}
+        {fish === 0 && <text x={150} y={130} textAnchor="middle" fontSize={20} fill="#fff" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>텅 비었어요…</text>}
       </svg>
     </div>
   );

@@ -157,7 +157,7 @@ export function makeCards(rnd: (n: number) => number, level: number, task: Task,
 // ==END==
 
 const ROUNDS = 3;
-const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const GF = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 const CSS = `
 @keyframes mt-hop { 0%,100% { transform: translateY(0) scale(1); } 35% { transform: translateY(-12px) scale(1.05); } 70% { transform: translateY(0) scale(.98); } }
 @keyframes mt-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }

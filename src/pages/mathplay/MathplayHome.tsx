@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HUB_NAME } from "../../site";
+import SectionIcon from "../../components/SectionIcon";
 import BuildingMap from "./BuildingMap";
 import GameModal from "./GameModal";
 import Profile, { BADGES } from "./Profile";
@@ -152,7 +153,10 @@ export default function MathplayHome() {
           <span className="absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-white/15" aria-hidden />
           <div className="relative px-6 pb-2 pt-8 sm:px-10 sm:pt-12">
             <p className="text-sm font-bold tracking-widest opacity-90">온라인 수학 체험</p>
-            <h1 className="font-game mt-1 text-5xl drop-shadow-[0_3px_0_rgba(0,0,0,0.15)] sm:text-7xl">수학 놀이터</h1>
+            <div className="mt-1 flex items-center gap-3">
+              <SectionIcon path="/mathplay" size={56} />
+              <h1 className="font-game text-5xl drop-shadow-[0_3px_0_rgba(0,0,0,0.15)] sm:text-7xl">수학 놀이터</h1>
+            </div>
             <p className="mt-3 max-w-md text-lg font-semibold opacity-95">생각 없이 놀다 보면 어느새 수학이 쏙쏙!</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button

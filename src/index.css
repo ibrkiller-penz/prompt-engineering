@@ -137,9 +137,15 @@ a.btn {
 .aimath-root :is(p, li) { text-wrap: pretty; }
 .aimath-root :is(pre, code, textarea, input, .katex) { word-break: normal; }
 
+/* ───── 에스코어 드림(S-Core Dream) 4·5·6 굵기: 온라인 수학 체험 글꼴 ───── */
+@font-face { font-family: "S-Core Dream"; font-weight: 400; font-display: swap; src: url("/fonts/S-CoreDream-4Regular.woff") format("woff"); }
+@font-face { font-family: "S-Core Dream"; font-weight: 500; font-display: swap; src: url("/fonts/S-CoreDream-5Medium.woff") format("woff"); }
+@font-face { font-family: "S-Core Dream"; font-weight: 700; font-display: swap; src: url("/fonts/S-CoreDream-6Bold.woff") format("woff"); }
+
 /* ───── 온라인 수학 체험(게임) 테마: .gamezone 안에서만 적용 ───── */
 .font-game {
-  font-family: "Jua", "Pretendard Variable", Pretendard, sans-serif;
+  font-family: "S-Core Dream", "Pretendard Variable", Pretendard, sans-serif;
+  font-weight: 500;
   letter-spacing: 0.01em;
 }
 .gamezone {

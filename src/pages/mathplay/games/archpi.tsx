@@ -7,7 +7,7 @@ const CHAIN = [6, 12, 24, 48, 96];
 const BIG = "!min-h-[48px] !text-base";
 const f2 = (v: number) => v.toFixed(2);
 const AUTO_MS = 3000;
-const JUA = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const JUA = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 /** 반지름 22인 통통한 별 */
 const STAR = Array.from({ length: 10 }, (_, k) => {
   const a = -Math.PI / 2 + (k * Math.PI) / 5;

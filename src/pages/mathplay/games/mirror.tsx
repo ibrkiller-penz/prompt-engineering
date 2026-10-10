@@ -71,7 +71,7 @@ const OX = 200;
 const OY = 205;
 const MLEN = 175;
 const HANDLE = 160; // 돌리는 손잡이가 있는 거리
-const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const GF = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 const CSS = `
 @keyframes mr-hop { 0%,100% { transform: translateY(0) scale(1); } 35% { transform: translateY(-10px) scale(1.08); } 70% { transform: translateY(0) scale(.98); } }
 @keyframes mr-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 50% { transform: translateX(7px); } 75% { transform: translateX(-4px); } }

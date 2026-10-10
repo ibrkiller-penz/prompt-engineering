@@ -7,7 +7,7 @@ type Msg = { t: "info" | "ok" | "bad"; s: string };
 const ROUNDS = 3;
 const GAP = 60; // 못 사이(그림 좌표)
 const PAD = 40;
-const JUA = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const JUA = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 const WHY: Record<string, string> = {
   cross: "고무줄이 서로 겹치거나 닿으면 안 돼요. 다른 못을 눌러 봐요.",
   dup: "이미 고무줄이 지나간 못이에요. 처음 못으로 돌아가면 도형이 닫혀요.",

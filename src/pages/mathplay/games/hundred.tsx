@@ -111,7 +111,7 @@ export function makeBoard(rnd: (n: number) => number, level: number): BoardDef {
 // ==END==
 
 const ROUNDS = 3;
-const GF = { fontFamily: "Jua, Pretendard Variable, sans-serif" };
+const GF = { fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" };
 const CSS = `
 @keyframes hd-pop { 0% { transform: scale(.7); opacity: .4; } 60% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes hd-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }

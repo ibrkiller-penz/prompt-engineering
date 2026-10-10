@@ -357,7 +357,7 @@ export default function PolyBoard({ kinds, labels, pieces, solution, resetKey, d
                         dominantBaseline="middle"
                         fontSize={label.length > 2 ? S * 0.3 : S * 0.38}
                         fontWeight={k === "target" ? 800 : 600}
-                        style={{ fontFamily: "Jua, Pretendard Variable, sans-serif" }}
+                        style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}
                         fill={id ? "rgba(255,255,255,.92)" : k === "target" ? "#b45309" : "#8a6a4a"}
                         pointerEvents="none"
                       >
