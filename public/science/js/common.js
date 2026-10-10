@@ -205,9 +205,15 @@ function initExp(){
     info.querySelectorAll("[data-lv]").forEach(function(b){b.addEventListener("click",function(){showWhy(b.dataset.lv)})});
     showWhy("easy");
     EXP.init(Exp.stageEl);
+    /* 그림 아래의 고정 설명 문장은 설명 창으로 옮겨 화면을 줄임 (결과 메시지·id 있는 글은 그대로) */
+    var fixedNotes=[].slice.call(Exp.stageEl.querySelectorAll("p.note:not([id]):not([aria-live])"));
+    if(fixedNotes.length){var box=document.createElement("div");box.className="stage-notes";fixedNotes.forEach(function(n){box.appendChild(n)});info.insertBefore(box,info.querySelector(".foot-note"))}
+    /* 그림 아래의 고정 설명 문장은 설명 창으로 옮겨 화면을 줄임 (결과 메시지·id 있는 글은 그대로) */
+    var fixedNotes=[].slice.call(Exp.stageEl.querySelectorAll("p.note:not([id]):not([aria-live])"));
+    if(fixedNotes.length){var box=document.createElement("div");box.className="stage-notes";fixedNotes.forEach(function(n){box.appendChild(n)});info.insertBefore(box,info.querySelector(".foot-note"))}
   });
 }
 window.Sci={initHome:initHome,initGallery:initGallery,initExp:initExp,esc:esc,FLOORS:FLOORS,
   /* 캔버스를 CSS 너비에 맞춰 선명하게 */
-  fit:function(cv,ratio){var pw=cv.parentNode.clientWidth,capW=Math.max(240,(window.innerHeight*0.5)/ratio),w=Math.min(pw,capW),dpr=window.devicePixelRatio||1;cv.style.width=w+"px";cv.width=Math.round(w*dpr);cv.height=Math.round(w*ratio*dpr);cv.style.height=(w*ratio)+"px";var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:w*ratio}}};
+  fit:function(cv,ratio){var pw=cv.parentNode.clientWidth,capH=innerHeight*(innerWidth<900?0.34:0.55),capW=Math.max(200,capH/ratio),w=Math.min(pw,capW),dpr=window.devicePixelRatio||1;cv.style.width=w+"px";cv.width=Math.round(w*dpr);cv.height=Math.round(w*ratio*dpr);cv.style.height=(w*ratio)+"px";var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:w*ratio}}};
 })();

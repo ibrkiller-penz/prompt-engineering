@@ -156,10 +156,10 @@ body.present .card p{font-size:20px}
 @media (max-width:520px){.floor{grid-template-columns:1fr}.floor-emoji{width:64px;height:64px;font-size:36px}}
 
 /* ---- 4차: 친숙한 분위기 + S-Core Dream 4·5·6 ----
-   폰트 파일은 public/science/fonts/ 에 두세요(아래 이름). 설치된 PC에서는 local()로 바로 쓰입니다. */
-@font-face{font-family:"S-Core Dream";font-weight:400;font-display:swap;src:local("SCoreDream-4Regular"),local("S-CoreDream-4Regular"),url("../fonts/SCoreDream-4Regular.woff2") format("woff2")}
-@font-face{font-family:"S-Core Dream";font-weight:500;font-display:swap;src:local("SCoreDream-5Medium"),local("S-CoreDream-5Medium"),url("../fonts/SCoreDream-5Medium.woff2") format("woff2")}
-@font-face{font-family:"S-Core Dream";font-weight:700;font-display:swap;src:local("SCoreDream-6Bold"),local("S-CoreDream-6Bold"),url("../fonts/SCoreDream-6Bold.woff2") format("woff2")}
+   폰트: public/science/fonts/ 의 S-CoreDream 4·5·6 (ai-study-math와 같은 파일). */
+@font-face{font-family:"S-Core Dream";font-weight:400;font-display:swap;src:local("SCoreDream-4Regular"),local("S-CoreDream-4Regular"),url("../fonts/S-CoreDream-4Regular.woff") format("woff")}
+@font-face{font-family:"S-Core Dream";font-weight:500;font-display:swap;src:local("SCoreDream-5Medium"),local("S-CoreDream-5Medium"),url("../fonts/S-CoreDream-5Medium.woff") format("woff")}
+@font-face{font-family:"S-Core Dream";font-weight:700;font-display:swap;src:local("SCoreDream-6Bold"),local("S-CoreDream-6Bold"),url("../fonts/S-CoreDream-6Bold.woff") format("woff")}
 :root{--font:"S-Core Dream","Pretendard Variable",Pretendard,system-ui,-apple-system,"Malgun Gothic",sans-serif;--bg:#fffaf2;--card:#ffffff;--r:22px;--cream:#fff4df;--shadow:0 4px 0 rgba(30,60,40,.10)}
 @media (prefers-color-scheme:dark){:root{--bg:#131b17;--card:#1b2a23;--cream:#2a2618}}
 body{font-family:var(--font);font-weight:400;background:var(--bg);background-image:radial-gradient(circle at 12% 0%,rgba(255,214,140,.25),transparent 40%),radial-gradient(circle at 92% 12%,rgba(120,210,170,.22),transparent 38%)}
@@ -230,3 +230,31 @@ dialog#info .foot-note{font-size:12px;color:var(--sub);margin:12px 0 0}
 }
 body.present .exp-title{font-size:30px}
 body.present .predict .q,body.present .predict h2{font-size:20px}
+.stage-notes{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--cream);font-size:15px;line-height:1.6}
+.stage-notes p{margin:0 0 6px}
+.stage-notes p:last-child{margin:0}
+.stage .controls{gap:6px 10px;margin-top:6px}
+.stage .controls button{min-height:38px;padding:0 12px}
+.stage .controls label{font-size:15px;gap:6px}
+@media (max-width:899px){
+  .stage{padding:8px}
+  .exp-title{margin:0 0 4px;font-size:20px}
+  .predict{padding:8px 10px}
+  .predict .q{margin-bottom:6px}
+  .predict .opts button{min-height:38px;font-size:14px}
+  .bottom-row{margin-top:8px}
+}
+.stage-notes{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--cream);font-size:15px;line-height:1.6}
+.stage-notes p{margin:0 0 6px}
+.stage-notes p:last-child{margin:0}
+.stage .controls{gap:6px 10px;margin-top:6px}
+.stage .controls button{min-height:38px;padding:0 12px}
+.stage .controls label{font-size:15px;gap:6px}
+@media (max-width:899px){
+  .stage{padding:8px}
+  .exp-title{margin:0 0 4px;font-size:20px}
+  .predict{padding:8px 10px}
+  .predict .q{margin-bottom:6px}
+  .predict .opts button{min-height:38px;font-size:14px}
+  .bottom-row{margin-top:8px}
+}
