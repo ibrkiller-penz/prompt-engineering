@@ -47,13 +47,13 @@ function badgeStates(list,s){var n=list.filter(function(e){return isDone(s,e.id)
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function load2(){return fetch(BASE+"data/experiences.json").then(function(r){return r.json()})}
 function stars(n){return "★★★".slice(0,n)+"☆☆☆".slice(0,3-n)}
-var TILE=["#fb923c","#60a5fa","#34d399","#a78bfa","#f472b6","#fbbf24"];
+var ICON={A1:"📏",A2:"🎨",A3:"👁️",A4:"⬜",A5:"🟥",A6:"🛞",A7:"👀",A8:"🪞",B1:"🎵",B2:"🌊",B3:"🎤",B4:"🚑",B5:"🎷",B6:"🔇",C1:"⏱️",C2:"🌕",C3:"💥",C4:"🤸",C5:"⚽",C6:"〰️",C7:"🌀",C8:"🎢",C9:"📦",D1:"⚡",D2:"🔤",D3:"🔍",D4:"🧠",D5:"✏️",D6:"👓",E1:"🦊",E2:"🌱",E3:"🌿",E4:"💓",E5:"🐛",F1:"🕛",F2:"🌗",F3:"🪨",F4:"🌏",F5:"🌑",G1:"⚖️",G2:"🌉",G3:"🏗️",G4:"💡",G5:"⚙️"};
 
 function tile(e,s){
   var done=isDone(s,e.id),fresh=!s.plays[e.id],href=BASE+"exp/"+e.id+".html"+(present?"?present=1":"");
   var g=FLOORS[FLOOR_OF[e.gallery]-1],c=g.grad;
   return '<a class="tile'+(done?" is-done":"")+'" href="'+href+'" style="--c1:'+c[0]+';--c2:'+c[1]+'">'+
-    '<div class="tile-art" aria-hidden="true"><span>'+g.emoji+'</span></div>'+
+    '<div class="tile-art" aria-hidden="true"><span>'+(ICON[e.id]||g.emoji)+'</span></div>'+
     '<div class="tile-body"><div class="tile-top">'+(done?'<span class="tag ok">✔ 완료</span>':fresh?'<span class="tag new">NEW</span>':'<span class="tag">'+e.minutes+'분</span>')+'<span class="lv" title="난이도">'+stars(e.level)+'</span></div>'+
     '<h3>'+esc(e.id)+'. '+esc(e.title)+'</h3><p>'+esc(e.question)+'</p>'+
     (e.needsMic?'<span class="chip">🎤 마이크</span>':"")+'</div></a>';
@@ -132,12 +132,16 @@ var listeners=[];
 window.Exp={
   stageEl:null,revealed:false,choice:null,
   onReveal:function(fn){listeners.push(fn)},
+  touched:false,counted:false,
+  /* 별은 '예측 선택 + 직접 조작 + 확인'을 모두 해야 한 번 기록된다 */
   reveal:function(){
+    if(!Exp.counted&&Exp.choice!=null&&Exp.touched){
+      recordDone(EXP.id);Exp.counted=true;
+      var d=document.getElementById("doneChip");if(d)d.hidden=false;
+    }
     if(Exp.revealed)return;Exp.revealed=true;
     var P=EXP.predict,res=document.getElementById("predRes");
     if(Exp.choice!=null&&res){var ok=Exp.choice===P.answer;res.textContent=(ok?"✅ ":"🤔 ")+P.feedback[Exp.choice]}
-    recordDone(EXP.id);
-    var d=document.getElementById("doneChip");if(d)d.hidden=false;
     listeners.forEach(function(f){f()});
   }
 };
@@ -169,6 +173,10 @@ function initExp(){
       '<footer class="foot">Exploratorium에서 영감을 받았으나 관련 없는 독립 사이트입니다. 진행 기록은 이 기기 브라우저에만 저장되고, 어디로도 보내지 않습니다.</footer>';
     if(isDone(s,id))document.getElementById("doneChip").hidden=false;
     Exp.stageEl=document.getElementById("stageBody");
+    /* 체험 영역을 실제로 만졌는지 기록(버튼만 누른 경우는 별 제외) */
+    ["pointerdown","keydown","input","change"].forEach(function(t){document.getElementById("stage").addEventListener(t,function(e){
+      if(e.target.closest&&e.target.closest("button"))return; /* 확인·다시 하기 같은 버튼은 조작이 아님 */
+      Exp.touched=true})});
     /* 예측 */
     var pb=root.querySelectorAll(".opts button");
     pb.forEach(function(b){b.addEventListener("click",function(){
