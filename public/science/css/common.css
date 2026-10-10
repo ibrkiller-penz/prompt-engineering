@@ -309,3 +309,17 @@ body.in-modal .bottom-row{margin-top:6px}
 /* 체험 선택 칸: 큰 둥근 칸 */
 .predict .opts button{border-radius:18px;font-size:16px;font-weight:500;background:#fff;border:2px solid #e6efe9}
 .predict .opts button[aria-pressed=true]{background:#e6f5ec;border-color:#1e8152;color:#13593a}
+/* 창 안 + PC: 예측을 위에 가로로, 체험 본문은 두 칸으로 흘려서 한 화면에 */
+@media (min-width:900px){
+  body.in-modal .exp-grid{display:block}
+  body.in-modal .predict{position:static;margin-bottom:10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+  body.in-modal .predict h2{margin:0;flex:0 0 auto}
+  body.in-modal .predict .q{margin:0;flex:1 1 320px;font-size:15px}
+  body.in-modal .predict .opts{flex:1 1 100%}
+  body.in-modal .predict .res{flex:1 1 100%}
+  body.in-modal .stage{padding:10px 14px}
+  body.in-modal .stage-body{column-count:2;column-gap:22px}
+  body.in-modal .stage-body>*{break-inside:avoid;margin-bottom:10px}
+  body.in-modal .stage-body>canvas{display:block}
+  body.in-modal .bottom-row{margin-top:8px}
+}

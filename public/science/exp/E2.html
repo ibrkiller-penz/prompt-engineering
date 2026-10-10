@@ -41,7 +41,7 @@ var EXP={
    e.textContent=n===0?"△ 기준과 같아요. 비교할 게 없어요.":n===1?"✔ "+nm+"만 달라요. 비교할 수 있어요.":"⚠ "+nm+" "+n+"가지가 달라서 원인을 알기 어려워요."})}
   var SH=["circle","square","triangle","diamond"],DASH=[[],[8,4],[2,4],[10,4,2,4]],COL=["#1b6ec2","#c2410c","#0a7d4f","#8a4fd6"];
   function draw(){
-   var s=Sci.fit(cv,.6),g=s.c,w=s.w,hh=s.h,col=getComputedStyle(document.body).color,k=Math.max(w/600,.7);
+   var s=Sci.fit(cv,.5),g=s.c,w=s.w,hh=s.h,col=getComputedStyle(document.body).color,k=Math.max(w/600,.7);
    g.clearRect(0,0,w,hh);g.font=(13*Math.max(k,.9))+"px sans-serif";g.textAlign="center";g.fillStyle=col;g.strokeStyle=col;
    var cw=w/4,base=hh-52*k,scale=(hh-110*k)/HM;
    pots.forEach(function(p,i){
@@ -56,7 +56,7 @@ var EXP={
    });
    g.textAlign="left";g.fillText("날짜 "+Math.floor(day)+" / "+DAYS+"일",6,16*k+2);
    /* 그래프 */
-   var s2=Sci.fit(gr,.55),q=s2.c,W=s2.w,H=s2.h;q.clearRect(0,0,W,H);q.font=(13*Math.max(k,.9))+"px sans-serif";q.fillStyle=col;q.strokeStyle=col;
+   var s2=Sci.fit(gr,.4),q=s2.c,W=s2.w,H=s2.h;q.clearRect(0,0,W,H);q.font=(13*Math.max(k,.9))+"px sans-serif";q.fillStyle=col;q.strokeStyle=col;
    var L=40*Math.max(k,.9),T=12,B=32*Math.max(k,.9),Rr=12,pw2=W-L-Rr,ph2=H-T-B;
    q.lineWidth=1.5;q.beginPath();q.moveTo(L,T);q.lineTo(L,T+ph2);q.lineTo(L+pw2,T+ph2);q.stroke();
    q.textAlign="right";for(var y=0;y<=20;y+=5)q.fillText(y,L-5,T+ph2-y/HM*ph2+4);
