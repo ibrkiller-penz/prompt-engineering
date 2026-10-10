@@ -1,53 +1,125 @@
-/* 온라인 과학 체험관 공통: 데이터 로드, 체험 페이지 템플릿 */
+/* 온라인 과학 체험관 공통: 층·진행 기록(기기 저장), 허브·갤러리, 체험 템플릿 */
 (function(){
 "use strict";
 var BASE=location.pathname.replace(/\/(exp|gallery)\/[^\/]*$/,"/").replace(/\/index\.html$/,"/").replace(/\/?$/,function(m){return m||"/"});
 if(!/\/$/.test(BASE))BASE+="/";
-var GICON={see:"👁️",hear:"🔊",move:"🎢",us:"🧠",life:"🌱",look:"🔭",make:"🛠️"};
-var GDESC={see:"빛·색·착시",hear:"소리와 파동",move:"힘과 운동",us:"인지와 인간 현상",life:"살아있는 시스템",look:"지구·우주·야외 관찰",make:"만들고 시험하기"};
 var present=/[?&]present=1/.test(location.search);
 if(present)document.addEventListener("DOMContentLoaded",function(){document.body.classList.add("present")});
 
+/* ---- 층: 갤러리 7개를 4개 층으로 묶음 ---- */
+var FLOORS=[
+ {id:1,name:"보고 듣는 마당",emoji:"🎈",desc:"눈과 귀로 먼저 만나요",grad:["#ff9a5a","#ff5e7e"]},
+ {id:2,name:"힘과 만들기 연구소",emoji:"🚀",desc:"움직이고 만들며 원리를 찾아요",grad:["#4fc3ff","#6a5cff"]},
+ {id:3,name:"몸과 생명 박물관",emoji:"🧬",desc:"사람과 생물을 관찰해요",grad:["#34d399","#3b82f6"]},
+ {id:4,name:"지구·우주 관찰대",emoji:"🔭",desc:"하늘과 땅을 살펴봐요",grad:["#b78cff","#ff6fb5"]}
+];
+var FLOOR_OF={see:1,hear:1,move:2,make:2,us:3,life:3,look:4};
+var GNAME={see:"보기",hear:"듣기",move:"움직임",us:"우리",life:"생명",look:"관찰",make:"손으로 생각하기"};
+var BADGES=[
+ {id:"b1",name:"첫 발걸음",emoji:"👣",on:function(n){return n>=1}},
+ {id:"b5",name:"탐험가 5",emoji:"🧭",on:function(n){return n>=5}},
+ {id:"b15",name:"탐험가 15",emoji:"🗺️",on:function(n){return n>=15}},
+ {id:"ball",name:"과학자 전부",emoji:"🏆",on:function(n,t){return n>=t}},
+ {id:"f1",name:"1층 완주",emoji:"🎈",floor:1},
+ {id:"f2",name:"2층 완주",emoji:"🚀",floor:2},
+ {id:"f3",name:"3층 완주",emoji:"🧬",floor:3},
+ {id:"f4",name:"4층 완주",emoji:"🔭",floor:4}
+];
+
+/* ---- 진행 기록: 이 기기 브라우저(localStorage)에만 저장. 서버로 보내지 않음 ---- */
+var KEY="penedu:science:save";
+function blank(){return {v:1,done:{},plays:{},days:[],name:"",today:{date:"",done:[]}}}
+function load(){try{var r=localStorage.getItem(KEY);if(r)return Object.assign(blank(),JSON.parse(r))}catch(e){}return blank()}
+function store(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+function dayKey(d){d=d||new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function markDay(s){var k=dayKey();if(s.days.indexOf(k)<0)s.days=s.days.concat([k]).slice(-120)}
+function recordPlay(id){var s=load();s.plays[id]=(s.plays[id]||0)+1;markDay(s);store(s)}
+function recordDone(id){var s=load(),k=dayKey();if(s.today.date!==k)s.today={date:k,done:[]};if(s.today.done.indexOf(id)<0)s.today.done=s.today.done.concat([id]);s.done[id]=(s.done[id]||0)+1;markDay(s);store(s)}
+function setName(n){var s=load();s.name=String(n||"").slice(0,10);store(s)}
+function isDone(s,id){return !!s.done[id]}
+function streakOf(days){var n=0,d=new Date(),k;
+ while(true){k=dayKey(d);if(days.indexOf(k)>=0){n++;d.setDate(d.getDate()-1)}else if(n===0&&k===dayKey()){d.setDate(d.getDate()-1)}else break}
+ return n}
+function floorStats(list,s,fid){var all=list.filter(function(e){return FLOOR_OF[e.gallery]===fid});return {total:all.length,done:all.filter(function(e){return isDone(s,e.id)}).length}}
+function badgeStates(list,s){var n=list.filter(function(e){return isDone(s,e.id)}).length,t=list.length;
+ return BADGES.map(function(b){var on=b.floor?floorStats(list,s,b.floor).done===floorStats(list,s,b.floor).total&&floorStats(list,s,b.floor).total>0:b.on(n,t);return {b:b,on:on}})}
+
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
-function load(){return fetch(BASE+"data/experiences.json").then(function(r){return r.json()})}
+function load2(){return fetch(BASE+"data/experiences.json").then(function(r){return r.json()})}
 function stars(n){return "★★★".slice(0,n)+"☆☆☆".slice(0,3-n)}
-function expCard(e){
-  var tag=e.status==="done"?"a":"div";
-  var href=e.status==="done"?' href="'+BASE+"exp/"+e.id+".html"+(present?"?present=1":"")+'"':"";
-  return "<"+tag+' class="card'+(e.status==="done"?"":" planned")+'"'+href+"><h3>"+esc(e.id)+". "+esc(e.title)+"</h3><p>"+esc(e.question)+'</p><div class="chips"><span class="chip">⏱ '+e.minutes+"분</span><span class=\"chip\" title=\"난이도\">"+stars(e.level)+"</span>"+(e.needsMic?'<span class="chip">🎤 마이크</span>':"")+(e.status==="done"?"":'<span class="chip">준비 중</span>')+"</div></"+tag+">";
+var TILE=["#fb923c","#60a5fa","#34d399","#a78bfa","#f472b6","#fbbf24"];
+
+function tile(e,s){
+  var done=isDone(s,e.id),fresh=!s.plays[e.id],href=BASE+"exp/"+e.id+".html"+(present?"?present=1":"");
+  var g=FLOORS[FLOOR_OF[e.gallery]-1],c=g.grad;
+  return '<a class="tile'+(done?" is-done":"")+'" href="'+href+'" style="--c1:'+c[0]+';--c2:'+c[1]+'">'+
+    '<div class="tile-art" aria-hidden="true"><span>'+g.emoji+'</span></div>'+
+    '<div class="tile-body"><div class="tile-top">'+(done?'<span class="tag ok">✔ 완료</span>':fresh?'<span class="tag new">NEW</span>':'<span class="tag">'+e.minutes+'분</span>')+'<span class="lv" title="난이도">'+stars(e.level)+'</span></div>'+
+    '<h3>'+esc(e.id)+'. '+esc(e.title)+'</h3><p>'+esc(e.question)+'</p>'+
+    (e.needsMic?'<span class="chip">🎤 마이크</span>':"")+'</div></a>';
 }
 
-/* ---- 메인 ---- */
+/* ---- 허브: 건물(4개 층) ---- */
 function initHome(){
-  load().then(function(d){
-    var box=document.getElementById("galleries");
-    box.innerHTML=d.galleries.map(function(g){
-      var all=d.experiences.filter(function(e){return e.gallery===g.id}),done=all.filter(function(e){return e.status==="done"}).length;
-      return '<a class="card" href="'+BASE+"gallery/?g="+g.id+'"><div class="ico" aria-hidden="true">'+GICON[g.id]+"</div><h2>"+esc(g.name)+" 갤러리</h2><p>"+GDESC[g.id]+'</p><div class="chips"><span class="chip">체험 '+done+" / "+all.length+"</span></div></a>";
+  load2().then(function(d){
+    var list=d.experiences,s=load(),done=list.filter(function(e){return isDone(s,e.id)}).length,total=list.length;
+    document.getElementById("stat-stars").textContent=done+" / "+total;
+    document.getElementById("stat-streak").textContent=streakOf(s.days)+"일";
+    var bs=badgeStates(list,s);
+    document.getElementById("stat-badges").textContent=bs.filter(function(x){return x.on}).length+" / "+BADGES.length;
+    var name=document.getElementById("name-in");name.value=s.name;
+    document.getElementById("greet").textContent=s.name?s.name+"님의 탐험":"나만의 탐험 이름을 정해요";
+    name.addEventListener("change",function(){setName(name.value);initHome2()});
+    /* 오늘의 미션: 아직 안 한 체험 중 날짜마다 다른 것 */
+    var todo=list.filter(function(e){return !isDone(s,e.id)});
+    var seed=Math.floor(Date.now()/86400000);
+    var pick=todo.length?todo[seed%todo.length]:null;
+    var m=document.getElementById("mission");
+    m.innerHTML=pick?'<span class="mission-l">🎯 오늘의 미션</span><strong>'+esc(pick.title)+'</strong><a class="btn primary" href="'+BASE+"exp/"+pick.id+'.html">지금 해 보기 →</a>':'<span class="mission-l">🎉</span><strong>모든 체험을 마쳤어요!</strong>';
+    /* 아무 체험이나 */
+    var r=document.getElementById("random");
+    r.addEventListener("click",function(){var pool=todo.length?todo:list;var p=pool[Math.floor(Math.random()*pool.length)];location.href=BASE+"exp/"+p.id+".html"+(present?"?present=1":"")});
+    /* 층 */
+    document.getElementById("floors").innerHTML=FLOORS.map(function(f){
+      var fs=floorStats(list,s,f.id),pct=fs.total?Math.round(fs.done*100/fs.total):0;
+      return '<a class="floor" href="'+BASE+"gallery/?f="+f.id+'" style="--c1:'+f.grad[0]+';--c2:'+f.grad[1]+'">'+
+        '<div class="floor-emoji" aria-hidden="true">'+f.emoji+'</div>'+
+        '<div class="floor-txt"><span class="floor-no">'+f.id+'층</span><h2>'+esc(f.name)+'</h2><p>'+esc(f.desc)+'</p>'+
+        '<div class="bar" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="'+esc(f.name)+' 진행"><i style="width:'+pct+'%"></i></div>'+
+        '<span class="floor-count">⭐ '+fs.done+' / '+fs.total+'</span></div></a>';
     }).join("");
+    /* 배지 */
+    document.getElementById("badges").innerHTML=bs.map(function(x){return '<span class="badge'+(x.on?" on":"")+'" title="'+esc(x.b.name)+'"><b aria-hidden="true">'+x.b.emoji+'</b>'+esc(x.b.name)+(x.on?"":" 🔒")+'</span>'}).join("");
   });
 }
+function initHome2(){ /* 이름 바꾸면 인사말만 갱신 */
+  var s=load();document.getElementById("greet").textContent=s.name?s.name+"님의 탐험":"나만의 탐험 이름을 정해요";
+}
 
-/* ---- 갤러리(검색·필터 포함) ---- */
+/* ---- 갤러리(층별, 검색·필터) ---- */
 function initGallery(){
-  var gid=(location.search.match(/[?&]g=(\w+)/)||[])[1]||"all";
-  load().then(function(d){
-    var g=d.galleries.filter(function(x){return x.id===gid})[0];
-    document.getElementById("gtitle").textContent=g?g.name+" 갤러리":"모든 체험";
-    document.title=(g?g.name+" 갤러리":"모든 체험")+" · 온라인 과학 체험관";
+  var fid=parseInt((location.search.match(/[?&]f=(\d)/)||[])[1]||"0",10);
+  var gid=(location.search.match(/[?&]g=(\w+)/)||[])[1]||"";
+  load2().then(function(d){
+    var s=load(),fl=FLOORS[fid-1];
+    var title=fl?fl.emoji+" "+fl.name:gid?GNAME[gid]+" 갤러리":"모든 체험";
+    document.getElementById("gtitle").textContent=title;
+    document.title=title+" · 온라인 과학 체험관";
+    if(fl){var fs=floorStats(d.experiences,s,fid);document.getElementById("gsub").textContent=fl.desc+" · ⭐ "+fs.done+" / "+fs.total}
     var topics={};d.experiences.forEach(function(e){e.topics.forEach(function(t){topics[t]=1})});
     var sel=document.getElementById("ftopic");
     Object.keys(topics).forEach(function(t){sel.insertAdjacentHTML("beforeend","<option>"+esc(t)+"</option>")});
     var list=document.getElementById("list"),q=document.getElementById("fq"),lv=document.getElementById("flevel"),mic=document.getElementById("fmic"),shown=document.getElementById("fshown");
     function render(){
       var r=d.experiences.filter(function(e){
-        if(g&&e.gallery!==gid)return false;
+        if(fid&&FLOOR_OF[e.gallery]!==fid)return false;
+        if(gid&&e.gallery!==gid)return false;
         if(sel.value&&e.topics.indexOf(sel.value)<0)return false;
         if(lv.value&&e.level!==+lv.value)return false;
         if(mic.value==="no"&&e.needsMic)return false;
         if(q.value&&(e.title+e.question).indexOf(q.value.trim())<0)return false;
         return true});
-      list.innerHTML=r.map(expCard).join("")||'<p class="note">조건에 맞는 체험이 없어요.</p>';
+      list.innerHTML=r.map(function(e){return tile(e,s)}).join("")||'<p class="note">조건에 맞는 체험이 없어요.</p>';
       shown.textContent=r.length+"개";
     }
     [sel,lv,mic].forEach(function(el){el.addEventListener("change",render)});q.addEventListener("input",render);render();
@@ -64,21 +136,24 @@ window.Exp={
     if(Exp.revealed)return;Exp.revealed=true;
     var P=EXP.predict,res=document.getElementById("predRes");
     if(Exp.choice!=null&&res){var ok=Exp.choice===P.answer;res.textContent=(ok?"✅ ":"🤔 ")+P.feedback[Exp.choice]}
+    recordDone(EXP.id);
+    var d=document.getElementById("doneChip");if(d)d.hidden=false;
     listeners.forEach(function(f){f()});
   }
 };
 function initExp(){
   var id=EXP.id;
-  load().then(function(d){
+  load2().then(function(d){
     var list=d.experiences,done=list.filter(function(e){return e.status==="done"}),
         me=list.filter(function(e){return e.id===id})[0],g=d.galleries.filter(function(x){return x.id===me.gallery})[0],
-        idx=done.indexOf(me),prev=done[idx-1],next=done[idx+1];
+        idx=done.indexOf(me),prev=done[idx-1],next=done[idx+1],fid=FLOOR_OF[me.gallery],fl=FLOORS[fid-1],s=load();
     document.title=me.title+" · 온라인 과학 체험관";
+    recordPlay(id);
     var P=EXP.predict;
     var root=document.getElementById("app");
     root.innerHTML=
-      '<header class="top"><a class="home" href="'+BASE+'">🔬 온라인 과학 체험관</a><span class="crumb">› <a href="'+BASE+"gallery/?g="+g.id+'">'+esc(g.name)+' 갤러리</a></span></header>'+
-      "<h1>"+esc(me.id)+". "+esc(me.title)+"</h1>"+
+      '<header class="top"><a class="home" href="'+BASE+'">🔬 온라인 과학 체험관</a><span class="crumb">› <a href="'+BASE+"gallery/?f="+fid+'">'+esc(fl.emoji+" "+fl.name)+'</a></span></header>'+
+      '<div class="exp-head"><h1>'+esc(me.id)+'. '+esc(me.title)+'</h1><span class="done-chip" id="doneChip" hidden>✔ 완료</span></div>'+
       '<p class="exp-q">'+esc(me.question)+"</p>"+
       '<section class="predict" aria-labelledby="ph"><h2 id="ph">먼저 예측해 보세요</h2><p>'+esc(P.q)+'</p><div class="opts" role="group" aria-label="예측 선택">'+
         P.options.map(function(o,i){return '<button type="button" data-i="'+i+'" aria-pressed="false">'+esc(o)+"</button>"}).join("")+
@@ -86,12 +161,13 @@ function initExp(){
       '<section class="stage locked" id="stage" aria-label="체험 영역"><div class="stage-body" id="stageBody"></div></section>'+
       '<div class="tabs" role="tablist" aria-label="체험 안내">'+
         [["try","① 해보기"],["obs","② 관찰 질문"],["why","③ 왜 그럴까?"],["more","④ 더 해보기"]].map(function(t,i){return '<button role="tab" id="t-'+t[0]+'" aria-controls="p-'+t[0]+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'">'+t[1]+"</button>"}).join("")+"</div>"+
-      '<div class="panel" role="tabpanel" id="p-try" aria-labelledby="t-try"><ol>'+EXP.steps.map(function(s){return "<li>"+esc(s)+"</li>"}).join("")+"</ol></div>"+
-      '<div class="panel" role="tabpanel" id="p-obs" aria-labelledby="t-obs" hidden><ul>'+EXP.observe.map(function(s){return "<li>"+esc(s)+"</li>"}).join("")+"</ul></div>"+
+      '<div class="panel" role="tabpanel" id="p-try" aria-labelledby="t-try"><ol>'+EXP.steps.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ol></div>"+
+      '<div class="panel" role="tabpanel" id="p-obs" aria-labelledby="t-obs" hidden><ul>'+EXP.observe.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ul></div>"+
       '<div class="panel" role="tabpanel" id="p-why" aria-labelledby="t-why" hidden><div class="seg" role="group" aria-label="설명 수준"><button type="button" data-lv="easy" aria-pressed="true">쉬운 설명</button><button type="button" data-lv="detail" aria-pressed="false">자세한 설명</button></div><div id="whyBody"></div></div>'+
-      '<div class="panel" role="tabpanel" id="p-more" aria-labelledby="t-more" hidden><ul>'+EXP.more.map(function(s){return "<li>"+esc(s)+"</li>"}).join("")+"</ul></div>"+
-      '<nav class="pager" aria-label="체험 이동">'+(prev?'<a class="btn" href="'+prev.id+'.html'+(present?"?present=1":"")+'">← '+esc(prev.title)+"</a>":"<span></span>")+(next?'<a class="btn primary" href="'+next.id+'.html'+(present?"?present=1":"")+'">'+esc(next.title)+" →</a>":'<a class="btn" href="'+BASE+"gallery/?g="+g.id+'">갤러리로</a>')+"</nav>"+
-      '<footer class="foot">Exploratorium에서 영감을 받았으나 관련 없는 독립 사이트입니다. 이 페이지는 외부로 데이터를 보내거나 저장하지 않습니다.</footer>';
+      '<div class="panel" role="tabpanel" id="p-more" aria-labelledby="t-more" hidden><ul>'+EXP.more.map(function(s2){return "<li>"+esc(s2)+"</li>"}).join("")+"</ul></div>"+
+      '<nav class="pager" aria-label="체험 이동">'+(prev?'<a class="btn" href="'+prev.id+'.html'+(present?"?present=1":"")+'">← '+esc(prev.title)+"</a>":"<span></span>")+(next?'<a class="btn primary" href="'+next.id+'.html'+(present?"?present=1":"")+'">'+esc(next.title)+" →</a>":'<a class="btn" href="'+BASE+"gallery/?f="+fid+'">층으로 돌아가기</a>')+"</nav>"+
+      '<footer class="foot">Exploratorium에서 영감을 받았으나 관련 없는 독립 사이트입니다. 진행 기록은 이 기기 브라우저에만 저장되고, 어디로도 보내지 않습니다.</footer>';
+    if(isDone(s,id))document.getElementById("doneChip").hidden=false;
     Exp.stageEl=document.getElementById("stageBody");
     /* 예측 */
     var pb=root.querySelectorAll(".opts button");
@@ -115,7 +191,7 @@ function initExp(){
     EXP.init(Exp.stageEl);
   });
 }
-window.Sci={initHome:initHome,initGallery:initGallery,initExp:initExp,esc:esc,
+window.Sci={initHome:initHome,initGallery:initGallery,initExp:initExp,esc:esc,FLOORS:FLOORS,
   /* 캔버스를 CSS 너비에 맞춰 선명하게 */
   fit:function(cv,ratio){var w=cv.parentNode.clientWidth-0,dpr=window.devicePixelRatio||1;cv.style.width="100%";cv.width=Math.round(w*dpr);cv.height=Math.round(w*ratio*dpr);cv.style.height=(w*ratio)+"px";var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:w*ratio}}};
 })();
