@@ -97,7 +97,8 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     ],
   },
   {
-    path: "/aimath",
+    path: "https://ai-study-math.web.app/aimath/",
+    external: true,
     title: "인공지능 수학",
     tag: "고등 진로선택 · 단원별 학습",
     desc: "이야기로 시작해서 개념·체험·계단 문제까지. 인공지능 수학 5개 대단원을 새봄고 AI랩 친구들과 함께 공부해요.",
@@ -105,7 +106,7 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     cta: "공부하러 가기 →",
   },
   {
-    path: "/aibasic/",
+    path: "https://ai-study-math.web.app/aibasic/",
     external: true,
     title: "인공지능 기초",
     tag: "고등 인공지능 기초 · 단원별 학습",
@@ -114,7 +115,8 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     cta: "공부하러 가기 ↗",
   },
   {
-    path: "/mathplay",
+    path: "https://ai-study-math.web.app/mathplay/",
+    external: true,
     title: "온라인 수학 체험",
     tag: "마우스로 하는 수학 게임 30가지",
     desc: "부산수학문화관 체험을 본뜬 게임을 끌고 눌러 가며 해 봐요. 펜토미노 달력·마방진 퍼즐과 체험 영상도 있어요.",
