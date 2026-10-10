@@ -1,6 +1,5 @@
 // 사이트 이름·꼭지 목록. 새 교육자료를 더할 때는 SECTIONS에 한 줄을 추가하고 라우트를 연결한다.
-// 배포 사이트마다 이름·꼭지를 다르게 할 수 있다(.env.ai-study 참고). 없으면 펜두 전체.
-export const HUB_NAME = import.meta.env.VITE_HUB_NAME || "살빠진 임선생과 함께하는 교육자료";
+export const HUB_NAME = "살빠진 임선생과 함께하는 교육자료";
 export const COURSE_NAME = "다시 묻는 AI 교실";
 export const BOARD_NAME = "ESP32 터치 화면으로 시간표 단말 만들기";
 
@@ -122,8 +121,3 @@ export const SECTIONS: { path: string; title: string; tag: string; desc: string;
     cta: "체험하러 가기 →",
   },
 ];
-
-
-// VITE_ONLY 가 있으면 그 경로의 꼭지만 보인다(쉼표로 구분).
-const ONLY = (import.meta.env.VITE_ONLY || "").split(",").map((x: string) => x.trim()).filter(Boolean);
-export const VISIBLE_SECTIONS = ONLY.length ? SECTIONS.filter((s) => ONLY.includes(s.path)) : SECTIONS;
