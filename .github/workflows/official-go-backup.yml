@@ -1,0 +1,24 @@
+# official-go-7d2a2 백업 점검용(수동 실행 전용). 필요한 비밀값: OFFICIAL_GO_TOKEN (firebase login:ci 토큰)
+name: Backup official-go
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 토큰 확인과 프로젝트 정보
+        env:
+          FIREBASE_TOKEN: ${{ secrets.OFFICIAL_GO_TOKEN }}
+        run: |
+          test -n "$FIREBASE_TOKEN" || { echo "OFFICIAL_GO_TOKEN 비밀값이 없습니다"; exit 1; }
+          mkdir -p out
+          npx --yes firebase-tools@13 apps:list --project official-go-7d2a2 --non-interactive | tee out/apps.txt || true
+          npx --yes firebase-tools@13 hosting:sites:list --project official-go-7d2a2 --non-interactive | tee out/hosting-sites.txt || true
+          npx --yes firebase-tools@13 firestore:databases:list --project official-go-7d2a2 --non-interactive | tee out/firestore-dbs.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: official-go-check
+          path: out/
