@@ -97,11 +97,11 @@ function thumb(e,idx,big,bob){
 var DATA=null,IDX={};
 function todayPick(list){var d=new Date();var n=d.getFullYear()*372+d.getMonth()*31+d.getDate();return list[n%list.length]}
 function tile(e,s,todayId){
-  var n=starsOf(s.done[e.id]),fresh=!s.plays[e.id];
+  var fresh=!s.plays[e.id];
   var tag=e.id===todayId?'<span class="t-tag today">⭐ 오늘</span>':fresh?'<span class="t-tag new">NEW</span>':"";
   return '<button type="button" class="tile" data-open="'+e.id+'" aria-label="'+esc(e.title)+'">'+
     '<div class="tile-art">'+thumb(e,IDX[e.id])+'</div>'+tag+
-    '<div class="tile-body"><div class="tile-row"><h3>'+esc(e.title)+'</h3>'+stars3(n)+'</div><p>'+esc(e.question)+'</p></div></button>';
+    '<div class="tile-body"><h3>'+esc(e.title)+'</h3><p>'+esc(e.question)+'</p></div></button>';
 }
 function homeHTML(d,s,f){
   var list=d.experiences,today=todayPick(list),tot=totalStars(s),rk=rankOf(tot),st=streakOf(s);
