@@ -50,10 +50,6 @@ export default function BuildingMap({ onPick, stars }: { onPick: (f: Floor) => v
       <path d={`M ${W / 2} ${top - 90} l 34 9 l -34 9 Z`} fill="#ff4d6d">
         <animateTransform attributeName="transform" type="skewY" values="0;-6;0" dur="1.6s" repeatCount="indefinite" />
       </path>
-      <rect x={W / 2 - 66} y={top - 34} width="132" height="28" rx="14" fill="#fff" stroke="#b45309" strokeWidth="3" />
-      <text x={W / 2} y={top - 14} textAnchor="middle" fontSize="18" fill="#7c2d12" style={{ fontFamily: "S-Core Dream, Pretendard Variable, sans-serif" }}>
-        수학 놀이터
-      </text>
 
       {/* 층 */}
       {order.map((f, i) => {
