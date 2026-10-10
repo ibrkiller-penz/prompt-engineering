@@ -197,18 +197,30 @@ function buildGeometry(rows: string[]) {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (p.cells[y][x] === r) { sx += x + 0.5; sy += y + 0.5; n++; }
     const cx = sx / n;
     const cy = sy / n;
-    // 라벨은 나라 안에서 경계(다른 나라·바다·지도 가장자리)에서 가장 멀리 떨어진 칸에 둔다.
-    // 같으면 무게중심에 가까운 칸. 그래야 글자와 집 그림이 경계선에 걸리지 않는다.
+    // 라벨(아이콘·원·이름)이 차지하는 상자 전체가 같은 나라 안에 들어가는 칸을 고른다.
+    // 상자: 가로 ±0.45칸, 세로 −0.85~+0.85칸(CELL=40px 기준 약 ±18px, −34~+34px).
+    // 그런 칸이 여럿이면 경계에서 가장 먼 칸, 같으면 무게중심에 가까운 칸.
+    const inside = (px: number, py: number) => {
+      const ix = Math.floor(px);
+      const iy = Math.floor(py);
+      return ix >= 0 && iy >= 0 && ix < W && iy < H && p.cells[iy][ix] === r;
+    };
     let best: [number, number] = [0, 0];
     let bestScore = -1e9;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (p.cells[y][x] === r) {
+      const ax = x + 0.5;
+      const ay = y + 0.5;
+      let miss = 0;
+      for (let sx = -0.45; sx <= 0.451; sx += 0.15) for (let sy = -0.85; sy <= 0.851; sy += 0.17) {
+        if (!inside(ax + sx, ay + sy)) miss++;
+      }
       let dEdge = Math.min(x + 0.5, W - x - 0.5, y + 0.5, H - y - 0.5) ** 2;
       for (let y2 = 0; y2 < H; y2++) for (let x2 = 0; x2 < W; x2++) {
-        if (p.cells[y2][x2] !== r) dEdge = Math.min(dEdge, (x - x2) ** 2 + (y - y2) ** 2);
+        if (p.cells[y2][x2] !== r) dEdge = Math.min(dEdge, (ax - x2 - 0.5) ** 2 + (ay - y2 - 0.5) ** 2);
       }
-      const dC = (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2;
-      const score = dEdge - 0.01 * dC;
-      if (score > bestScore) { bestScore = score; best = [x + 0.5, y + 0.5]; }
+      const dC = (ax - cx) ** 2 + (ay - cy) ** 2;
+      const score = -miss * 100 + dEdge - 0.01 * dC;
+      if (score > bestScore) { bestScore = score; best = [ax, ay]; }
     }
     return best;
   });
