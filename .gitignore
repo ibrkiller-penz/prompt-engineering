@@ -6,8 +6,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# 원본 교재 PDF와 추출 텍스트 (저작권 확인 전까지 공개 저장소에 올리지 않음)
-source/
+# 원본 교재 PDF와 추출 텍스트는 source/ 에 둔다(저장소에는 올리되, public/ 밖이라 사이트에는 배포되지 않음)
 dist/
 .claude/
 
