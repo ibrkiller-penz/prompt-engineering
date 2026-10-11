@@ -162,12 +162,12 @@ function initHome(){
 }
 var HOME_RENDER=null,curGame=null,gameChanged=false;
 
-/* ───── 체험 창 (화면 가득, 위 막대: 썸네일·제목·별·층 / ❓ 🎲 ✕) ───── */
+/* ───── 체험 창 (화면 가득, 위 막대: 썸네일·제목·층 / ❓ 🎲 ✕) ───── */
 function gameHeadHTML(e,s,showBack){
-  var f=floorOf(e),n=starsOf(s.done[e.id]);
+  var f=floorOf(e);
   return '<header class="g-head" style="background:linear-gradient(90deg,'+f.grad[0]+','+f.grad[1]+')">'+
     '<span class="g-th">'+thumb(e,IDX[e.id])+'</span>'+
-    '<div class="g-tx"><h2>'+esc(e.title)+'</h2><p>'+stars3(n,true)+' '+f.emoji+' '+f.label+' '+f.name+'</p></div>'+
+    '<div class="g-tx"><h2>'+esc(e.title)+'</h2><p>'+f.emoji+' '+f.label+' '+f.name+'</p></div>'+
     '<button type="button" class="g-ic" data-g="help" aria-label="하는 방법 보기">❓</button>'+
     '<button type="button" class="g-ic hide-sm" data-g="random" aria-label="다른 체험 아무거나">🎲</button>'+
     (showBack?'<a class="g-ic g-x" href="'+BASE+'" aria-label="온라인 과학 체험으로 돌아가기">✕</a>':'<button type="button" class="g-ic g-x" data-g="close" aria-label="체험 끄기">✕</button>')+
@@ -256,8 +256,7 @@ window.Exp={
   reveal:function(){
     if(!Exp.counted&&Exp.choice!=null&&Exp.touched){
       Exp.counted=true;recordDone(EXP.id);toast("+⭐ 잘했어요!");confetti();
-      if(IN_MODAL&&window.parent!==window)window.parent.postMessage({sciDone:EXP.id},location.origin);
-      else{var h=document.querySelector(".g-head .stars3");if(h)h.outerHTML=stars3(starsOf(load().done[EXP.id]),true)}
+      if(IN_MODAL&&window.parent!==window)window.parent.postMessage({sciDone:EXP.id},location.origin)
     }
     if(Exp.revealed)return;Exp.revealed=true;
     var P=EXP.predict,res=document.getElementById("predRes");
