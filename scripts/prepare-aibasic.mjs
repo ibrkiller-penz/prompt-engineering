@@ -1,4 +1,4 @@
-// 배포 준비: /aibasic 복원 + 패치 적용 + HappyMpX.zip 받기. `npm run build` 앞에서 자동으로 돈다(prebuild).
+// 배포 준비: /aibasic 확인(원본은 public/aibasic 에 있음, 없으면 배포본에서 복원) + 패치 적용 + HappyMpX.zip 받기. `npm run build` 앞에서 자동으로 돈다(prebuild).
 // 이미 있는 파일은 건너뛰고, 이미 적용된 패치는 건너뛴다. 여러 번 돌려도 안전하다.
 import fs from "node:fs";
 import os from "node:os";

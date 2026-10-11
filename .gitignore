@@ -15,5 +15,3 @@ dist/
 public/happy/*.exe
 public/happy/*.zip
 
-# /aibasic 은 소스가 저장소 밖(교재 이미지 포함). scripts/fetch-aibasic.mjs 로 배포본을 내려받아 쓴다.
-public/aibasic/

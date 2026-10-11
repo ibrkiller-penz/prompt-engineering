@@ -1,4 +1,4 @@
-// /aibasic 소스는 저장소에 없다(교재 이미지 포함). 다른 PC 에서 배포하기 전에 현재 배포본(인공지능 기초는 ai-study-math 에 있음)을 public/aibasic 으로 내려받는다.
+// /aibasic 원본은 이제 저장소의 public/aibasic 에 있다(2026-10-11). 이 스크립트는 그 폴더가 없을 때 현재 배포본(ai-study-math)에서 다시 받는 비상용이다.
 // 사용: node scripts/fetch-aibasic.mjs   (이미 있는 파일은 건너뜀. 다시 받으려면 --force)
 import fs from "node:fs";
 import path from "node:path";
