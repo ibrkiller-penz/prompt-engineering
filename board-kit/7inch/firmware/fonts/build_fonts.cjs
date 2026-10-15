@@ -7,13 +7,15 @@ fs.mkdirSync(out, { recursive: true });
 // lv_font_conv 가 머리 주석에 내 PC 의 글꼴 경로(사용자 이름이 들어 있다)를 적는다 → 공개해도 안전하게 지운다
 const scrub = t => t.replace(/^ \* Opts: .*$/m, ' * Opts: (생성 방법은 fonts/build_fonts.cjs 참고)');
 const hangul = fs.readFileSync(path.join(here, 'src', 'hangul2350.txt'), 'utf8');
+// 압축하지 않는다: 압축 글꼴은 글자를 그릴 때마다 풀어야 해서 화면 다시 그리기가 느려진다(플래시는 더 쓴다)
+const NOCOMP = ['--no-compress'];
 const ranges = '0x20-0x7E,0xB0,0xB7,0x2192,0x25B6,0x25C0,0x25CF'; // ° · → ▶ ◀ ●
 for (const size of [14, 16, 20, 28]) {
   const file = path.join(out, `kr${size}.c`);
   // 셸을 거치지 않는다(경로의 빈칸·한글이 잘린다). 먼저 이 폴더에서 npm install 할 것.
   execFileSync(process.execPath, [require.resolve('lv_font_conv/lv_font_conv.js', { paths: [here] }),
     '--font', path.join(here, 'src', 'Pretendard-SemiBold.otf'), '-r', ranges, '--symbols', hangul,
-    '--size', String(size), '--bpp', '4', '--format', 'lvgl', '--lv-include', 'lvgl.h',
+    '--size', String(size), '--bpp', '4', ...NOCOMP, '--format', 'lvgl', '--lv-include', 'lvgl.h',
     '-o', file], { stdio: 'inherit' }); // 글꼴 이름은 파일 이름(kr16)을 따른다
   // 한글 글꼴에 없는 LVGL 기호(와이파이·화살표 등)는 같은 크기의 Montserrat 에서 빌린다(lv_conf.h 에서 켜 둔다)
   const src = fs.readFileSync(file, 'utf8').replace(/\.dsc = &font_dsc(\s*)\/\*/, `.dsc = &font_dsc,$1.fallback = &lv_font_montserrat_${size},$1/*`);
@@ -26,7 +28,7 @@ for (const [name, size, symbols] of [['num120', 120, '0123456789:'], ['num36', 3
   const file = path.join(out, `${name}.c`);
   execFileSync(process.execPath, [require.resolve('lv_font_conv/lv_font_conv.js', { paths: [here] }),
     '--font', path.join(here, 'src', 'Pretendard-SemiBold.otf'), '--symbols', symbols,
-    '--size', String(size), '--bpp', '4', '--format', 'lvgl', '--lv-include', 'lvgl.h', '-o', file], { stdio: 'inherit' });
+    '--size', String(size), '--bpp', '4', ...NOCOMP, '--format', 'lvgl', '--lv-include', 'lvgl.h', '-o', file], { stdio: 'inherit' });
   fs.writeFileSync(file, scrub(fs.readFileSync(file, 'utf8')));
   console.log(`${name}.c ${(fs.statSync(file).size / 1024).toFixed(0)}KB`);
 }

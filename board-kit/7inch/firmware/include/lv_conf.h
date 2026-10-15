@@ -12,6 +12,7 @@
 #define LV_MEM_CUSTOM_ALLOC malloc
 #define LV_MEM_CUSTOM_FREE free
 #define LV_MEM_CUSTOM_REALLOC realloc
+#define LV_MEMCPY_MEMSET_STD 1   /* ESP-IDF 의 빠른 memcpy/memset 을 쓴다 */
 
 /* 틱은 어댑터(esp_timer)가 lv_tick_inc 로 준다 */
 #define LV_TICK_CUSTOM 0
@@ -30,7 +31,7 @@
 #define LV_FONT_MONTSERRAT_24 1
 #define LV_FONT_MONTSERRAT_28 1
 #define LV_FONT_DEFAULT &lv_font_montserrat_16
-#define LV_USE_FONT_COMPRESSED 1
+#define LV_USE_FONT_COMPRESSED 0   /* 글꼴은 압축하지 않고 만든다(그리기가 빠르다) */
 
 #define LV_USE_DEMO_WIDGETS 0
 #define LV_BUILD_EXAMPLES 0
