@@ -31,6 +31,9 @@ using namespace esp_panel::drivers;
 using namespace esp_panel::board;
 
 static const char *FW_VERSION = "0.1.0";
+// 화면 꾸밈: 1 이면 둥근 모서리·그라데이션, 0 이면 각진 모서리·단색(메뉴를 바꿀 때 다시 그리기가 빨라진다)
+#define UI_FANCY 0
+static inline int R(int r) { return UI_FANCY ? r : 0; }
 static const char *BASE_URL = BOARD_BASE_URL;
 
 // board_config.h 의 값이 비어 있으면(=아직 설정 안 함) 그 기능은 조용히 건너뛰고 화면에 '설정 필요'만 보인다.
@@ -255,7 +258,7 @@ static lv_obj_t *box(lv_obj_t *parent, uint32_t bg, uint32_t border, int radius)
   lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(o, lv_color_hex(bg), 0);
   if (border) { lv_obj_set_style_border_width(o, 1, 0); lv_obj_set_style_border_color(o, lv_color_hex(border), 0); }
-  lv_obj_set_style_radius(o, radius, 0);
+  lv_obj_set_style_radius(o, R(radius), 0);
   lv_obj_clear_flag(o, LV_OBJ_FLAG_SCROLLABLE);
   return o;
 }
@@ -264,7 +267,7 @@ static lv_obj_t *button(lv_obj_t *parent, const char *txt, int w, int h, uint32_
   lv_obj_set_size(b, w, h);
   lv_obj_set_style_bg_color(b, lv_color_hex(bg), 0);
   lv_obj_set_style_shadow_width(b, 0, 0);
-  lv_obj_set_style_radius(b, 8, 0);
+  lv_obj_set_style_radius(b, R(8), 0);
   lv_obj_set_style_border_width(b, 1, 0);
   lv_obj_set_style_border_color(b, lv_color_hex(D_LINE), 0);
   lv_obj_t *l = label(b, &kr16, fg, txt);
@@ -1094,7 +1097,7 @@ static void fillFinderGrid() {
     lv_obj_set_style_border_width(b, 1, 0);
     lv_obj_set_style_border_color(b, lv_color_hex(D_LINE), 0);
     lv_obj_set_style_shadow_width(b, 0, 0);
-    lv_obj_set_style_radius(b, 8, 0);
+    lv_obj_set_style_radius(b, R(8), 0);
     lv_obj_t *l = lv_label_create(b);
     lv_obj_set_style_text_font(l, &kr16, 0);
     lv_obj_set_style_text_color(l, lv_color_hex(D_TEXT), 0);
@@ -1130,7 +1133,7 @@ static void buildFinder(lv_obj_t *scr, int top) {
   lv_obj_align(s_findHome, LV_ALIGN_TOP_RIGHT, -16, 18);
   lv_obj_t *nowBox = box(right, C_PRIMARY, 0, 12);
   lv_obj_set_style_bg_grad_color(nowBox, lv_color_hex(0x3730a3), 0);
-  lv_obj_set_style_bg_grad_dir(nowBox, LV_GRAD_DIR_HOR, 0);
+  lv_obj_set_style_bg_grad_dir(nowBox, UI_FANCY ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_NONE, 0);
   lv_obj_set_size(nowBox, RW - 24, 64); lv_obj_set_pos(nowBox, 12, 46);
   s_findNowT = label(nowBox, &kr14, 0xfecaca, "");
   lv_obj_set_pos(s_findNowT, 14, 9);
@@ -1251,7 +1254,7 @@ static void buildUI() {
   lv_obj_t *logo = box(s_top, C_PRIMARY, 0, 8);
   lv_obj_set_size(logo, LOGO, LOGO); lv_obj_align(logo, LV_ALIGN_LEFT_MID, M, 0);
   lv_obj_set_style_bg_grad_color(logo, lv_color_hex(0x2563eb), 0);
-  lv_obj_set_style_bg_grad_dir(logo, LV_GRAD_DIR_HOR, 0);
+  lv_obj_set_style_bg_grad_dir(logo, UI_FANCY ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_NONE, 0);
   lv_obj_center(label(logo, fTitle, 0xffffff, "교"));
   s_title = label(s_top, fTitle, D_TEXT, BOARD_TITLE);
   lv_obj_set_width(s_title, small ? 116 : 180);
@@ -1345,7 +1348,7 @@ static void buildUI() {
       s_cellTag[d][p] = label(c, &kr14, 0xffffff, "");
       lv_obj_set_style_bg_opa(s_cellTag[d][p], LV_OPA_COVER, 0);
       lv_obj_set_style_bg_color(s_cellTag[d][p], lv_color_hex(0xea580c), 0);
-      lv_obj_set_style_radius(s_cellTag[d][p], 6, 0);
+      lv_obj_set_style_radius(s_cellTag[d][p], R(6), 0);
       lv_obj_set_style_pad_hor(s_cellTag[d][p], 3, 0);
       lv_obj_align(s_cellTag[d][p], LV_ALIGN_TOP_RIGHT, -1, 0);
       lv_obj_add_flag(s_cellTag[d][p], LV_OBJ_FLAG_HIDDEN);
@@ -1421,7 +1424,7 @@ static void buildUI() {
   s_notice = box(left, C_PRIMARY, 0, 18);
   lv_obj_clear_flag(s_notice, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_style_bg_grad_color(s_notice, lv_color_hex(0x3730a3), 0);
-  lv_obj_set_style_bg_grad_dir(s_notice, LV_GRAD_DIR_HOR, 0);
+  lv_obj_set_style_bg_grad_dir(s_notice, UI_FANCY ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_NONE, 0);
   s_noticeLbl = label(s_notice, &kr16, 0xffffff, "");
   lv_label_set_long_mode(s_noticeLbl, LV_LABEL_LONG_DOT);
   lv_obj_set_style_text_align(s_noticeLbl, LV_TEXT_ALIGN_CENTER, 0);
@@ -1437,7 +1440,7 @@ static void buildUI() {
   s_dayTag = label(right, &kr14, 0x991b1b, "");
   lv_obj_set_style_bg_opa(s_dayTag, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(s_dayTag, lv_color_hex(0xfee2e2), 0);
-  lv_obj_set_style_radius(s_dayTag, 10, 0);
+  lv_obj_set_style_radius(s_dayTag, R(10), 0);
   lv_obj_set_style_pad_hor(s_dayTag, 8, 0);
   lv_obj_align(s_dayTag, LV_ALIGN_TOP_RIGHT, -S(12), S(12));
   lv_obj_add_flag(s_dayTag, LV_OBJ_FLAG_HIDDEN);
@@ -1446,7 +1449,7 @@ static void buildUI() {
   lv_obj_set_style_bg_color(s_dday, lv_color_hex(0x7f1d1d), 0);
   lv_obj_set_style_border_width(s_dday, 1, 0);
   lv_obj_set_style_border_color(s_dday, lv_color_hex(0xef4444), 0);
-  lv_obj_set_style_radius(s_dday, 11, 0);
+  lv_obj_set_style_radius(s_dday, R(11), 0);
   lv_obj_set_style_pad_hor(s_dday, 10, 0);
   lv_obj_set_style_pad_ver(s_dday, 2, 0);
   lv_obj_align(s_dday, LV_ALIGN_TOP_RIGHT, -S(12), S(11));
@@ -1478,7 +1481,7 @@ static void buildUI() {
     s_rowTag[r] = label(s_row[r], &kr14, 0xffffff, "");
     lv_obj_set_style_bg_opa(s_rowTag[r], LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(s_rowTag[r], lv_color_hex(0xea580c), 0);
-    lv_obj_set_style_radius(s_rowTag[r], 6, 0);
+    lv_obj_set_style_radius(s_rowTag[r], R(6), 0);
     lv_obj_set_style_pad_hor(s_rowTag[r], 5, 0);
     lv_obj_add_flag(s_rowTag[r], LV_OBJ_FLAG_HIDDEN);
   }
