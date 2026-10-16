@@ -84,7 +84,7 @@ board-kit\
 - **LVGL 은 8.3.11 고정**(`lib_deps`), ArduinoJson 7.x. 버전을 올리지 말 것.
 - 한글 글꼴(`src\fonts\kr*.c`, `num*.c`)은 만들어 둔 것을 쓴다. 글자(예: 드문 이름 글자)를 더해야 할 때만 `fonts\` 에서 `npm install` → `node build_fonts.cjs`
   (`lv_font_conv` 1.5.2 로 고정). 시계 글꼴은 **num120**(숫자와 ':'), 기온 글꼴은 **num36**(숫자와 '-', '°')이다. 다 쓴 `node_modules` 는 지운다.
-- 빌드 결과 끝의 `RAM:`·`Flash:` 줄과 `[SUCCESS]` 를 확인한다. 참고: 첫 부팅 시 RAM 15% 안팎, 플래시 40% 안팎(앱 영역 6.4MB 중).
+- 빌드 결과 끝의 `RAM:`·`Flash:` 줄과 `[SUCCESS]` 를 확인한다. 참고: 첫 부팅 시 RAM 15% 안팎, 플래시 50% 안팎(앱 영역 6.4MB 중, 글꼴을 압축하지 않아서).
 - 시리얼 도구는 `python tools\serial_log.py 30 --reset --grep sync,download,index,weather,meal` 처럼 **초를 정해서** 읽는다. 포트는 `--port COM번호` 또는 `PIO_PORT`.
 
 ## 5. 화면(디스플레이) 규칙 — 손대지 말 것
@@ -95,13 +95,13 @@ board-kit\
 | 항목 | 값 | 이유 |
 |---|---|---|
 | `custom_sdkconfig` (platformio.ini) | `CONFIG_SPIRAM_XIP_FROM_PSRAM=y` · `CONFIG_SPIRAM_RODATA=y` · `CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y` · `CONFIG_ESP32S3_DATA_CACHE_64KB=y` · `CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y` · `CONFIG_FREERTOS_HZ=1000` | Waveshare 공장 예제와 같은 값. 코드·상수를 PSRAM 에서 실행해 플래시 쓰기 중에도 캐시가 안 멈추고, 캐시 크기가 완충(bounce) 버퍼 방식에 맞는다 |
-| **넣지 말 것** | `CONFIG_LCD_RGB_RESTART_IN_VSYNC` | ESP-IDF 5.5.x 버그(espressif/esp-idf#19070): 완충 버퍼와 함께 쓰면 EOF 하나만 놓쳐도 화면이 **영구히** 어긋난다(리셋해야 복구) |
+| **`=n` 으로 명시해 끈다** | `CONFIG_LCD_RGB_RESTART_IN_VSYNC=n` (custom_sdkconfig) | ESP-IDF 5.5.x 버그(espressif/esp-idf#19070): 완충 버퍼와 함께 쓰면 EOF 하나만 놓쳐도 화면이 **영구히** 어긋난다(리셋해야 복구). **pioarduino 기본값이 y** 라서 안 적으면 켜진 채 남는다(2026-10-16 확인). 켜져 있으면 1분마다 다시 맞추기도 효과가 없다 |
 | 픽셀 클록 | **16MHz** (`ESP_PANEL_BOARD_LCD_RGB_CLK_HZ`) | 14MHz 로 낮췄더니 더 나빠졌다. 올리지도 낮추지도 말 것 |
 | 화면 박자 | HPW 4 · HBP 8 · HFP 8 · VPW 4 · VBP 8 · VFP 8, `PCLK_ACTIVE_NEG`=1 | 공장 값. `PCLK_ACTIVE_NEG`=0 이면 글자가 붉게 보인다 |
 | 완충 버퍼 | 가로 폭 × **10줄** (`configRGB_BounceBufferSize(width*10)`) | 공장 예제 값 |
 | LVGL 그림판 | **내부 RAM 작은 버퍼(10줄)** + PSRAM 프레임 버퍼 **1장** (`esp_lv_adapter` · `use_psram`) | PSRAM 병목을 줄인다(바뀐 곳만 그린다) |
 | 다시 그리기 | **분이 바뀔 때만** 글자를 바꾼다(매초 바꾸지 말 것) | 한 번 그릴 때마다 화면 전체를 PSRAM 에 다시 쓰므로 매초 바꾸면 흔들린다 |
-| 와이파이 | 평소 **끄고 1시간마다 잠깐(10~20초)만** 켠다 | 와이파이가 PSRAM 을 같이 쓰면 흔들린다 |
+| 와이파이 | 평소 **끄고 1시간마다(밤·주말 2시간) 잠깐(10~20초)만** 켠다. **수업 중에는 쉬는 시간으로 미룬다**. 시간표 주소가 비어 있으면 시간표는 받지 않고, 404 는 6시간 뒤, 인터넷 실패는 2·4·8·16·32·60분 뒤 다시 | 와이파이가 PSRAM 을 같이 쓰면 흔들리고, 받을 때마다 화면 박자를 바꿔 잠깐 깜빡인다 |
 | `heap_caps_malloc_extmem_enable(64)` | **화면 초기화(`initDisplay()`) 뒤에** 호출 | 64바이트 넘는 메모리를 PSRAM 에서 먼저 준다. 화면 물체가 내부 RAM 을 다 쓰면 HTTPS 가 `SSL - Memory allocation failed` 로 실패했다. **앞에 두면 RGB 드라이버 객체가 PSRAM 으로 가서 부팅이 멈춘다** |
 | 와이파이 중 픽셀 클록 | 와이파이 연결·찾기 동안 **6MHz**, 끝나면 16MHz 로 되돌리고 `esp_lcd_rgb_panel_restart` (`lcdSlow()`) | Waveshare/Espressif 매뉴얼 'Why do I get drift': PSRAM 이 바쁜 동안 박자가 어긋나는 것을 줄인다 |
 | 1분마다 다시 맞추기 | `loop()` 에서 1분마다 `esp_lcd_rgb_panel_restart` (`panelResync()`, 받는 중이 아닐 때) | 그래도 밀리면 **1분 안에 제자리**로 돌아온다. (`RESTART_IN_VSYNC` 는 계속 쓰지 않는다) |
