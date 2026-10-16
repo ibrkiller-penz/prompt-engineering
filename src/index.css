@@ -60,6 +60,12 @@ html[data-level="high"] {
 }
 
 /* 인공지능 수학: 대단원마다 포인트 색이 달라진다 */
+/* 줄바꿈이 안 되는 긴 수식은 화면을 넘지 않게 그 자리에서 스크롤 */
+.katex-long { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: bottom; }
+
+/* 인공지능 수학은 글이 많아서 글자를 조금 키우고 줄 사이를 넓힌다 */
+html[data-aiunit] { font-size: 17.5px; }
+html[data-aiunit] main { line-height: 1.95; }
 html[data-aiunit="0"] { --accent: #4f46e5; --accent-soft: #eef0ff; }
 html[data-aiunit="1"] { --accent: #4f46e5; --accent-soft: #eef0ff; }
 html[data-aiunit="2"] { --accent: #0f766e; --accent-soft: #e3f6f2; }

@@ -124,6 +124,18 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 인공지능 기초 — 계단을 올라 반짝이는 정답
+  "/aibasic/": {
+    from: "#4338ca",
+    to: "#22d3ee",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 38h9v-8h9v-8h9v-8" />
+        <circle cx="38" cy="10" r="3.2" fill="#fff" stroke="none" />
+        <path d="M38 3.5v3M38 13.5v3M31.5 10h3M41.5 10h3" strokeWidth="2" />
+      </g>
+    ),
+  },
   // 인공지능 수학 — 시그마 + 연결 점(신경망)
   "/aimath": {
     from: "#4f46e5",
@@ -151,18 +163,6 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
-};
-
-export default function SectionIcon({ path, size = 48 }: { path: string; size?: number }) {
-  const icon = ICONS[path];
-  if (!icon) return null;
-  const id = `g${path.replace(/[^a-z0-9]/gi, "")}`;
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden className="shrink-0 drop-shadow-sm">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={icon.from} />
-          <stop offset="1" stopColor={icon.to} />
   // 프랑스 혁명 발표 사이트 — 삼색기 + 연표 점
   "/frev/": {
     from: "#1f3a6b",
@@ -180,6 +180,18 @@ export default function SectionIcon({ path, size = 48 }: { path: string; size?: 
       </g>
     ),
   },
+};
+
+export default function SectionIcon({ path, size = 48 }: { path: string; size?: number }) {
+  const icon = ICONS[path];
+  if (!icon) return null;
+  const id = `g${path.replace(/[^a-z0-9]/gi, "")}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden className="shrink-0 drop-shadow-sm">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={icon.from} />
+          <stop offset="1" stopColor={icon.to} />
         </linearGradient>
       </defs>
       <rect width="48" height="48" rx="13" fill={`url(#${id})`} />

@@ -91,7 +91,7 @@ export function QuestionCard({
   return (
     <article className={`rounded-card border bg-surface p-4 sm:p-5 ${status === "correct" ? "border-ok" : status === "wrong" ? "border-bad/60" : "border-line"}`} aria-label="문제">
       <header className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="rounded-full bg-accent-soft px-2.5 py-0.5 font-semibold text-accent">{q.group}</span>
+        <span className="rounded-full bg-accent-soft px-2.5 py-0.5 font-semibold text-accent"><RichMath text={q.group} /></span>
         <span className="text-warn" title={`난이도 ${q.level}`} aria-label={`난이도 ${q.level} / 5`}>{stars(q.level)}</span>
       </header>
       {q.new && (
@@ -294,7 +294,7 @@ export function StairRunner({ questions, results }: { questions: Question[]; res
         const expanded = isCur || peek === q.id;
         return (
           <div key={q.id}>
-            {header && i > 0 && <h4 className="mb-2 mt-6 text-sm font-bold tracking-wide text-accent">▸ {header}</h4>}
+            {header && i > 0 && <h4 className="mb-2 mt-6 text-sm font-bold tracking-wide text-accent">▸ <RichMath text={header} /></h4>}
             {expanded ? (
               <QuestionCard
                 key={q.id + ":" + (open[q.id] ?? 0)}

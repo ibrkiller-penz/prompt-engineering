@@ -38,7 +38,7 @@ export default function Glossary() {
           return (
             <div key={t.term} className="p-4">
               <dt className="flex flex-wrap items-baseline gap-2">
-                <span className="text-lg font-extrabold">{t.term}</span>
+                <span className="text-lg font-extrabold"><RichMath text={t.term} /></span>
                 {u && (
                   <Link to={`/aimath/${u.slug}/${t.lesson}`} className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ background: u.soft, color: u.color }}>
                     {u.roman}-{t.lesson.split("-")[1]}

@@ -72,6 +72,10 @@ esp_err_t esp_lv_adapter_lock(int32_t timeout_ms);
 void esp_lv_adapter_unlock(void);
 lv_display_t *esp_lv_adapter_register_display(const esp_lv_adapter_display_config_t *config);
 lv_indev_t *esp_lv_adapter_register_touch(const esp_lv_adapter_touch_config_t *config);
+// 화면 불이 꺼져 있을 때 첫 터치는 불만 켜고 단추로 보내지 않는다(손을 뗄 때까지 삼킨다).
+// main 이 불을 끌 때 g_touchSwallow 를 켜고, 터치가 오면 g_touchWoke 가 켜진다.
+extern volatile bool g_touchSwallow;
+extern volatile bool g_touchWoke;
 
 #ifdef __cplusplus
 }

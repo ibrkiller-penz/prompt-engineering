@@ -1,16 +1,15 @@
 import { Link, Navigate, useParams } from "react-router-dom";
-import RichMath from "../RichMath";
+import StoryText from "../StoryText";
+import type { StoryImage } from "../types";
 import { lessonsOf, unitBySlug, unitContent } from "../load";
 import { progressOf, useQResults } from "../store";
 
-function Story({ title, paragraphs, kicker }: { title: string; paragraphs: string[]; kicker: string }) {
+function Story({ title, paragraphs, kicker, images, essay }: { title: string; paragraphs: string[]; kicker: string; images?: StoryImage[]; essay?: boolean }) {
   return (
     <section className="mt-8 rounded-card border border-line bg-surface p-5 sm:p-6">
       <p className="text-sm font-extrabold tracking-wide text-accent">{kicker}</p>
       <h2 className="mt-1 text-2xl font-extrabold leading-snug">{title}</h2>
-      {paragraphs.map((p, i) => (
-        <p key={i} className="mt-3 leading-[1.9]"><RichMath text={p} /></p>
-      ))}
+      <StoryText paragraphs={paragraphs} images={images} essay={essay} />
     </section>
   );
 }
@@ -33,7 +32,7 @@ export default function UnitPage() {
         <p className="mt-2 max-w-2xl text-lg">{unit.short}</p>
       </header>
 
-      {uc && <Story kicker="이야기로 열기" title={uc.opening.title} paragraphs={uc.opening.paragraphs} />}
+      {uc && <Story kicker="이야기로 열기" title={uc.opening.title} paragraphs={uc.opening.paragraphs} images={uc.opening.images} essay />}
       {uc?.stories && uc.stories.length > 0 && (
         <section className="mt-8" aria-label="단원 시작 전에 읽는 이야기">
           <h2 className="text-2xl font-extrabold">📚 시작하기 전에 읽는 이야기</h2>
@@ -49,9 +48,7 @@ export default function UnitPage() {
                   </span>
                   <span className="text-muted transition group-open:rotate-180" aria-hidden>▾</span>
                 </summary>
-                {s.paragraphs.map((p, k) => (
-                  <p key={k} className="mt-3 leading-[1.9]"><RichMath text={p} /></p>
-                ))}
+                <StoryText paragraphs={s.paragraphs} images={s.images} />
               </details>
             ))}
           </div>

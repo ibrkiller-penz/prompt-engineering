@@ -30,7 +30,9 @@ export function allTerms() {
     l.terms.forEach((t) => push(t.term, t.def));
     l.sections.forEach((s) => s.blocks.forEach((b) => b.t === "term" && push(b.term, b.def)));
   }
-  return out.sort((a, b) => a.term.localeCompare(b.term, "ko"));
+  // 수식 기호($ 와 \)는 무시하고 글자 순서로 정렬한다
+  const key = (s: string) => s.replace(/[$\\{}]/g, "");
+  return out.sort((a, b) => key(a.term).localeCompare(key(b.term), "ko"));
 }
 
 /** 문제 id 로 문제와 소속 찾기(오답노트용) */

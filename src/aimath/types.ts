@@ -59,6 +59,7 @@ export interface Lesson {
   subtitle: string;
   minutes: number;
   story: Text[]; // 이야기(등장인물 대화 포함)
+  storyImages?: StoryImage[]; // 이야기 중간 삽화
   question: Text; // 오늘의 핵심 질문
   prereq?: { title: string; intro?: Text; items: { term: string; text: Text }[] }; // 먼저 알고 가요(이전 학년 수학 복습 카드)
   sections: Section[]; // 개념 정리
@@ -69,11 +70,18 @@ export interface Lesson {
   summary: Text[];
 }
 
+/** 이야기 중간에 들어가는 작은 삽화. after 번째 문단 다음에, 가로폭 30% 이하로 글 옆에 떠 있다(public/ 아래 경로). */
+export interface StoryImage {
+  after: number;
+  src: string;
+  alt: string;
+}
+
 export interface UnitContent {
   id: number;
   why: { title: string; paragraphs: Text[] }; // 왜 배울까
-  opening: { title: string; paragraphs: Text[] }; // 대단원을 여는 이야기
-  stories?: { title: string; kicker?: string; paragraphs: Text[] }[]; // 단원 시작 전에 읽는 이야기 시리즈(역사·사람·사건·현실 사례)
+  opening: { title: string; paragraphs: Text[]; images?: StoryImage[] }; // 대단원을 여는 이야기
+  stories?: { title: string; kicker?: string; paragraphs: Text[]; images?: StoryImage[] }[]; // 단원 시작 전에 읽는 이야기 시리즈(역사·사람·사건·현실 사례)
   test: Question[]; // 대단원 마무리(종합 문제)
   future: { title: string; paragraphs: Text[] }; // 수학! 미래를 꿈꾸다(진로·직업 이야기)
 }

@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Blocks } from "../Blocks";
+import Prose from "../Prose";
+import StoryText from "../StoryText";
 import RichMath from "../RichMath";
 import { StairRunner } from "../Quiz";
 import { getLesson, unitBySlug } from "../load";
@@ -44,7 +46,7 @@ export default function LessonPage() {
   const p = progressOf(lesson.practice.map((q) => q.id), results);
 
   return (
-    <article>
+    <article className="mx-auto max-w-3xl">
       <nav aria-label="현재 위치" className="text-sm text-muted">
         <Link to="/aimath" className="hover:underline">인공지능 수학</Link> › <Link to={`/aimath/${unit.slug}`} className="hover:underline">{unit.roman}. {unit.title}</Link>
       </nav>
@@ -68,9 +70,7 @@ export default function LessonPage() {
 
       <H id="story" icon="📖">오늘의 이야기</H>
       <div className="mt-3 rounded-card border border-line bg-surface p-5 sm:p-6">
-        {lesson.story.map((t, i) => (
-          <p key={i} className={`${i ? "mt-3" : ""} leading-[1.9]`}><RichMath text={t} /></p>
-        ))}
+        <StoryText paragraphs={lesson.story} images={lesson.storyImages} />
       </div>
       <aside className="mt-4 rounded-card bg-accent-soft p-4" role="note">
         <p className="text-sm font-extrabold text-accent">오늘의 핵심 질문</p>
@@ -84,7 +84,7 @@ export default function LessonPage() {
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
             {lesson.prereq.items.map((it) => (
               <li key={it.term} className="rounded-card border border-line bg-surface p-3.5">
-                <p className="font-extrabold text-accent">{it.term}</p>
+                <p className="font-extrabold text-accent"><RichMath text={it.term} /></p>
                 <p className="mt-1 text-[0.95rem] leading-relaxed"><RichMath text={it.text} /></p>
               </li>
             ))}
@@ -104,7 +104,7 @@ export default function LessonPage() {
       <ul className="mt-3 grid gap-3 sm:grid-cols-2">
         {lesson.terms.map((t) => (
           <li key={t.term} className="rounded-card border border-line bg-surface p-3.5">
-            <p className="font-extrabold text-accent">{t.term}</p>
+            <p className="font-extrabold text-accent"><RichMath text={t.term} /></p>
             <p className="mt-1 text-[0.95rem] leading-relaxed"><RichMath text={t.def} /></p>
           </li>
         ))}
@@ -114,7 +114,7 @@ export default function LessonPage() {
       <section className="mt-3 rounded-card border border-line bg-surface p-5 sm:p-6">
         <h3 className="text-xl font-extrabold">{lesson.aiStory.title}</h3>
         {lesson.aiStory.paragraphs.map((t, i) => (
-          <p key={i} className="mt-3 leading-[1.9]"><RichMath text={t} /></p>
+          <Prose key={i} text={t} story />
         ))}
       </section>
 

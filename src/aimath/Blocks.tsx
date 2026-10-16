@@ -1,4 +1,5 @@
 import { Suspense, useState } from "react";
+import Prose from "./Prose";
 import RichMath, { MathLine } from "./RichMath";
 import type { Block } from "./types";
 import { WIDGETS } from "./widgets";
@@ -24,7 +25,7 @@ function Example({ b }: { b: Extract<Block, { t: "example" }> }) {
   const [open, setOpen] = useState(false);
   return (
     <section className="mt-5 rounded-card border border-line bg-surface p-4" aria-label="예제">
-      <p className="text-sm font-extrabold text-accent">{b.title}</p>
+      <p className="text-sm font-extrabold text-accent"><RichMath text={b.title} /></p>
       <p className="mt-2 font-semibold leading-relaxed"><RichMath text={b.problem} /></p>
       {!open ? (
         <button type="button" onClick={() => setOpen(true)} className="mt-3 min-h-[44px] rounded-card bg-accent px-4 font-bold text-accent-ink hover:brightness-110">
@@ -51,7 +52,7 @@ function Example({ b }: { b: Extract<Block, { t: "example" }> }) {
 export function BlockView({ b }: { b: Block }) {
   switch (b.t) {
     case "p":
-      return <p className="mt-3 leading-[1.85]"><RichMath text={b.text} /></p>;
+      return <Prose text={b.text} />;
     case "math":
       return (
         <div className="mt-3 rounded-card bg-bg px-3 py-2">
@@ -62,14 +63,14 @@ export function BlockView({ b }: { b: Block }) {
       return (
         <div className="mt-3 rounded-card border-l-4 border-accent bg-accent-soft/70 px-4 py-3">
           <p className="text-xs font-extrabold tracking-wide text-accent">용어</p>
-          <p className="mt-0.5 leading-relaxed"><b className="text-lg">{b.term}</b> <span className="text-muted">·</span> <RichMath text={b.def} /></p>
+          <p className="mt-0.5 leading-relaxed"><b className="text-lg"><RichMath text={b.term} /></b> <span className="text-muted">·</span> <RichMath text={b.def} /></p>
         </div>
       );
     case "callout": {
       const c = CALLOUT[b.kind];
       return (
         <aside className={`mt-4 rounded-card border p-3.5 ${c.box}`} role="note">
-          <p className={`text-sm font-extrabold ${c.text}`}><span aria-hidden>{c.icon}</span> {b.title ?? c.label}</p>
+          <p className={`text-sm font-extrabold ${c.text}`}><span aria-hidden>{c.icon}</span> {b.title ? <RichMath text={b.title} /> : c.label}</p>
           <p className="mt-1 leading-relaxed"><RichMath text={b.text} /></p>
         </aside>
       );

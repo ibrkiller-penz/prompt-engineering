@@ -67,7 +67,7 @@ static const char *DOW[5] = {"월", "화", "수", "목", "금"};
 #define D_TEXT 0xffffff
 #define D_SUB 0xcbd5e1
 #define D_MUTED 0x94a3b8
-#define D_RED 0xef4444
+#define D_RED 0xb91c1c      // 지금 교시 칸. 흰 글자와 명암비 6.5:1(전 0xef4444 는 3.8:1)
 
 struct CellStyle { uint32_t bg, border, text, sub; };
 static CellStyle styleOf(char t) {
@@ -93,6 +93,9 @@ struct SpiRamAllocator : ArduinoJson::Allocator {
 static SpiRamAllocator s_alloc;
 static JsonDocument s_tt(&s_alloc);
 static bool s_ttLoaded = false;
+static int s_ttCode = 0;         // 마지막 시간표 받기의 HTTP 응답 번호(404 면 주소 확인)
+// 같은 글이면 다시 그리지 않는다(작은 글자 하나 바꿔도 그 칸을 다시 그린다)
+static void setTextIf(lv_obj_t *o, const char *t) { if (o && strcmp(lv_label_get_text(o), t)) lv_label_set_text(o, t); }
 static int s_week = -1;          // 보고 있는 주 (0부터)
 static String s_ttFile = "t/001.json";   // 목록(index.json)을 받기 전에 쓰는 기본 파일(목록의 첫 시간표)
 static String s_ttName = "";
@@ -130,6 +133,7 @@ static void clockText(const struct tm &tm, char *out, size_t n, const char **amp
   else { *ampm = ""; snprintf(out, n, "%02d:%02d", h, tm.tm_min); }
 }
 static lv_obj_t *s_row[8], *s_rowP[8], *s_rowA[8], *s_rowB[8], *s_rowTag[8];
+static lv_obj_t *s_guide = nullptr;   // 시간표가 없을 때 오른쪽 칸에 띄우는 할 일 안내
 static lv_obj_t *s_wifiList, *s_wifiInfo, *s_pwBox, *s_pwTa, *s_kb, *s_ttPick;
 static String s_pickSsid;
 
@@ -137,10 +141,11 @@ static String s_pickSsid;
 // · 와이파이·플래시 쓰기 동안은 PSRAM 이 바빠 박자가 어긋난다 → 그동안 PCLK 를 6MHz 로 낮춘다.
 // · 끝나면 16MHz 로 되돌리고 esp_lcd_rgb_panel_restart() 로 박자를 다시 맞춘다.
 // · 그래도 밀릴 수 있으니 1분마다 한 번 다시 맞춘다(loop) — 밀려도 1분 안에 제자리.
-// (CONFIG_LCD_RGB_RESTART_IN_VSYNC 는 쓰지 않는다 — esp-idf#19070)
+// (CONFIG_LCD_RGB_RESTART_IN_VSYNC 는 platformio.ini 에서 =n 으로 명시해 끈다 — 기본값이 y 다. esp-idf#19070)
 static LCD *s_lcd = nullptr;
 static const uint32_t PCLK_HZ = 16 * 1000 * 1000, PCLK_SLOW_HZ = 6 * 1000 * 1000;
 static bool s_lcdSlow = false;
+static const bool s_diagResync = false;   // true 면 1분마다 하는 다시 맞추기도 기록한다(진단할 때만)
 static esp_lcd_panel_handle_t panelHandle() { return s_lcd ? (esp_lcd_panel_handle_t)s_lcd->getHandle() : nullptr; }
 static void panelResync() {
   esp_lcd_panel_handle_t p = panelHandle();
@@ -148,10 +153,12 @@ static void panelResync() {
   esp_err_t e = esp_lcd_rgb_panel_restart(p);
   if (e != ESP_OK) Serial.printf("panel restart: %s\n", esp_err_to_name(e));
 }
+static void lcdLog(const char *what) { Serial.printf("lcd: %s (%lus)\n", what, (unsigned long)(millis() / 1000)); }   // 깜빡임 시각을 맞춰 보는 기록
 static void lcdSlow(bool slow) {
   esp_lcd_panel_handle_t p = panelHandle();
   if (!p || slow == s_lcdSlow) return;
   s_lcdSlow = slow;
+  lcdLog(slow ? "pclk 6MHz" : "pclk 16MHz+restart");
   esp_lcd_rgb_panel_set_pclk(p, slow ? PCLK_SLOW_HZ : PCLK_HZ);
   delay(slow ? 40 : 25);           // 한 장 그려질 때까지(6MHz 에서 약 30ms)
   if (!slow) panelResync();
@@ -318,9 +325,17 @@ static int periodOfRow(int r) { return r < 4 ? r : (r == 4 ? -1 : r - 1); }
 static void renderToday() {
   lv_label_set_text(s_title, s_ttName.length() ? s_ttName.c_str() : BOARD_TITLE);
   if (!s_ttLoaded) {
-    lv_label_set_text(s_dayTitle, urlUnset() ? "시간표 주소 설정 필요" : s_prefs.getString("ssid", "").length() ? "시간표를 받는 중…" : "설정에서 와이파이를 연결하세요");
+    const bool noWifi = !s_prefs.getString("ssid", "").length();
+    lv_label_set_text(s_dayTitle, urlUnset() ? "시간표 주소 설정 필요" : !noWifi ? "시간표를 받는 중…" : "설정에서 와이파이를 연결하세요");
+    if (s_guide && (urlUnset() || noWifi)) {
+      setTextIf(s_guide, noWifi
+        ? "시간표를 보려면 준비가 조금 더 필요합니다\n\n1. [설정] → [찾기]에서 와이파이를 고릅니다\n2. 컴퓨터에서 AI 도우미에게\n    \"작업지시서 1~5단계를 해 줘\"라고 말합니다\n3. 끝나면 보드에 다시 올립니다\n\n시계는 지금도 정상입니다"
+        : "시간표를 보려면 준비가 조금 더 필요합니다\n\n1. 컴퓨터에서 AI 도우미를 엽니다\n2. \"작업지시서 1~5단계를 해 줘\"라고 말합니다\n3. 끝나면 보드에 다시 올립니다\n\n시계·날씨·급식은 지금도 정상입니다");
+      lv_obj_clear_flag(s_guide, LV_OBJ_FLAG_HIDDEN);
+    }
     return;
   }
+  if (s_guide) lv_obj_add_flag(s_guide, LV_OBJ_FLAG_HIDDEN);
   bool isToday;
   JsonObject day = findDay(isToday);
   const char *date = day["date"] | "", *dow = day["dow"] | "", *tag = day["tag"] | "";
@@ -379,6 +394,8 @@ static void renderToday() {
       textTag = c[3] | "";
       if (*t) border = styleOf(*t).border; else { colA = D_MUTED; colB = D_MUTED; }
     }
+    const bool past = isToday && nm >= 0 && !now && (p >= 0 ? nm >= toMin(PERIOD_START[p]) + 50 : nm >= toMin("13:30"));
+    if (past) { colA = D_MUTED; colB = D_MUTED; }
     if (now) { border = 0xf1f5f9; colA = C_TEXT; colB = C_MUTED; }
     lv_obj_set_style_bg_color(s_row[r], lv_color_hex(now ? 0xf1f5f9 : D_ROW), 0);
     lv_obj_set_style_border_color(s_row[r], lv_color_hex(border), 0);
@@ -530,6 +547,7 @@ static bool downloadTT() {
   http.useHTTP10(true);
   http.setTimeout(15000);
   int code = http.GET();
+  s_ttCode = code;
   bool ok = false;
   if (code == 200) {
     // 받다가 끊기면 반쪽 파일이 남는다 → 크기와 JSON 을 확인한 뒤에만 저장본을 바꾼다
@@ -850,31 +868,84 @@ enum SyncState { SYNC_IDLE, SYNC_CONNECTING, SYNC_TIME };
 static SyncState s_sync = SYNC_IDLE;
 static uint32_t s_syncStart = 0, s_lastSync = 0;
 static bool s_triedOnce = false, s_lastOk = false;
-static int s_failCount = 0;   // 잇따라 실패한 횟수. 실패하면 1·2·5·10분 뒤 다시, 그 뒤로는 10분마다
+static int s_failCount = 0;   // 잇따라 실패한 횟수
+// 실패 종류에 따라 다시 받는 간격을 다르게 한다(받을 때마다 화면 박자를 바꿔 깜빡이므로 쓸데없이 자주 받지 않는다. 2026-10-16)
+//  FK_NOTFOUND: 시간표 주소에 파일이 없음(404·403) → 6시간 뒤 또는 [지금 받기]
+//  FK_NET     : 와이파이·인터넷 실패 → 2·4·8·16·32분, 그 뒤로 60분마다
+//  FK_PARTIAL : 시간표는 못 받았지만 시간·날씨·급식 중 일부는 받음 → 1시간 주기 유지
+enum FailKind { FK_NONE, FK_NOTFOUND, FK_NET, FK_PARTIAL };
+static FailKind s_failKind = FK_NONE;
+static char s_lastOkHM[8] = "";      // 마지막으로 성공한 시각
+static bool s_mealOk = false;    // 날씨는 위의 s_wxOk 를 같이 쓴다
 static char s_lastHM[8] = "";
 static volatile bool s_syncReq = false;
 static const uint32_t SYNC_EVERY_MS = 3600UL * 1000;
 
-static void setStatus(const char *s) { if (s_status) lv_label_set_text(s_status, s); }
+static void setStatus(const char *s) { setTextIf(s_status, s); }
+// 수업 중인가(평일, 교시 시작 1분 전 ~ 끝). 수업 중에는 받기를 쉬는 시간으로 미룬다(받을 때 화면이 잠깐 깜빡이므로).
+static bool inClassNow() {
+  if (!timeValid()) return false;
+  time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
+  if (tm.tm_wday == 0 || tm.tm_wday == 6) return false;
+  const int nm = tm.tm_hour * 60 + tm.tm_min;
+  for (int p = 0; p < 7; p++) { int st = toMin(PERIOD_START[p]); if (nm >= st - 1 && nm < st + 50) return true; }
+  return false;
+}
+static bool quietNow() {   // 밤(22:00~07:00)·주말: 2시간마다만 받는다
+  if (!timeValid()) return false;
+  time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
+  return tm.tm_wday == 0 || tm.tm_wday == 6 || tm.tm_hour < 7 || tm.tm_hour >= 22;
+}
+static uint32_t syncWaitMs() {
+  if (s_lastOk || s_failKind == FK_PARTIAL) return quietNow() ? 2 * 3600UL * 1000 : SYNC_EVERY_MS;
+  if (s_failKind == FK_NOTFOUND) return 6 * 3600UL * 1000;
+  static const uint8_t BACKOFF_MIN[] = {2, 4, 8, 16, 32, 60};
+  int i = s_failCount > 0 ? s_failCount - 1 : 0; if (i > 5) i = 5;
+  return BACKOFF_MIN[i] * 60000UL;
+}
 static void refreshWifiLabel() {
   String ssid = s_prefs.getString("ssid", "");
   if (!ssid.length()) {
-    lv_label_set_text(s_wifiLbl, LV_SYMBOL_WIFI " 와이파이 없음");
+    setTextIf(s_wifiLbl, "와이파이 없음");
     lv_obj_set_style_text_color(s_wifiLbl, lv_color_hex(C_ROSE), 0);
     lv_label_set_text(s_wifiInfo, "저장한 와이파이가 없습니다. [찾기]를 누르고 목록에서 고르세요.");
     return;
   }
   if (s_sync != SYNC_IDLE) {
-    lv_label_set_text(s_wifiLbl, LV_SYMBOL_REFRESH " 받는 중…");
+    setTextIf(s_wifiLbl, "받는 중…");
     lv_obj_set_style_text_color(s_wifiLbl, lv_color_hex(0xb45309), 0);
     lv_label_set_text_fmt(s_wifiInfo, "'%s'에 잠깐 연결해 시간과 시간표를 받는 중입니다.", ssid.c_str());
     return;
   }
-  if (!s_triedOnce) lv_label_set_text(s_wifiLbl, LV_SYMBOL_WIFI " 대기");
-  else lv_label_set_text_fmt(s_wifiLbl, "%s %s %s", LV_SYMBOL_WIFI, s_lastHM, s_lastOk ? "받음" : "실패");
-  lv_obj_set_style_text_color(s_wifiLbl, lv_color_hex(!s_triedOnce || s_lastOk ? C_EMERALD : C_ROSE), 0);
-  lv_label_set_text_fmt(s_wifiInfo, "'%s' 저장됨. 1시간마다 잠깐 연결해 시간과 시간표를 받고 끕니다.%s%s",
-                        ssid.c_str(), s_triedOnce ? (s_lastOk ? " 마지막: " : " 마지막 시도 실패: ") : "", s_triedOnce ? s_lastHM : "");
+  // 위쪽 막대: 한 번 실패는 조용히 넘긴다(마지막 성공 시각 그대로). 잇따라 2번째 실패부터 주황.
+  const bool noUrl = urlUnset() && s_triedOnce && s_lastOk;   // 시간은 맞췄지만 시간표 주소가 없다
+  char top[48]; uint32_t col = C_EMERALD;
+  if (!s_triedOnce) snprintf(top, sizeof top, "대기");
+  else if (noUrl) { snprintf(top, sizeof top, "시간표 주소 없음"); col = D_MUTED; }
+  else if (s_lastOk) snprintf(top, sizeof top, "%s 받음", s_lastHM);
+  else if (s_failKind == FK_NOTFOUND) { snprintf(top, sizeof top, "시간표 주소 확인"); col = 0xfb923c; }
+  else if (s_failCount < 2 && s_lastOkHM[0]) snprintf(top, sizeof top, "%s 받음", s_lastOkHM);
+  else if (s_failCount < 2) { snprintf(top, sizeof top, "대기"); }
+  else { snprintf(top, sizeof top, "%s 연결 안 됨", s_lastHM); col = 0xfb923c; }
+  setTextIf(s_wifiLbl, top);
+  lv_obj_set_style_text_color(s_wifiLbl, lv_color_hex(col), 0);
+  // 설정 화면: 준비 상태 점검표 + 다음 받기 시각
+  char next[24] = "";
+  if (s_triedOnce && timeValid()) {
+    const uint32_t w = syncWaitMs(), gone = millis() - s_lastSync;
+    time_t t = time(nullptr) + (time_t)((gone < w ? w - gone : 0) / 1000);
+    struct tm tm; localtime_r(&t, &tm); snprintf(next, sizeof next, "%02d:%02d", tm.tm_hour, tm.tm_min);
+  }
+  const char *tt = urlUnset() ? "주소 없음" : s_ttLoaded ? "O" : s_failKind == FK_NOTFOUND ? "파일 없음" : "아직";
+  char info[320];
+  snprintf(info, sizeof info,
+           "'%s' 저장됨. 잠깐 연결해 받고 바로 끕니다(수업 중에는 쉬는 시간에 받습니다).\n"
+           "와이파이 %s · 시간 %s · 날씨 %s · 급식 %s · 시간표 %s\n"
+           "마지막 받음 %s%s%s",
+           ssid.c_str(), s_lastOkHM[0] ? "O" : (s_triedOnce ? "실패" : "아직"), timeValid() ? "O" : "아직",
+           !HAS_WX ? "설정 없음" : s_wxOk ? "O" : "아직", !HAS_MEAL ? "설정 없음" : s_mealOk ? "O" : "아직", tt,
+           s_lastOkHM[0] ? s_lastOkHM : "-", next[0] ? " · 다음 받기 " : "", next);
+  setTextIf(s_wifiInfo, info);
 }
 
 static void wifiOff() { if (WiFi.getMode() == WIFI_OFF) return; WiFi.disconnect(true, false); WiFi.mode(WIFI_OFF); }
@@ -909,6 +980,8 @@ static void startSync() {
     WiFi.onEvent([](arduino_event_id_t, arduino_event_info_t info) { s_wifiReason = info.wifi_sta_disconnected.reason; },
                  ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   }
+  s_sync = SYNC_CONNECTING;      // '받는 중' 글자를 박자를 낮추기 전에 그린다(느린 박자 동안 다시 그리지 않게)
+  lock(); refreshWifiLabel(); setStatus("연결하는 중…"); unlock();
   lcdSlow(true);                 // 받는 동안 화면 박자를 낮춘다(매뉴얼)
   WiFi.persistent(false);        // Arduino 의 자체 저장본은 쓰지 않는다(설정 저장본 하나만)
   WiFi.mode(WIFI_STA);
@@ -918,12 +991,13 @@ static void startSync() {
   s_sync = SYNC_CONNECTING; s_syncStart = millis();
   Serial.printf("sync: connecting %s (internal free %u, largest %u)\n", ssid.c_str(),
                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
-  lock(); refreshWifiLabel(); setStatus("연결하는 중…"); unlock();
 }
 static void finishSync(bool ok, const char *msg) {
   s_triedOnce = true; s_lastOk = ok; s_lastSync = millis();
   s_failCount = ok ? 0 : s_failCount + 1;
+  if (ok) s_failKind = FK_NONE;
   if (timeValid()) { time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm); snprintf(s_lastHM, sizeof s_lastHM, "%02d:%02d", tm.tm_hour, tm.tm_min); }
+  if (ok) memcpy(s_lastOkHM, s_lastHM, sizeof s_lastOkHM);
   wifiOff();
   lcdSlow(false);                // 되돌리고 박자를 다시 맞춘다
   s_sync = SYNC_IDLE;
@@ -1347,7 +1421,7 @@ static void buildUI() {
       lv_obj_align(s_cellB[d][p], LV_ALIGN_CENTER, 0, small ? 10 : 13);
       s_cellTag[d][p] = label(c, &kr14, 0xffffff, "");
       lv_obj_set_style_bg_opa(s_cellTag[d][p], LV_OPA_COVER, 0);
-      lv_obj_set_style_bg_color(s_cellTag[d][p], lv_color_hex(0xea580c), 0);
+      lv_obj_set_style_bg_color(s_cellTag[d][p], lv_color_hex(0xc2410c), 0);
       lv_obj_set_style_radius(s_cellTag[d][p], R(6), 0);
       lv_obj_set_style_pad_hor(s_cellTag[d][p], 3, 0);
       lv_obj_align(s_cellTag[d][p], LV_ALIGN_TOP_RIGHT, -1, 0);
@@ -1418,7 +1492,7 @@ static void buildUI() {
   s_meal = label(ic, &kr14, 0xe2e8f0, "");
   lv_obj_set_style_text_line_space(s_meal, 2, 0);
   lv_label_set_long_mode(s_meal, LV_LABEL_LONG_DOT);
-  s_kcal = label(ic, &kr14, 0x64748b, "");
+  s_kcal = label(ic, &kr14, D_MUTED, "");
 
   // 맨 아래: 수업 10분 전부터 '다음 수업' 띠
   s_notice = box(left, C_PRIMARY, 0, 18);
@@ -1480,11 +1554,18 @@ static void buildUI() {
     lv_obj_align(s_rowB[r], LV_ALIGN_RIGHT_MID, -S(14), 0);
     s_rowTag[r] = label(s_row[r], &kr14, 0xffffff, "");
     lv_obj_set_style_bg_opa(s_rowTag[r], LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(s_rowTag[r], lv_color_hex(0xea580c), 0);
+    lv_obj_set_style_bg_color(s_rowTag[r], lv_color_hex(0xc2410c), 0);   // 흰 글자와 명암비 5.2:1
     lv_obj_set_style_radius(s_rowTag[r], R(6), 0);
     lv_obj_set_style_pad_hor(s_rowTag[r], 5, 0);
     lv_obj_add_flag(s_rowTag[r], LV_OBJ_FLAG_HIDDEN);
   }
+  s_guide = label(right, &kr16, D_TEXT, "");                         // 시간표 줄들을 덮는 안내(없을 때만 보인다)
+  lv_obj_set_style_bg_opa(s_guide, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(s_guide, lv_color_hex(D_PANEL), 0);
+  lv_obj_set_style_pad_all(s_guide, S(16), 0);
+  lv_obj_set_size(s_guide, ROW_W, PH - ROW_Y0 - S(12)); lv_obj_set_pos(s_guide, ROW_X, ROW_Y0);
+  lv_label_set_long_mode(s_guide, LV_LABEL_LONG_WRAP);
+  lv_obj_add_flag(s_guide, LV_OBJ_FLAG_HIDDEN);
 
   }
   // ── 설정 보기 ──
@@ -1682,14 +1763,17 @@ void loop() {
   if (ms - lastResync > 60000 && s_sync == SYNC_IDLE) {
     lastResync = ms;
     if (s_lcdSlow) lcdSlow(false); else panelResync();   // 와이파이 재설정 등으로 느린 채 남았으면 되돌린다
+    if (s_diagResync) lcdLog("resync");
   }
 
   // 1시간마다 잠깐 연결: 연결 → 시간 맞추기 → 시간표 받기 → 끄기
   if (s_sync == SYNC_IDLE) {
-    static const uint32_t RETRY_MS[] = {60000, 120000, 300000, 600000};
-    uint32_t wait = s_lastOk ? SYNC_EVERY_MS : RETRY_MS[s_failCount < 4 ? (s_failCount > 0 ? s_failCount - 1 : 0) : 3];
-    bool due = s_prefs.isKey("ssid") && (!s_triedOnce || ms - s_lastSync > wait);
+    bool due = s_prefs.isKey("ssid") && (!s_triedOnce || ms - s_lastSync > syncWaitMs());
     if (ms < 5000) due = false;                                  // 켠 뒤 5초는 기다린다
+    // 수업 중에는 쉬는 시간까지 미룬다(켠 직후 첫 받기와 [지금 받기]는 바로)
+    static bool deferLogged = false;
+    if (due && s_triedOnce && inClassNow()) { if (!deferLogged) { deferLogged = true; Serial.println("sync: defer (class)"); } due = false; }
+    if (due) deferLogged = false;
     if ((s_syncReq || due) && ms >= 5000) { s_syncReq = false; startSync(); }
   } else if (s_sync == SYNC_CONNECTING) {
     if (WiFi.isConnected()) {
@@ -1704,21 +1788,33 @@ void loop() {
     } else if (ms - s_syncStart > 35000) {
       static char msg[96];
       snprintf(msg, sizeof msg, "와이파이에 연결하지 못했습니다(%s, %d). 잠시 뒤 다시 해 봅니다.", wifiReasonText(s_wifiReason), (int)s_wifiReason);
+      s_failKind = FK_NET;
       finishSync(false, msg);
     }
   } else if (s_sync == SYNC_TIME) {
     bool synced = sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED || (timeValid() && ms - s_syncStart > 8000);
     if (synced || ms - s_syncStart > 15000) {
       lock(); setStatus("시간표를 받는 중…"); unlock();
-      if (downloadIndex()) { lock(); fillPicker(); unlock(); }
-      bool ok = downloadTT();
+      // 시간표 주소를 아직 안 넣었으면(YOUR-SITE-ID) 시간표·선생님 위치는 받지 않는다. 404 로 실패해 몇 분마다
+      // 다시 받으면 그때마다 화면 박자를 바꿔 화면이 깜빡였다(2026-10-16). 시간·날씨·급식은 그대로 받는다.
+      const bool noUrl = urlUnset();
+      if (!noUrl && downloadIndex()) { lock(); fillPicker(); unlock(); }
+      s_ttCode = 0;
+      bool ok = !noUrl && downloadTT();
       bool loaded = ok && loadTTFromFile();
       bool wx = downloadWeather();
       bool meal = downloadMeal();
+      if (meal) s_mealOk = true;
       bool air = downloadAir();
-      bool whr = downloadWhere();
+      bool whr = !noUrl && downloadWhere();
       lock(); if (loaded) { s_week = -1; renderTT(); } if (wx) renderWeather(); if (meal) renderMeal(); if (air) renderAir(); if (whr) { fillFinderGrid(); renderFinder(); } unlock();
-      finishSync(loaded, loaded ? "시간과 시간표를 받았습니다." : (ok ? "시간표 파일을 읽지 못했습니다." : "시간표를 받지 못했습니다. 인터넷을 확인하세요."));
+      if (noUrl) finishSync(timeValid(), timeValid() ? "시간을 맞췄습니다. 시간표 주소를 넣으면 시간표도 받습니다." : "시간을 맞추지 못했습니다. 인터넷을 확인하세요.");
+      else {
+        if (!loaded) s_failKind = (s_ttCode == 404 || s_ttCode == 403) ? FK_NOTFOUND : (wx || meal) ? FK_PARTIAL : FK_NET;
+        finishSync(loaded, loaded ? "시간과 시간표를 받았습니다."
+                   : s_failKind == FK_NOTFOUND ? "시간표 주소에 파일이 없습니다. 주소를 확인하세요(6시간 뒤 다시 받습니다)."
+                   : ok ? "시간표 파일을 읽지 못했습니다." : "시간표를 받지 못했습니다. 인터넷을 확인하세요.");
+      }
     }
   }
 
@@ -1756,6 +1852,13 @@ void loop() {
       }
     }
   }
+  // 불이 꺼져 있을 때 터치가 오면 바로 켠다. 그 터치는 단추로 가지 않는다(esp_lv_adapter 가 삼킨다).
+  if (s_blOff && g_touchWoke && s_board && s_board->getBacklight()) {
+    g_touchWoke = false; g_touchSwallow = false; s_blOff = false;
+    s_board->getBacklight()->on();
+    lock(); lv_disp_trig_activity(NULL); unlock();
+    Serial.println("backlight on (touch)");
+  }
   // 밤(22:00~07:00)·주말·휴일에는 2분 동안 터치가 없으면 화면 불을 끈다. 만지면 켜진다(사용자 지시 2026-09-30).
   static uint32_t lastBl = 0;
   if (ms - lastBl > 2000 && s_board && s_board->getBacklight() && timeValid()) {
@@ -1769,6 +1872,7 @@ void loop() {
     unlock();
     if (off != s_blOff) {
       s_blOff = off;
+      g_touchSwallow = off;
       if (off) s_board->getBacklight()->off(); else s_board->getBacklight()->on();
       Serial.printf("backlight %s\n", off ? "off" : "on");
     }

@@ -106,12 +106,28 @@ static void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t 
     }
 }
 
+volatile bool g_touchSwallow = false;
+volatile bool g_touchWoke = false;
+
 static void touch_read_cb(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
 {
     Touch *touch = static_cast<Touch *>(indev_drv->user_data);
     TouchPoint point = {};
+    static bool eating = false;   // 불을 켠 그 터치는 손을 뗄 때까지 단추로 보내지 않는다
 
-    if ((touch != nullptr) && (touch->readPoints(&point, 1, 0) > 0)) {
+    const bool pressed = (touch != nullptr) && (touch->readPoints(&point, 1, 0) > 0);
+    if (pressed && g_touchSwallow) {
+        g_touchWoke = true;
+        eating = true;
+    }
+    if (eating) {
+        if (!pressed) {
+            eating = false;
+        }
+        data->state = LV_INDEV_STATE_RELEASED;
+        return;
+    }
+    if (pressed) {
         data->point.x = point.x;
         data->point.y = point.y;
         data->state = LV_INDEV_STATE_PRESSED;
