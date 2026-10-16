@@ -218,6 +218,23 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 프랑스 혁명 발표 사이트 — 삼색기 + 연표 점
+  "/frev/": {
+    from: "#1f3a6b",
+    to: "#a8322d",
+    glyph: (
+      <g>
+        <path d="M14 8v20" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
+        <rect x="15.5" y="9" width="6" height="11" fill="#9db4e0" />
+        <rect x="21.5" y="9" width="6" height="11" fill="#fff" />
+        <rect x="27.5" y="9" width="6" height="11" fill="#f2a29c" />
+        <path d="M8 36h32" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="12" cy="36" r="3" fill="#fff" />
+        <circle cx="24" cy="36" r="3" fill="#fff" />
+        <circle cx="36" cy="36" r="3" fill="#fff" />
+      </g>
+    ),
+  },
 };
 
 // 전체 주소(https://…/aimath/)와 끝 슬래시 차이를 흡수해서 아이콘을 찾는다
