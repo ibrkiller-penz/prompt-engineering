@@ -40,7 +40,7 @@ test("plan.json 의 문제 id 는 모두 그 레슨에 있고, 규칙을 지켜�
     for (const k of ["board", "exit", "hw"]) for (const id of p[k]) assert.ok(has(id), where + " " + k + " " + id);
     const secs = ([] as number[]).concat(...p.periods.map((x: { sections: number[] }) => x.sections));
     assert.deepEqual(secs, L.sections.map((_: unknown, i: number) => i), where + ": 차시가 소제목을 빠짐없이 순서대로 나눠요");
-    assert.equal(p.periods.length, (L as unknown as { minutes: number }).minutes > 50 ? 2 : 1, where + ": 차시 수");
+    assert.equal(p.periods.length, L.sections.length >= 2 ? 2 : 1, where + ": 차시 수(40차시 기준: 레슨마다 2차시)");
     for (const q of L.practice) assert.ok(q.id in p.sectionOf, where + " sectionOf " + q.id);
   }
 });

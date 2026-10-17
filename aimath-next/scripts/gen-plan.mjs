@@ -6,7 +6,7 @@
 //                  TF-IDF 로 견줘 가장 가까운 소제목을 골라요. 기초력 UP 은 유형(group) 단위로 모아 정해요.
 //                  기본 규칙(pick.logic baseSections)과 다른 것만 적어요(쉬운 응용·실력 UP·도전은 모두 적혀요).
 //   sectionOf      secOf 를 덧씌운 최종 문제 → 소제목 번호(학생 오답노트·교사 문제 고르기 공용)
-//   periods        원본 minutes 가 50분을 넘으면 2차시(소제목을 분량이 고르게 절반씩), 아니면 1차시
+//   periods        40차시 기준으로 모든 레슨을 2차시(소제목을 분량이 고르게 절반씩)로 나눠요(소제목 1개뿐이면 1차시)
 //   periods[].question  2차시 레슨의 차시별 핵심 질문(1~2줄). 첫 물음표를 기준으로 나눠요
 //   sectionChecks  소제목 i 끝에서 푸는 확인 문제(그 소제목으로 태그된 개념 확인 문제, 소제목마다 최대 2개).
 //                  개념 확인이 없는 소제목은 그 소제목의 가장 쉬운 기초 문제(난이도 2 이하·선택형·OX 먼저) 1개로,
@@ -32,7 +32,7 @@ const ROOT = path.resolve(here, "..");
 const CONTENT = path.resolve(ROOT, "../content/aimath");
 const OUT = path.join(ROOT, "data/plan.json");
 
-export const TWO_PERIOD_OVER = 50; // 원본 분량이 이 분을 넘으면 2차시
+export const TWO_PERIOD_OVER = 0; // 40차시 기준: 소제목이 2개 이상인 레슨은 모두 2차시 (20레슨 × 2)
 export const CHECKS_PER_SECTION = 2;
 export const CORE_MIN = 8;
 export const CORE_MAX = 10;
