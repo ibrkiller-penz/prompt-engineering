@@ -1,0 +1,47 @@
+/* 차시 찾기(#/find)와 차시 시트. Chrome 80 안전. */
+
+.t-search { display: flex; align-items: center; max-width: 720px; }
+.t-search > * + * { margin-left: var(--sp-2); }
+.t-search .ico-svg { flex: 0 0 auto; color: var(--ink-2); }
+.t-search .input { flex: 1 1 auto; font-size: var(--t-md); }
+
+.t-unit-h { display: flex; align-items: center; }
+.t-unit-roman { color: var(--accent-ink); margin-right: .4em; }
+
+/* 레슨 카드 격자 */
+.t-lgrid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); grid-gap: var(--sp-4);
+  list-style: none; margin: 0; padding: 0;
+}
+.t-lcard-wrap { display: block; }
+.t-lcard {
+  display: flex; flex-direction: column; align-items: flex-start; width: 100%; height: 100%;
+  text-align: left; cursor: pointer; border-top: 6px solid var(--accent);
+  font: inherit; color: var(--ink);
+}
+.t-lcard > * + * { margin-top: var(--sp-1); }
+.t-lcard:active { transform: scale(.99); }
+.t-lcard-top { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.t-lcard-code { font-weight: 800; color: var(--accent-ink); font-size: var(--t-sm); }
+.t-lcard-title { font-weight: 800; font-size: var(--t-lg); line-height: var(--lh-tight); }
+.t-lcard-short { color: var(--ink-2); font-size: var(--t-sm); }
+.t-lcard-meta { margin-top: auto !important; padding-top: var(--sp-2); color: var(--ink-2); font-size: var(--t-xs); }
+
+/* 차시 시트 */
+.t-lsheet { max-height: 86vh; }
+.t-lsheet-head { align-items: flex-start; margin-bottom: var(--sp-3); }
+.t-sheet-opts > .t-set-label { margin-right: var(--sp-2); }
+.t-periods { list-style: none; margin: 0; padding: 0; }
+.t-periods > li + li { margin-top: var(--sp-3); }
+.t-period { box-shadow: none; border-left: 6px solid var(--accent); }
+.t-period > * + * { margin-top: var(--sp-2); }
+.t-secs { margin: 0; padding-left: 1.2em; color: var(--ink-2); }
+.t-period-acts { margin: calc(var(--sp-1) * -1); }
+.t-period-acts > * { margin: var(--sp-1) !important; }
+.t-period-acts .btn > * + * { margin-left: .4em; }
+
+@media (max-width: 760px) {
+  .t-lgrid { grid-template-columns: 1fr; }
+}
+
+.t-lsheet .stack > * + * { margin-top: var(--sp-4); }

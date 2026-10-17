@@ -1,0 +1,249 @@
+/* aimath-next 디자인 토큰 (공용). 불러오는 순서: tokens → base → components → visual → motion
+ *
+ * 토큰 이름은 하나, 값은 축에 따라 바뀌어요.
+ *   html[data-site="student"|"teacher"]      사이트 띠 색
+ *   html[data-surface="phone"|"prep"|"board"] 크기 (휴대폰 17/44 · 준비 화면 22/56 · 칠판 32/64, 주 단추 88)
+ *   html[data-theme="light"|"dark"|"chalk"]   색 (chalk 는 교사 칠판 전용)
+ *   html[data-fs="0".."3"]                    글자 크기 단계(읽기 설정)
+ *   html[data-unit="u1".."u5"]                단원 포인트 색 (글자는 --accent-ink, 장식은 --accent)
+ *   html[data-contrast="more"]                대비 높이기
+ *   html[data-motion="reduce"]                움직임 줄이기
+ *
+ * Chrome 80 안전: CSS 변수, calc/min/max/clamp, grid-gap, sticky, env() 만 써요.
+ * 쓰지 않는 것: flex gap, aspect-ratio, :has, :is, :where, :focus-visible, inset, dvh, @layer,
+ *              oklch, color-mix, @property, CSS 중첩.
+ * 색 대비는 scripts/check-contrast.mjs 가 이 파일을 읽어서 테마별로 계산해요(글자 4.5, 그래픽 3 이상).
+ */
+
+:root {
+  /* ── 색: 밝은 테마(기본) ── */
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --line: #d5dae3;          /* 장식 구분선(대비 요구 없음) */
+  --line-strong: #7b8494;   /* 조작 부품 테두리(그래픽 3:1 이상) */
+  --ink: #1f2430;           /* 본문 */
+  --ink-2: #4b5563;         /* 보조 글자 */
+  --ink-3: #5b6472;         /* 가장 옅은 허용 글자. 이보다 옅은 글자색은 쓰지 않아요 */
+  --focus: #1d4ed8;
+  --ok: #157238;   --ok-bg: #e7f6ec;
+  --bad: #b91c1c;  --bad-bg: #fdecec;
+  --warn: #9a3412; --warn-bg: #fff3e0;
+  --info: #1d4ed8; --info-bg: #e8effe;
+  --aha: #6d28d9;  --aha-bg: #f1ebff;
+  --hl: rgba(250, 204, 21, .45);   /* 형광펜·강조 바탕 */
+  --scrim: rgba(15, 23, 42, .55);  /* 가림막·시트 뒤 */
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, .08), 0 1px 3px rgba(16, 24, 40, .06);
+  --shadow-2: 0 4px 12px rgba(16, 24, 40, .12);
+  --scroll-shadow: rgba(0, 0, 0, .18);
+
+  /* 단원 색: -c 장식, -ink 글자, -soft 옅은 바탕 */
+  --u1-c: #4f46e5; --u1-ink: #4338ca; --u1-soft: #eef0ff;
+  --u2-c: #0f766e; --u2-ink: #0f766e; --u2-soft: #e3f6f2;
+  --u3-c: #e11d48; --u3-ink: #be123c; --u3-soft: #ffe8ee;
+  --u4-c: #b45309; --u4-ink: #9a3412; --u4-soft: #fff1dc;
+  --u5-c: #7c3aed; --u5-ink: #6d28d9; --u5-soft: #f0e9ff;
+
+  /* 사이트 띠(학생 파랑 / 교사 주황갈색) */
+  --site-student: #1d4ed8;
+  --site-teacher: #9a3412;
+  --on-site: #ffffff;
+  --site: var(--site-student);
+
+  /* 포인트(단원이 없을 때는 사이트 색) */
+  --accent: var(--site);
+  --accent-ink: var(--site);
+  --accent-soft: #e8effe;
+  --on-accent: #ffffff;
+
+  /* ── 글꼴(시스템 글꼴만) ── */
+  --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", "Noto Sans KR", "Noto Sans CJK KR", "Segoe UI", Roboto, sans-serif;
+  --font-num: "SF Mono", "Roboto Mono", Consolas, "Malgun Gothic", monospace;
+
+  /* ── 크기: phone (375x812, 본문 17 · 터치 44) ── */
+  --fs-scale: 1;
+  --t-base: 17px;
+  /* 글자 바닥값: 읽기 설정을 가장 작게(data-fs=0, ×0.9) 해도 휴대폰 13px · 준비 16px · 칠판 22px 아래로 내려가지 않아요.
+   * max()·min() 은 Chrome 79+ 에서 돼요. scripts/check-contrast.mjs 가 면 × 글자 단계마다 이 바닥을 계산해서 확인해요. */
+  --t-xs: max(13px, calc(13px * var(--fs-scale)));   /* 배지·작은 안내 한정, 최소 13px */
+  --t-sm: max(14px, calc(15px * var(--fs-scale)));
+  --t-md: calc(var(--t-base) * var(--fs-scale)); /* 본문 */
+  --t-lg: calc(20px * var(--fs-scale));
+  --t-xl: calc(24px * var(--fs-scale));
+  --t-2xl: calc(28px * var(--fs-scale));
+  --t-num: calc(40px * var(--fs-scale));  /* 타이머·큰 숫자 */
+  --lh-body: 1.7;
+  --lh-tight: 1.3;
+  --math-inline: 1.08em;  /* KaTeX 인라인 배율 */
+  --math-block: 1.2em;
+
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  --gutter: 16px;
+  --measure: 34em;         /* 읽기 줄 길이 상한 */
+  --page-max: 640px;
+  --radius-s: 8px; --radius-m: 12px; --radius-l: 16px; --radius-pill: 999px;
+  --tap: 44px;             /* 최소 터치 대상 */
+  --tap-main: 52px;        /* 주 행동 단추 */
+  --topbar-h: 52px;
+  --bar-h: 64px;           /* 하단 '다음' 띠 */
+  --tab-h: 56px;           /* 하단 탭 */
+  --band-h: 4px;           /* 사이트 띠 */
+  --border: 2px;           /* 조작 부품 테두리 */
+  --stroke: 2px;           /* 그래프 선 */
+  --handle: 28px;          /* 손잡이 지름(보이는 크기). 잡히는 영역은 --tap */
+  --focus-w: 3px;
+  --dur: 160ms;
+
+  /* 옛 이름 호환(체험 도구 css 의 기본값 참조) */
+  --muted: var(--ink-2);
+  --touch: var(--tap);
+  --radius: var(--radius-m);
+}
+
+/* ── 교사 준비 화면(책상 노트북·전자칠판 준비, 본문 22 · 터치 56) ── */
+html[data-surface="prep"] {
+  --t-base: 22px;
+  --t-xs: max(16px, calc(16px * var(--fs-scale)));
+  --t-sm: max(18px, calc(19px * var(--fs-scale)));
+  --t-lg: calc(26px * var(--fs-scale));
+  --t-xl: calc(32px * var(--fs-scale));
+  --t-2xl: calc(40px * var(--fs-scale));
+  --t-num: calc(64px * var(--fs-scale));
+  --lh-body: 1.6;
+  --math-inline: 1.1em;
+  --math-block: 1.3em;
+  --sp-1: 5px; --sp-2: 10px; --sp-3: 15px; --sp-4: 20px; --sp-5: 30px; --sp-6: 40px; --sp-7: 60px;
+  --gutter: 32px;
+  --measure: 36em;
+  --page-max: 1280px;
+  --radius-s: 10px; --radius-m: 14px; --radius-l: 20px;
+  --tap: 56px;
+  --tap-main: 68px;
+  --topbar-h: 72px;
+  --bar-h: 88px;
+  --tab-h: 72px;
+  --band-h: 6px;
+  --border: 2px;
+  --stroke: 3px;
+  --handle: 36px;
+  --focus-w: 4px;
+  --dur: 180ms;
+}
+
+/* ── 전자칠판 무대(1920x1080 고정, 본문 32 · 터치 64 · 주 단추 88) ── */
+html[data-surface="board"] {
+  --t-base: 32px;
+  --t-xs: max(22px, calc(22px * var(--fs-scale)));
+  --t-sm: max(24px, calc(26px * var(--fs-scale)));
+  --t-md: max(32px, calc(var(--t-base) * var(--fs-scale)));  /* 칠판 본문은 어떤 설정에서도 32px 이상 */
+  --t-lg: calc(40px * var(--fs-scale));
+  --t-xl: calc(52px * var(--fs-scale));
+  --t-2xl: calc(64px * var(--fs-scale));  /* 장면 제목 */
+  --t-num: calc(120px * var(--fs-scale)); /* 타이머·집계 숫자 */
+  --lh-body: 1.55;
+  --math-inline: 1.15em;
+  --math-block: 1.4em;
+  --sp-1: 6px; --sp-2: 12px; --sp-3: 18px; --sp-4: 24px; --sp-5: 36px; --sp-6: 48px; --sp-7: 72px;
+  --gutter: 64px;
+  --measure: 28em;
+  --page-max: 1920px;
+  --radius-s: 12px; --radius-m: 18px; --radius-l: 24px;
+  --tap: 64px;
+  --tap-main: 88px;
+  --topbar-h: 128px;       /* 무대 머리 */
+  --bar-h: 112px;          /* 무대 아래 도구띠 */
+  --tab-h: 112px;
+  --band-h: 8px;
+  --border: 3px;
+  --stroke: 4px;
+  --handle: 48px;
+  --focus-w: 5px;
+  --dur: 200ms;
+}
+
+/* ── 글자 크기 단계(읽기 설정). 1 이 기본 ── */
+html[data-fs="0"] { --fs-scale: .9; }
+html[data-fs="1"] { --fs-scale: 1; }
+html[data-fs="2"] { --fs-scale: 1.2; }
+html[data-fs="3"] { --fs-scale: 1.45; }
+
+/* ── 사이트 ── */
+html[data-site="teacher"] { --site: var(--site-teacher); --accent-soft: #fff3e0; }
+
+/* ── 어두운 테마 ── */
+html[data-theme="dark"] {
+  --bg: #0e1218; --surface: #161b24; --surface-2: #1e2532;
+  --line: #2c3442; --line-strong: #6b7688;
+  --ink: #f2f4f8; --ink-2: #c9ced8; --ink-3: #a8b0bd;
+  --focus: #60a5fa;
+  --ok: #4ade80; --ok-bg: #0f2a1a;
+  --bad: #f87171; --bad-bg: #2d1414;
+  --warn: #fbbf24; --warn-bg: #2a1e0a;
+  --info: #60a5fa; --info-bg: #0f1d33;
+  --aha: #a78bfa; --aha-bg: #1d1633;
+  --hl: rgba(250, 204, 21, .35);
+  --scrim: rgba(0, 0, 0, .65);
+  --shadow-1: none; --shadow-2: 0 4px 16px rgba(0, 0, 0, .5);
+  --scroll-shadow: rgba(0, 0, 0, .6);
+  --u1-c: #818cf8; --u1-ink: #a5b4fc; --u1-soft: #1c1f3d;
+  --u2-c: #2dd4bf; --u2-ink: #5eead4; --u2-soft: #0f2a27;
+  --u3-c: #fb7185; --u3-ink: #fda4af; --u3-soft: #33141d;
+  --u4-c: #fbbf24; --u4-ink: #fcd34d; --u4-soft: #2e2010;
+  --u5-c: #a78bfa; --u5-ink: #c4b5fd; --u5-soft: #241a3d;
+  --site-student: #60a5fa;
+  --site-teacher: #fb923c;
+  --on-site: #0e1218;
+  --accent-soft: #0f1d33;
+  --on-accent: #0e1218;
+}
+html[data-theme="dark"][data-site="teacher"] { --accent-soft: #2a1e0a; }
+
+/* ── 칠판 테마: 눈부심 줄인 짙은 초록, 분필 흰색(교사 전용) ── */
+html[data-theme="chalk"] {
+  --bg: #0f2a20; --surface: #133227; --surface-2: #1a3d30;
+  --line: #2f5546; --line-strong: #6f9c88;
+  --ink: #f2f4f8; --ink-2: #d6e3dc; --ink-3: #b3c7bd;
+  --focus: #facc15;
+  --ok: #4ade80; --ok-bg: #123d26;
+  --bad: #fca5a5; --bad-bg: #3d1a1a;
+  --warn: #fbbf24; --warn-bg: #3a2c0c;
+  --info: #93c5fd; --info-bg: #15304a;
+  --aha: #c4b5fd; --aha-bg: #2a2445;
+  --hl: rgba(250, 204, 21, .35);
+  --scrim: rgba(0, 0, 0, .65);
+  --shadow-1: none; --shadow-2: 0 6px 20px rgba(0, 0, 0, .45);
+  --scroll-shadow: rgba(0, 0, 0, .6);
+  --u1-c: #a5b4fc; --u1-ink: #c7d2fe; --u1-soft: #1d2f45;
+  --u2-c: #5eead4; --u2-ink: #99f6e4; --u2-soft: #154036;
+  --u3-c: #fda4af; --u3-ink: #fecdd3; --u3-soft: #3a2230;
+  --u4-c: #fcd34d; --u4-ink: #fde68a; --u4-soft: #3a3418;
+  --u5-c: #c4b5fd; --u5-ink: #ddd6fe; --u5-soft: #2d2a45;
+  --site-student: #93c5fd;
+  --site-teacher: #fdba74;
+  --on-site: #0f2a20;
+  --accent-soft: #3a2c0c;
+  --on-accent: #0f2a20;
+}
+
+/* ── 단원 포인트 ── */
+html[data-unit="u1"] { --accent: var(--u1-c); --accent-ink: var(--u1-ink); --accent-soft: var(--u1-soft); }
+html[data-unit="u2"] { --accent: var(--u2-c); --accent-ink: var(--u2-ink); --accent-soft: var(--u2-soft); }
+html[data-unit="u3"] { --accent: var(--u3-c); --accent-ink: var(--u3-ink); --accent-soft: var(--u3-soft); }
+html[data-unit="u4"] { --accent: var(--u4-c); --accent-ink: var(--u4-ink); --accent-soft: var(--u4-soft); }
+html[data-unit="u5"] { --accent: var(--u5-c); --accent-ink: var(--u5-ink); --accent-soft: var(--u5-soft); }
+
+/* ── 대비 높이기(사용자 설정) ── */
+html[data-contrast="more"] {
+  --ink: #000000; --ink-2: #1f2430; --ink-3: #374151;
+  --line: #6b7280; --line-strong: #374151;
+  --border: 3px;
+}
+html[data-contrast="more"][data-theme="dark"],
+html[data-contrast="more"][data-theme="chalk"] {
+  --ink: #ffffff; --ink-2: #f2f4f8; --ink-3: #e5e7eb;
+  --line: #9ca3af; --line-strong: #d1d5db;
+}
+
+/* ── 움직임 줄이기 ── */
+@media (prefers-reduced-motion: reduce) { :root { --dur: 0ms; } }
+html[data-motion="reduce"] { --dur: 0ms; }

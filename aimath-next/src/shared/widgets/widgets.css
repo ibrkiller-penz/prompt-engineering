@@ -1,0 +1,983 @@
+/* 체험 도구 공통 모양. Chrome 80 에서 돌아가도록 flex gap·aspect-ratio·:is·inset·중첩을 쓰지 않아요(간격은 margin, 비율은 padding-top).
+   색·크기는 공용 토큰(src/styles/tokens.css)을 쓰고, 토큰이 없을 때를 대비해 기본값을 둬요. */
+
+.wg-host {
+  --wg-ink: var(--ink, #1f2937);
+  --wg-muted: var(--muted, #4b5563);
+  --wg-bg: var(--bg, #ffffff);
+  --wg-soft: var(--surface-2, #f3f4f6);
+  --wg-line: var(--line, #d1d5db);
+  --wg-accent: var(--accent, #1d4ed8);
+  --wg-accent-ink: var(--accent-ink, #1e40af);
+  --wg-ok: var(--ok, #15803d);
+  --wg-bad: var(--bad, #b91c1c);
+  --wg-warn: var(--warn, #b45309);
+  --wg-touch: var(--touch, 44px);
+  --wg-radius: var(--radius, 12px);
+  --s1: #1d4ed8;
+  --s2: #c2410c;
+  --s3: #047857;
+  --s4: #7e22ce;
+  --s5: #a16207;
+  color: var(--wg-ink);
+  max-width: 100%;
+}
+html[data-theme="dark"] .wg-host,
+html[data-theme="chalk"] .wg-host {
+  --s1: #93c5fd;
+  --s2: #fdba74;
+  --s3: #6ee7b7;
+  --s4: #d8b4fe;
+  --s5: #fde047;
+}
+
+/* ── 틀(ToolFrame) ── */
+.wf {
+  border: 1px solid var(--wg-line);
+  border-radius: var(--wg-radius);
+  background: var(--wg-bg);
+  padding: 1em;
+}
+.wf > * + * {
+  margin-top: 1em;
+}
+.wf-title {
+  font-size: 1.15em;
+  margin: 0;
+  color: var(--wg-accent-ink);
+}
+.wf-step > * + * {
+  margin-top: 0.5em;
+}
+.wf-h {
+  margin: 0;
+  font-size: 1em;
+  display: flex;
+  align-items: center;
+}
+.wf-no {
+  display: inline-block;
+  min-width: 1.6em;
+  height: 1.6em;
+  line-height: 1.6em;
+  border-radius: 50%;
+  text-align: center;
+  background: var(--wg-accent);
+  color: #fff;
+  margin-right: 0.5em;
+  font-size: 0.85em;
+}
+.wf-text,
+.wf-mine,
+.wf-reveal {
+  margin: 0;
+}
+.wf-mine {
+  color: var(--wg-muted);
+}
+.wf-reveal {
+  background: var(--wg-soft);
+  border-left: 4px solid var(--wg-accent);
+  padding: 0.6em 0.8em;
+  border-radius: 6px;
+}
+.wf-steps {
+  margin: 0;
+  padding-left: 1.4em;
+}
+.wf-steps li + li {
+  margin-top: 0.3em;
+}
+.wf-form > * + * {
+  margin-top: 0.5em;
+}
+.wf-mission {
+  border: 2px dashed var(--wg-line);
+  border-radius: 8px;
+  padding: 0.5em 0.7em;
+}
+.wf-mission.is-ok {
+  border-style: solid;
+  border-color: var(--wg-ok);
+}
+.wf-mission-tag {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 0.5em;
+  color: var(--wg-accent-ink);
+}
+.wf-mission.is-ok .wf-mission-tag {
+  color: var(--wg-ok);
+}
+.wf-board {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  grid-column-gap: 32px;
+  align-items: start;
+  padding: 24px;
+}
+.wf-board > * + * {
+  margin-top: 0;
+}
+.wf-side > * + * {
+  margin-top: 1em;
+}
+.wf-side {
+  font-size: 0.8em;
+}
+.wf-stage {
+  min-width: 0;
+}
+
+/* ── 몸통 ── */
+.wg-body > * + * {
+  margin-top: 0.75em;
+}
+.wg-body {
+  min-width: 0;
+}
+.wg-note {
+  margin: 0;
+  color: var(--wg-muted);
+}
+.wg-h {
+  margin: 0 0 0.4em;
+  font-size: 1em;
+}
+.wg-line,
+.wg-line-label {
+  margin: 0;
+}
+.wg-line-label {
+  font-weight: 700;
+}
+.wg-big {
+  font-size: 1.3em;
+  font-weight: 700;
+  margin: 0;
+}
+.wg-card {
+  border: 1px solid var(--wg-line);
+  border-radius: var(--wg-radius);
+  padding: 0.75em;
+  background: var(--wg-bg);
+  min-width: 0;
+}
+.wg-card > * + * {
+  margin-top: 0.6em;
+}
+.wg-two {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-gap: 0.75em;
+}
+@media (min-width: 640px) {
+  .wg-two {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+html[data-surface="board"] .wg-two {
+  grid-template-columns: 1fr 1fr;
+}
+.wg-grid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9em, 1fr));
+  grid-gap: 0.5em;
+}
+.wg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: -0.25em;
+}
+.wg-row > * {
+  margin: 0.25em;
+}
+.wg-body > .wg-row {
+  margin-top: 0.5em;
+}
+.wg-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+}
+
+/* ── 단추 ── */
+.wg-btn {
+  min-height: var(--wg-touch);
+  min-width: var(--wg-touch);
+  padding: 0.35em 0.9em;
+  border: 2px solid var(--wg-line);
+  border-radius: 10px;
+  background: var(--wg-bg);
+  color: var(--wg-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.wg-btn:hover {
+  border-color: var(--wg-accent);
+}
+.wg-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.wg-btn-primary,
+.wg-btn.is-on {
+  background: var(--wg-accent);
+  border-color: var(--wg-accent);
+  color: #fff;
+}
+.wg-btn-small {
+  min-height: 36px;
+  font-size: 0.85em;
+  padding: 0.2em 0.7em;
+}
+html[data-surface="board"] .wg-btn-small {
+  min-height: var(--wg-touch);
+}
+html.kbd .wg-btn:focus,
+html.kbd .wg-input:focus,
+html.kbd .wg-table-wrap:focus,
+html.kbd .wg-tex-block:focus,
+html.kbd .wg-pixel:focus {
+  outline: 3px solid var(--wg-accent);
+  outline-offset: 2px;
+}
+.wg-toggle-mark {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  line-height: 1.1em;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  margin-right: 0.4em;
+  text-align: center;
+  font-size: 0.85em;
+  vertical-align: -0.1em;
+}
+.wg-seg-label,
+.wg-stepper-label {
+  display: block;
+  font-size: 0.85em;
+  color: var(--wg-muted);
+  margin-bottom: 0.2em;
+}
+.wg-seg-row,
+.wg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -0.2em;
+}
+.wg-seg-row > *,
+.wg-chips > * {
+  margin: 0.2em;
+}
+.wg-chip-btn {
+  font-weight: 500;
+}
+.wg-chip {
+  display: inline-block;
+  padding: 0 0.5em;
+  border-radius: 999px;
+  background: var(--wg-soft);
+  font-weight: 700;
+  font-size: 0.85em;
+  margin-right: 0.3em;
+}
+
+/* ── 스테퍼 ── */
+.wg-stepper {
+  display: inline-block;
+  vertical-align: top;
+  min-width: 10em;
+}
+.wg-stepper-row {
+  display: flex;
+  align-items: center;
+}
+.wg-stepper-btn {
+  font-size: 1.25em;
+  line-height: 1;
+  padding: 0;
+  width: var(--wg-touch);
+}
+.wg-stepper-value {
+  display: inline-block;
+  min-width: 4.2em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  margin: 0 0.4em;
+}
+.wg-slider {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  margin-top: 0.2em;
+}
+.is-disabled {
+  opacity: 0.5;
+}
+
+/* ── 입력 ── */
+.wg-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--wg-touch);
+  padding: 0.4em 0.6em;
+  border: 2px solid var(--wg-line);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--wg-ink);
+  background: var(--wg-bg);
+}
+.wg-fields > * + * {
+  margin-top: 0.5em;
+}
+.wg-field {
+  display: block;
+}
+.wg-field > span {
+  display: block;
+  font-size: 0.85em;
+  color: var(--wg-muted);
+  margin-bottom: 0.2em;
+}
+
+/* ── 결과 ── */
+.wg-readout {
+  border-radius: 8px;
+  background: var(--wg-soft);
+  padding: 0.4em 0.7em;
+  border-left: 4px solid var(--wg-line);
+}
+.wg-readout-label {
+  display: block;
+  font-size: 0.8em;
+  color: var(--wg-muted);
+}
+.wg-readout-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.wg-tone-ok {
+  border-left-color: var(--wg-ok);
+}
+.wg-tone-bad {
+  border-left-color: var(--wg-bad);
+}
+.wg-tone-warn {
+  border-left-color: var(--wg-warn);
+}
+.wg-verdict {
+  margin: 0;
+  padding: 0.5em 0.75em;
+  border-radius: 8px;
+  background: var(--wg-soft);
+}
+.wg-verdict.is-ok {
+  color: var(--wg-ok);
+  border: 2px solid var(--wg-ok);
+}
+.wg-verdict.is-bad {
+  color: var(--wg-bad);
+  border: 2px solid var(--wg-bad);
+}
+.wg-quote {
+  margin: 0;
+  padding: 0.5em 0.75em;
+  background: var(--wg-soft);
+  border-radius: 8px;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.wg-code {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  overflow-wrap: break-word;
+}
+.wg-q {
+  margin: 0;
+  font-weight: 700;
+}
+.wg-answer {
+  padding: 0.6em;
+  border: 1px solid var(--wg-line);
+  border-radius: 8px;
+}
+.wg-list,
+.wg-docs {
+  margin: 0;
+  padding-left: 1.3em;
+}
+.wg-list li + li,
+.wg-docs li + li {
+  margin-top: 0.3em;
+}
+.wg-marked mark {
+  padding: 0 0.15em;
+  border-radius: 4px;
+  color: inherit;
+}
+.wg-pos {
+  background: #dcfce7;
+  border-bottom: 3px solid var(--wg-ok);
+}
+.wg-neg {
+  background: #fee2e2;
+  border-bottom: 3px dashed var(--wg-bad);
+}
+html[data-theme="dark"] .wg-pos,
+html[data-theme="chalk"] .wg-pos {
+  background: #14532d;
+}
+html[data-theme="dark"] .wg-neg,
+html[data-theme="chalk"] .wg-neg {
+  background: #7f1d1d;
+}
+
+/* ── 표 ── */
+.wg-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.wg-table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.wg-table caption {
+  text-align: left;
+  font-weight: 700;
+  padding-bottom: 0.3em;
+}
+.wg-table th,
+.wg-table td {
+  border: 1px solid var(--wg-line);
+  padding: 0.3em 0.55em;
+  text-align: center;
+  white-space: nowrap;
+}
+.wg-table thead th {
+  background: var(--wg-soft);
+}
+.wg-table tr.is-hl th,
+.wg-table tr.is-hl td {
+  background: var(--wg-soft);
+  font-weight: 700;
+  outline: 2px solid var(--wg-accent);
+  outline-offset: -2px;
+}
+.wg-cell {
+  min-width: 4em;
+}
+.wg-cell.is-ok {
+  border-color: var(--wg-ok);
+  color: var(--wg-ok);
+}
+.wg-cell.is-bad {
+  border-color: var(--wg-bad);
+  color: var(--wg-bad);
+}
+
+/* ── 수식 ── */
+.wg-tex-block {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.2em 0;
+}
+.wg-mats > * + * {
+  margin-top: 0.3em;
+}
+
+/* ── 그림(Plot) ── */
+.wg-plot {
+  margin: 0;
+  min-width: 0;
+}
+.wg-plot-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4em;
+}
+.wg-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.85em;
+}
+.wg-legend li {
+  display: flex;
+  align-items: center;
+  margin: 0.15em 0.9em 0.15em 0;
+}
+.wg-legend svg {
+  margin-right: 0.3em;
+}
+.wg-plot-box {
+  width: 100%;
+  overflow: hidden;
+}
+.wg-plot-svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  touch-action: manipulation;
+}
+.wg-plot-svg.is-pick {
+  cursor: crosshair;
+}
+.wg-plot-svg text {
+  fill: var(--wg-muted);
+}
+.wg-plot-svg .wg-axis-label {
+  fill: var(--wg-ink);
+  font-weight: 700;
+}
+.wg-grid line {
+  stroke: var(--wg-line);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+.wg-axis line {
+  stroke: var(--wg-muted);
+  stroke-width: 1.5;
+}
+.wg-frame {
+  fill: none;
+  stroke: var(--wg-line);
+}
+.wg-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+.wg-s1 .wg-line,
+.wg-s1 .wg-mark,
+.wg-legend .wg-s1 {
+  stroke: var(--s1);
+  color: var(--s1);
+}
+.wg-s2 .wg-line,
+.wg-s2 .wg-mark {
+  stroke: var(--s2);
+}
+.wg-s3 .wg-line,
+.wg-s3 .wg-mark {
+  stroke: var(--s3);
+}
+.wg-s4 .wg-line,
+.wg-s4 .wg-mark {
+  stroke: var(--s4);
+}
+.wg-s5 .wg-line,
+.wg-s5 .wg-mark {
+  stroke: var(--s5);
+}
+.wg-s1 .wg-mark { fill: var(--s1); }
+.wg-s2 .wg-mark { fill: var(--s2); }
+.wg-s3 .wg-mark { fill: var(--s3); }
+.wg-s4 .wg-mark { fill: var(--s4); }
+.wg-s5 .wg-mark { fill: none; stroke-width: 2.5; }
+.wg-mark {
+  stroke-width: 1.5;
+}
+.wg-legend li span {
+  color: var(--wg-ink);
+}
+.wg-zone {
+  fill: var(--s1);
+  opacity: 0.1;
+}
+.wg-shade rect {
+  opacity: 0.16;
+}
+.wg-shade .wg-s1 { fill: var(--s1); }
+.wg-shade .wg-s2 { fill: var(--s2); }
+.wg-shade .wg-s3 { fill: var(--s3); }
+.wg-links line,
+.wg-resid line {
+  stroke: var(--wg-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.wg-ring {
+  fill: none;
+  stroke: var(--wg-muted);
+  stroke-dasharray: 2 4;
+}
+
+/* ── 막대(히스토그램) ── */
+.wg-bars {
+  display: flex;
+  align-items: flex-end;
+  height: 7em;
+}
+.wg-bar-col {
+  -webkit-box-flex: 1;
+  flex: 1 1 0;
+  margin: 0 2px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.wg-bar-track {
+  -webkit-box-flex: 1;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-end;
+}
+.wg-bar {
+  width: 100%;
+  background: var(--s1);
+  border-radius: 3px 3px 0 0;
+  min-height: 1px;
+}
+.wg-bar-label {
+  font-size: 0.8em;
+  text-align: center;
+  color: var(--wg-muted);
+}
+
+/* ── 픽셀 ── */
+.wg-pixels {
+  display: grid;
+  grid-gap: 3px;
+  max-width: 22em;
+}
+.wg-pic {
+  max-width: 15em;
+  grid-gap: 1px;
+  border: 1px solid var(--wg-line);
+}
+.wg-pixel {
+  display: block;
+  position: relative;
+  border: 1px solid var(--wg-line);
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+span.wg-pixel {
+  cursor: default;
+  border: 0;
+}
+.wg-pixel-pad {
+  display: block;
+  padding-top: 100%;
+}
+.wg-pixel.is-sel {
+  outline: 4px solid var(--wg-accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+/* ── 순서도 ── */
+.wg-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.wg-flow > li + li {
+  margin-top: 0.3em;
+}
+.wg-node {
+  border: 2px solid var(--wg-line);
+  border-radius: 8px;
+  padding: 0.3em 0.6em;
+}
+.wg-node-dec {
+  border-style: dashed;
+}
+.wg-node-start,
+.wg-node-end {
+  border-radius: 999px;
+}
+.wg-node.is-on {
+  border-color: var(--wg-accent);
+  background: var(--wg-soft);
+  font-weight: 700;
+}
+.wg-node-kind {
+  display: inline-block;
+  min-width: 3.5em;
+  font-size: 0.8em;
+  color: var(--wg-muted);
+}
+.wg-node-branch {
+  display: block;
+  font-size: 0.8em;
+  color: var(--wg-muted);
+}
+
+/* ── 도구 단추 줄(처음으로·결과 가리기) ── */
+.wg-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: -0.2em -0.2em 0.6em;
+}
+.wg-tools > * {
+  margin: 0.2em;
+}
+.wg-mission-chip {
+  display: inline-block;
+  padding: 0.2em 0.7em;
+  border: 2px solid var(--wg-ok);
+  border-radius: 999px;
+  color: var(--wg-ok);
+  font-weight: 700;
+}
+
+/* ── 가린 결과 ── */
+.wg-mask {
+  margin: 0;
+  padding: 0.5em 0.75em;
+  border: 2px dashed var(--wg-line);
+  border-radius: 8px;
+  color: var(--wg-muted);
+  background: var(--wg-bg);
+}
+.wg-readout-value.is-masked {
+  color: var(--wg-muted);
+  font-weight: 600;
+}
+
+/* ── 큰 결과 숫자 ── */
+.wg-bignum {
+  border-radius: var(--wg-radius);
+  background: var(--wg-soft);
+  border-left: 6px solid var(--wg-line);
+  padding: 0.5em 0.9em;
+}
+.wg-bignum-label,
+.wg-bignum-sub {
+  display: block;
+  color: var(--wg-muted);
+  font-size: 0.85em;
+}
+.wg-bignum-value {
+  display: block;
+  font-size: 2.2em;
+  line-height: 1.15;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: break-word;
+}
+.wg-bignum-value.is-masked {
+  color: var(--wg-muted);
+}
+.wg-bignum.wg-tone-ok .wg-bignum-value {
+  color: var(--wg-ok);
+}
+.wg-bignum.wg-tone-bad .wg-bignum-value {
+  color: var(--wg-bad);
+}
+
+/* ── 끌기 손잡이 ── */
+.wg-handle {
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+.wg-handle-hit {
+  fill: transparent;
+  stroke: none;
+}
+.wg-handle-dot {
+  stroke: var(--wg-bg);
+  stroke-width: 3;
+  opacity: 0.92;
+}
+.wg-handle.wg-s1 .wg-handle-dot { fill: var(--s1); }
+.wg-handle.wg-s2 .wg-handle-dot { fill: var(--s2); }
+.wg-handle.wg-s3 .wg-handle-dot { fill: var(--s3); }
+.wg-handle.wg-s4 .wg-handle-dot { fill: var(--s4); }
+.wg-handle.wg-s5 .wg-handle-dot { fill: var(--s5); }
+.wg-handle.is-on .wg-handle-dot {
+  stroke: var(--wg-ink);
+}
+.wg-plot-svg.is-dragging,
+.wg-plot-svg.is-dragging .wg-handle {
+  cursor: grabbing;
+}
+html.kbd .wg-handle:focus .wg-handle-dot {
+  stroke: var(--wg-accent);
+  stroke-width: 5;
+}
+
+/* ── 칠판(1920×1080 무대): 글자 24px 이상, 큰 결과 120px, 손잡이 48/잡히는 영역 80 ── */
+.wg-on-board .wf-side {
+  font-size: 26px;
+}
+.wg-on-board .wg-body,
+.wg-on-board .wg-tools {
+  font-size: 26px;
+}
+.wg-on-board .wg-readout-label,
+.wg-on-board .wg-stepper-label,
+.wg-on-board .wg-seg-label,
+.wg-on-board .wg-field > span,
+.wg-on-board .wg-legend,
+.wg-on-board .wg-bar-label,
+.wg-on-board .wg-node-kind,
+.wg-on-board .wg-node-branch,
+.wg-on-board .wg-chip,
+.wg-on-board .wg-bignum-label,
+.wg-on-board .wg-bignum-sub,
+.wg-on-board .wg-btn-small {
+  font-size: 24px;
+}
+.wf-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -4px;
+}
+.wf-tabs > * {
+  margin: 4px;
+}
+.wf-mission-mini {
+  margin: 0;
+  color: var(--wg-muted);
+}
+.wf-mission-mini.is-ok {
+  color: var(--wg-ok);
+  font-weight: 700;
+}
+.wg-on-board .wg-pixels {
+  max-width: 440px;
+}
+.wg-on-board .wf-no {
+  font-size: 24px;
+}
+/* KaTeX 의 첨자(0.7배)도 24px 이상이 되게 */
+.wg-on-board .katex {
+  font-size: 1.34em;
+}
+.wg-on-board .wg-code,
+.wg-on-board .wg-marked sup,
+.wg-on-board .wg-toggle-mark {
+  font-size: 24px;
+}
+.wg-on-board .wg-bignum-value {
+  font-size: 120px;
+  line-height: 1.05;
+}
+.wg-on-board .wg-btn,
+.wg-on-board .wg-stepper-btn {
+  min-height: 64px;
+  min-width: 64px;
+}
+.wg-on-board .wg-stepper-btn {
+  width: 64px;
+}
+/* 칠판은 세로 1080 안에 들어가야 해서 몸통을 두 단으로 흘려요(읽는 차례는 그대로: 왼쪽 단 위→아래, 다음 오른쪽 단) */
+.wg-on-board .wg-body {
+  -webkit-column-count: 2;
+  column-count: 2;
+  -webkit-column-gap: 40px;
+}
+.wg-on-board .wg-body > * {
+  -webkit-column-break-inside: avoid;
+  break-inside: avoid;
+}
+.wg-on-board .wg-plot-svg.has-handles {
+  touch-action: none;
+}
+
+/* 칠판: 그림판이 길어 도구 칸 안에서 스크롤해도 왼쪽 안내판은 제자리에 있어요 */
+.wg-on-board .wf-side {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+}
+.wg-on-board .wf-side-tools .wg-tools {
+  margin: 0;
+}
+.wg-on-board .wf-board {
+  padding: 20px 24px;
+}
+.wg-on-board .wg-body {
+  line-height: 1.4;
+}
+.wg-on-board .wg-body > * + * {
+  margin-top: 0.55em;
+}
+/* 반 칸(두 단·카드 둘) 안의 스테퍼·큰 숫자는 칸 폭을 넘지 않게 */
+.wg-on-board .wg-stepper {
+  min-width: 0;
+}
+.wg-on-board .wg-two .wg-bignum-value,
+.wg-on-board .wg-grid3 .wg-bignum-value {
+  font-size: 72px;
+}
+.wg-on-board .wg-bignum {
+  padding: 0.35em 0.7em;
+}
+.wg-on-board .wg-code {
+  font-family: inherit;
+  font-weight: 600;
+}
+/* 칠판에서 6×6 그림은 카드 폭을 다 써요(한 칸 40px 남짓 = 75인치 칠판에서 3cm 이상) */
+.wg-on-board .wg-pic {
+  max-width: none;
+}
+
+/* ── 휴대폰: 세로로 쌓고 누르는 곳 44px 이상 ── */
+.wg-on-phone .wg-two,
+.wg-on-phone .wg-grid3 {
+  grid-template-columns: 1fr;
+}
+.wg-on-phone .wg-btn,
+.wg-on-phone .wg-btn-small,
+.wg-on-phone .wg-stepper-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+.wg-on-phone .wg-pic {
+  max-width: none;
+}
+.wg-on-phone .wg-stepper {
+  display: block;
+  min-width: 0;
+}
+
+.wg-on-phone .wg-slider {
+  min-height: 44px;
+}
+
+/* ── KaTeX 의 svg 글자(벡터 화살표·근호 등) ──
+   공용 base.css 의 'svg { overflow: visible }'·'img, svg { max-width: 100% }' 때문에 화살표가 폭 0 으로 사라지고,
+   보이지 않는 path 가 옆 단추의 터치를 가로채요. 도구 안에서는 KaTeX 기본값으로 되돌려요 */
+.wg-host .katex svg {
+  max-width: none;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wg-host * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

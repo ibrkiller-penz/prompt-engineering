@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>칠판 수업 화면 시안</title>
+<!-- 디자인팀 2번 시안: 전자칠판(1920x1080) 수업 진행 화면. Chrome 80 안전 CSS만(flex gap·aspect-ratio·:has 없음). -->
+<style>
+:root{--bg:#fbfaf6;--ink:#14161f;--sub:#3d4152;--line:#d9d6cc;--unit:#4f46e5;--unit-soft:#eef0ff;--ok:#0f7a3d;--warn:#a15c00;--bar:#1d2030;--bar-ink:#f4f2ea}
+:root[data-theme=dark]{--bg:#12141c;--ink:#f1efe6;--sub:#c3c6d4;--line:#363a4c;--unit-soft:#22254a}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+body{font-family:"Pretendard",system-ui,sans-serif;color:var(--ink)}
+#fit{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;background:var(--bg)}
+/* 위: 진행 레일 64px */
+.rail{position:absolute;left:0;top:0;right:0;height:64px;display:flex;align-items:center;padding:0 32px;border-bottom:2px solid var(--line)}
+.rail .les{font-size:24px;font-weight:700;color:var(--unit);margin-right:24px;white-space:nowrap}
+.rail .stg{display:flex;flex:1}
+.rail .stg span{flex:1;height:40px;line-height:40px;text-align:center;font-size:20px;color:var(--sub);border-radius:20px;margin-right:8px}
+.rail .stg span.on{background:var(--unit);color:#fff;font-weight:700}
+.rail .stg span.done{background:var(--unit-soft);color:var(--unit)}
+.rail .clk{font-size:28px;font-weight:700;margin-left:16px;font-variant-numeric:tabular-nums}
+/* 무대 */
+.stage{position:absolute;left:120px;right:120px;top:64px;bottom:120px;padding:48px 40px 24px}
+.kicker{font-size:24px;color:var(--unit);font-weight:700;letter-spacing:.02em}
+h1{font-size:56px;line-height:1.25;margin:8px 0 32px}
+.two{display:flex}.two>.l{flex:1 1 0;padding-right:48px}.two>.r{width:760px}
+p.big{font-size:34px;line-height:1.6;margin:0 0 24px}
+.math{font-size:48px;text-align:center;padding:24px;background:var(--unit-soft);border-radius:16px;margin:0 0 24px}
+.aha{border-left:10px solid var(--ok);padding:16px 24px;font-size:32px;background:rgba(15,122,61,.08);border-radius:0 12px 12px 0}
+.step{font-size:34px;line-height:1.5;padding:16px 0;border-bottom:2px dashed var(--line)}
+.step.hid{color:transparent;background:repeating-linear-gradient(90deg,var(--line) 0 24px,transparent 24px 36px);background-size:100% 6px;background-repeat:no-repeat;background-position:0 50%}
+/* 좌우 넘김 띠 120px */
+.nav{position:absolute;top:64px;bottom:120px;width:120px;border:0;background:transparent;font-size:64px;color:var(--sub)}
+.nav:active{background:rgba(0,0,0,.06)}.nav.p{left:0}.nav.n{right:0}
+/* 아래 도구띠 120px: 조작은 모두 여기(손 닿는 높이) */
+.dock{position:absolute;left:0;right:0;bottom:0;height:120px;background:var(--bar);color:var(--bar-ink);display:flex;align-items:center;padding:0 24px}
+.dock button{min-width:96px;height:88px;margin-right:12px;border:0;border-radius:16px;background:#2c3044;color:var(--bar-ink);font-size:22px;font-weight:600;padding:0 16px}
+.dock button.on{background:#ffd54a;color:#1d2030}
+.dock .sp{flex:1}
+.dock .reveal{background:var(--unit);min-width:240px;font-size:28px}
+.dots{display:flex;align-items:center;margin-right:24px}.dots i{display:block;width:16px;height:16px;border-radius:50%;background:#555b74;margin-right:8px}.dots i.on{background:#ffd54a;width:40px;border-radius:8px}
+.pos{font-size:26px;margin-right:24px;font-variant-numeric:tabular-nums}
+canvas#ink{position:absolute;left:0;top:64px;width:1920px;height:896px;pointer-events:none}
+canvas#ink.live{pointer-events:auto;cursor:crosshair}
+</style></head>
+<body>
+<div id="fit">
+  <div class="rail"><div class="les">Ⅰ-1 인공지능의 개념과 역사</div>
+    <div class="stg"><span class="done">도입</span><span class="done">복습</span><span class="on">개념 2/6</span><span>체험</span><span>문제</span><span>정리</span><span>QR</span></div>
+    <div class="clk">⏱ 18:42</div></div>
+  <div class="stage">
+    <div class="kicker">개념 2 · 규칙 기반과 학습 기반 (장면 2/3)</div>
+    <h1>규칙을 사람이 쓸까, 데이터에서 배울까?</h1>
+    <div class="two"><div class="l">
+      <p class="big">에어컨 규칙: 온도가 <b>28도 이상</b>이면 켜요. 그다음 규칙을 확인해요.</p>
+      <div class="step">① 온도 = 29, 29 ≥ 28 이므로 첫 규칙에 걸려요.</div>
+      <div class="step">② 첫 규칙에서 멈추니 '켜기'예요.</div>
+      <div class="step hid">③ 규칙 순서를 바꾸면 결과가 달라져요.</div>
+    </div><div class="r">
+      <div class="math"><!-- 실제 구현: KaTeX 1.4배 -->T ≥ 28 ⇒ 켜기</div>
+      <div class="aha"><b>한 줄 정리</b> · 규칙 기반은 사람이 순서까지 정해요.</div>
+    </div></div>
+  </div>
+  <button class="nav p" aria-label="이전 장면">‹</button><button class="nav n" aria-label="다음 장면">›</button>
+  <canvas id="ink"></canvas>
+  <div class="dock">
+    <div class="dots"><i></i><i></i><i class="on"></i><i></i></div><div class="pos">14 / 31</div>
+    <button class="reveal">다음 단계 보이기</button>
+    <span class="sp"></span>
+    <button id="pen">✏️ 펜</button><button>🖍 형광</button><button>🧽 지우개</button><button>↶ 되돌리기</button><button>🗑 모두</button>
+    <button>⏲ 타이머</button><button>🔲 가림막</button><button>A± 글자</button><button>⛶ 전체</button><button>☰ 장면표</button>
+  </div>
+</div>
+<script>
+// 1920x1080 고정 캔버스를 화면에 맞춤(transform: scale). Chrome 80 안전 문법만.
+function fit(){var s=Math.min(innerWidth/1920,innerHeight/1080),el=document.getElementById('fit');
+el.style.transform='translate('+((innerWidth-1920*s)/2)+'px,'+((innerHeight-1080*s)/2)+'px) scale('+s+')';}
+addEventListener('resize',fit);fit();
+document.getElementById('pen').onclick=function(){this.classList.toggle('on');document.getElementById('ink').classList.toggle('live');};
+</script>
+</body></html>

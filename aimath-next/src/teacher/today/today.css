@@ -1,0 +1,81 @@
+/* 오늘 수업(#/). Chrome 80 안전. */
+
+.t-today-head { align-items: flex-end; }
+
+/* 이어서 하기 */
+.t-resume { border-left: 8px solid var(--accent); }
+.t-resume .row > .grow { margin-right: var(--sp-4); }
+.t-resume-go > * + * { margin-left: .4em; }
+
+/* 처음 쓰는 경우 */
+.t-welcome { border: var(--border) solid var(--site); }
+.t-welcome > * + * { margin-top: var(--sp-3); }
+.t-steps { margin: 0; padding-left: 1.4em; }
+.t-steps > li + li { margin-top: var(--sp-2); }
+
+/* 오늘 레슨 */
+.t-lesson > * + * { margin-top: var(--sp-5); }
+.t-lesson > .stack > * + * { margin-top: var(--sp-2); }
+.t-question { margin: 0; font-size: var(--t-lg); line-height: 1.5; font-weight: 700; }
+.t-q-tag {
+  display: inline-block; vertical-align: middle; margin-right: .3em;
+  padding: 0 .5em; border-radius: var(--radius-s);
+  background: var(--accent); color: var(--on-accent); font-size: var(--t-xs); font-weight: 800; line-height: 1.8;
+}
+.t-pickers { display: flex; flex-wrap: wrap; margin: calc(var(--sp-3) * -1); }
+.t-pickers > .t-picker { margin: var(--sp-3); }
+.t-picker > * + * { margin-top: var(--sp-2); }
+.t-dur { min-width: 5.5em; }
+
+/* 시간 배분 막대(5색 + 글자). 색은 장식, 뜻은 글자와 범례로 전해요 */
+.t-timebar > * + * { margin-top: var(--sp-2); }
+.t-tb-bar { display: flex; height: 3.2em; border-radius: var(--radius-m); overflow: hidden; background: var(--surface-2); }
+.t-tb-seg {
+  display: flex; align-items: center; justify-content: center; min-width: 6px; overflow: hidden;
+  color: #ffffff; font-size: var(--t-sm); font-weight: 800; white-space: nowrap;
+}
+.t-tb-seg + .t-tb-seg { border-left: 3px solid var(--surface); }
+.t-tb-txt { padding: 0 .4em; overflow: hidden; text-overflow: ellipsis; }
+.t-tb-seg.is-intro, .t-tb-sw.is-intro { background: #1d4ed8; }
+.t-tb-seg.is-concept, .t-tb-sw.is-concept { background: #0f766e; }
+.t-tb-seg.is-tool, .t-tb-sw.is-tool { background: #6d28d9; }
+.t-tb-seg.is-practice, .t-tb-sw.is-practice { background: #9a3412; }
+.t-tb-seg.is-wrap, .t-tb-sw.is-wrap { background: #374151; }
+.t-tb-legend { display: flex; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; font-size: var(--t-sm); }
+.t-tb-legend > li { display: inline-flex; align-items: center; margin-right: var(--sp-5); }
+.t-tb-legend b { margin-left: .25em; }
+.t-tb-sw { display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .35em; }
+.t-over { color: var(--warn); font-weight: 800; }
+
+/* 수업 시작(96px) */
+.t-start-wrap > * + * { margin-top: var(--sp-2); }
+.t-start {
+  display: flex; width: 100%; min-height: 96px; border-radius: var(--radius-l);
+  font-size: var(--t-xl); font-weight: 800; letter-spacing: .01em;
+  background: var(--site); border-color: var(--site); color: var(--on-site);
+}
+.t-start > * + * { margin-left: .5em; }
+
+.t-prep-links { display: flex; flex-wrap: wrap; margin: calc(var(--sp-1) * -1); }
+.t-prep-links > .btn { margin: var(--sp-1); }
+.t-prep-links .btn > * + * { margin-left: .4em; }
+
+/* 반별 진도 요약 */
+.t-cls-row { display: flex; align-items: center; padding: var(--sp-2) 0; }
+.t-cls-row > * + * { margin-left: var(--sp-3); }
+.t-cls-row .grow > p { margin: 0; }
+.t-cls-name { min-width: 4.5em; justify-content: center; }
+.t-cls-row.is-now .t-cls-name { background: var(--site); color: var(--on-site); }
+
+.t-student-url { background: var(--surface-2); box-shadow: none; }
+.t-student-url p { margin: 0; }
+
+@media (max-width: 760px) {
+  .t-today-head { flex-wrap: wrap; }
+  .t-resume .row { flex-wrap: wrap; }
+  .t-resume .row > .grow { margin: 0 0 var(--sp-3); width: 100%; }
+  .t-resume .row > .btn { margin-left: 0; }
+  .t-cls-row { flex-wrap: wrap; }
+  .t-cls-row > .btn { margin: var(--sp-2) 0 0; width: 100%; }
+  .t-start { font-size: var(--t-lg); }
+}

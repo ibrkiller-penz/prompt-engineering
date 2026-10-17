@@ -1,0 +1,59 @@
+/* 학습지 인쇄(#/print/:lid). 화면에서는 A4 종이 미리보기, 인쇄할 때는 A4 세로 흑백.
+ * 종이 안은 테마와 상관없이 흰 바탕 · 검은 글자예요. Chrome 80 안전(flex gap 없음).
+ */
+.pr-root { padding: var(--sp-4) var(--gutter); }
+.pr-root > * + * { margin-top: var(--sp-4); }
+.pr-tools > * + * { margin-top: var(--sp-2); }
+
+.pr-paper {
+  width: 210mm; max-width: 100%; min-height: 297mm; margin: 0 auto; padding: 14mm 14mm 12mm;
+  background: #fff; color: #000; box-shadow: var(--shadow-2);
+  font-size: 11pt; line-height: 1.55; word-break: keep-all;
+}
+.pr-paper .katex { font-size: 1.05em; color: #000; }
+.pr-paper b, .pr-paper strong { color: #000; }
+
+.pr-head { display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 3mm; }
+.pr-title { flex: 1 1 auto; min-width: 0; }
+.pr-eyebrow { margin: 0; font-size: 9pt; }
+.pr-head h1 { margin: 1mm 0 0; font-size: 15pt; line-height: 1.3; }
+.pr-who { flex: 0 0 auto; display: flex; align-items: flex-end; margin-left: 6mm; font-size: 9.5pt; }
+.pr-who > span { margin-left: 3mm; white-space: nowrap; }
+.pr-who > i { display: inline-block; width: 26mm; border-bottom: 1px solid #000; margin-left: 1.5mm; height: 1.2em; }
+.pr-question { margin: 4mm 0 0; padding: 2mm 3mm; border: 1px solid #000; border-radius: 2mm; }
+
+.pr-qs { list-style: none; margin: 5mm 0 0; padding: 0; }
+.pr-q { padding: 3mm 0 4mm; border-bottom: 1px dashed #777; break-inside: avoid; page-break-inside: avoid; }
+.pr-q > * + * { margin-top: 2mm; }
+.pr-q-head { display: flex; align-items: center; }
+.pr-q-n { display: inline-block; min-width: 7mm; height: 7mm; line-height: 7mm; text-align: center; border: 1.5px solid #000; border-radius: 50%; font-weight: 800; margin-right: 2.5mm; }
+.pr-q-id { font-size: 8.5pt; color: #333; }
+.pr-q-prompt { font-weight: 600; }
+.pr-choices { list-style: none; margin: 0; padding: 0 0 0 2mm; }
+.pr-choices > li + li { margin-top: 1mm; }
+.pr-key { font-weight: 800; margin-right: 1mm; }
+.pr-line { margin: 0; }
+.pr-blank { display: inline-block; width: 40mm; border-bottom: 1px solid #000; height: 1.1em; vertical-align: bottom; }
+.pr-open > i { display: block; height: 8mm; border-bottom: 1px solid #999; }
+.pr-keybox { border-left: 3px solid #000; padding-left: 3mm; }
+.pr-keybox > * + * { margin-top: 1.5mm; }
+.pr-keybox p { margin: 0; }
+.pr-keybox ul { margin: 0; padding-left: 5mm; }
+.pr-sol { font-size: 10pt; }
+.pr-empty { margin: 8mm 0; text-align: center; }
+
+.pr-foot { margin-top: 6mm; border-top: 2px solid #000; padding-top: 3mm; break-inside: avoid; page-break-inside: avoid; }
+.pr-qr { display: flex; align-items: center; }
+.pr-qr-img { flex: 0 0 auto; width: 28mm; height: 28mm; margin-right: 4mm; }
+.pr-qr-txt { flex: 1 1 auto; min-width: 0; font-size: 9.5pt; }
+.pr-qr-txt > * { display: block; }
+.pr-url { font-family: var(--font-num); font-size: 8.5pt; word-break: break-all; margin-top: 1mm; }
+
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  html, body { background: #fff !important; }
+  .pr-root { padding: 0; }
+  .pr-paper { width: auto; min-height: 0; box-shadow: none; margin: 0; padding: 12mm 14mm; }
+  .pr-paper, .pr-paper * { color: #000 !important; background-color: transparent !important; -webkit-print-color-adjust: exact; }
+  .pr-qr-img rect { fill: #fff !important; }
+}

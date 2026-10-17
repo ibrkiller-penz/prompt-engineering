@@ -1,0 +1,450 @@
+/* 학생 사이트(aimaths) 모양 다듬기 — 휴대폰 375x812 기준.
+ * 불러오는 순서: 공용 tokens → base → components → visual → motion → shell/shell.css → 이 파일(student/App.tsx).
+ * 배치 뼈대는 shell.css, 이 파일은 '보이는 모양'(색·모서리·그림자·크기)을 맡아요.
+ *
+ * 고정 영역 예산(812px 의 15% = 121.8px 이하):
+ *   카드 넘기기  위 띠 52 + 진행 레일 6 + 아래 행동 띠 62 = 120px
+ *   탭 화면      위 띠 52 + 아래 탭 56                  = 108px
+ *   (사이트 띠 4px 는 스크롤과 함께 올라가서 고정 영역에 들어가지 않아요)
+ *
+ * Chrome 80 안전: 최신 CSS 기능(flex 간격·비율 속성·관계 선택자·새 뷰포트 단위·계층·색 섞기·중첩)은 쓰지 않아요.
+ * 간격은 형제 margin 과 grid-gap, 키보드 포커스는 html.kbd 아래 :focus 로 보여요.
+ * 색은 모두 tokens.css 의 변수를 써서 light/dark/대비 높이기에서 함께 바뀌어요(응답 카드 바탕색만 고정 색).
+ */
+
+/* :root 를 붙여 shell.css 의 같은 변수보다 우선해요(번들 안 CSS 순서와 상관없이) */
+html[data-site="student"]:root {
+  --s-action-h: 62px;        /* 아래 행동 띠(주 단추 52 + 위아래 5) */
+  --s-rail-h: 6px;
+  --s-pos-h: 16px;           /* 위치 줄(행동 띠 안에 들어가요) */
+  --s-hero-ink: var(--on-accent);
+  --s-bubble-tail: 8px;
+}
+
+/* ───────────────────────── 위 띠(TopBar) ───────────────────────── */
+html[data-site="student"] .s-topbar {
+  height: var(--topbar-h); min-height: 0;
+  padding: 0 var(--sp-2) 0 var(--gutter);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+html[data-site="student"] .s-topbar .s-back { margin-left: calc(var(--sp-3) * -1); color: var(--ink); }
+html[data-site="student"] .s-topbar .s-back + .s-title { margin-left: 0; }
+html[data-site="student"] .s-title-main {
+  font-size: 17px; font-size: min(var(--t-md), 20px); /* 글자 크기를 키워도 52px 안에 들어가게 상한 */
+  font-weight: 800; color: var(--ink);
+}
+html[data-site="student"] .s-title-eyebrow {
+  font-size: 12px; font-size: min(var(--t-xs), 14px);
+  letter-spacing: .02em;
+}
+/* 오른쪽 작은 단추(읽어 주기·설정 등)는 44 터치 유지 */
+html[data-site="student"] .s-topbar > .btn,
+html[data-site="student"] .s-topbar > .ui-speak .btn { min-width: var(--tap); min-height: var(--tap); }
+
+/* ───────────────────────── 진행 레일 ───────────────────────── */
+html[data-site="student"] .s-rail {
+  height: var(--s-rail-h); padding: 0; background: var(--surface);
+}
+html[data-site="student"] .s-rail-seg { background: var(--surface-2); border-radius: 0; }
+html[data-site="student"] .s-rail-seg:first-child { border-radius: 0 0 0 0; }
+html[data-site="student"] .s-rail-seg > i { background: var(--accent); border-radius: 0 3px 3px 0; }
+html[data-site="student"] .s-rail-seg.is-now { background: var(--accent-soft); }
+html[data-site="student"] .s-rail-seg.is-now > i { background: var(--accent-ink); }
+/* 대비 높이기: 빈 칸에도 테두리 */
+html[data-contrast="more"] .s-rail-seg { box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+/* 계단 문제 점 */
+html[data-site="student"] .s-qdots { background: var(--surface); }
+html[data-site="student"] .s-qdots > i.now { box-shadow: inset 0 -3px 0 var(--ink); background: var(--accent-soft); }
+html[data-site="student"] .s-qdots > i.ok.now, html[data-site="student"] .s-qdots > i.tried.now { box-shadow: inset 0 -3px 0 var(--ink); }
+
+/* ───────────────────────── 아래 행동 띠(ActionBar) ───────────────────────── */
+html[data-site="student"] .s-actionbar {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 10px rgba(16, 24, 40, .06);
+}
+html[data-theme="dark"] .s-actionbar { box-shadow: 0 -2px 10px rgba(0, 0, 0, .5); }
+html[data-site="student"] .s-actionbar-in {
+  height: var(--s-action-h); min-height: 0;
+  padding: 5px var(--gutter);
+}
+html[data-site="student"] .s-actionbar .btn { min-height: 52px; height: 52px; border-radius: var(--radius-m); font-size: 16px; font-size: min(var(--t-md), 19px); }
+html[data-site="student"] .s-prev { min-width: 52px; padding: 0 var(--sp-3); }
+html[data-site="student"] .s-next { min-width: 120px; padding: 0 var(--sp-4); }
+/* '다음' 은 주 단추: 단원 색으로 꽉 채워요 */
+html[data-site="student"] .s-next.btn-primary,
+html[data-site="student"] .s-next:not(.btn-ghost):not(.btn-soft) {
+  background: var(--accent); border-color: var(--accent); color: var(--on-accent);
+}
+html[data-site="student"] .s-next[disabled] { background: var(--surface-2); border-color: var(--line-strong); color: var(--ink-2); }
+
+/* 위치 줄: "개념 2 · 3 / 7" */
+html[data-site="student"] .s-pos {
+  min-width: 0; overflow: hidden; line-height: 1.25;
+  font-size: 13px; color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+html[data-site="student"] .s-pos > * { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-site="student"] .s-pos strong { color: var(--accent-ink); font-weight: 800; font-size: 15px; }
+
+/* 행동 띠가 있는 화면의 아래 여백(행동 띠 + 레일) */
+html[data-site="student"] .s-main.has-actionbar {
+  padding-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-5));
+}
+
+/* ───────────────────────── 아래 탭 5칸 ───────────────────────── */
+html[data-site="student"] .s-tabbar {
+  height: calc(var(--tab-h) + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 10px rgba(16, 24, 40, .05);
+}
+html[data-theme="dark"] .s-tabbar { box-shadow: none; }
+html[data-site="student"] .s-tabbar a { color: var(--ink-2); padding-top: 4px; }
+html[data-site="student"] .s-tabbar a .ico-svg {
+  display: block; width: 52px; height: 28px; padding: 3px 0; margin-bottom: 1px;
+  border-radius: var(--radius-pill);
+  transition: background-color var(--dur);
+}
+/* 지금 탭: 아이콘 뒤 알약 + 글자 굵게 + 위쪽 막대(색만으로 구분하지 않아요) */
+html[data-site="student"] .s-tabbar a[aria-current="page"] { color: var(--accent-ink); }
+html[data-site="student"] .s-tabbar a[aria-current="page"] .ico-svg { background: var(--accent-soft); transform: none; }
+html[data-site="student"] .s-tabbar a[aria-current="page"]::before { left: 30%; right: 30%; }
+html[data-site="student"] .s-tabbar a:active .ico-svg { background: var(--surface-2); }
+
+/* ───────────────────────── 홈: 이어서 공부하기(히어로 카드) ───────────────────────── */
+html[data-site="student"] .s-continue {
+  position: relative; overflow: hidden;
+  padding: var(--sp-5) var(--sp-4) var(--sp-4);
+  border: 0; border-radius: var(--radius-l);
+  background: var(--accent); color: var(--s-hero-ink);
+  box-shadow: var(--shadow-2);
+}
+/* 장식 원(글자 뒤, 의미 없음) */
+html[data-site="student"] .s-continue::after {
+  content: ""; position: absolute; right: -40px; top: -40px; width: 150px; height: 150px;
+  border-radius: 50%; background: rgba(255, 255, 255, .12); pointer-events: none;
+}
+html[data-theme="dark"] .s-continue::after { background: rgba(0, 0, 0, .10); }
+html[data-site="student"] .s-continue > * { position: relative; z-index: 1; }
+html[data-site="student"] .s-continue .eyebrow,
+html[data-site="student"] .s-continue .muted,
+html[data-site="student"] .s-continue .small,
+html[data-site="student"] .s-continue .s-continue-title { color: var(--s-hero-ink); }
+html[data-site="student"] .s-continue .eyebrow { font-size: var(--t-sm); letter-spacing: .04em; }
+html[data-site="student"] .s-continue .s-continue-title { font-size: var(--t-xl); line-height: 1.3; }
+/* 히어로 안 진행 막대: 흰색 */
+html[data-site="student"] .s-continue .meter,
+html[data-site="student"] .s-continue .ui-progress .meter {
+  background: rgba(255, 255, 255, .28); box-shadow: none;
+}
+html[data-site="student"] .s-continue .meter > i { background: #ffffff; }
+html[data-site="student"] .s-continue .ui-progress-txt { color: var(--s-hero-ink); }
+html[data-theme="dark"] .s-continue .meter { background: rgba(0, 0, 0, .25); }
+html[data-theme="dark"] .s-continue .meter > i { background: var(--on-accent); }
+/* 히어로 안 단추: 흰 바탕 + 단원 글자색(반전) */
+html[data-site="student"] .s-continue .s-continue-go {
+  min-height: var(--tap-main); margin-top: var(--sp-4);
+  background: var(--surface); border-color: var(--surface); color: var(--accent-ink);
+  font-size: var(--t-md);
+}
+html[data-site="student"] .s-continue:active { transform: scale(.99); }
+html.kbd .s-continue:focus { outline: var(--focus-w) solid var(--focus); outline-offset: 3px; }
+
+/* 오늘 할 일 3줄 */
+html[data-site="student"] .s-today { padding: 0 var(--sp-4); }
+html[data-site="student"] .s-today .list-row { min-height: 52px; }
+html[data-site="student"] .s-today .list-row > .ico-svg:first-child { color: var(--accent-ink); }
+html[data-site="student"] .s-today > li + li { border-top: 1px solid var(--line); }
+
+/* 단원 진행 줄 */
+html[data-site="student"] .s-units > li + li { border-top: 1px solid var(--line); }
+html[data-site="student"] .s-unit-row { padding: var(--sp-3) 0; }
+html[data-site="student"] .s-unit-name { color: var(--accent-ink); }
+html[data-site="student"] .s-unit-row .chip { flex: 0 0 auto; }
+
+/* ───────────────────────── 단원 화면 ───────────────────────── */
+html[data-site="student"] .s-unit-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+html[data-site="student"] .s-unit-chip { flex: 0 0 auto; min-height: var(--tap); }
+html[data-site="student"] .s-lesson-card { border-left: 5px solid var(--accent); padding-left: calc(var(--sp-4) - 2px); }
+html[data-site="student"] .s-lesson-card .eyebrow { font-variant-numeric: tabular-nums; }
+html[data-site="student"] .s-challenge { border: var(--border) dashed var(--accent); background: var(--accent-soft); }
+
+/* 레슨 개요 4단계
+ * (촬영 검수) .card-link 의 display:block 이 .row 의 flex 를 덮어써서 '>' 가 아래 줄로 떨어졌어요 → flex 로 되돌려요.
+ * 오답노트의 '오늘의 복습' 큰 카드도 같은 짜임이라 함께 고쳐요. */
+html[data-site="student"] .s-stage,
+html[data-site="student"] .s-review-cta {
+  display: flex; align-items: center; flex-wrap: nowrap;
+}
+html[data-site="student"] .s-stage > .grow,
+html[data-site="student"] .s-review-cta > .grow { flex: 1 1 auto; min-width: 0; }
+html[data-site="student"] .s-stage > .ico-svg,
+html[data-site="student"] .s-review-cta > .ico-svg,
+html[data-site="student"] .s-stage > .verdict { flex: 0 0 auto; }
+html[data-site="student"] .s-stage { min-height: 64px; }
+
+/* '오늘 배울 것' 소제목 링크: 글자 높이(20px)뿐이라 손가락으로 누르기 어려웠어요 → 줄 전체를 44px 터치로 */
+html[data-site="student"] .s-goals > li + li { margin-top: 0; }
+html[data-site="student"] .s-goals > li > a {
+  display: inline-block; min-height: var(--tap);
+  padding: 10px 0; line-height: 1.4;
+}
+html[data-site="student"] .s-goals > li > .verdict { margin-left: var(--sp-1); }
+
+/* 문단 끝 홀로 놓인 작은 링크(홈 '응답 카드 열기', 레슨 '더 풀기')도 44px 터치 */
+html[data-site="student"] .page > p.center > a:only-child {
+  display: inline-block; min-height: var(--tap); padding: 12px var(--sp-3); line-height: 20px;
+}
+html[data-site="student"] .s-stage-n { width: 32px; height: 32px; background: var(--accent); color: var(--on-accent); }
+
+/* ───────────────────────── 카드 넘기기: 공통 ───────────────────────── */
+html[data-site="student"] .s-deck { padding-top: var(--sp-4); }
+html[data-site="student"] .s-deck .eyebrow {
+  display: inline-block; padding: 2px 10px; border-radius: var(--radius-pill);
+  background: var(--accent-soft); color: var(--accent-ink);
+}
+html[data-site="student"] .s-deck .h2 { font-size: var(--t-xl); line-height: 1.35; }
+html[data-site="student"] .s-deck .prose,
+html[data-site="student"] .s-deck .ui-blocks { font-size: var(--t-md); line-height: var(--lh-body); }
+
+/* ── 이야기: 말풍선(단원 soft 색) ── */
+html[data-site="student"] .s-story-body > * + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-narr {
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--line-strong);
+  color: var(--ink-2); line-height: var(--lh-body);
+}
+html[data-site="student"] .s-say .ui-speaker { margin: 0 0 4px 2px; }
+html[data-site="student"] .s-say .bubble {
+  position: relative; display: block;
+  background: var(--accent-soft); color: var(--ink);
+  border: 1px solid transparent; border-radius: 4px var(--radius-l) var(--radius-l) var(--radius-l);
+  padding: var(--sp-3) var(--sp-4);
+  line-height: var(--lh-body);
+}
+/* 꼬리(왼쪽 위) */
+html[data-site="student"] .s-say .bubble::before {
+  content: ""; position: absolute; left: calc(var(--s-bubble-tail) * -1); top: 0;
+  width: 0; height: 0;
+  border-top: var(--s-bubble-tail) solid var(--accent-soft);
+  border-left: var(--s-bubble-tail) solid transparent;
+}
+html[data-contrast="more"] .s-say .bubble { border-color: var(--accent); }
+html[data-site="student"] .s-cast-chip { background: var(--surface); border: 1px solid var(--line); }
+html[data-site="student"] .s-core-q { color: var(--accent-ink); }
+
+/* 먼저 알고 가요: 알아요 / 헷갈려요 */
+html[data-site="student"] .s-know > .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+html[data-site="student"] .s-know > .btn[aria-pressed="true"]::before { content: "\2713"; margin-right: .35em; }
+
+/* ── 개념 카드 ── */
+html[data-site="student"] .s-concept {
+  background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius-l);
+  border-top: 4px solid var(--accent);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow-1);
+}
+html[data-site="student"] .s-concept.is-example { border-top-color: var(--ok); }
+html[data-site="student"] .s-concept.is-widget { border-top-style: dashed; }
+html[data-site="student"] .s-concept .s-cont { background: transparent; padding: 0; color: var(--ink-2); }
+html[data-site="student"] .s-concept .s-cont::before { content: "\2026 "; }
+html[data-site="student"] .s-sec-end { padding-top: var(--sp-2); border-top: 1px dashed var(--line); }
+/* 체험 카드는 가장자리까지 넓게 */
+html[data-site="student"] .s-concept.is-widget { padding-left: var(--sp-3); padding-right: var(--sp-3); }
+html[data-site="student"] .s-widget-card > .chip { margin: 0; }
+
+/* ── 예제: 단계 공개 ── */
+html[data-site="student"] .s-deck .ui-example {
+  border: 0; border-radius: var(--radius-m);
+  background: var(--surface-2); padding: var(--sp-4) var(--sp-3);
+}
+html[data-site="student"] .ui-example-tag { background: var(--ok); color: #ffffff; }
+html[data-theme="dark"] .ui-example-tag { color: var(--bg); }
+html[data-site="student"] .ui-example-problem {
+  padding: var(--sp-3); border-radius: var(--radius-s);
+  background: var(--surface); border: 1px solid var(--line);
+}
+html[data-site="student"] .ui-example-steps { position: relative; }
+html[data-site="student"] .ui-ex-step {
+  border: 0; background: var(--surface); border-radius: var(--radius-s);
+  padding: var(--sp-2) var(--sp-3); color: var(--ink);
+  animation: s-step-in var(--dur) ease-out both;
+}
+html[data-site="student"] .ui-ex-step + .ui-ex-step { margin-top: var(--sp-2); }
+html[data-site="student"] .ui-ex-n { background: var(--accent); color: var(--on-accent); font-variant-numeric: tabular-nums; }
+html[data-site="student"] .ui-example-answer { border-left: 4px solid var(--ok); }
+html[data-site="student"] .ui-example-ctl { display: flex; flex-wrap: wrap; }
+html[data-site="student"] .ui-example-ctl > .btn { min-height: var(--tap); }
+html[data-site="student"] .ui-example-ctl > .btn-soft { flex: 1 1 auto; }
+@keyframes s-step-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+html[data-motion="reduce"] .ui-ex-step, html[data-motion="reduce"] .s-card-in { animation: none; }
+
+/* 정리 카드 */
+html[data-site="student"] .s-summary > li { padding-left: .2em; line-height: var(--lh-body); }
+
+/* ───────────────────────── 문제 카드 ───────────────────────── */
+html[data-site="student"] .ui-q.is-phone {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-l); padding: var(--sp-4);
+  box-shadow: var(--shadow-1);
+}
+html[data-site="student"] .ui-q.is-phone.is-solved { border-color: var(--line-strong); }
+html[data-site="student"] .ui-q.is-phone .ui-q-prompt { font-size: var(--t-md); line-height: var(--lh-body); font-weight: 600; }
+html[data-site="student"] .ui-q.is-phone .opt { min-height: 52px; border-radius: var(--radius-m); }
+html[data-site="student"] .ui-q.is-phone .opt .key { font-variant-numeric: tabular-nums; }
+html[data-site="student"] .ui-q.is-phone .ui-q-actions .btn-primary { min-height: var(--tap-main); }
+html[data-site="student"] .ui-q.is-phone .ui-q-input { font-size: 20px; font-variant-numeric: tabular-nums; min-height: 52px; }
+html[data-site="student"] .s-q-prev { margin-bottom: var(--sp-2); }
+/* 문제 아래 힌트·풀이 단계 */
+html[data-site="student"] .ui-hint { background: var(--info-bg); border-color: var(--info); border-style: solid; }
+html[data-site="student"] .ui-hint.is-sol { background: var(--surface-2); border-color: var(--line-strong); }
+
+/* ── 숫자·기호 줄(NumberPad): 휴대폰에서는 기호를 한 줄로 가로 스크롤 ── */
+html[data-site="student"] .ui-pad.is-phone .ui-pad-syms {
+  flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  padding: 2px 0 4px; margin-right: calc(var(--gutter) * -1);
+}
+html[data-site="student"] .ui-pad.is-phone .ui-pad-key {
+  flex: 0 0 auto; min-width: 44px; min-height: 44px;
+  margin: 0 6px 6px 0; border-radius: var(--radius-s);
+  background: var(--surface); color: var(--ink);
+  font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+html[data-site="student"] .ui-pad.is-phone .ui-pad-key:active { background: var(--accent-soft); }
+html[data-site="student"] .ui-pad.is-phone .ui-pad-key.is-back { background: var(--surface-2); }
+html[data-site="student"] .ui-pad.is-phone .ui-pad-digits { max-width: none; display: grid; grid-template-columns: repeat(5, 1fr); grid-gap: 6px; }
+html[data-site="student"] .ui-pad.is-phone .ui-pad-digits .ui-pad-key { width: auto; margin: 0; }
+
+/* ───────────────────────── 오답노트 ───────────────────────── */
+html[data-site="student"] .s-review-cta { min-height: 72px; }
+html[data-site="student"] .s-seg {
+  padding: 4px; border: 0; border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+html[data-site="student"] .s-seg-btn {
+  min-height: var(--tap); border-radius: var(--radius-pill);
+  color: var(--ink-2); white-space: nowrap;
+}
+html[data-site="student"] .s-seg-btn + .s-seg-btn { border-left: 0; margin-left: 4px; }
+html[data-site="student"] .s-seg-btn.is-on { background: var(--surface); color: var(--accent-ink); box-shadow: var(--shadow-1); }
+/* 고른 칸은 밑줄로도 알려요 */
+html[data-site="student"] .s-seg-btn.is-on { box-shadow: var(--shadow-1), inset 0 -3px 0 var(--accent); }
+html[data-site="student"] .s-seg-btn.is-on .s-count { background: var(--accent); color: var(--on-accent); }
+html[data-contrast="more"] .s-seg { box-shadow: inset 0 0 0 2px var(--line-strong); }
+html[data-site="student"] .s-note { border-left: 4px solid var(--bad); }
+html[data-site="student"] .s-note .eyebrow { font-variant-numeric: tabular-nums; }
+
+/* ───────────────────────── 사전 ───────────────────────── */
+html[data-site="student"] .s-search .input { min-height: 48px; font-size: var(--t-md); border-radius: var(--radius-pill); padding-left: 1em; }
+html[data-site="student"] .s-unit-filter { margin: -3px; }
+html[data-site="student"] .s-unit-filter > * { margin: 3px; }
+html[data-site="student"] .s-unit-filter > * + * { margin-left: 3px; }
+html[data-site="student"] .s-unit-filter .chip {
+  min-height: 44px; min-width: 44px; padding: 0 1em;
+  justify-content: center; font-size: var(--t-sm);
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
+}
+html[data-site="student"] .s-unit-filter .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+html[data-site="student"] .s-dict-item { padding: var(--sp-3) var(--sp-4); }
+html[data-site="student"] .s-dict-item dt { color: var(--accent-ink); }
+html[data-site="student"] .s-dict-meta .chip,
+html[data-site="student"] .s-dict-meta a { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* ───────────────────────── 내 기록 ───────────────────────── */
+html[data-site="student"] .s-stats > * { padding: var(--sp-3) var(--sp-1); border-radius: var(--radius-m); background: var(--surface-2); }
+html[data-site="student"] .s-stat { color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+
+/* ───────────────────────── 응답 카드 ───────────────────────── */
+/* 고르는 칸: 색 + 큰 글자 + 무늬(색을 구분하기 어려워도 알 수 있게) */
+html[data-site="student"] .s-cardbtn {
+  min-height: 104px; border: 2px solid rgba(0, 0, 0, .15);
+  background-repeat: repeat; text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+}
+html[data-site="student"] .s-cardbtn:active { transform: scale(.97); }
+html.kbd .s-cardbtn:focus { outline: var(--focus-w) solid var(--focus); outline-offset: 3px; }
+/* (촬영 검수) ①·② 동그라미 글자가 칸 위 가장자리와 아래 이름표에 닿았어요 → 위아래 여백과 줄 높이 */
+html[data-site="student"] .s-cardbtn { padding: var(--sp-2) var(--sp-2) var(--sp-3); }
+html[data-site="student"] .s-cardbtn-v { font-size: 44px; line-height: 1.15; }
+html[data-site="student"] .s-cardbtn .tiny { font-size: 15px; margin-top: 6px; }
+
+/* 화면 가득: 글자 200px(좁은 화면은 높이·너비 안에 들어가게 줄여요) */
+html[data-site="student"] .s-bigcard {
+  z-index: 80;
+  background-repeat: repeat;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+}
+html[data-site="student"] .s-bigcard-v {
+  font-size: 200px; font-size: min(200px, 52vw, 34vh);
+  line-height: 1.2; font-weight: 900; letter-spacing: -.02em;
+  padding-bottom: .05em; /* ①·② 같은 동그라미 글자가 아래 이름표와 겹치지 않게 */
+}
+html[data-site="student"] .s-bigcard-l {
+  margin-top: var(--sp-5); padding: 6px 20px; border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, .28); font-size: 32px; text-shadow: none;
+}
+html[data-site="student"] .s-bigcard-close { min-height: var(--tap-main); min-width: 160px; text-shadow: none; }
+
+/* 무늬(흰색 반투명): 1 사선, 2 점, 3 가로줄, 4 세로줄, 5 격자, O 동그라미, X 엇갈린 사선, ? 큰 점 */
+html[data-site="student"] .s-cardbtn.c1, html[data-site="student"] .s-bigcard.c1 {
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, .16) 8px, transparent 8px, transparent 20px);
+}
+html[data-site="student"] .s-cardbtn.c2, html[data-site="student"] .s-bigcard.c2 {
+  background-image: radial-gradient(rgba(255, 255, 255, .22) 3px, transparent 4px);
+  background-size: 18px 18px;
+}
+html[data-site="student"] .s-cardbtn.c3, html[data-site="student"] .s-bigcard.c3 {
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, .16) 6px, transparent 6px, transparent 18px);
+}
+html[data-site="student"] .s-cardbtn.c4, html[data-site="student"] .s-bigcard.c4 {
+  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, .16) 6px, transparent 6px, transparent 18px);
+}
+html[data-site="student"] .s-cardbtn.c5, html[data-site="student"] .s-bigcard.c5 {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .14) 0, rgba(255, 255, 255, .14) 3px, transparent 3px, transparent 16px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .14) 0, rgba(255, 255, 255, .14) 3px, transparent 3px, transparent 16px);
+}
+html[data-site="student"] .s-cardbtn.co, html[data-site="student"] .s-bigcard.co {
+  background-image: radial-gradient(circle, transparent 7px, rgba(255, 255, 255, .2) 8px, rgba(255, 255, 255, .2) 10px, transparent 11px);
+  background-size: 28px 28px;
+}
+html[data-site="student"] .s-cardbtn.cx, html[data-site="student"] .s-bigcard.cx {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .13) 0, rgba(255, 255, 255, .13) 4px, transparent 4px, transparent 16px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, .13) 0, rgba(255, 255, 255, .13) 4px, transparent 4px, transparent 16px);
+}
+html[data-site="student"] .s-cardbtn.cq, html[data-site="student"] .s-bigcard.cq {
+  background-image: radial-gradient(rgba(255, 255, 255, .18) 6px, transparent 7px);
+  background-size: 32px 32px;
+}
+
+/* ───────────────────────── 키보드 포커스 ───────────────────────── */
+html.kbd[data-site="student"] .s-tabbar a:focus,
+html.kbd[data-site="student"] .s-seg-btn:focus,
+html.kbd[data-site="student"] .s-unit-filter .chip:focus { outline: var(--focus-w) solid var(--focus); outline-offset: -3px; }
+
+/* ───────────────────────── 넓은 화면·아주 좁은 화면 ───────────────────────── */
+@media (min-width: 1024px) {
+  html[data-site="student"] .s-continue::after { width: 220px; height: 220px; }
+}
+@media (max-width: 359px) {
+  html[data-site="student"] .s-tabbar a .ico-svg { width: 44px; }
+  html[data-site="student"] .s-pos strong { font-size: 13px; }
+  html[data-site="student"] .s-cardbtn-v { font-size: 40px; }
+}
+/* 가로로 눕힌 휴대폰(낮은 높이): 고정 영역을 더 줄여요 */
+@media (max-height: 480px) {
+  html[data-site="student"]:root { --s-action-h: 56px; }
+  html[data-site="student"] .s-actionbar .btn { height: 46px; min-height: 46px; }
+  html[data-site="student"] .s-pos { display: none; }
+}
+
+@media print {
+  html[data-site="student"] .s-continue { background: none; color: #000; box-shadow: none; border: 1px solid #000; }
+  html[data-site="student"] .s-continue .eyebrow,
+  html[data-site="student"] .s-continue .muted,
+  html[data-site="student"] .s-continue .s-continue-title { color: #000; }
+}

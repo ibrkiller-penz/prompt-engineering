@@ -1,0 +1,261 @@
+/* 교사 준비 화면 겉모습(디자인4). 뼈대는 각 화면 css(today·flow·pick·prep·find·progress·results·shell)가 맡고,
+ * 이 파일은 그 위에 '준비 화면 밀도'(prep: 본문 22 · 터치 56)를 얹어요.
+ * App.tsx 가 이 파일을 화면 css 보다 먼저 불러서, 모든 규칙을 html[data-surface="prep"] 아래에 두어 이기게 해요.
+ *
+ * 배치: 1200px 이상은 2단(오늘 수업·준비 한 장 1.35:1, 수업 흐름·문제 고르기 1.7:1), 760px 이하(휴대폰)는 1단.
+ * Chrome 80 안전: flex gap·aspect-ratio·:has·:is·:where·:focus-visible·inset·dvh·@layer·oklch·color-mix·
+ * @property·중첩을 쓰지 않아요. 여백은 > * + * margin 과 grid-gap 으로 줘요.
+ * 색만으로 뜻을 전하지 않아요: 꺼진 장면·손든 막대는 빗금, 고른 칩·바구니는 ✓ 를 함께 써요.
+ */
+
+/* ── 준비 화면 전용 토큰 ── */
+html[data-surface="prep"] {
+  --pp-row-gap: var(--sp-2);
+  --pp-col-gap: var(--sp-5);
+  --pp-stripe: var(--surface);   /* 빗금 줄 색(테마 따라 바뀜) */
+  --pp-kind-intro: #1d4ed8;
+  --pp-kind-concept: #0f766e;
+  --pp-kind-tool: #6d28d9;
+  --pp-kind-practice: #9a3412;
+  --pp-kind-wrap: #374151;
+}
+
+/* 숫자는 자리 맞춤(합계·분·집계가 흔들리지 않게) */
+html[data-surface="prep"] .num,
+html[data-surface="prep"] .t-flow-total,
+html[data-surface="prep"] .t-res-val,
+html[data-surface="prep"] .t-tb-legend b,
+html[data-surface="prep"] .t-prog-card .small { font-variant-numeric: tabular-nums; }
+
+/* ════════════════ 2단 배치(1200px 이상) ════════════════ */
+@media (min-width: 1200px) {
+  /* 오늘 수업: 왼쪽 오늘 레슨(1.35) · 오른쪽 반 요약과 학생 주소(1) */
+  /* 격자로 하면 레슨 카드가 두 줄을 차지해 오른쪽 카드 사이가 벌어져요(검수 1920 확인).
+   * 그래서 레슨 카드를 왼쪽에 띄우고(float) 오른쪽 카드는 위에서부터 차례로 쌓아요. */
+  html[data-surface="prep"] .page.t-today { max-width: 1760px; }
+  html[data-surface="prep"] .page.t-today::after { content: ""; display: table; clear: both; }
+  html[data-surface="prep"] .page.t-today > .t-lesson {
+    float: left;
+    width: calc((100% - var(--pp-col-gap)) * .574);
+  }
+  html[data-surface="prep"] .page.t-today > .card {
+    margin-left: calc((100% - var(--pp-col-gap)) * .574 + var(--pp-col-gap));
+  }
+  html[data-surface="prep"] .page.t-today > .t-lesson,
+  html[data-surface="prep"] .page.t-today > .t-resume,
+  html[data-surface="prep"] .page.t-today > .t-welcome { margin-left: 0; }
+
+  /* 준비 한 장: 1.35:1 */
+  html[data-surface="prep"] .pp-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-gap: var(--sp-4) var(--pp-col-gap); }
+  html[data-surface="prep"] .pp-grid .pp-answers { grid-column: 1 / -1; }
+
+  /* 수업 흐름: 왼쪽 합계 카드(1) · 오른쪽 장면 행(1.7) */
+  html[data-surface="prep"] .t-flow-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
+    grid-column-gap: var(--pp-col-gap);
+    align-items: start;
+  }
+  html[data-surface="prep"] .t-flow-sum { width: auto; -webkit-box-flex: 0; -ms-flex: none; flex: none; }
+  html[data-surface="prep"] .t-flow-list { margin-left: 0; }
+
+  /* 문제 고르기: 왼쪽 문제 행(1.7) · 오른쪽 바구니 3개(1) */
+  html[data-surface="prep"] .t-pick-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    grid-column-gap: var(--pp-col-gap);
+    align-items: start;
+  }
+  html[data-surface="prep"] .t-baskets { width: auto; -webkit-box-flex: 0; -ms-flex: none; flex: none; margin-left: 0; }
+}
+
+/* ════════════════ 반 고르기 칩 ════════════════ */
+html[data-surface="prep"] .t-klass { padding: var(--sp-2) 0 var(--sp-3); }
+html[data-surface="prep"] .t-klass .chip { min-width: 4.6em; justify-content: center; font-weight: 800; border-width: var(--border); }
+html[data-surface="prep"] .t-klass .chip[aria-pressed="true"] { border-color: var(--site); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--site); }
+html[data-surface="prep"] .t-klass .chip[aria-pressed="false"] { background: var(--surface); color: var(--ink); }
+html[data-surface="prep"] .t-klass-plus { color: var(--ink-2); }
+html[data-surface="prep"] .t-cls-name { min-width: 4.6em; font-weight: 800; }
+html[data-surface="prep"] .t-cls-row { min-height: var(--tap); }
+html[data-surface="prep"] .t-cls-row.is-now { background: var(--accent-soft); border-radius: var(--radius-s); padding-left: var(--sp-2); padding-right: var(--sp-2); }
+
+/* ════════════════ 시간 배분 막대 ════════════════ */
+html[data-surface="prep"] .t-tb-bar { height: 64px; border-radius: var(--radius-m); box-shadow: inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .t-tb-seg { font-size: var(--t-sm); letter-spacing: -.01em; }
+html[data-surface="prep"] .t-tb-seg + .t-tb-seg { border-left-width: 3px; }
+html[data-surface="prep"] .t-tb-seg.is-intro, html[data-surface="prep"] .t-tb-sw.is-intro { background-color: var(--pp-kind-intro); }
+html[data-surface="prep"] .t-tb-seg.is-concept, html[data-surface="prep"] .t-tb-sw.is-concept { background-color: var(--pp-kind-concept); }
+html[data-surface="prep"] .t-tb-seg.is-tool, html[data-surface="prep"] .t-tb-sw.is-tool { background-color: var(--pp-kind-tool); }
+html[data-surface="prep"] .t-tb-seg.is-practice, html[data-surface="prep"] .t-tb-sw.is-practice { background-color: var(--pp-kind-practice); }
+html[data-surface="prep"] .t-tb-seg.is-wrap, html[data-surface="prep"] .t-tb-sw.is-wrap { background-color: var(--pp-kind-wrap); }
+html[data-surface="prep"] .t-tb-legend { line-height: 1.8; }
+/* 범례 'n분'과 '· 장면 n' 사이 띄어 쓰기(inline-flex 안에서 앞 공백이 사라져요) */
+html[data-surface="prep"] .t-tb-legend b { margin-right: .3em; }
+/* 핵심 질문과 고르기 줄 사이(고르기 묶음의 음수 여백이 위 간격을 먹어요) */
+html[data-surface="prep"] .t-lesson > .t-pickers { margin-top: var(--sp-2); }
+html[data-surface="prep"] .t-tb-legend > li { margin-right: var(--sp-4); white-space: nowrap; }
+html[data-surface="prep"] .t-tb-sw { width: 1em; height: 1em; border-radius: 4px; }
+/* 합계 카드 안의 막대는 조금 낮게 */
+html[data-surface="prep"] .t-flow-sum .t-tb-bar { height: 48px; }
+
+/* 수업 시작 단추: 테마와 상관없이 사이트 색 */
+html[data-surface="prep"] .t-start { min-height: 104px; box-shadow: var(--shadow-2); }
+html[data-surface="prep"] .t-prep-links .btn { min-height: var(--tap); }
+
+/* ════════════════ 합계 카드(수업 흐름) ════════════════ */
+html[data-surface="prep"] .t-flow-sum { border-top: 8px solid var(--site); }
+html[data-surface="prep"] .t-flow-total {
+  display: flex; align-items: baseline; flex-wrap: wrap;
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-m); background: var(--surface-2);
+}
+html[data-surface="prep"] .t-flow-total b { margin-right: .25em; font-size: var(--t-2xl); line-height: 1.1; color: var(--ink); }
+html[data-surface="prep"] .t-flow-total.is-over { background: var(--warn-bg); box-shadow: inset 0 0 0 var(--border) var(--warn); }
+html[data-surface="prep"] .t-flow-total.is-over b { color: var(--warn); }
+html[data-surface="prep"] .t-flow-total.is-over::after { content: "\26A0  시간 넘침"; margin-left: auto; font-size: var(--t-sm); font-weight: 800; color: var(--warn); }
+
+/* ════════════════ 장면 행 ════════════════ */
+html[data-surface="prep"] .t-scene-row { min-height: calc(var(--tap) + var(--sp-3)); padding: var(--sp-2) var(--sp-3); }
+html[data-surface="prep"] .t-scene-row + .t-scene-row { margin-top: var(--pp-row-gap); }
+html[data-surface="prep"] .t-scene-n {
+  width: 2em; height: 2em; line-height: 2em; border-radius: 50%;
+  background: var(--surface-2); color: var(--ink); font-size: var(--t-md);
+}
+html[data-surface="prep"] .t-scene-title { font-size: var(--t-md); }
+html[data-surface="prep"] .t-scene-kind .chip { min-height: 24px; }
+html[data-surface="prep"] .t-scene-links { color: var(--ink-2); }
+/* 꺼진 장면: 옅은 바탕 + 빗금 + 번호 지움선(색만으로 구분하지 않아요) */
+html[data-surface="prep"] .t-scene-row.is-off {
+  background-color: var(--surface-2);
+  background-image: repeating-linear-gradient(135deg, transparent 0, transparent 10px, var(--pp-stripe) 10px, var(--pp-stripe) 14px);
+}
+html[data-surface="prep"] .t-scene-row.is-off .t-scene-n { text-decoration: line-through; color: var(--ink-2); background: var(--surface); }
+html[data-surface="prep"] .t-scene-row.is-off .t-scene-title { color: var(--ink-2); }
+html[data-surface="prep"] .t-min > .val { font-variant-numeric: tabular-nums; }
+@media (hover: hover) {
+  html[data-surface="prep"] .t-scene-row:hover { box-shadow: inset 0 0 0 var(--border) var(--line-strong); }
+  html[data-surface="prep"] .t-scene-row.kind-problem:hover { box-shadow: inset 6px 0 0 var(--pp-kind-practice), inset 0 0 0 var(--border) var(--line-strong); }
+  html[data-surface="prep"] .t-scene-row.kind-widget:hover { box-shadow: inset 6px 0 0 var(--pp-kind-tool), inset 0 0 0 var(--border) var(--line-strong); }
+  html[data-surface="prep"] .t-scene-row.kind-concept:hover,
+  html[data-surface="prep"] .t-scene-row.kind-example:hover { box-shadow: inset 6px 0 0 var(--pp-kind-concept), inset 0 0 0 var(--border) var(--line-strong); }
+}
+
+/* ════════════════ 문제 행과 바구니 ════════════════ */
+html[data-surface="prep"] .t-q-row { padding: var(--sp-3) var(--sp-4); }
+html[data-surface="prep"] .t-q-row + .t-q-row { margin-top: var(--pp-row-gap); }
+html[data-surface="prep"] .t-q-prompt { font-size: var(--t-md); line-height: 1.55; }
+html[data-surface="prep"] .t-q-id { color: var(--ink-2); font-size: var(--t-xs); font-variant-numeric: tabular-nums; }
+html[data-surface="prep"] .t-q-lv { letter-spacing: 1px; }
+html[data-surface="prep"] .t-q-bask .btn { min-width: 6.5em; }
+html[data-surface="prep"] .t-bk[aria-pressed="true"]::before { content: "\2713"; margin-right: .3em; font-weight: 800; }
+@media (hover: hover) {
+  html[data-surface="prep"] .t-q-prompt:hover { text-decoration: underline; text-decoration-color: var(--line-strong); }
+}
+
+html[data-surface="prep"] .t-basket { padding: var(--sp-3) var(--sp-4); }
+html[data-surface="prep"] .t-basket.is-board { border-top: 8px solid var(--pp-kind-practice); }
+html[data-surface="prep"] .t-basket.is-exit { border-top: 8px solid var(--pp-kind-concept); }
+html[data-surface="prep"] .t-basket.is-hw { border-top: 8px solid var(--pp-kind-intro); }
+html[data-surface="prep"] .t-bk-list > li { min-height: var(--tap); }
+html[data-surface="prep"] .t-bk-n {
+  width: 1.6em; height: 1.6em; line-height: 1.6em; margin-right: var(--sp-2); border-radius: 50%;
+  text-align: center; background: var(--surface-2); color: var(--ink); font-size: var(--t-sm);
+}
+html[data-surface="prep"] .t-bk-txt { font-size: var(--t-sm); line-height: 1.45; }
+html[data-surface="prep"] .t-link-url { font-family: var(--font-num); }
+
+/* 필터 칩 */
+html[data-surface="prep"] .t-filters .chip[aria-pressed="true"]::before { content: "\2713"; margin-right: .3em; font-weight: 800; }
+
+/* ════════════════ 진도 표 ════════════════ */
+html[data-surface="prep"] .t-prog-card { padding: var(--sp-3) var(--sp-4); }
+html[data-surface="prep"] .t-prog-card.is-now { border-top: 8px solid var(--site); }
+html[data-surface="prep"] .t-prog-tbl { font-size: var(--t-sm); }
+html[data-surface="prep"] .t-prog-tbl thead th { font-size: var(--t-sm); z-index: 2; }
+/* 레슨 이름 칸은 옆으로 밀어도 남아요 */
+html[data-surface="prep"] .t-prog-lesson {
+  position: -webkit-sticky; position: sticky; left: 0; z-index: 1;
+  background: var(--surface); box-shadow: inset -1px 0 0 var(--line);
+}
+html[data-surface="prep"] .t-prog-tbl td,
+html[data-surface="prep"] .t-prog-tbl th { vertical-align: middle; }
+html[data-surface="prep"] .t-prog-tbl td + td,
+html[data-surface="prep"] .t-prog-tbl th + td { border-left: 1px solid var(--line); }
+html[data-surface="prep"] .t-prog-btn { min-height: var(--tap); }
+html[data-surface="prep"] .t-prog-cell.is-done .t-prog-btn { font-weight: 800; }
+/* 일부: 색 + 빗금 */
+html[data-surface="prep"] .t-prog-cell.is-part {
+  background-image: repeating-linear-gradient(135deg, transparent 0, transparent 8px, var(--pp-stripe) 8px, var(--pp-stripe) 11px);
+}
+@media (hover: hover) {
+  html[data-surface="prep"] .t-prog-btn:hover { box-shadow: inset 0 0 0 var(--border) var(--line-strong); }
+}
+
+/* ════════════════ 결과 막대(빗금) ════════════════ */
+html[data-surface="prep"] .t-res-bar-row { min-height: 44px; }
+html[data-surface="prep"] .t-res-track { height: 28px; border-radius: 8px; }
+html[data-surface="prep"] .t-res-bar {
+  background-color: var(--ink-3);
+  background-image: repeating-linear-gradient(135deg, transparent 0, transparent 7px, var(--pp-stripe) 7px, var(--pp-stripe) 11px);
+}
+/* 정답 막대: 초록 단색 + 진한 테두리 + ✓ 글자(이미 붙어 있어요) */
+html[data-surface="prep"] .t-res-bar.is-ans { background-color: var(--ok); background-image: none; box-shadow: inset 0 0 0 2px var(--ok); }
+html[data-surface="prep"] .t-res-bar-row.is-ans .t-res-label { color: var(--ok); }
+html[data-surface="prep"] .t-res-val { font-weight: 700; }
+html[data-surface="prep"] .t-res-row { padding: var(--sp-3) 0 var(--sp-4); }
+
+/* ════════════════ 차시 카드(위 테두리 8px) ════════════════ */
+html[data-surface="prep"] .t-lcard { border-top: 8px solid var(--accent); padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+html[data-surface="prep"] .t-lgrid { grid-gap: var(--sp-4); }
+html[data-surface="prep"] .t-period { border-left: 8px solid var(--accent); }
+@media (hover: hover) {
+  html[data-surface="prep"] .t-lcard:hover { border-color: var(--line-strong); border-top-color: var(--accent); box-shadow: var(--shadow-2); }
+}
+@media (min-width: 1200px) {
+  html[data-surface="prep"] .t-lgrid { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+}
+
+/* ════════════════ 준비 한 장 ════════════════ */
+/* 좁은 화면 1칸: 1fr 의 최소 폭이 정답 표 폭을 따라 늘어나 카드가 화면 밖으로 나가요(검수 375 확인) */
+@media (max-width: 900px) {
+  html[data-surface="prep"] .pp-grid { grid-template-columns: minmax(0, 1fr); }
+}
+html[data-surface="prep"] .pp-card { border-top: 8px solid var(--accent); }
+/* 오개념 목록: 학생의 '틀린 생각'을 그대로 옮긴 문장이라 훑어볼 때 사실로 읽히지 않게 ✗ 를 붙여요(색 + 기호, 인쇄에서도 남아요) */
+html[data-surface="prep"] section[aria-labelledby="pp-mis-h"] .pp-list { list-style: none; padding-left: 0; }
+html[data-surface="prep"] section[aria-labelledby="pp-mis-h"] .pp-list > li { position: relative; padding-left: 1.5em; }
+html[data-surface="prep"] section[aria-labelledby="pp-mis-h"] .pp-list > li::before {
+  content: "\2717"; position: absolute; left: 0; top: 0; font-weight: 800; color: var(--bad);
+}
+html[data-surface="prep"] .pp-ans th, html[data-surface="prep"] .pp-ans td { vertical-align: top; }
+
+/* ════════════════ 어두운 테마·대비 높이기 ════════════════ */
+html[data-surface="prep"][data-theme="dark"] {
+  --pp-kind-intro: #2f5fd9;
+  --pp-kind-wrap: #4b5563;
+}
+html[data-surface="prep"][data-contrast="more"] .t-scene-row,
+html[data-surface="prep"][data-contrast="more"] .t-q-row { box-shadow: inset 0 0 0 var(--border) var(--ink); }
+html[data-surface="prep"][data-contrast="more"] .t-res-track { box-shadow: inset 0 0 0 2px var(--ink); }
+
+/* ════════════════ 휴대폰(760px 이하): 1단 ════════════════ */
+@media (max-width: 760px) {
+  html[data-surface="prep"] .t-tb-bar { height: 48px; }
+  html[data-surface="prep"] .t-tb-legend > li { margin-right: var(--sp-3); }
+  html[data-surface="prep"] .t-start { min-height: 80px; }
+  html[data-surface="prep"] .t-scene-n { width: 1.8em; height: 1.8em; line-height: 1.8em; }
+  html[data-surface="prep"] .t-q-row,
+  html[data-surface="prep"] .t-basket { padding: var(--sp-3); }
+  html[data-surface="prep"] .t-q-bask .btn { min-width: 0; -webkit-box-flex: 1; -ms-flex: 1 1 0px; flex: 1 1 0px; margin-bottom: var(--sp-1); }
+  html[data-surface="prep"] .t-res-label { -ms-flex-preferred-size: 6em; flex-basis: 6em; }
+  html[data-surface="prep"] .t-res-val { -ms-flex-preferred-size: 4.5em; flex-basis: 4.5em; }
+  html[data-surface="prep"] .t-prog-lesson { min-width: 11em; }
+  html[data-surface="prep"] .t-flow-total b { font-size: var(--t-xl); }
+  /* 준비 한 장 고르기 줄: 음수 여백이 화면 밖으로 4px 넘쳐요(검수 375 확인) */
+  html[data-surface="prep"] .pp-pickers { margin-left: 0; margin-right: 0; }
+  html[data-surface="prep"] .pp-picker { margin-left: 0; margin-right: var(--sp-3); }
+  /* 오늘 수업: 휴대폰에서는 제목·핵심 질문을 한 단계 줄여 첫 화면에 '수업 시간'까지 보이게 */
+  html[data-surface="prep"] .t-welcome > .h2 { font-size: var(--t-lg); line-height: 1.35; }
+  html[data-surface="prep"] .t-lesson .h1 { font-size: var(--t-xl); line-height: 1.3; }
+  html[data-surface="prep"] .t-question { font-size: var(--t-md); }
+  html[data-surface="prep"] .t-today-head > .btn { margin-top: var(--sp-2); }
+}

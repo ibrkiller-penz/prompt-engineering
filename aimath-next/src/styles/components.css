@@ -1,0 +1,364 @@
+/* aimath-next 공용 부품. tokens.css → base.css 다음에 불러와요. Chrome 80 안전(flex gap 없음: 형제 margin).
+ * 크기는 모두 토큰을 써서 phone / prep / board 에서 저절로 커져요.
+ * 칠판 무대 틀(.stage …)·판서·QR 은 src/teacher/styles/board.css, 학생 전용 배치는 student.css 에 둬요.
+ */
+
+/* ── 제목·글 ── */
+.eyebrow { font-size: var(--t-xs); font-weight: 700; color: var(--accent-ink); letter-spacing: .02em; }
+.h1 { font-size: var(--t-2xl); line-height: var(--lh-tight); font-weight: 800; margin: 0; }
+.h2 { font-size: var(--t-xl); line-height: var(--lh-tight); font-weight: 800; margin: 0; }
+.h3 { font-size: var(--t-lg); line-height: var(--lh-tight); font-weight: 700; margin: 0; }
+.small { font-size: var(--t-sm); }
+.tiny { font-size: var(--t-xs); }
+.prose { max-width: var(--measure); }
+.prose p { margin: 0 0 .8em; }
+.prose p:last-child { margin-bottom: 0; }
+.prose ul, .prose ol { padding-left: 1.3em; margin: 0 0 .8em; }
+.prose li + li { margin-top: .3em; }
+.prose strong, .prose b { font-weight: 800; }
+.prose mark, mark { background: var(--hl); color: inherit; padding: 0 .1em; border-radius: 2px; }
+
+/* ── 단추 ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--tap); min-width: var(--tap); padding: var(--sp-1) var(--sp-4);
+  border: var(--border) solid var(--line-strong); border-radius: var(--radius-m);
+  background: var(--surface); color: var(--ink);
+  font-weight: 700; font-size: var(--t-sm); line-height: 1.2; text-align: center; text-decoration: none;
+  cursor: pointer; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+  transition: transform var(--dur), background-color var(--dur), border-color var(--dur);
+}
+.btn:active { transform: scale(.97); }
+/* 단추 안 아이콘·글자 사이 간격(flex gap 대체). 안 보이는 .ui-sr 는 절대 위치라 영향 없어요 */
+.btn > * + * { margin-left: .4em; }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: default; transform: none; }
+.btn-primary {
+  background: var(--accent); border-color: var(--accent); color: var(--on-accent);
+  min-height: var(--tap-main); font-size: var(--t-md); padding: var(--sp-1) var(--sp-5);
+}
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-soft { border-color: transparent; background: var(--accent-soft); color: var(--accent-ink); }
+.btn-danger { border-color: var(--bad); color: var(--bad); }
+.btn-block { display: flex; width: 100%; }
+.btn-lg { min-height: var(--tap-main); font-size: var(--t-md); padding: var(--sp-1) var(--sp-5); }
+.btn-icon { padding: 0; width: var(--tap); flex: 0 0 auto; }
+.btn-ghost.btn-icon { color: var(--ink-2); }
+.btn .ico { font-size: 1.15em; line-height: 1; }
+.btn .ico + span, .btn span + .ico { margin-left: .4em; }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+/* 칠판의 주 단추(다음·수업 시작)는 88px */
+html[data-surface="board"] .btn-primary { min-width: 200px; font-weight: 800; }
+
+/* ── 카드 ── */
+.card {
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius-l);
+  padding: var(--sp-4); box-shadow: var(--shadow-1);
+}
+.card-hero { border: var(--border) solid var(--accent); background: var(--accent-soft); }
+.card-link { display: block; color: inherit; text-decoration: none; }
+.card-link { transition: transform var(--dur), border-color var(--dur); }
+.card-link:active { transform: scale(.99); }
+.card .card + .card { margin-top: var(--sp-3); }
+.card > .card-head { display: flex; align-items: center; margin-bottom: var(--sp-3); }
+.card > .card-head > * + * { margin-left: var(--sp-2); }
+
+/* ── 진행 막대 ── */
+.meter { height: 10px; border-radius: var(--radius-pill); background: var(--surface-2); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+.meter > i { display: block; height: 100%; min-width: 0; background: var(--accent); border-radius: inherit; transition: width var(--dur); }
+.meter.is-ok > i { background: var(--ok); }
+.meter.is-warn > i { background: var(--warn); }
+html[data-surface="prep"] .meter { height: 12px; }
+html[data-surface="board"] .meter { height: 16px; }
+/* 시간 배분 막대(조각 여러 개) */
+.segbar { display: flex; height: 14px; border-radius: var(--radius-pill); overflow: hidden; background: var(--surface-2); }
+.segbar > i { display: block; height: 100%; background: var(--accent); }
+.segbar > i + i { border-left: 2px solid var(--surface); }
+.segbar > i.alt { background: var(--ink-3); }
+
+/* ── 칩·배지 ── */
+.chip {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 0 .75em;
+  border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink-2);
+  font-size: var(--t-xs); font-weight: 700; line-height: 1.2; white-space: nowrap;
+}
+.chip.is-accent { background: var(--accent-soft); color: var(--accent-ink); }
+.chip.is-ok { background: var(--ok-bg); color: var(--ok); }
+.chip.is-bad { background: var(--bad-bg); color: var(--bad); }
+.chip.is-warn { background: var(--warn-bg); color: var(--warn); }
+.chip.is-fiction { background: var(--aha-bg); color: var(--aha); } /* '가상의 예' */
+/* 누르는 칩: 테두리로 '누를 수 있음'을 보이고, 고른 상태는 색 + ✓ 로 알려요(색만으로 구분하지 않아요) */
+button.chip, a.chip {
+  min-height: var(--tap); padding: 0 1em; border: 1px solid var(--line-strong);
+  font-size: var(--t-sm); cursor: pointer; text-decoration: none; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+}
+button.chip:active, a.chip:active { transform: scale(.97); }
+button.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.chip[aria-pressed="true"]::before { content: "\2713"; margin-right: .3em; font-weight: 800; }
+button.chip[disabled] { opacity: .5; cursor: default; }
+/* 칩 여러 개 줄(감기기) */
+.chips { display: flex; flex-wrap: wrap; align-items: center; margin: -3px; }
+.chips > * { margin: 3px; }
+
+/* ── 사이트 띠와 '교사용' 이름표 ── */
+.site-band { height: var(--band-h); background: var(--site); }
+.site-tag {
+  display: inline-flex; align-items: center; min-height: 1.8em; padding: 0 .7em;
+  border-radius: var(--radius-s); background: var(--site); color: var(--on-site);
+  font-size: var(--t-xs); font-weight: 800; letter-spacing: .02em; white-space: nowrap;
+}
+
+/* ── 알림 상자: 색 + 아이콘 + 이름표 세 겹 ── */
+.callout { border-left: 6px solid var(--line-strong); border-radius: var(--radius-m); padding: var(--sp-3) var(--sp-4); background: var(--surface-2); color: var(--ink); }
+.callout p { margin: 0 0 .6em; }
+.callout p:last-child { margin-bottom: 0; }
+.callout .ico-svg { flex: 0 0 auto; }
+.callout > b, .callout > .callout-title { display: block; font-size: var(--t-sm); font-weight: 800; margin-bottom: var(--sp-1); }
+.callout.info { border-color: var(--info); background: var(--info-bg); }
+.callout.warn { border-color: var(--warn); background: var(--warn-bg); }
+.callout.aha  { border-color: var(--aha);  background: var(--aha-bg); }
+.callout.ok   { border-color: var(--ok);   background: var(--ok-bg); }
+.callout.bad  { border-color: var(--bad);  background: var(--bad-bg); }
+.callout.info > b, .callout.info > .callout-title { color: var(--info); }
+.callout.warn > b, .callout.warn > .callout-title { color: var(--warn); }
+.callout.aha > b,  .callout.aha > .callout-title  { color: var(--aha); }
+.callout.ok > b,   .callout.ok > .callout-title   { color: var(--ok); }
+.callout.bad > b,  .callout.bad > .callout-title  { color: var(--bad); }
+
+/* ── 정오 표시: 색 + ✓/✗ + 글자 ── */
+.verdict { display: inline-flex; align-items: center; font-weight: 800; }
+.verdict::before { display: inline-block; margin-right: .3em; font-size: 1.1em; line-height: 1; }
+.verdict.ok { color: var(--ok); }
+.verdict.ok::before { content: "\2713"; }
+.verdict.bad { color: var(--bad); }
+.verdict.bad::before { content: "\2717"; }
+
+/* ── 보기(선택형) ── */
+.opt {
+  display: flex; align-items: center; width: 100%; min-height: var(--tap-main);
+  padding: var(--sp-2) var(--sp-4); text-align: left;
+  border: var(--border) solid var(--line-strong); border-radius: var(--radius-m);
+  background: var(--surface); color: var(--ink); cursor: pointer;
+  font-size: var(--t-md); line-height: 1.45;
+  touch-action: manipulation;
+  transition: border-color var(--dur), background-color var(--dur), transform var(--dur);
+}
+.opt:active { transform: scale(.99); }
+.opt + .opt { margin-top: var(--sp-2); }
+.opt .key {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 1.8em; height: 1.8em; border-radius: 50%; background: var(--surface-2); color: var(--ink);
+  font-weight: 800; margin-right: var(--sp-3);
+}
+.opt .txt { flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
+.opt .txt .katex { white-space: normal; }
+.opt[aria-pressed="true"], .opt.is-picked { border-color: var(--accent); background: var(--accent-soft); }
+/* 고른 보기는 번호 동그라미도 채워서 색이 아닌 모양으로도 알려요 */
+.opt[aria-pressed="true"] .key, .opt.is-picked .key { background: var(--accent); color: var(--on-accent); }
+.opt.is-ok { border-color: var(--ok); background: var(--ok-bg); }
+.opt.is-bad { border-color: var(--bad); background: var(--bad-bg); }
+.opt.is-hidden .txt { visibility: hidden; } /* 칠판 '보기 가리기' */
+.opt .mark { margin-left: auto; font-weight: 800; padding-left: var(--sp-2); white-space: nowrap; }
+.opt.is-ok .key { background: var(--ok); color: var(--ok-bg); }
+.opt.is-bad .key { background: var(--bad); color: var(--bad-bg); }
+.opt.is-ok .mark { color: var(--ok); }
+.opt.is-bad .mark { color: var(--bad); }
+.opt[disabled] { cursor: default; transform: none; }
+.opt[disabled]:not(.is-ok):not(.is-bad):not(.is-picked) .txt { color: var(--ink-2); }
+
+/* ── 입력 ── */
+.input {
+  display: block; width: 100%; min-height: var(--tap);
+  padding: 0 var(--sp-3); border: var(--border) solid var(--line-strong); border-radius: var(--radius-m);
+  background: var(--surface); color: var(--ink);
+}
+textarea.input { padding: var(--sp-2) var(--sp-3); min-height: calc(var(--tap) * 2); resize: vertical; }
+.input::placeholder { color: var(--ink-3); opacity: 1; }
+.field > label, .field > .label { display: block; font-size: var(--t-sm); font-weight: 700; margin-bottom: var(--sp-1); }
+
+/* 켜기/끄기 스위치(체크박스 + 이름표) */
+.switch { display: flex; align-items: center; min-height: var(--tap); cursor: pointer; }
+.switch input { width: 1.4em; height: 1.4em; margin: 0 var(--sp-2) 0 0; accent-color: var(--accent); }
+
+/* ── 수식 블록 ── */
+.math-block { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; padding: var(--sp-2) 0; text-align: center; }
+.math-block .katex-display { margin: 0; }
+
+/* ── 표 ── */
+.tbl { border-collapse: collapse; min-width: 100%; font-size: var(--t-sm); }
+.tbl th, .tbl td { border-bottom: 1px solid var(--line); padding: var(--sp-2) var(--sp-3); text-align: left; vertical-align: top; }
+.tbl th { background: var(--surface-2); font-weight: 800; }
+.tbl td.num, .tbl th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* 휴대폰에서 3열 이상인 표는 세로 카드로(td 에 data-label 필요) */
+html[data-surface="phone"] .tbl-cards { min-width: 0; width: 100%; }
+html[data-surface="phone"] .tbl-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+html[data-surface="phone"] .tbl-cards,
+html[data-surface="phone"] .tbl-cards tbody,
+html[data-surface="phone"] .tbl-cards tr,
+html[data-surface="phone"] .tbl-cards td,
+html[data-surface="phone"] .tbl-cards tbody th { display: block; }
+html[data-surface="phone"] .tbl-cards tr { border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface); padding: var(--sp-2) var(--sp-3); }
+html[data-surface="phone"] .tbl-cards tr + tr { margin-top: var(--sp-2); }
+html[data-surface="phone"] .tbl-cards td,
+html[data-surface="phone"] .tbl-cards tbody th { border: 0; padding: var(--sp-1) 0; background: none; text-align: left; }
+html[data-surface="phone"] .tbl-cards td[data-label]::before {
+  content: attr(data-label); display: block; font-size: var(--t-xs); font-weight: 700; color: var(--ink-2);
+}
+
+/* ── 상단 띠·페이지 ── */
+.topbar {
+  position: -webkit-sticky; position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; min-height: var(--topbar-h); padding: 0 var(--gutter);
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.topbar > * + * { margin-left: var(--sp-2); }
+.topbar .title { flex: 1 1 auto; min-width: 0; font-weight: 800; font-size: var(--t-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page { padding: var(--sp-4) var(--gutter); max-width: var(--page-max); margin: 0 auto; }
+.section-title { font-size: var(--t-lg); font-weight: 800; margin: var(--sp-5) 0 var(--sp-3); }
+
+/* ── 하단 '다음' 띠(휴대폰 카드 넘기기) ── */
+.bottombar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottombar .steps { display: flex; height: 6px; }
+.bottombar .steps > i { flex: 1 1 0; background: var(--surface-2); }
+.bottombar .steps > i + i { margin-left: 2px; }
+.bottombar .steps > i.done { background: var(--accent); }
+.bottombar .steps > i.now { background: var(--accent-ink); }
+.bottombar .inner { display: flex; align-items: center; min-height: calc(var(--bar-h) - 6px); padding: var(--sp-1) var(--gutter); }
+.bottombar .inner > * + * { margin-left: var(--sp-2); }
+.bottombar .inner .grow { font-size: var(--t-xs); color: var(--ink-2); }
+
+/* ── 하단 탭(학생 5칸) ── */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: flex; height: calc(var(--tab-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface); border-top: 1px solid var(--line);
+}
+.tabbar a {
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; min-height: var(--tap);
+  color: var(--ink-2); text-decoration: none; font-weight: 700; line-height: 1.2;
+  font-size: 13px; font-size: max(13px, min(calc(13px * var(--fs-scale)), 16px)); /* 13px 바닥, 5칸이 375px 에 들어가게 16px 상한 */
+  white-space: nowrap;
+}
+.tabbar a .ico { font-size: 22px; line-height: 1; margin-bottom: 3px; }
+.tabbar a > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.tabbar a[aria-current="page"] { color: var(--accent-ink); font-weight: 800; }
+/* 지금 탭은 위쪽 막대로도 알려요(색만으로 구분하지 않아요) */
+.tabbar a[aria-current="page"]::before {
+  content: ""; position: absolute; top: 0; left: 22%; right: 22%; height: 3px;
+  border-radius: 0 0 3px 3px; background: var(--accent);
+}
+.tabbar a[aria-current="page"] .ico { transform: translateY(-1px); }
+.has-tabbar { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + var(--sp-4)); }
+.has-bottombar { padding-bottom: calc(var(--bar-h) + env(safe-area-inset-bottom) + var(--sp-4)); }
+
+/* ── 목록 줄 ── */
+.list { list-style: none; margin: 0; padding: 0; }
+/* 카드 모양 목록(<ul class="list card">): 위아래는 줄 여백만, 옆은 카드 안쪽 여백 */
+.list.card { padding: 0 var(--sp-4); }
+.list > li + li { border-top: 1px solid var(--line); }
+.list-row { display: flex; align-items: center; min-height: var(--tap); padding: var(--sp-2) 0; color: inherit; text-decoration: none; }
+.list-row > * + * { margin-left: var(--sp-3); }
+
+/* ── 말풍선(이야기 카드) ── */
+.bubble { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); padding: var(--sp-3) var(--sp-4); }
+.bubble.me { background: var(--accent-soft); border-color: var(--accent); }
+.speaker { display: inline-flex; align-items: center; font-size: var(--t-xs); font-weight: 800; color: var(--ink-2); margin-bottom: var(--sp-1); }
+.speaker .dot { width: .7em; height: .7em; border-radius: 50%; background: var(--accent); margin-right: .4em; }
+
+/* ── 단계 공개(힌트·풀이·칠판 공개) ── */
+.reveal-step {
+  border-radius: var(--radius-m); padding: var(--sp-3) var(--sp-4);
+  background: var(--surface); border: var(--border) dashed var(--line-strong); color: var(--ink-2);
+}
+.reveal-step.open { border-style: solid; border-color: var(--accent); color: var(--ink); }
+.reveal-step + .reveal-step { margin-top: var(--sp-3); }
+.reveal-step > p { margin: 0; }
+.reveal-step > p + p { margin-top: .5em; }
+/* 아직 안 연 단계(칠판 공개 자리): 글자 대신 자리만 보여요 */
+.reveal-step.is-locked { min-height: var(--tap); color: var(--ink-2); font-weight: 700; }
+ol.reveal-steps, ul.reveal-steps { list-style: none; margin: 0; padding: 0; }
+
+/* ── 큰 숫자(타이머·집계) ── */
+.bignum { font-size: var(--t-num); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+/* 손들기 집계(칠판 보기 옆 단추와 같은 모양: ✋ 숫자 명). 칠판 무대는 board.css 의 .bd-tally-* 가 크기를 정해요 */
+.tally { display: flex; align-items: center; }
+.tally > * + * { margin-left: var(--sp-2); }
+.tally .val { min-width: 2.2em; text-align: center; font-size: var(--t-xl); font-weight: 800; font-variant-numeric: tabular-nums; }
+.tally-btn {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  min-height: var(--tap); min-width: calc(var(--tap) * 2); padding: 0 var(--sp-3);
+  border: var(--border) solid var(--line-strong); border-radius: var(--radius-pill);
+  background: var(--surface); color: var(--ink); cursor: pointer; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+}
+.tally-btn:active { background: var(--accent-soft); }
+.tally-btn > * + * { margin-left: .3em; }
+.tally-btn .tally-n { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ── ± 스테퍼 ── */
+.stepper { display: inline-flex; align-items: center; border: var(--border) solid var(--line-strong); border-radius: var(--radius-m); background: var(--surface); }
+.stepper > button { min-width: var(--tap); min-height: var(--tap); border: 0; background: transparent; color: var(--ink); font-size: var(--t-lg); font-weight: 800; }
+.stepper > .val { min-width: 3em; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stepper > button { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.stepper > button:first-child { border-radius: var(--radius-m) 0 0 var(--radius-m); }
+.stepper > button:last-child { border-radius: 0 var(--radius-m) var(--radius-m) 0; }
+.stepper > button:active { background: var(--accent-soft); }
+.stepper > button[disabled] { opacity: .4; cursor: default; }
+
+/* ── 슬라이더(휴대폰은 슬라이더 + 스테퍼, 칠판은 스테퍼 우선) ── */
+.range { -webkit-appearance: none; appearance: none; width: 100%; height: var(--tap); margin: 0; background: transparent; touch-action: none; }
+.range::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line-strong); }
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: var(--handle); height: var(--handle);
+  margin-top: calc((8px - var(--handle)) / 2 - 1px); border-radius: 50%;
+  background: var(--accent); border: 3px solid var(--surface); box-shadow: 0 0 0 2px var(--accent);
+}
+html[data-surface="board"] .range::-webkit-slider-runnable-track { height: 14px; border-radius: 7px; }
+html[data-surface="board"] .range::-webkit-slider-thumb { margin-top: calc((14px - var(--handle)) / 2 - 1px); }
+
+/* ── 아래에서 올라오는 시트(힌트·용어 풀이) ── */
+.scrim { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 49; background: var(--scrim); }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; max-height: 70vh; overflow-y: auto;
+  background: var(--surface); color: var(--ink);
+  border-radius: var(--radius-l) var(--radius-l) 0 0; box-shadow: var(--shadow-2);
+  padding: var(--sp-4) var(--gutter) calc(var(--sp-4) + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+/* 시트 위 손잡이 모양(장식) */
+html[data-surface="phone"] .sheet::before {
+  content: ""; display: block; width: 40px; height: 4px; margin: calc(var(--sp-2) * -1) auto var(--sp-3);
+  border-radius: 2px; background: var(--line);
+}
+html[data-surface="board"] .sheet { max-height: 80vh; }
+html[data-surface="prep"] .sheet, html[data-surface="board"] .sheet { left: 50%; width: 960px; max-width: 100%; transform: translateX(-50%); }
+.term { border: 0; background: none; padding: 0; color: inherit; border-bottom: 2px dotted var(--accent); cursor: pointer; }
+
+/* ── QR 카드: 테마와 상관없이 흰 바탕 + 검은 모듈 + 조용한 여백(인식률) ──
+ * <figure class="qr-card"><svg class="qr-svg" …/><figcaption class="qr-url">주소</figcaption></figure> */
+.qr-card {
+  display: inline-block; margin: 0; padding: var(--sp-4);
+  background: #ffffff; color: #111111; border-radius: var(--radius-l);
+  box-shadow: 0 0 0 var(--border) var(--line-strong); text-align: center;
+}
+.qr-card svg, .qr-card .qr-svg { display: block; width: 100%; height: auto; max-width: 640px; margin: 0 auto; background: #ffffff; color: #000000; }
+.qr-card .qr-url, .qr-card figcaption {
+  margin-top: var(--sp-2); font-family: var(--font-num); font-size: var(--t-sm); font-weight: 700;
+  color: #111111; word-break: break-all;
+}
+html[data-surface="board"] .qr-card { padding: var(--sp-5); }
+
+/* ── 빈 상태·안내 ── */
+.empty { text-align: center; color: var(--ink-2); padding: var(--sp-6) var(--sp-4); }
+.empty .ico { display: block; font-size: 2.4em; line-height: 1; margin-bottom: var(--sp-2); }
+
+/* ── 단원 표지색 점(장식) ── */
+.unit-dot { display: inline-block; width: .8em; height: .8em; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+.unit-bar { border-left: 6px solid var(--accent); padding-left: var(--sp-3); }

@@ -1,0 +1,30 @@
+{
+  "//": "촬영(scripts/shots.mjs)이 화면을 열기 전에 localStorage 에 넣는 가짜 학습 기록이에요. 개인 정보는 없어요. 기준 시각 2026-10-16T00:00:00.000Z",
+  "now": 1792108800000,
+  "storage": {
+    "aimn:t1:prefs": {
+      "fs": 1,
+      "theme": "light",
+      "motion": "reduce",
+      "speak": false,
+      "contrast": false
+    },
+    "aimn:t1:last": {
+      "lid": "u1-2",
+      "p": 1,
+      "s": 3,
+      "ts": 1792022400000
+    },
+    "aimn:t1:duration": 50,
+    "aimn:t1:progress": {
+      "2-3": {
+        "u1-1": "done",
+        "u1-2": "part"
+      },
+      "2-4": {
+        "u1-1": "done"
+      }
+    },
+    "aimn:t1:results": {}
+  }
+}

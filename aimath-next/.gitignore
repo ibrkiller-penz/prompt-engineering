@@ -1,0 +1,18 @@
+# 빌드 결과(배포할 때 npm run verify 로 새로 만들어요)
+dist-s/
+dist-t/
+dist/
+node_modules/
+.firebase/
+*.log
+firebase-debug*.log
+
+# 뿌리 .gitignore 가 .env.* 를 막지만, 이 두 파일은 공개 주소만 담고 있어서 저장소에 올려요
+!.env.student
+!.env.teacher
+# 주소를 잠깐 바꿔 볼 때 쓰는 파일은 올리지 않아요
+.env.local
+.env.*.local
+
+# 촬영 결과(tools/shots/*.png)는 선생님 확인용으로 올려요. 임시 파일만 빼요
+tools/shots/*.tmp.png
