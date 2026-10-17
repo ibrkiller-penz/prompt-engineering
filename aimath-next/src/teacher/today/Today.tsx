@@ -59,7 +59,7 @@ function Welcome() {
         </li>
         <li>
           <b>차시를 골라요</b>
-          <span className="muted"> 위에 첫 차시가 올라와 있어요. 다른 차시는 '다른 차시 고르기'에서 골라요.</span>
+          <span className="muted"> 위에 첫 차시가 올라와 있어요. 다른 차시는 '차시 찾기'에서 골라요.</span>
         </li>
         <li>
           <b>'수업 시작'을 눌러요</b>
@@ -342,7 +342,7 @@ export default function Today({ query }: TeacherPageProps) {
         </div>
         <a className="btn" href="#/find">
           <TIcon name="search" size="em" />
-          <span>다른 차시 고르기</span>
+          <span>차시 찾기</span>
         </a>
       </header>
 

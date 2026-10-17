@@ -362,10 +362,10 @@ html[data-site="student"] .s-q-prev { margin-bottom: var(--sp-2); }
 html[data-site="student"] .ui-hint { background: var(--info-bg); border-color: var(--info); border-style: solid; }
 html[data-site="student"] .ui-hint.is-sol { background: var(--surface-2); border-color: var(--line-strong); }
 
-/* ── 숫자·기호 줄(NumberPad): 휴대폰에서는 기호를 한 줄로 가로 스크롤 ── */
+/* ── 숫자·기호 줄(NumberPad): 휴대폰에서는 좁으면 다음 줄로 넘겨요(잘리지 않게) ── */
 html[data-site="student"] .ui-pad.is-phone .ui-pad-syms {
-  flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
-  padding: 2px 0 4px; margin-right: calc(var(--gutter) * -1);
+  flex-wrap: wrap; overflow: visible;
+  padding: 2px 0 0; margin-right: 0;
 }
 html[data-site="student"] .ui-pad.is-phone .ui-pad-key {
   flex: 0 0 auto; min-width: 44px; min-height: 44px;

@@ -162,4 +162,4 @@ export function cycleMark(m: Mark | undefined): Mark {
   return null;
 }
 
-export const MARK_LABEL: Record<"done" | "part" | "none", string> = { done: "끝", part: "일부", none: "아직" };
+export const MARK_LABEL: Record<"done" | "part" | "none", string> = { done: "끝", part: "진행 중", none: "아직" };

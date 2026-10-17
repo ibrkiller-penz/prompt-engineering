@@ -26,12 +26,12 @@ export interface EndProps {
   summary?: PeriodSummary | null;
 }
 
-/** 수업 마치기: 고른 반이 있으면 진도('끝'/'일부')를 적고 오늘 수업으로 가요 */
+/** 수업 마치기: 고른 반이 있으면 진도('끝'/'진행 중')를 적고 오늘 수업으로 가요 */
 export function useFinish(lessonId: string, lastPeriod: boolean): { label: string; hint: string; run: () => void } {
   const { klass, markLesson } = useKlass();
   return {
     label: "수업 마치기",
-    hint: klass ? klass + " 진도에 '" + (lastPeriod ? "끝" : "일부") + "' 표시" : "오늘 수업으로 돌아가요",
+    hint: klass ? klass + " 진도에 '" + (lastPeriod ? "끝" : "진행 중") + "' 표시" : "오늘 수업으로 돌아가요",
     run: () => {
       if (klass) markLesson(klass, lessonId, lastPeriod ? "done" : "part");
       navigate("/");

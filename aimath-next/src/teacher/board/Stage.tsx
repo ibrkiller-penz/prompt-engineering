@@ -6,12 +6,11 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 import { BOARD_H, BOARD_W } from "../../shared/contracts.ts";
 import { TIcon } from "../../shared/icons/teacher.tsx";
-import type { AnyIconName } from "../../shared/icons/names.ts";
 import { UiSurfaceContext } from "../../shared/ui/index.ts";
 import { useTeacherPrefs, stepFs } from "../shell/prefs.ts";
 import { InkLayer } from "./Ink.tsx";
 import { addStroke, canUndo, clearPage, InkBook, undo, type InkColor, type InkTool, type Stroke } from "./ink.logic.ts";
-import { Curtain, Picker, Timer, canFullscreen, isFullscreen, toggleFullscreen, useTimerBadge } from "./tools.tsx";
+import { BoardToolbar, Curtain, Picker, Timer, canFullscreen, isFullscreen, toggleFullscreen, useTimerBadge } from "./tools.tsx";
 
 export const HEAD_H = 64;
 export const BAR_H = 120;
@@ -87,23 +86,6 @@ const isTyping = (t: EventTarget | null) => {
   const tag = el.tagName.toLowerCase();
   return tag === "input" || tag === "textarea" || tag === "select" || !!el.isContentEditable;
 };
-
-function ToolBtn(props: { icon: AnyIconName; label: string; on?: boolean; onClick: () => void; badge?: string | null; disabled?: boolean }) {
-  return (
-    <button type="button" className={"bd-tool" + (props.on ? " is-on" : "")} aria-pressed={props.on === undefined ? undefined : props.on} onClick={props.onClick} disabled={props.disabled}>
-      <TIcon name={props.icon} size="lg" />
-      <span className="bd-tool-txt">{props.badge || props.label}</span>
-    </button>
-  );
-}
-
-const PENS: { tool: InkTool; color: InkColor; label: string; cls: string }[] = [
-  { tool: "pen", color: "ink", label: "검정 펜", cls: "c-ink" },
-  { tool: "pen", color: "red", label: "빨강 펜", cls: "c-red" },
-  { tool: "pen", color: "blue", label: "파랑 펜", cls: "c-blue" },
-  { tool: "hl", color: "hl", label: "형광펜", cls: "c-hl" },
-  { tool: "eraser", color: "ink", label: "지우개", cls: "c-eraser" },
-];
 
 export function Stage(props: StageProps) {
   const fit = useFit();
@@ -306,57 +288,36 @@ export function Stage(props: StageProps) {
 
           {/* ── 아래 도구띠 ── */}
           <footer className="bd-bar">
-            <div className="bd-bar-tools" role="toolbar" aria-label="칠판 도구">
-              <ToolBtn icon="pen" label={ink ? "판서 끄기" : "판서"} on={ink} onClick={() => setInk((v) => !v)} />
-              {ink ? (
-                <div className="bd-pens" role="group" aria-label="펜 고르기">
-                  {PENS.map((p) => {
-                    const on = tool === p.tool && (p.tool !== "pen" || color === p.color);
-                    return (
-                      <button
-                        key={p.label}
-                        type="button"
-                        className={"bd-pen " + p.cls + (on ? " is-on" : "")}
-                        aria-pressed={on}
-                        aria-label={p.label}
-                        title={p.label}
-                        onClick={() => {
-                          setTool(p.tool);
-                          if (p.tool === "pen") setColor(p.color);
-                        }}
-                      >
-                        {p.tool === "eraser" ? <TIcon name="eraser" size="lg" /> : p.tool === "hl" ? <TIcon name="marker" size="lg" /> : <i aria-hidden="true" />}
-                      </button>
-                    );
-                  })}
-                  <button type="button" className="bd-pen" onClick={undoInk} disabled={!canUndo(page)} aria-label="되돌리기" title="되돌리기">
-                    <TIcon name="undo" size="lg" />
-                  </button>
-                  <button type="button" className="bd-pen" onClick={clearInk} disabled={!page.strokes.length} aria-label="모두 지우기" title="모두 지우기">
-                    <TIcon name="trash" size="lg" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <ToolBtn icon="timer" label="타이머" badge={timerBadge} on={pop === "timer"} onClick={() => setPop(pop === "timer" ? null : "timer")} />
-                  <ToolBtn icon="curtain" label="가림막" on={curtain} onClick={() => setCurtain((v) => !v)} />
-                  <ToolBtn icon="zoom" label={zoom.on ? "확대 끄기" : "확대"} on={zoomed} onClick={() => setZoom(zoomed ? { armed: false, on: false, x: 50, y: 50 } : { armed: true, on: false, x: 50, y: 50 })} />
-                  <button type="button" className="bd-tool" onClick={() => patch({ fs: stepFs(prefs.fs, -1) })} disabled={prefs.fs <= 0} aria-label="글자 작게">
-                    <span className="bd-tool-big">A−</span>
-                  </button>
-                  <button type="button" className="bd-tool" onClick={() => patch({ fs: stepFs(prefs.fs, 1) })} disabled={prefs.fs >= 3} aria-label="글자 크게">
-                    <span className="bd-tool-big">A+</span>
-                  </button>
-                  <ToolBtn icon="dice" label="번호 뽑기" on={pop === "picker"} onClick={() => setPop(pop === "picker" ? null : "picker")} />
-                  {canFullscreen() ? <ToolBtn icon="full" label={fsOn ? "전체 화면 끄기" : "전체 화면"} on={fsOn} onClick={toggleFullscreen} /> : null}
-                  <ToolBtn icon="theme" label="칠판색" on={prefs.theme === "chalk"} onClick={toggleChalk} />
-                  <a className="bd-tool" href={props.exitHref}>
-                    <TIcon name="home" size="lg" />
-                    <span className="bd-tool-txt">나가기</span>
-                  </a>
-                </>
-              )}
-            </div>
+            <BoardToolbar
+              ink={ink}
+              onInk={(v) => setInk(v)}
+              tool={tool}
+              color={color}
+              onPen={(t, c) => {
+                setTool(t);
+                if (t === "pen") setColor(c);
+              }}
+              canUndo={canUndo(page)}
+              canClear={!!page.strokes.length}
+              onUndo={undoInk}
+              onClear={clearInk}
+              pop={pop}
+              onPop={setPop}
+              timerBadge={timerBadge}
+              curtain={curtain}
+              onCurtain={() => setCurtain((v) => !v)}
+              zoomed={zoomed}
+              zoomOn={zoom.on}
+              onZoom={() => setZoom(zoomed ? { armed: false, on: false, x: 50, y: 50 } : { armed: true, on: false, x: 50, y: 50 })}
+              fs={prefs.fs}
+              onFs={(d) => patch({ fs: stepFs(prefs.fs, d) })}
+              canFull={canFullscreen()}
+              fullOn={fsOn}
+              onFull={toggleFullscreen}
+              chalk={prefs.theme === "chalk"}
+              onChalk={toggleChalk}
+              exitHref={props.exitHref}
+            />
             <div className="bd-bar-nav">
               <button type="button" className="btn bd-prev" onClick={props.onPrev} disabled={!props.canPrev}>
                 <TIcon name="prev" size="lg" />
