@@ -26,3 +26,4 @@
 .t-prog-cell.is-part { background: var(--warn-bg); }
 .t-prog-cell.is-part .t-prog-sym { color: var(--warn); }
 .t-prog-cell.is-none .t-prog-txt { color: var(--ink-3); }
+.t-prog-now { font-weight: 800; font-size: var(--t-base); }

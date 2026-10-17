@@ -25,6 +25,8 @@ export interface CardDeckProps {
   prevLabel?: string;
   /** 다음 단추를 강조하지 않음(확인 문제를 아직 안 풀었을 때 등) */
   nextSoft?: boolean;
+  /** 카드 아래 '건너뛰기' 단추(이야기 카드 등) */
+  skip?: { label: string; onClick: () => void } | null;
   children: ReactNode;
 }
 
@@ -113,6 +115,13 @@ export function CardDeck(props: CardDeckProps) {
         <div ref={box} className="s-deck" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => (start.current = null)}>
           <div key={props.cardKey} className="s-card-in">
             {props.children}
+            {props.skip ? (
+              <div className="s-skip">
+                <button type="button" className="btn btn-ghost" onClick={props.skip.onClick}>
+                  {props.skip.label}
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </main>

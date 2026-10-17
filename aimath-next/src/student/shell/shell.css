@@ -3,7 +3,7 @@
  * 간격은 형제 margin(> * + *), 너비 1024px 이상은 가운데 720px 칸.
  */
 
-html[data-site="student"] { --s-col: 720px; --s-action-h: 76px; --s-rail-h: 6px; }
+html[data-site="student"] { --s-col: 720px; --s-action-h: 76px; --s-rail-h: 10px; }
 
 .s-screen, .s-deck-wrap { min-height: 100vh; background: var(--bg); }
 .s-band { position: relative; z-index: 21; }
@@ -180,8 +180,6 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 76px; --s-rail-h: 6px;
 .s-me-unit > summary > * + * { margin-left: var(--sp-3); }
 .s-me-unit[open] > summary { margin-bottom: var(--sp-2); }
 .s-me-links .list-row { padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); }
-.s-teacher-link { margin-top: var(--sp-6); padding-top: var(--sp-4); border-top: 1px solid var(--line); }
-.s-teacher-link > * + * { margin-top: var(--sp-2); }
 .s-plain-list { margin: 0; padding-left: 1.2em; }
 .s-plain-list > li + li { margin-top: var(--sp-1); }
 
@@ -226,3 +224,20 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 76px; --s-rail-h: 6px;
 @media print {
   .s-actionbar, .s-tabbar, .s-topbar .s-back, .s-band { display: none !important; }
 }
+
+/* ── 단원 이야기 ── */
+.s-story > * + * { margin-top: var(--sp-2); }
+.s-story-text > * + * { margin-top: var(--sp-3); }
+.s-story-p { display: flow-root; line-height: 1.85; }
+.s-story-p > p { margin: 0; }
+.s-story-img { width: 30%; min-width: 104px; max-width: 230px; height: auto; border-radius: var(--r-md, 12px); margin: var(--sp-2) 0 var(--sp-2); }
+.s-story-img.is-right { float: right; margin-left: var(--sp-3); }
+.s-story-img.is-left { float: left; margin-right: var(--sp-3); }
+.s-stories { margin-top: var(--sp-3); }
+.s-stories > * + * { margin-top: var(--sp-3); }
+.s-story-sum { display: flex; align-items: center; min-height: var(--tap); cursor: pointer; list-style: none; }
+.s-story-sum::-webkit-details-marker { display: none; }
+.s-story-sum > * + * { margin-left: var(--sp-3); }
+.s-story-no { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: var(--t-sm); }
+.s-story-title { display: block; font-size: var(--t-lg); line-height: 1.35; }
+.s-story-d[open] > .s-story-sum { margin-bottom: var(--sp-2); }

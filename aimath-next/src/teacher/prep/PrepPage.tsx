@@ -15,6 +15,7 @@ import { useFlowState } from "../store/index.ts";
 import { boardHref, planOf } from "../shell/plan.ts";
 import { barSegments, minLabel } from "../today/timebar.ts";
 import { periodQuestion, shortId } from "../logic/index.ts";
+import { nextPeriodHeads, storyAdd, storyAddText, timeVerdict, type StoryAdd } from "./prep.logic.ts";
 import { goalsForPeriod, usePrep, useLessonPrep, type Baskets, type GoalView } from "./data.ts";
 import "./prep.css";
 
@@ -39,9 +40,10 @@ function widgetsIn(lesson: Lesson, sections: number[]): WidgetId[] {
   return out;
 }
 
-function TimePlan({ scenes, minutes, total }: { scenes: Parameters<typeof barSegments>[0]; minutes: number; total: number }) {
+function TimePlan({ scenes, minutes, total, sAdd }: { scenes: Parameters<typeof barSegments>[0]; minutes: number; total: number; sAdd: StoryAdd | null }) {
   const segs = barSegments(scenes);
-  const over = total > minutes + 0.25;
+  const tv = timeVerdict(total, minutes, sAdd);
+  const over = tv.state === "over";
   return (
     <div className="t-timebar">
       <div className="t-tb-bar" role="img" aria-label={"시간 배분: " + segs.map((s) => s.label + " " + minLabel(s.min)).join(", ")}>
@@ -61,7 +63,9 @@ function TimePlan({ scenes, minutes, total }: { scenes: Parameters<typeof barSeg
         ))}
       </ul>
       <p className={"small " + (over ? "t-over" : "muted")}>
-        {over ? "시간이 " + minLabel(total - minutes) + " 넘쳐요(예상 " + minLabel(total) + " / 수업 " + minutes + "분). 오늘 수업이나 수업 흐름에서 줄일 수 있어요." : "예상 " + minLabel(total) + " / 수업 " + minutes + "분"}
+        {"예상 " + minLabel(total) + " / 수업 " + minutes + "분 · " + tv.text}
+        {over ? " 오늘 수업이나 수업 흐름에서 줄일 수 있어요." : ""}
+        {sAdd ? <span className="no-print"> {storyAddText(sAdd)}</span> : null}
       </p>
     </div>
   );
@@ -231,6 +235,8 @@ export default function PrepPage(m: TeacherPageProps) {
   }
   const goalTexts = prep && prep.goals && prep.goals.length ? prep.goals : prep && prep.goal ? [prep.goal] : [];
   const goals = goalsForPeriod(goalTexts, prep && prep.goals && prep.goals.length ? prep.goalSecs : undefined, view.periods, p);
+  const nextHeads = nextPeriodHeads(lesson.sections, view.periods, p);
+  const sAdd = per.first ? storyAdd(view.scenes, view.total, st.duration) : null;
   const asks = prep && prep.questions && prep.questions.length ? prep.questions : prep && prep.asks ? prep.asks.map((q) => ({ q, a: "" })) : [];
 
   return (
@@ -285,6 +291,26 @@ export default function PrepPage(m: TeacherPageProps) {
             학습 목표{view.periods.length > 1 ? " · " + p + "차시" : ""}
           </h2>
           {prep === undefined ? <p className="muted ui-loading">준비 자료를 불러오는 중이에요…</p> : <GoalList goals={goals} />}
+          <p className="pp-next">
+            <span className="pp-next-tag">다음 차시 예고</span>{" "}
+            {nextHeads ? (
+              nextHeads.length ? (
+                <>
+                  {p + 1}차시 ·{" "}
+                  {nextHeads.map((h, k) => (
+                    <span key={k}>
+                      {k ? " · " : ""}
+                      <Rich text={h} />
+                    </span>
+                  ))}
+                </>
+              ) : (
+                <>{p + 1}차시에 이어서 해요.</>
+              )
+            ) : (
+              "이 레슨의 마지막 차시예요."
+            )}
+          </p>
           <div className="pp-q">
             <span className="pp-q-tag">{view.periods.length > 1 ? p + "차시 핵심 질문" : "오늘의 핵심 질문"}</span>
             {qLines.map((t, i) => (
@@ -299,7 +325,7 @@ export default function PrepPage(m: TeacherPageProps) {
           <h2 className="h3" id="pp-time-h">
             시간 배분 {view.periods.length > 1 ? "· " + p + "/" + view.periods.length + "차시" : ""}
           </h2>
-          <TimePlan scenes={view.scenes} minutes={st.duration} total={view.total} />
+          <TimePlan scenes={view.scenes} minutes={st.duration} total={view.total} sAdd={sAdd} />
           {per.first ? <StoryNote lid={lid} view={view} /> : null}
           <p className="small muted">
             다루는 소제목:{" "}

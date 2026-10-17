@@ -5,7 +5,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Lesson, Scene } from "../../src/shared/contracts.ts";
-import { circled, clip, cueOf, hwPreview, segmentInfo } from "../../src/teacher/board/board.logic.ts";
+import { circled, clip, finishPlan, hwNumbers, cueOf, firstSentence, hwPreview, offScenes, phaseBar, practiceNo, rateAdvice, revealMax, segmentInfo, storyImageAt } from "../../src/teacher/board/board.logic.ts";
+import { correctRate } from "../../src/teacher/store/logic.ts";
 import { studentLink } from "../../src/teacher/logic/pick.logic.ts";
 import { buildLessonFlow, homeworkFromOff } from "../../src/teacher/logic/scenes.logic.ts";
 import { lessonPeriods } from "../../src/teacher/logic/periods.logic.ts";
@@ -68,11 +69,13 @@ test("숙제 미리보기: 앞 3줄만, 나머지는 '+n문제'", () => {
     }
 });
 
-test("End.tsx: 숙제는 hwPreview(…, 3), 정리·숙제는 clip, 수업 마치기는 장면 안 단추가 아니에요", () => {
+test("End.tsx: 숙제는 번호 줄(hwNumbers) + 눌러서 지문 펼침, 정리·숙제는 clip, 수업 마치기는 장면 안 단추가 아니에요", () => {
   const src = read("src/teacher/board/End.tsx");
-  assert.match(src, /hwPreview\(hw, 3\)/);
+  assert.match(src, /hwNumbers\(pids, hw\)/);
   assert.match(src, /clip\(q\.prompt,/);
-  assert.doesNotMatch(src, /<button/, "수업 마치기는 아래 고정 막대의 주 단추가 맡아요");
+  assert.doesNotMatch(src, /<button[^>]*finish/, "수업 마치기는 아래 고정 막대의 주 단추가 맡아요");
+  assert.match(src, /firstSentence\(t\)/, "정리는 앞 한 문장을 잘리지 않게");
+  assert.match(src, /aria-expanded=\{hwOpen\}/, "+N문제는 눌러서 펼쳐요");
   assert.doesNotMatch(src, /\{short\}|word-break/, "긴 주소(쿼리)를 화면 글자로 보여 주지 않아요");
 });
 
@@ -138,4 +141,63 @@ test("공개 자리표시: 번호는 ①②…, 단서는 종류와 첫 낱말(�
   assert.equal(cueOf({ t: "p", text: "$x$ 가 커지면" }).word, "", "수식으로 시작하면 단서 낱말 없이 종류만");
   assert.equal(cueOf({ t: "callout", kind: "warn", text: "조심해요, 이것은" }).word, "조심해요");
   for (const L of lessons) for (const sec of L.sections) for (const b of sec.blocks) assert.ok(cueOf(b as { t: string }).word.length <= 10);
+});
+
+
+test("firstSentence: 수식 안 마침표·소수점에서 끊지 않고, 첫 문장만 돌려줘요", () => {
+  assert.equal(firstSentence("확률은 0과 1 사이예요. 그래서 이렇게 써요."), "확률은 0과 1 사이예요.");
+  assert.equal(firstSentence("값은 $3.5$ 예요. 다음"), "값은 $3.5$ 예요.");
+  assert.equal(firstSentence("평균은 3.5점이에요! 좋아요"), "평균은 3.5점이에요!");
+  assert.equal(firstSentence("마침표 없는 글"), "마침표 없는 글");
+  assert.equal(firstSentence("줄\n바꿈이 있어도. 둘째"), "줄 바꿈이 있어도.");
+});
+
+test("rateAdvice: 득표가 없으면 숨기고, 80% 이상·50~80%·50% 미만 문구가 달라요", () => {
+  assert.equal(rateAdvice(null), null);
+  assert.equal(rateAdvice(80), "정답률 80% · 다음으로 넘어가요");
+  assert.equal(rateAdvice(79), "정답률 79% · 풀이를 한 번 더 봐요");
+  assert.equal(rateAdvice(50), "정답률 50% · 풀이를 한 번 더 봐요");
+  assert.equal(rateAdvice(49), "정답률 49% · 개념 카드로 돌아가요");
+  assert.equal(rateAdvice(0), "정답률 0% · 개념 카드로 돌아가요");
+  assert.equal(rateAdvice(correctRate([0, 0, 0], 1)), null);
+  assert.equal(rateAdvice(correctRate([1, 3, 0], 1)), "정답률 75% · 풀이를 한 번 더 봐요");
+});
+
+test("phaseBar: 켜진 장면이 있는 구간만, 지금 구간은 cur 이고 앞은 past", () => {
+  const scenes = [sc("open"), sc("open", false), sc("concept", true, 0), sc("practice", true), sc("wrap", false), sc("end")];
+  const a = phaseBar(scenes, 2);
+  assert.deepEqual(a.map((x) => x.label + ":" + x.state), ["도입:past", "개념:cur", "문제:next", "수업 끝:next"]);
+  const b = phaseBar(scenes, 5);
+  assert.equal(b[b.length - 1].state, "cur");
+  assert.equal(b.filter((x) => x.state === "cur").length, 1);
+});
+
+test("offScenes · storyImageAt · practiceNo", () => {
+  assert.deepEqual(offScenes([{ on: true }, { on: false }, { on: false }]), [1, 2]);
+  assert.equal(storyImageAt(0, 3, 6), -1);
+  assert.equal(storyImageAt(3, 0, 6), 0);
+  assert.equal(storyImageAt(3, 5, 6), 2);
+  assert.equal(storyImageAt(3, 9, 6), 2);
+  assert.equal(practiceNo(["a", "b", "c"], "c"), 3);
+  assert.equal(practiceNo(["a"], "z"), 0);
+});
+
+test("revealMax: 이야기는 한 줄씩(줄 수 - 1)", () => {
+  const story = { kind: "story", reveal: 0, blocks: [{ t: "lines", items: ["가", "나", "다"] }] } as unknown as Scene;
+  assert.equal(revealMax(story, undefined), 2);
+  const one = { kind: "story", reveal: 0, blocks: [{ t: "lines", items: ["가"] }] } as unknown as Scene;
+  assert.equal(revealMax(one, undefined), 0);
+});
+
+test("숙제 번호 줄은 '6번 · 7번 · 10번', 수업 마치기는 끝난 레슨을 진행 중으로 되돌리지 않아요", () => {
+  const pids = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
+  assert.equal(hwNumbers(pids, ["f", "g", "j"]), "6번 · 7번 · 10번");
+  assert.equal(hwNumbers(pids, []), "");
+  assert.equal(hwNumbers(pids, ["zz"]), "1번");
+  assert.deepEqual(finishPlan(null, undefined, true), { mark: null, hint: "오늘 수업으로 돌아가요" });
+  assert.equal(finishPlan("2-3", undefined, false).mark, "part");
+  assert.equal(finishPlan("2-3", "part", true).mark, "done");
+  assert.equal(finishPlan("2-3", "done", false).mark, null);
+  assert.match(finishPlan("2-3", "done", false).hint, /'끝' 그대로 둬요/);
+  assert.equal(finishPlan("2-3", "done", true).mark, "done");
 });

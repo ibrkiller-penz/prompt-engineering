@@ -337,6 +337,9 @@ export interface BoardToolbarProps {
   onChalk: () => void;
   /** 나가기(준비 화면) 주소 */
   exitHref: string;
+  /** 키보드 Home·End 로 첫·마지막 장면에 갈 수 있는지(키보드 안내에 써요) */
+  keyFirst?: boolean;
+  keyLast?: boolean;
 }
 
 /** 열려 있는 동안 바깥을 누르거나 Esc 를 누르면 닫혀요 */
@@ -406,12 +409,53 @@ function ExitAsk({ href, onCancel }: { href: string; onCancel: () => void }) {
   );
 }
 
-/** '더 보기' 묶음: A±·번호 뽑기·전체 화면·칠판색 */
+/** 키보드 안내 줄: Stage 의 키 처리(넘김·Esc)와 같은 키만 써요 */
+export function keyHelp(first: boolean, last: boolean): { keys: string; what: string }[] {
+  const rows = [
+    { keys: "→ · Space · PageDown", what: "다음(공개·장면)" },
+    { keys: "← · PageUp", what: "이전" },
+  ];
+  if (first) rows.push({ keys: "Home", what: "첫 장면으로" });
+  if (last) rows.push({ keys: "End", what: "마지막 장면으로" });
+  rows.push({ keys: "Esc", what: "열린 창 닫기 · 판서 끄기 · 확대 풀기" });
+  return rows;
+}
+
+/** '키보드로 하기' 한 장 */
+function KeySheet({ first, last, onBack }: { first: boolean; last: boolean; onBack: () => void }) {
+  return (
+    <div className="bd-keys" role="group" aria-label="키보드로 하기">
+      <p className="bd-keys-title">키보드로 하기</p>
+      <dl className="bd-keys-list">
+        {keyHelp(first, last).map((r) => (
+          <div key={r.keys} className="bd-keys-row">
+            <dt className="num">{r.keys}</dt>
+            <dd>{r.what}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="bd-keys-note">단추에 초점이 있을 때 Space 는 그 단추를 눌러요. 글을 쓰는 중이거나 Ctrl이나 Alt를 같이 누르면 넘어가지 않아요.</p>
+      <button type="button" className="btn bd-more-btn bd-keys-back" onClick={onBack}>
+        돌아가기
+      </button>
+    </div>
+  );
+}
+
+/** '더 보기' 묶음: A±·번호 뽑기·전체 화면·칠판색·키보드로 하기 */
 function MoreMenu(props: BoardToolbarProps & { onClose: () => void }) {
+  const [keys, setKeys] = useState(false);
   const pick = (fn: () => void) => () => {
     fn();
     props.onClose();
   };
+  if (keys) {
+    return (
+      <div className="bd-more-pop bd-noswipe" role="group" aria-label="더 보기 도구">
+        <KeySheet first={!!props.keyFirst} last={!!props.keyLast} onBack={() => setKeys(false)} />
+      </div>
+    );
+  }
   return (
     <div className="bd-more-pop bd-noswipe" role="group" aria-label="더 보기 도구">
       <div className="bd-more-fs">
@@ -440,6 +484,12 @@ function MoreMenu(props: BoardToolbarProps & { onClose: () => void }) {
         <button type="button" className={"btn bd-more-btn" + (props.chalk ? " is-on" : "")} aria-pressed={props.chalk} onClick={pick(props.onChalk)}>
           <TIcon name="theme" size="lg" />
           <span>{props.chalk ? "칠판색 끄기" : "칠판색"}</span>
+        </button>
+        <button type="button" className="btn bd-more-btn" aria-expanded={false} onClick={() => setKeys(true)}>
+          <span className="bd-more-kbd" aria-hidden="true">
+            ⌨
+          </span>
+          <span>키보드로 하기</span>
         </button>
       </div>
     </div>

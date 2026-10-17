@@ -7,6 +7,7 @@ import { todayHref } from "../shell/plan.ts";
 import { TEACHER_MARK } from "../mark.ts";
 import { cycleMark, type Mark } from "../store/index.ts";
 import { marksLabel } from "../today/timebar.ts";
+import { klassNowText } from "./progress.logic.ts";
 import "./progress.css";
 
 export const PROGRESS_MARK = TEACHER_MARK;
@@ -60,10 +61,9 @@ export default function ProgressPage(_m: TeacherPageProps) {
               <div className="meter" role="img" aria-label={c + "반 진도: " + marksLabel(done, part) + " (전체 " + total + "레슨)"}>
                 <i style={{ width: pct + "%" }} />
               </div>
+              <p className="t-prog-now">{klassNowText(progress, c, INDEX.order, (id) => (lessonMeta(id) ? (lessonMeta(id) as { code: string }).code : id))}</p>
               <p className="small muted">
-                {marksLabel(done, part)}
-                <br />
-                전체 {total}레슨
+                {marksLabel(done, part)} · 전체 {total}레슨
               </p>
             </li>
           );

@@ -20,11 +20,15 @@ export interface NumberPadProps {
   /** 숫자 단추도 보이기(기본: 칠판에서만) */
   digits?: boolean;
   disabled?: boolean;
+  /** 보일 기호 키(예: ["/","√"]). 없으면 모두, 빈 배열이면 기호 없이 숫자·지우기만(padKeysForQuestion 으로 구해요). '/' 가 있을 때만 분수 안내가 나와요 */
+  keys?: string[];
 }
 
-export function NumberPad({ onKey, onBack, surface, digits, disabled }: NumberPadProps) {
+export function NumberPad({ onKey, onBack, surface, digits, disabled, keys }: NumberPadProps) {
   const sf = useUiSurface(surface);
   const showDigits = digits != null ? digits : sf === "board";
+  const syms = keys ? SYMS.filter((s) => keys.indexOf(s.k) >= 0) : SYMS;
+  const hasFrac = syms.some((s) => s.k === "/");
   return (
     <div className={"ui-pad is-" + sf} role="group" aria-label="기호 입력">
       {showDigits ? (
@@ -37,7 +41,7 @@ export function NumberPad({ onKey, onBack, surface, digits, disabled }: NumberPa
         </div>
       ) : null}
       <div className="ui-pad-syms">
-        {SYMS.map((s) => (
+        {syms.map((s) => (
           <button key={s.k} type="button" className="ui-pad-key" style={{ minHeight: 44 }} aria-label={s.name} title={s.name} disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => onKey(s.k)}>
             {s.label}
           </button>
@@ -58,6 +62,7 @@ export function NumberPad({ onKey, onBack, surface, digits, disabled }: NumberPa
           </button>
         ) : null}
       </div>
+      {hasFrac ? <p className="ui-pad-note">분수는 이렇게 적어요. 예: 1/3</p> : null}
     </div>
   );
 }

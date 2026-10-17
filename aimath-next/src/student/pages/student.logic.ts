@@ -73,3 +73,37 @@ export function shortPrompt(s: string, max = 40): string {
   if ((cut.match(/\*\*/g) || []).length % 2 === 1) cut = cut.slice(0, cut.lastIndexOf("**"));
   return cut.replace(/\s+$/, "") + "…";
 }
+
+/** 문제 세트 결과 한 줄: "9문제 중 8문제 맞혔어요" */
+export function resultLine(total: number, ok: number): string {
+  return total + "문제 중 " + ok + "문제 맞혔어요";
+}
+
+/** 지난번(이 세트를 열기 전)보다 맞힌 문제가 늘었을 때만 한 줄. 늘지 않았으면 "" */
+export function gainLine(before: number, now: number): string {
+  const d = now - before;
+  return d > 0 ? "지난번보다 " + d + "문제 더 맞혔어요" : "";
+}
+
+/** 오늘(기기 시계 기준 0시 이후) 마지막으로 제출한 문제 수 — 기존 기록(t1)만 읽어요 */
+export function solvedToday(qm: Record<string, { t1?: number; wrong?: number; first?: boolean | null; ok?: boolean }>, now: number): number {
+  const d = new Date(now);
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  let n = 0;
+  for (const id of Object.keys(qm)) {
+    const r = qm[id];
+    if (r && typeof r.t1 === "number" && r.t1 >= start) n++;
+  }
+  return n;
+}
+
+/** 문제 위쪽 '지난번' 표시. rec = 처음 연 때의 기록, submitted = 이번에 낸 답(없으면 null)
+ *  처음 푸는 문제는 표시 없음 · 제출 전: 맞힌 적 있으면 '지난번에 맞혔어요' · 제출 뒤 틀리면 '이번에는 다른 답이었어요. 조건을 다시 볼까요?' */
+export function prevNote(rec: { ok?: boolean; wrong?: number; first?: boolean | null; sol?: boolean } | undefined, tried: boolean, submitted: { correct: boolean } | null): { kind: "ok" | "tried" | "diff"; text: string } | null {
+  if (!rec || !tried) return null;
+  if (submitted) {
+    return rec.ok && !submitted.correct ? { kind: "diff", text: "이번에는 다른 답이었어요. 조건을 다시 볼까요?" } : null;
+  }
+  if (rec.ok) return { kind: "ok", text: "지난번에 맞혔어요" };
+  return { kind: "tried", text: "지난번에 풀어 봤어요" + (rec.wrong ? " · 다시 본 횟수 " + rec.wrong : "") };
+}

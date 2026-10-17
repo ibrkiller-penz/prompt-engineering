@@ -1,5 +1,5 @@
 // 정오 알림. 색만이 아니라 ✓/✗ 기호와 글자로 함께 알려요(색을 구별하기 어려운 학생도 알 수 있게).
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 export type FeedbackKind = "ok" | "bad" | "invalid" | "self" | "shown";
 
@@ -15,12 +15,14 @@ export interface FeedbackProps {
   kind: FeedbackKind;
   /** 덧붙이는 말 */
   children?: ReactNode;
+  /** 제출 뒤 포커스를 보낼 때 쓰는 ref(쓰는 쪽이 focus() 해요) */
+  focusRef?: Ref<HTMLDivElement>;
 }
 
-export function Feedback({ kind, children }: FeedbackProps) {
+export function Feedback({ kind, children, focusRef }: FeedbackProps) {
   const t = TEXT[kind];
   return (
-    <div className={"ui-fb is-" + t.cls} role="status" aria-live="polite">
+    <div className={"ui-fb is-" + t.cls} role="status" aria-live="polite" tabIndex={-1} ref={focusRef}>
       <span className="ui-fb-mark" aria-hidden="true">
         {t.mark}
       </span>

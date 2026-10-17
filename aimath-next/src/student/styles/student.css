@@ -15,7 +15,7 @@
 /* :root 를 붙여 shell.css 의 같은 변수보다 우선해요(번들 안 CSS 순서와 상관없이) */
 html[data-site="student"]:root {
   --s-action-h: 62px;        /* 아래 행동 띠(주 단추 52 + 위아래 5) */
-  --s-rail-h: 6px;
+  --s-rail-h: 10px;
   --s-pos-h: 16px;           /* 위치 줄(행동 띠 안에 들어가요) */
   --s-hero-ink: var(--on-accent);
   --s-bubble-tail: 8px;
@@ -23,8 +23,8 @@ html[data-site="student"]:root {
 
 /* ───────────────────────── 위 띠(TopBar) ───────────────────────── */
 html[data-site="student"] .s-topbar {
-  height: var(--topbar-h); min-height: 0;
-  padding: 0 var(--sp-2) 0 var(--gutter);
+  height: auto; min-height: var(--topbar-h);
+  padding: 4px var(--sp-2) 4px var(--gutter);
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
@@ -35,7 +35,7 @@ html[data-site="student"] .s-title-main {
   font-weight: 800; color: var(--ink);
 }
 html[data-site="student"] .s-title-eyebrow {
-  font-size: 13px; font-size: min(var(--t-xs), 14px);
+  font-size: 14px; font-size: min(var(--t-sm), 15px);
   letter-spacing: .02em;
 }
 /* 오른쪽 작은 단추(읽어 주기·설정 등)는 44 터치 유지 */
@@ -117,7 +117,7 @@ html[data-site="student"] .s-tabbar {
 html[data-theme="dark"] .s-tabbar { box-shadow: none; }
 html[data-site="student"] .s-tabbar a { color: var(--ink-2); padding-top: 4px; }
 /* 탭 글자 바닥 12px 이상(지금 13px). 아주 좁은 화면에서도 줄이지 않아요 */
-html[data-site="student"] .s-tabbar a > span { font-size: 13px; font-size: max(13px, min(calc(13px * var(--fs-scale)), 16px)); line-height: 1.2; }
+html[data-site="student"] .s-tabbar a > span { font-size: 14px; font-size: max(14px, min(calc(14px * var(--fs-scale)), 17px)); line-height: 1.2; font-weight: 700; }
 html[data-site="student"] .s-tabbar a .ico-svg {
   display: block; width: 52px; height: 28px; padding: 3px 0; margin-bottom: 1px;
   border-radius: var(--radius-pill);
@@ -394,7 +394,10 @@ html[data-site="student"] .s-seg-btn.is-on { background: var(--surface); color: 
 html[data-site="student"] .s-seg-btn.is-on { box-shadow: var(--shadow-1), inset 0 -3px 0 var(--accent); }
 html[data-site="student"] .s-seg-btn.is-on .s-count { background: var(--accent); color: var(--on-accent); }
 html[data-contrast="more"] .s-seg { box-shadow: inset 0 0 0 2px var(--line-strong); }
-html[data-site="student"] .s-note { border-left: 4px solid var(--bad); }
+html[data-site="student"] .s-note { border-left: 4px solid var(--ink-3); }
+html[data-site="student"] .s-note-tabdesc { margin: 0; font-size: 15px; font-size: max(15px, var(--t-sm)); color: var(--ink); }
+html[data-site="student"] .s-note-tabs-all { margin: 0; padding: 0; list-style: none; font-size: 15px; font-size: max(15px, var(--t-sm)); color: var(--ink); line-height: 1.5; }
+html[data-site="student"] .s-note-tabs-all > li + li { margin-top: var(--sp-1); }
 html[data-site="student"] .s-note .eyebrow { font-variant-numeric: tabular-nums; }
 
 /* ───────────────────────── 사전 ───────────────────────── */
@@ -507,3 +510,101 @@ html.kbd[data-site="student"] .s-unit-filter .chip:focus { outline: var(--focus-
   html[data-site="student"] .s-continue .muted,
   html[data-site="student"] .s-continue .s-continue-title { color: #000; }
 }
+
+/* ── 단원 화면 · 개념 카드 보강 ── */
+/* 머리 제목은 두 줄까지(끝 말줄임 없이) */
+html[data-site="student"] .s-title-main { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
+html[data-site="student"] .s-title-main > span { white-space: normal; }
+/* 개념 카드 이어지는 머리 줄도 줄바꿈 */
+html[data-site="student"] .s-concept .s-cont { white-space: normal; overflow: visible; text-overflow: clip; }
+/* 개념 본문: 문단 사이 한 줄, 수식은 본문 크기 이상 */
+html[data-site="student"] .s-concept .ui-blocks > * + * { margin-top: 1em; }
+html[data-site="student"] .s-concept .ui-blocks p + p { margin-top: 1em; }
+html[data-site="student"] .s-deck .math-block,
+html[data-site="student"] .s-deck .katex-display { font-size: 1.2em; }
+html[data-site="student"] .s-deck .math-block .katex,
+html[data-site="student"] .s-deck .katex-display > .katex { font-size: 1.2em; }
+html[data-site="student"] .s-deck .katex .mfrac,
+html[data-site="student"] .s-deck .katex .mord.text { font-size: 1.04em; }
+/* 진행 칸 굵게 + 눌리는 영역 */
+html[data-site="student"] .s-rail { height: var(--s-rail-h); }
+html[data-site="student"] .s-rail-seg + .s-rail-seg { margin-left: 3px; }
+html[data-site="student"] .s-rail-seg { border-radius: 5px; }
+html[data-site="student"] .s-rail-seg > i { border-radius: 5px; }
+/* 건너뛰기 */
+html[data-site="student"] .s-skip { margin-top: var(--sp-4); text-align: center; }
+html[data-site="student"] .s-skip .btn { min-height: var(--tap); }
+
+/* ── 단원 이야기 카드 ── */
+html[data-site="student"] .s-unit-chip { min-width: 64px; padding-left: var(--sp-3); padding-right: var(--sp-3); font-weight: 700; }
+html[data-site="student"] .s-unit-next { margin: var(--sp-2) 0 var(--sp-2); line-height: 1.4; }
+html[data-site="student"] .s-unit-next strong { color: var(--ink); }
+html[data-site="student"] .s-unit-go { margin-top: var(--sp-2); }
+html[data-site="student"] .s-story-tag { display: inline-block; padding: 2px 10px; margin-bottom: var(--sp-2); border-radius: var(--radius-pill); background: var(--accent-soft); color: var(--accent-ink); font-weight: 800; font-size: var(--t-sm); }
+html[data-site="student"] .s-story-top { display: block; width: 100%; height: auto; border-radius: var(--radius-m); margin: 0 0 var(--sp-3); }
+html[data-site="student"] .s-story-img.is-block { display: block; float: none; width: 100%; max-width: none; margin: var(--sp-2) 0; }
+html[data-site="student"] .s-story-more { margin-top: var(--sp-2); min-height: var(--tap); }
+html[data-site="student"] .s-story-speak { margin-top: var(--sp-2); }
+
+/* ── 마지막 수정 묶음(개발1) ── */
+/* 문제 풀이: 오답 뒤 단추가 하단바에 가리지 않게 아래 여백, 이전·다음 줄과 진행 칸 사이 간격 */
+html[data-site="student"] .s-q { padding-bottom: var(--sp-3); }
+html[data-site="student"] .s-q-after { margin-top: var(--sp-3); }
+html[data-site="student"] .s-q .ui-q-after-wrong { margin-bottom: var(--sp-3); }
+html[data-site="student"] .s-q-diff { margin: var(--sp-2) 0 0; }
+html[data-site="student"] .s-main.has-actionbar { padding-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-6, 24px)); }
+html[data-site="student"] .s-rail { margin-bottom: 0; }
+/* 단원 첫 화면: 삽화 위, 접힌 이야기 한 줄 헤더 */
+html[data-site="student"] .s-story-top { max-height: 150px; object-fit: cover; margin-bottom: 0; }
+html[data-site="student"] .s-unit-art { margin: 0; }
+html[data-site="student"] .s-story-fold { padding: 0; }
+html[data-site="student"] .s-story-fold > summary { display: flex; align-items: center; min-height: var(--tap); padding: 0 var(--sp-4); cursor: pointer; list-style: none; font-weight: 800; }
+html[data-site="student"] .s-story-fold > summary::-webkit-details-marker { display: none; }
+html[data-site="student"] .s-story-fold > summary::after { content: "▾"; margin-left: auto; color: var(--ink-2); }
+html[data-site="student"] .s-story-fold[open] > summary::after { content: "▴"; }
+html[data-site="student"] .s-story-fold > .s-story-body { padding: 0 var(--sp-4) var(--sp-4); }
+html[data-site="student"] .s-story-fold > .s-story-body > * + * { margin-top: var(--sp-2); }
+html[data-site="student"] .s-story-fold .s-story-top { display: none; }
+html[data-site="student"] .s-unit-tabs { position: relative; }
+
+/* 단원 첫 화면(375x812): 삽화 150px · 접힌 이야기 · 단원 칩 · 다음 레슨·시작 단추 · 레슨 카드가 한 화면에 들어오게 촘촘히 */
+html[data-site="student"] .s-unit-page { margin-top: 0; }
+html[data-site="student"] .s-unit-page > * + * { margin-top: var(--sp-3); }
+html[data-site="student"] .s-unit-head .s-unit-next { margin: var(--sp-1) 0; }
+html[data-site="student"] .s-unit-head .s-unit-go { margin-top: var(--sp-1); }
+html[data-site="student"] .s-lesson-card { padding-top: var(--sp-3); padding-bottom: var(--sp-3); }
+html[data-site="student"] .s-lesson-title { margin-top: var(--sp-1); }
+
+/* ── 2차 고도화(개발1) ── */
+/* 개념 카드: 본문 끝이 하단바(액션바+진행 레일)에 가리지 않게 아래 여백 */
+html[data-site="student"] .s-deck { padding-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-6, 24px)); }
+/* 머리 줄 제목: 두 줄까지 보이고 그 뒤는 말줄임 */
+html[data-site="student"] .s-title-main {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; text-overflow: ellipsis;
+}
+/* 개념 카드 보조 문구: 14px 이상, 진한 색 */
+html[data-site="student"] .s-concept .tiny,
+html[data-site="student"] .s-concept .muted,
+html[data-site="student"] .s-concept .s-cont { font-size: 14px; font-size: max(14px, var(--t-sm)); color: var(--ink); }
+/* 위치 줄 */
+html[data-site="student"] .s-pos { font-size: 14px; color: var(--ink); }
+/* 단원 삽화: 머리가 잘리지 않게 위쪽 기준 */
+html[data-site="student"] .s-story-top { object-position: center top; }
+/* 단원 탭 줄: 오른쪽에 더 있다는 표시(그림자) */
+html[data-site="student"] .s-unit-tabs { background:
+  linear-gradient(to right, var(--bg) 30%, rgba(255,255,255,0)) left center / 24px 100% no-repeat local,
+  linear-gradient(to left, var(--bg) 30%, rgba(255,255,255,0)) right center / 24px 100% no-repeat local,
+  linear-gradient(to right, rgba(0,0,0,.18), rgba(0,0,0,0)) left center / 10px 100% no-repeat scroll,
+  linear-gradient(to left, rgba(0,0,0,.18), rgba(0,0,0,0)) right center / 10px 100% no-repeat scroll; }
+
+/* ───────────────────────── 3차 마무리 다듬기 ───────────────────────── */
+html[data-site="student"] .s-note-tabdesc { font-size: 16px; font-size: max(16px, var(--t-sm)); line-height: 1.6; margin-bottom: var(--sp-2); }
+html[data-site="student"] .s-note-tabs-all { font-size: 16px; font-size: max(16px, var(--t-sm)); line-height: 1.7; margin-top: var(--sp-1); }
+html[data-site="student"] .s-note-tabs-all > li + li { margin-top: var(--sp-2); }
+html[data-site="student"] .s-note-tabs-all > li { word-break: keep-all; }
+html[data-site="student"] .s-unit-sub { display: block; font-size: 14px; font-size: max(14px, var(--t-xs)); color: var(--ink); }
+html[data-site="student"] .s-stats .tiny { font-size: 14px; white-space: nowrap; color: var(--ink); }
+html[data-site="student"] .ui-q-after-wrong .ui-q-concept { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 700; min-height: var(--tap-main, 48px); }
+html[data-site="student"] .ui-q-after-wrong .ui-q-peek { min-height: var(--tap-main, 48px); }
+html[data-site="student"] .ui-q-after-wrong { margin-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-3)); }
+html[data-site="student"] .s-note-tabdesc { word-break: keep-all; }

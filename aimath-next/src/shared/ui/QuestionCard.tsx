@@ -4,13 +4,24 @@
 //   hint     힌트 n 단계를 열었어요
 //   solution 풀이를 열었어요
 //   self     서술형을 스스로 채점했어요
-import { useState, type ReactNode } from "react";
-import type { Question, Surface } from "../contracts.ts";
+//   answered 제출했다는 상태 알림(attempt·self 바로 뒤에 한 번 더 와요. correct 와 함께. 쓰는 쪽은 '이번에 제출했는지' 판단에 써요)
+//
+// 【확정된 새 props — wave2 에서 QRun 이 연결해요】
+//   onConcept?(conceptNo:number)  '이 개념 다시 보기' 단추를 눌렀어요. conceptNo 는 conceptNo prop 값(없으면 0 = 개념 처음)
+//   conceptNo?: number            이 문제와 이어진 개념 카드 번호(1부터). 0·없음이면 개념 처음으로 가요
+//   wrongNote?: WrongNote         오답 한 줄 설명(문자열 하나, 또는 {"0":"…","O":"…","3/4":"…"} 처럼 보기 번호·O/X·적은 답별).
+//                                 없으면 q.wrongNote(레슨 JSON, 선택)를 쓰고, 그것도 없으면 wrongTip 문구를 써요
+//   onResult 의 QEvent "answered" 와 같이 쓰이는 상태: { type:"answered", qid, correct }
+//   '풀이 확인하기'는 오답 직후부터 나와요. 먼저 열면 afterSolution=true 로 기록돼요(기존 'solution' 이벤트도 같이 와요).
+import { useRef, useState, type ReactNode } from "react";
+import type { Question, Surface, WrongNote } from "../contracts.ts";
+import { NUMBER_DIRECTION_HINT, pickWrongNote } from "../contracts.ts";
 import { checkAnswer } from "../logic/answer.ts";
 import { Rich } from "./tex.tsx";
 import { Feedback, type FeedbackKind } from "./Feedback.tsx";
 import { HintLadder } from "./HintLadder.tsx";
 import { NumberPad } from "./NumberPad.tsx";
+import { padKeysForQuestion } from "./padKeys.ts";
 import { evalNumeric, hasSymbol } from "./numexpr.ts";
 import { useUiSurface } from "./surface.ts";
 import { SpeakButton } from "./SpeakButton.tsx";
@@ -19,7 +30,8 @@ export type QEvent =
   | { type: "attempt"; qid: string; correct: boolean; afterSolution: boolean; input: string }
   | { type: "hint"; qid: string; level: 1 | 2 }
   | { type: "solution"; qid: string }
-  | { type: "self"; qid: string; ok: boolean; afterSolution: boolean };
+  | { type: "self"; qid: string; ok: boolean; afterSolution: boolean }
+  | { type: "answered"; qid: string; correct: boolean };
 
 export const CHOICE_KEYS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧"];
 
@@ -84,14 +96,33 @@ export interface QuestionCardProps {
   after?: ReactNode;
   /** '새로 더해진 것' 띠 보이기(기본 true. 복습·오답노트에서는 끄기) */
   showNew?: boolean;
+  /** '이 개념 다시 보기' 를 눌렀을 때(없으면 단추를 숨겨요) */
+  onConcept?: (conceptNo: number) => void;
+  /** 이 문제와 이어진 개념 카드 번호(1부터, 0·없음 = 개념 처음) */
+  conceptNo?: number;
+  /** 오답 한 줄 설명(없으면 q.wrongNote → wrongTip) */
+  wrongNote?: WrongNote;
+  /** 오답 박스 안, 설명 아래에 덧붙일 말(예: '지난번엔 맞혔는데…'). 오답일 때만 보여요 */
+  wrongExtra?: ReactNode;
+  /** 다시 들어왔을 때 미리 표시할 고른 답(정답 처리는 하지 않고 '고른 것'만 보여요) */
+  initialPick?: number | boolean | null;
+  /** 다시 들어왔을 때 미리 채울 적은 글 */
+  initialText?: string;
+  /** 고른 답·적은 글이 바뀔 때마다 알려요(쓰는 쪽이 메모리에 보관) */
+  onDraft?: (d: { pick: number | boolean | null; text: string }) => void;
 }
+
+const LEVEL_WORD = ["", "쉬움", "쉬움", "보통", "어려움", "어려움"];
 
 function Stars({ level }: { level: number }) {
   let s = "";
   for (let i = 0; i < 5; i++) s += i < level ? "★" : "☆";
   return (
-    <span className="ui-q-stars" role="img" aria-label={"난이도 " + level + " / 5"}>
-      {s}
+    <span className="ui-q-level">
+      <span className="ui-q-stars" role="img" aria-label={"난이도 " + level + " / 5"}>
+        {s}
+      </span>
+      <span className="ui-q-level-word">{LEVEL_WORD[level] || ""}</span>
     </span>
   );
 }
@@ -99,8 +130,19 @@ function Stars({ level }: { level: number }) {
 export function QuestionCard(props: QuestionCardProps) {
   const { q, onResult } = props;
   const sf = useUiSurface(props.surface);
-  const [pick, setPick] = useState<number | boolean | null>(null);
-  const [text, setText] = useState("");
+  const [pick, setPick] = useState<number | boolean | null>(props.initialPick === undefined ? null : props.initialPick);
+  const [text, setText] = useState(props.initialText || "");
+  const draft = (p: number | boolean | null, t: string) => {
+    if (props.onDraft) props.onDraft({ pick: p, text: t });
+  };
+  const changePick = (v: number | boolean) => {
+    setPick(v);
+    draft(v, text);
+  };
+  const changeText = (t: string) => {
+    setText(t);
+    draft(pick, t);
+  };
   const [fb, setFb] = useState<FeedbackKind | null>(null);
   const [solved, setSolved] = useState(false);
   const [level, setLevel] = useState<number>(props.initialLevel || 0);
@@ -109,8 +151,11 @@ export function QuestionCard(props: QuestionCardProps) {
   const [selfDone, setSelfDone] = useState<null | boolean>(null);
   const [wrongN, setWrongN] = useState(0);
   const [lastIn, setLastIn] = useState("");
+  const [lastNote, setLastNote] = useState<string | undefined>(undefined);
   // 맞힌 뒤 '풀이 확인하기'(기록하지 않아요)
   const [peek, setPeek] = useState(false);
+  // 오답 뒤 풀이를 연 적이 있으면 이후 맞혀도 '풀어 봄'(solShown 과 같은 뜻)
+  const fbRef = useRef<HTMLDivElement>(null);
   const emit = (e: QEvent) => {
     if (onResult) onResult(e);
   };
@@ -147,8 +192,36 @@ export function QuestionCard(props: QuestionCardProps) {
     else {
       setWrongN((n) => n + 1);
       setLastIn(inputText(q, input));
+      setLastNote(pickWrongNote(props.wrongNote || (q as { wrongNote?: WrongNote }).wrongNote, input));
     }
     emit({ type: "attempt", qid: q.id, correct: ok, afterSolution: solShown, input: shownInput });
+    emit({ type: "answered", qid: q.id, correct: ok });
+    focusFb();
+  };
+  // 오답 직후 피드백과 두 단추가 고정 하단바 위에 보이게 부드럽게 이동(움직임 줄이기 설정이면 바로 이동)
+  const scrollToFb = (el: HTMLElement) => {
+    const wrap = (el.closest(".ui-q") as HTMLElement | null) || el;
+    const target = (wrap.querySelector(".ui-q-after-wrong") as HTMLElement | null) || el;
+    if (typeof target.scrollIntoView !== "function") return;
+    const r = target.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    if (r.top >= 0 && r.bottom <= vh - 96) return;
+    const reduce = document.documentElement.getAttribute("data-motion") === "reduce";
+    try {
+      target.scrollIntoView({ block: "end", behavior: reduce ? "auto" : "smooth" });
+    } catch {
+      target.scrollIntoView(false);
+    }
+  };
+  // 제출 뒤 피드백으로 포커스를 옮겨 화면 읽기 프로그램이 바로 읽게 해요(다음 렌더 뒤에)
+  const focusFb = () => {
+    setTimeout(() => {
+      const el = fbRef.current;
+      if (!el) return;
+      // preventScroll: 포커스가 화면을 갑자기 끌지 않게 하고, 스크롤은 아래에서 부드럽게 따로 해요
+      if (typeof el.focus === "function") el.focus({ preventScroll: true });
+      scrollToFb(el);
+    }, 0);
   };
 
   const meta =
@@ -188,7 +261,7 @@ export function QuestionCard(props: QuestionCardProps) {
               aria-pressed={picked}
               disabled={locked}
               onClick={() => {
-                setPick(i);
+                changePick(i);
                 if (fb === "bad" || fb === "invalid") setFb(null);
               }}
             >
@@ -226,7 +299,7 @@ export function QuestionCard(props: QuestionCardProps) {
               aria-pressed={picked}
               disabled={locked}
               onClick={() => {
-                setPick(v);
+                changePick(v);
                 if (fb === "bad" || fb === "invalid") setFb(null);
               }}
             >
@@ -245,9 +318,9 @@ export function QuestionCard(props: QuestionCardProps) {
     body = (
       <div className="ui-q-num">
         <label className="ui-sr" htmlFor={inputId}>
-          답(숫자)
+          {q.unit ? "답(숫자, 단위 " + q.unit + ")" : "답(숫자)"}
         </label>
-        <div className="ui-q-num-row">
+        <div className={"ui-q-num-row" + (q.unit ? " has-unit" : "")}>
           <input
             id={inputId}
             className="input ui-q-input"
@@ -256,11 +329,11 @@ export function QuestionCard(props: QuestionCardProps) {
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
-            placeholder="답을 적어요"
+            placeholder={q.unit ? "답을 적어요 (" + q.unit + ")" : "답을 적어요"}
             value={text}
             readOnly={locked}
             onChange={(e) => {
-              setText(e.target.value);
+              changeText(e.target.value);
               if (fb === "invalid" || fb === "bad") setFb(null);
             }}
             onKeyDown={(e) => {
@@ -270,9 +343,13 @@ export function QuestionCard(props: QuestionCardProps) {
               }
             }}
           />
-          {q.unit ? <span className="ui-q-unit">{q.unit}</span> : null}
+          {q.unit ? (
+            <span className="ui-q-unit" aria-hidden="true">
+              {q.unit}
+            </span>
+          ) : null}
         </div>
-        {!locked ? <NumberPad surface={sf} onKey={(k) => setText((t) => t + k)} onBack={() => setText((t) => t.slice(0, -1))} /> : null}
+        {!locked ? <NumberPad surface={sf} keys={padKeysForQuestion(q)} onKey={(k) => changeText(text + k)} onBack={() => changeText(text.slice(0, -1))} /> : null}
         {solved || props.revealAnswer ? (
           <p className="ui-q-answer">
             정답: <strong><Rich text={answerText(q)} /></strong>
@@ -289,7 +366,7 @@ export function QuestionCard(props: QuestionCardProps) {
             <label className="ui-sr" htmlFor={"ui-q-open-" + q.id}>
               내 답
             </label>
-            <textarea id={"ui-q-open-" + q.id} className="input ui-q-textarea" rows={4} placeholder="생각을 문장으로 적어 봐요. 적은 글은 저장하지 않아요." value={text} onChange={(e) => setText(e.target.value)} />
+            <textarea id={"ui-q-open-" + q.id} className="input ui-q-textarea" rows={4} placeholder="생각을 문장으로 적어 봐요. 적은 글은 저장하지 않아요." value={text} onChange={(e) => changeText(e.target.value)} />
           </>
         ) : null}
         {!selfOpen && !props.revealAnswer ? (
@@ -335,6 +412,8 @@ export function QuestionCard(props: QuestionCardProps) {
                     setSelfDone(true);
                     setFb("ok");
                     emit({ type: "self", qid: q.id, ok: true, afterSolution: false });
+                    emit({ type: "answered", qid: q.id, correct: true });
+                    focusFb();
                   }}
                 >
                   기준을 다 갖췄어요
@@ -346,6 +425,8 @@ export function QuestionCard(props: QuestionCardProps) {
                     setSelfDone(false);
                     setFb("self");
                     emit({ type: "self", qid: q.id, ok: false, afterSolution: false });
+                    emit({ type: "answered", qid: q.id, correct: false });
+                    focusFb();
                   }}
                 >
                   조금 모자라요
@@ -363,7 +444,7 @@ export function QuestionCard(props: QuestionCardProps) {
   const hintLeft = !!hints && hints.filter((h) => !!h).length > Math.min(level, 2);
 
   return (
-    <article className={"ui-q is-" + sf + (solved ? " is-solved" : "")} aria-label={"문제 " + q.id}>
+    <article className={"ui-q is-" + sf + (solved ? " is-solved" : "") + (fb === "bad" && !solved ? " is-wrong" : "")} aria-label={"문제 " + q.id}>
       {meta}
       {q.new && props.showNew !== false ? (
         <p className="ui-q-new">
@@ -388,16 +469,16 @@ export function QuestionCard(props: QuestionCardProps) {
               확인
             </button>
           ) : null}
-          {!solved && !canCheck ? (
-            <span id={needId} className="small muted ui-q-need">
-              {q.type === "number" ? "답을 먼저 적어 주세요" : "답을 먼저 골라 주세요"}
-            </span>
-          ) : null}
           {solved && props.after ? props.after : null}
         </div>
       ) : null}
+      {q.type !== "open" && !props.readOnly && !solved && !canCheck ? (
+        <p id={needId} className="small ui-q-need">
+          {q.type === "number" ? "답을 먼저 적어 주세요" : "답을 먼저 골라 주세요"}
+        </p>
+      ) : null}
       {fb ? (
-        <Feedback kind={fb}>
+        <Feedback kind={fb} focusRef={fbRef}>
           {fb === "bad" ? (
             <>
               {lastIn ? (
@@ -405,7 +486,10 @@ export function QuestionCard(props: QuestionCardProps) {
                   적은 답: <strong><Rich text={lastIn} /></strong>
                 </span>
               ) : null}
+              {lastNote ? <span style={{ display: "block" }}>{lastNote}</span> : null}
+              {!lastNote && q.type === "number" ? <span style={{ display: "block" }}>{NUMBER_DIRECTION_HINT}</span> : null}
               <span style={{ display: "block" }}>{wrongTip(wrongN, hintLeft, !!solution && level < 3)}</span>
+              {props.wrongExtra ? <span className="ui-fb-extra" style={{ display: "block" }}>{props.wrongExtra}</span> : null}
             </>
           ) : null}
           {fb === "invalid" ? "숫자로 적어 줘요. 예: 3, -2, 3/4, 0.5, 2√3, π/2" : null}
@@ -413,6 +497,20 @@ export function QuestionCard(props: QuestionCardProps) {
           {fb === "self" ? "모범 답안의 기준을 하나씩 채워서 다시 써 봐요." : null}
           {fb === "ok" && q.type === "open" ? "기준을 잘 갖췄어요." : null}
         </Feedback>
+      ) : null}
+      {!props.readOnly && !solved && fb === "bad" && (props.onConcept || (solution && level < 3)) ? (
+        <div className="ui-q-after-wrong">
+          {solution && level < 3 ? (
+            <button type="button" className="btn btn-soft ui-q-peek" onClick={() => openLevel(3)}>
+              풀이 확인하기
+            </button>
+          ) : null}
+          {props.onConcept ? (
+            <button type="button" className="btn btn-soft ui-q-concept" onClick={() => props.onConcept && props.onConcept(props.conceptNo || 0)}>
+              이 개념 다시 보기
+            </button>
+          ) : null}
+        </div>
       ) : null}
       {!props.readOnly && !solved ? <HintLadder hints={hints} solution={solution} level={level} onOpen={openLevel} surface={sf} /> : null}
       {!props.readOnly && solved ? (
@@ -427,6 +525,11 @@ export function QuestionCard(props: QuestionCardProps) {
           ) : solution ? (
             <button type="button" className="btn btn-soft ui-hint-btn ui-q-peek" onClick={() => setPeek(true)}>
               풀이 확인하기
+            </button>
+          ) : null}
+          {props.onConcept ? (
+            <button type="button" className="btn btn-soft ui-q-concept" onClick={() => props.onConcept && props.onConcept(props.conceptNo || 0)}>
+              이 개념 다시 보기
             </button>
           ) : null}
         </div>

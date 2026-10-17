@@ -2,11 +2,12 @@
 //  넘침: 렌더 뒤 실제 높이가 896px 를 넘으면 ① 글자를 한 단계 줄이고(28px) ② 그래도 넘치면 한 단으로 바꾼 뒤
 //  "이어서" 쪽으로 나눠요. 쪽은 '다음'이 공개를 다 쓴 뒤에 넘겨요.
 //  공개 전 블록은 자리만 차지하고(visibility: hidden) 보이지 않아서, 공개해도 배치가 흔들리지 않아요.
-import { useLayoutEffect, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Block, Lesson, Scene, SceneBlock } from "../../shared/contracts.ts";
 import { BlockView, Rich } from "../../shared/ui/index.ts";
 import { revealStepOf } from "../logic/index.ts";
-import { circled, cueOf, pageOfBlock, pageStarts } from "./board.logic.ts";
+import { lessonMeta, useUnit } from "../../content/index.ts";
+import { circled, cueOf, pageOfBlock, pageStarts, storyImageAt } from "./board.logic.ts";
 import { BODY_H } from "./Stage.tsx";
 
 export const KIND_LABEL: Record<Scene["kind"], string> = {
@@ -146,9 +147,13 @@ export function SceneBody(props: SceneBodyProps) {
  * 공개 조각. 공개 전에도 제자리 높이를 그대로 차지해서(쪽 나누기·넘침 재기가 흔들리지 않아요) 공개해도 배치가 안 바뀌어요.
  * cue 를 주면 큰 점선 상자 대신 위쪽에 낮은 자리표시(① 번호 + 흐린 첫 낱말)만 보여요.
  */
+/** 가려진 칸을 누르면 그 단계까지 열어요(index 의 Runner 가 채워요) */
+export const OpenCtx = createContext<((step: number) => void) | null>(null);
+
 function Rv({ step, r, children, className, cue }: { step: number; r: number; children: ReactNode; className?: string; cue?: ReactNode }) {
   const hidden = step > r;
   const withCue = hidden && cue != null;
+  const open = useContext(OpenCtx);
   return (
     <div
       className={"bd-rv" + (className ? " " + className : "") + (hidden ? " is-hidden" : " is-shown") + (withCue ? " has-cue" : "")}
@@ -160,6 +165,7 @@ function Rv({ step, r, children, className, cue }: { step: number; r: number; ch
           {cue}
         </span>
       ) : null}
+      {hidden && open ? <button type="button" className="bd-open bd-noswipe" tabIndex={-1} aria-label="눌러서 열어요" onClick={() => open(step)} /> : null}
       {children}
     </div>
   );
@@ -173,7 +179,7 @@ function Cue({ step, block }: { step: number; block: SceneBlock }) {
       <span className="bd-cue-no">{circled(step)}</span>
       <span className="bd-cue-kind">{c.kind}</span>
       {c.word ? <span className="bd-cue-word">{c.word} …</span> : null}
-      <span className="bd-cue-tip">다음을 누르면 보여요</span>
+      <span className="bd-cue-tip">눌러서 열어요</span>
     </>
   );
 }
@@ -201,35 +207,62 @@ function linesOf(scene: Scene): string[] {
   return out;
 }
 
-/** 이야기·AI 이야기·정리: 한 줄씩 */
-export function LinesScene({ scene, r }: { scene: Scene; r: number }) {
-  const items = linesOf(scene);
-  const stepwise = scene.reveal > 0;
-  const summary = scene.kind === "summary";
+/** 이야기 삽화(1단원 이야기): UnitStories 와 같은 파일(/img/aimath/…)을 쓰고 새로 복사하지 않아요. 그림이 없는 단원은 아무것도 그리지 않아요 */
+function StoryArt({ lid, step, n }: { lid: string; step: number; n: number }) {
+  const meta = lessonMeta(lid);
+  const { data } = useUnit(meta ? meta.unit : null);
+  if (!meta || !data) return null;
+  const st = data.stories && data.stories[meta.n - 1];
+  const imgs = st && st.images && st.images.length ? st.images : data.opening.images || [];
+  const k = storyImageAt(imgs.length, step, n);
+  if (k < 0) return null;
+  const im = imgs[k];
   return (
-    <div className={"bd-lines" + (summary ? " is-summary" : "")}>
-      {scene.title ? (
-        <h2 className="bd-h">
-          <Rich text={scene.title} />
-          {scene.part ? <span className="chip bd-part">이어서 {scene.part.i}/{scene.part.n}</span> : null}
-        </h2>
-      ) : null}
-      <ol className="bd-lines-list">
-        {items.map((t, i) => (
-          <li key={i}>
-            <Rv step={stepwise ? i : 0} r={r} className="bd-line">
-              {summary ? (
-                <span className="bd-line-no num" aria-hidden="true">
-                  {i + 1}
+    <figure className="bd-story-art">
+      <img src={im.src} alt={im.alt} width={640} height={640} />
+    </figure>
+  );
+}
+
+/** 이야기·AI 이야기·정리: 한 줄씩 */
+export function LinesScene({ scene, r, lid, onAll }: { scene: Scene; r: number; lid?: string; onAll?: () => void }) {
+  const items = linesOf(scene);
+  const story = scene.kind === "story";
+  const stepwise = scene.reveal > 0 || story;
+  const summary = scene.kind === "summary";
+  const left = stepwise ? items.length - 1 - r : 0;
+  return (
+    <div className={"bd-lines" + (summary ? " is-summary" : "") + (story ? " is-story" : "")}>
+      <div className="bd-lines-main">
+        {story && onAll && left > 0 ? (
+          <button type="button" className="btn bd-all bd-noswipe" onClick={onAll}>
+            한 번에 보기 <span className="num">({left})</span>
+          </button>
+        ) : null}
+        {scene.title ? (
+          <h2 className="bd-h">
+            <Rich text={scene.title} />
+            {scene.part ? <span className="chip bd-part">이어서 {scene.part.i}/{scene.part.n}</span> : null}
+          </h2>
+        ) : null}
+        <ol className="bd-lines-list">
+          {items.map((t, i) => (
+            <li key={i}>
+              <Rv step={stepwise ? i : 0} r={r} className="bd-line">
+                {summary ? (
+                  <span className="bd-line-no num" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                ) : null}
+                <span className="bd-line-txt">
+                  <Rich text={t} />
                 </span>
-              ) : null}
-              <span className="bd-line-txt">
-                <Rich text={t} />
-              </span>
-            </Rv>
-          </li>
-        ))}
-      </ol>
+              </Rv>
+            </li>
+          ))}
+        </ol>
+      </div>
+      {story && lid ? <StoryArt lid={lid} step={r} n={items.length} /> : null}
     </div>
   );
 }

@@ -5,8 +5,8 @@
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import type { Question } from "../../shared/contracts.ts";
 import { CHOICE_KEYS, Rich, answerText } from "../../shared/ui/index.ts";
-import { useTally, barPcts, sum } from "../store/index.ts";
-import { QSTAGE_LABEL, qStages, stageOpen, tallyAnswer, tallyLabels, type QStage } from "./board.logic.ts";
+import { useTally, barPcts, sum, correctRate } from "../store/index.ts";
+import { QSTAGE_LABEL, qStages, rateAdvice, stageOpen, tallyAnswer, tallyLabels, type QStage } from "./board.logic.ts";
 
 export { tallyAnswer, tallyLabels };
 
@@ -32,7 +32,7 @@ function Tally({ n, label, onChange }: { n: number; label: string; onChange: (d:
   };
   return (
     <div className="bdq-tally bd-noswipe" role="group" aria-label={label + " 손든 학생"}>
-      <button type="button" className="bdq-tally-step" aria-label={label + " 한 명 빼기"} disabled={n <= 0} onClick={() => onChange(-1)}>
+      <button type="button" className="bdq-tally-step is-minus" aria-label={label + " 한 명 빼기"} disabled={n <= 0} onClick={() => onChange(-1)}>
         −
       </button>
       <button
@@ -60,10 +60,39 @@ function Tally({ n, label, onChange }: { n: number; label: string; onChange: (d:
         </span>
         <span className="bdq-tally-unit">명</span>
       </button>
-      <button type="button" className="bdq-tally-step" aria-label={label + " 한 명 더하기"} onClick={() => onChange(1)}>
+      <button type="button" className="bdq-tally-step is-plus" aria-label={label + " 한 명 더하기"} onClick={() => onChange(1)}>
         +
       </button>
     </div>
+  );
+}
+
+const CONFIRM_MS = 4000;
+
+/** 한 번 더 눌러야 지워지는 단추: 첫 번째 누름은 '한 번 더 누르면 지워요'로 바뀌고 약 4초 뒤 되돌아가요 */
+function ConfirmReset({ label, onConfirm, className }: { label: string; onConfirm: () => void; className?: string }) {
+  const [armed, setArmed] = useState(false);
+  const timer = useRef<number | null>(null);
+  const stop = () => {
+    if (timer.current != null) window.clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => stop, []);
+  const press = () => {
+    if (armed) {
+      stop();
+      setArmed(false);
+      onConfirm();
+      return;
+    }
+    setArmed(true);
+    stop();
+    timer.current = window.setTimeout(() => setArmed(false), CONFIRM_MS);
+  };
+  return (
+    <button type="button" className={"btn bdq-resetbtn bd-noswipe" + (armed ? " is-armed" : "") + (className ? " " + className : "")} onClick={press} aria-live="polite">
+      {armed ? "한 번 더 누르면 지워요" : label}
+    </button>
   );
 }
 
@@ -81,9 +110,7 @@ function GroupScores({ onClose }: { onClose: () => void }) {
       <div className="bd-groups-head">
         <strong>모둠 점수</strong>
         <span className="tiny muted">저장하지 않아요</span>
-        <button type="button" className="btn btn-ghost" onClick={() => setG([0, 0, 0, 0, 0, 0])}>
-          0으로
-        </button>
+        {g.some((v) => v > 0) ? <ConfirmReset label="모둠 점수 0으로" className="bdq-groups-reset" onConfirm={() => setG([0, 0, 0, 0, 0, 0])} /> : null}
         <button type="button" className="bd-x" onClick={onClose} aria-label="모둠 점수 닫기">
           ✕
         </button>
@@ -142,6 +169,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   const showAns = open("answer");
   const hints = Array.isArray(q.hints) ? (q.hints as string[]).filter((h) => !!h) : [];
   const solution = q.type === "open" ? undefined : q.solution;
+  const advice = showAns && ans >= 0 ? rateAdvice(correctRate(counts, ans)) : null;
   const longPrompt = (q.prompt || "").length > 120;
 
   const bar = (i: number) => {
@@ -157,7 +185,13 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   if (q.type === "choice") {
     const long = q.choices.length > 4 || q.choices.some((c) => c.length > 28);
     body = (
-      <ol className={"bdq-opts" + (long ? " is-long" : " is-grid") + " n" + q.choices.length}>
+      <>
+        {hidden ? (
+          <button type="button" className="bdq-think bd-noswipe" onClick={() => onStage(Math.max(0, stages.indexOf("show")))}>
+            보기는 아직 가렸어요. 눌러서 보여 줘요
+          </button>
+        ) : null}
+      <ol className={"bdq-opts" + (long ? " is-long" : " is-grid") + (hidden ? " is-covered" : "") + " n" + q.choices.length}>
         {q.choices.map((c, i) => {
           const isAns = showAns && i === q.answer;
           return (
@@ -169,7 +203,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
                 <span className="bdq-opt-txt">
                   {hidden ? (
                     <span className="bdq-cover">
-                      <span className="sr-only">보기 {i + 1}: </span>보기 보이기를 누르면 나타나요
+                      <span className="sr-only">보기 {i + 1}: 아직 가려져 있어요</span>
                     </span>
                   ) : (
                     <Rich text={c} />
@@ -183,6 +217,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
           );
         })}
       </ol>
+      </>
     );
   } else if (q.type === "ox") {
     body = (
@@ -227,10 +262,12 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   }
 
   const panelOpen = showAns || open("hint1") || (!!solution && open("sol"));
+  // 4지선다에서 힌트·정답·풀이가 열리면 보기(왼쪽)와 열린 상자(오른쪽)를 나란히 둬서 보기·득표가 가려지지 않게 해요
+  const split = (q.type === "choice" || q.type === "ox") && panelOpen;
   const nextIdx = r + 1 < stages.length ? r + 1 : -1;
 
   return (
-    <div className={"bdq" + (panelOpen ? " has-panel" : "") + (longPrompt ? " is-longq" : "")}>
+    <div className={"bdq" + (hidden ? " is-covered" : "") + (panelOpen ? " has-panel" : "") + (split ? " is-split" : "") + (longPrompt ? " is-longq" : "")}>
       <div className="bdq-head">
         {label ? <span className="chip is-accent">{label}</span> : null}
         <span className="chip">{q.group.split(" · ")[0]}</span>
@@ -238,10 +275,26 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
           {"★★★★★".slice(0, q.level)}
           {"☆☆☆☆☆".slice(0, 5 - q.level)}
         </span>
+      {labels.length ? (
+        <span className="bdq-sum bd-noswipe">
+          손든 학생 <b className="num">{total}</b>명
+          {total ? (
+            <span className="bdq-reset-wrap">
+              <ConfirmReset label="득표 0으로" className="bdq-reset" onConfirm={reset} />
+            </span>
+          ) : null}
+        </span>
+      ) : null}
+        {advice ? (
+          <span className="bdq-rate" role="status">
+            {advice}
+          </span>
+        ) : null}
       </div>
       <div className="bdq-prompt">
         <Rich text={q.prompt} />
       </div>
+      <div className={"bdq-mid" + (split ? " is-split" : "")}>
       {body ? <div className="bdq-body">{body}</div> : <div className="bdq-body is-empty" />}
 
       {panelOpen ? (
@@ -271,6 +324,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
           ) : null}
         </div>
       ) : null}
+      </div>
 
       <div className="bdq-controls bd-noswipe">
         <div className="bdq-steps" role="group" aria-label="단계 바로 열기">
@@ -281,7 +335,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
               <button
                 key={st}
                 type="button"
-                className={"bdq-step" + (isOpen ? " is-open" : "") + (isNext ? " is-next" : "") + (i === r ? " is-cur" : "")}
+                className={"bdq-step" + (isOpen ? " is-open" : "") + (isNext ? " is-next" : "") + (i === r ? " is-cur" : "") + (isOpen && i < r ? " is-past" : "") + (st === "answer" ? " is-answer" : "")}
                 aria-pressed={isOpen}
                 aria-current={isNext ? "step" : undefined}
                 title={QSTAGE_LABEL[st]}
@@ -293,16 +347,6 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
             );
           })}
         </div>
-        {labels.length ? (
-          <p className="bdq-sum">
-            손든 학생 <b className="num">{total}</b>명
-            {total ? (
-              <button type="button" className="btn btn-ghost bdq-reset" onClick={reset}>
-                0으로
-              </button>
-            ) : null}
-          </p>
-        ) : null}
         <button type="button" className={"btn bdq-groups-open" + (groups ? " is-on" : "")} aria-pressed={groups} onClick={() => setGroups((v) => !v)}>
           모둠 점수
         </button>

@@ -5,7 +5,7 @@
 import type { Block, Question, Text, WidgetId } from "@legacy/types";
 
 // 옛 콘텐츠 형식(원본 JSON 의 모양)은 그대로 다시 내보내요. 원본은 고치지 않아요.
-export type { Block, Lesson, Question, Section, Text, UnitContent, UnitMeta, WidgetId } from "@legacy/types";
+export type { Block, Lesson, Question, Section, StoryImage, Text, UnitContent, UnitMeta, WidgetId } from "@legacy/types";
 
 /* ─────────────────────────── 사이트 축 ─────────────────────────── */
 
@@ -273,6 +273,31 @@ export interface StudentData {
 }
 
 /** 교사 저장 값의 모양. 학습 기록·판서·모둠 점수는 저장하지 않아요 */
+/** 반별 수업 기록 카드 한 장(학생 이름·번호 필드는 없어요) */
+export interface LessonLogQuestion {
+  id: string;
+  /** 보기별 손든 수(손들기를 안 했으면 빈 배열) */
+  counts: number[];
+  /** 정답 보기 번호(0부터) */
+  answer: number;
+  /** 정답률(%) — 손든 수가 0이면 null */
+  rate: number | null;
+  /** 끝 확인 문제인지 */
+  exit: boolean;
+}
+export interface LessonLog {
+  klass: string; // 교사가 고른 반 이름(예 "2-3")
+  lid: string;
+  p: number;
+  date: string; // YYYY-MM-DD
+  scenesDone: number; // 끝낸 장면 수
+  scenesTotal: number;
+  hw: string[]; // 숙제 문제 번호(id)
+  qs: LessonLogQuestion[];
+  exitDone: boolean; // 끝 확인 문제를 골라 두었는지
+  ts: number;
+}
+
 export interface TeacherData {
   prefs: Prefs;
   last: { lid: string; p: number; s: number; ts: number } | null; // 이어서 하기
@@ -281,6 +306,7 @@ export interface TeacherData {
   pick: Record<string, { board: string[]; exit: string[]; hw: string[] }>; // "lid:p" → 문제 바구니 3개
   progress: Record<string, Record<string, "done" | "part">>; // 반 이름(예 "2-3") → 레슨 → 진도
   results: Record<string, { counts: number[]; ts: number }>; // "lid:qid" → 보기별 손든 수
+  log: Record<string, LessonLog>; // "반|lid:p" → 수업 기록 카드(최근 60개)
 }
 
 export type StudentKey = keyof StudentData;
@@ -356,3 +382,47 @@ export const BOARD_BODY_H = 896;
 
 /** 수업 시간 선택지(분) */
 export const DURATIONS = [45, 50, 70] as const;
+
+/* ─────────────────────────── 문제 카드 보조(순수 함수) ───────────────────────────
+ * QuestionCard·NumberPad 가 쓰고, node --test 로 시험해요(react 없이).
+ */
+
+/** 오답 한 줄 설명. 문자열 하나면 모든 오답에, 객체면 보기 번호(0부터)·"O"/"X"·적은 답을 열쇠로 골라요. */
+export type WrongNote = string | Record<string, string>;
+
+/** 정답 값이 분수로 적어야 하는 값인지: 정수가 아니고, 소수 9자리 이하로 끝나는 유한소수도 아닐 때(1/3 = 0.333… 같은 값) */
+export function isFractionValue(a: number): boolean {
+  if (Math.abs(a - Math.round(a)) < 1e-9) return false;
+  return !/^-?\d+\.\d{1,9}$/.test(String(a));
+}
+
+/** 숫자 키패드에 보일 기호 키(숫자·지우기는 따로). 정수 답이면 빈 배열(음수 답이면 −만).
+ * 주의: 화면에서는 이 함수를 직접 쓰지 말고 반드시 padKeysForQuestion(ui/padKeys.ts)을 써요.
+ * '/' 는 여기서 지문의 분수 표기만 보고 넣으므로, 정답이 분수일 때만 남기는 걸러내기는 padKeysForQuestion 이 해요. */
+export function padSymbolsFor(q: Question): string[] {
+  if (q.type !== "number") return [];
+  const text = [q.prompt, q.solution, ...(q.hints || [])].join(" ");
+  const keys: string[] = [];
+  const a = q.answer;
+  const isInt = Math.abs(a - Math.round(a)) < 1e-9;
+  if (a < 0 || /−|−|(^|[\s(=])-\d/.test(q.prompt)) keys.push("-");
+  if (/\\frac|\\dfrac|분수/.test(text)) keys.push("/");
+  else if (isFractionValue(a)) keys.push("/");
+  if (!isInt && keys.indexOf(".") < 0) keys.push(".");
+  if (/\\sqrt|√|제곱근/.test(text)) keys.push("√");
+  if (/\\pi|π|파이/.test(text)) keys.push("π");
+  // 보기 좋은 순서
+  const order = ["/", "-", ".", "√", "π"];
+  return order.filter((k) => keys.indexOf(k) >= 0);
+}
+
+/** 오답일 때 줄 한 줄. note(보기·답별 설명)가 있으면 그것, 없으면 undefined(바깥에서 wrongTip 사용). */
+export function pickWrongNote(note: WrongNote | undefined, input: number | boolean | string): string | undefined {
+  if (!note) return undefined;
+  if (typeof note === "string") return note;
+  const key = typeof input === "boolean" ? (input ? "O" : "X") : String(input).trim();
+  return note[key] || note[key.replace(/\s+/g, "")] || undefined;
+}
+
+/** 숫자 오답에 주는 방향 힌트(정답은 알려 주지 않아요) */
+export const NUMBER_DIRECTION_HINT = "구한 값을 문제의 조건에 대입해서 맞는지 확인해 봐요.";

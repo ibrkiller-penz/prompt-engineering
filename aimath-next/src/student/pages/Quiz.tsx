@@ -3,7 +3,7 @@
 //   more: 기본 길 밖의 나머지 문제(실력·도전 포함)
 //   ?set=hw  선생님이 고른 복습(QR 로 받은 숙제) · ?set=ex  수업 끝 확인
 //   ?n=3     몇 번째 문제(1부터)
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { STUDENT_ROUTES, type Question } from "../../shared/contracts.ts";
 import { href, navigate } from "../../shared/router/index.ts";
 import { lessonMeta, useLesson } from "../../content/index.ts";
@@ -13,7 +13,7 @@ import { CardDeck } from "../shell/CardDeck.tsx";
 import { Loading, NotFoundBody, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { corePath, countOf, isOk, isTried, setLast, statusOf, useAssigned, useQ } from "../store/index.ts";
 import { QRun } from "./QRun.tsx";
-import { cardIndex, shortPrompt } from "./student.logic.ts";
+import { cardIndex, gainLine, resultLine, shortPrompt, solvedToday } from "./student.logic.ts";
 
 type QSet = "core" | "more" | "hw" | "ex";
 
@@ -40,6 +40,10 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
       ids = a ? a[set].slice() : [];
     }
   }
+  // 이 세트를 열 때 이미 맞힌 개수(결과에서 '지난번보다'를 말하는 기준 — 새 저장 없이 이 화면에서만 들고 있어요)
+  const before = useRef<{ key: string; ok: number } | null>(null);
+  const setKey = lid + "|" + set;
+  if (!before.current || before.current.key !== setKey) before.current = { key: setKey, ok: countOf(ids, qm).ok };
   const total = ids.length + 1; // 마지막 장은 결과
   const i = cardIndex(query.n, total);
   const basePath = "/l/" + lid + "/q" + (more ? "/more" : "");
@@ -118,19 +122,18 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
           <QRun
             q={cur}
             label={i + 1 + " / " + list.length}
-            after={
-              <button type="button" className="btn btn-primary" onClick={() => go(i + 1)}>
-                {i < list.length - 1 ? "다음 문제" : "결과 보기"}
-              </button>
-            }
           />
         </div>
       ) : (
         <div className="stack s-result">
           <h2 className="h2">{SET_NAME[set]} 결과</h2>
-          <p>
-            {list.length}문제 중 {c.tried}문제를 풀어 보고 {c.ok}문제를 맞혔어요.
-            {c.first ? " 처음에 바로 맞힌 문제는 " + c.first + "개예요." : ""}
+          <p className="h3 s-result-line">
+            <strong>{resultLine(list.length, c.ok)}</strong>
+          </p>
+          {gainLine(before.current ? before.current.ok : c.ok, c.ok) ? <p className="verdict ok">{gainLine(before.current ? before.current.ok : c.ok, c.ok)}</p> : null}
+          <p className="small">
+            {list.length}문제 중 {c.tried}문제를 풀어 봤어요.
+            {c.first ? " 처음에 바로 맞힌 문제는 " + c.first + "개예요." : ""} 오늘 푼 문제는 모두 {solvedToday(qm, Date.now())}개예요.
           </p>
           {st ? (
             <p className="small muted">
@@ -145,7 +148,7 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
                   <span className="grow small">
                     {k + 1}. <Rich text={shortPrompt(x.prompt)} />
                   </span>
-                  {isOk(qm[x.id]) ? <span className="verdict ok">맞힘</span> : isTried(qm[x.id]) ? <span className="verdict bad">다시</span> : <span className="chip">아직</span>}
+                  {isOk(qm[x.id]) ? <span className="verdict ok">맞힘</span> : isTried(qm[x.id]) ? <span className="chip">다시 볼 문제</span> : <span className="chip">아직</span>}
                 </a>
               </li>
             ))}

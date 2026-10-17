@@ -146,6 +146,18 @@ else {
   const collect = (arr) => (arr || []).forEach((s) => s && typeof s === "object" && s.who && who.add(s.who));
   for (const lid of index.order) collect(lessons[lid].story);
   for (const u of index.units) (unitDocs[u.id].stories || []).forEach((st) => collect(st && (st.lines || st.story || st.paragraphs)));
+// 이야기 삽화: 문단 번호 범위·설명 글·파일(저장소 public/ 아래)이 있어야 해요
+for (const u of index.units) {
+  const d = unitDocs[u.id];
+  const imgCheck = (label, imgs, n) =>
+    (imgs || []).forEach((im, k) => {
+      if (!Number.isInteger(im.after) || im.after < 0 || im.after >= n) err(`${u.slug} ${label}.images[${k}].after 가 문단 범위(0~${n - 1}) 밖`);
+      if (!im.alt) err(`${u.slug} ${label}.images[${k}].alt 없음`);
+      if (!im.src || !fs.existsSync(path.join(REPO, "public", String(im.src).replace(/^\//, "")))) err(`${u.slug} ${label}.images[${k}] 파일 없음: ${im.src}`);
+    });
+  imgCheck("opening", d.opening && d.opening.images, d.opening ? d.opening.paragraphs.length : 0);
+  (d.stories || []).forEach((st, si) => imgCheck(`stories[${si}]`, st.images, (st.paragraphs || []).length));
+}
   for (const w of who) if (!chars[w]) err(`characters.json 에 이야기 인물이 없어요: ${w}`);
   for (const [k, c] of Object.entries(chars)) if (!c.name || !c.line || !c.color) err(`characters.json ${k}: name·line·color 가 필요해요`);
 }

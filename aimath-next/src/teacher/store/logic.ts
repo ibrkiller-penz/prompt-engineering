@@ -120,6 +120,24 @@ export function splitResultKey(k: string): { lid: string; qid: string } | null {
   return { lid: k.slice(0, i), qid: k.slice(i + 1) };
 }
 
+/** 수업 기록 카드 저장 키: "반|lid:p" */
+export const logKey = (klass: string, lid: string, p: number) => klass + "|" + lid + ":" + p;
+
+/** 기록 카드를 최대 몇 개까지 둘지 */
+export const LOG_MAX = 60;
+
+/** 카드 저장: 같은 반·레슨·차시는 덮어쓰고, 60개를 넘으면 오래된 것부터 버려요(새 맵을 돌려줘요) */
+export function putLog<T extends { klass: string; lid: string; p: number; ts: number }>(map: Readonly<Record<string, T>>, card: T, max: number = LOG_MAX): Record<string, T> {
+  const out: Record<string, T> = { ...map };
+  out[logKey(card.klass, card.lid, card.p)] = card;
+  const keys = Object.keys(out);
+  if (keys.length > max) {
+    keys.sort((a, b) => out[a].ts - out[b].ts);
+    for (let i = 0; i < keys.length - max; i++) delete out[keys[i]];
+  }
+  return out;
+}
+
 /** 손든 수 한 칸 바꾸기(0~99). n 은 보기 수 */
 export function bump(counts: readonly number[] | null | undefined, i: number, d: number, n: number): number[] {
   const out: number[] = [];
@@ -163,3 +181,17 @@ export function cycleMark(m: Mark | undefined): Mark {
 }
 
 export const MARK_LABEL: Record<"done" | "part" | "none", string> = { done: "끝", part: "진행 중", none: "아직" };
+
+/** 수업 흐름 줄 구분: 같은 종류·같은 제목이 이어지면 "(1/3)" 순번을 붙여요('이어서' 나눔 장면은 칩이 따로 있어 건너뛰어요) */
+export function dupTags(scenes: readonly { kind: string; title?: unknown; part?: unknown }[]): string[] {
+  const out: string[] = scenes.map(() => "");
+  let i = 0;
+  while (i < scenes.length) {
+    let j = i + 1;
+    const key = scenes[i].kind + "|" + String(scenes[i].title || "");
+    while (j < scenes.length && scenes[j].kind + "|" + String(scenes[j].title || "") === key) j++;
+    if (j - i > 1) for (let k = i; k < j; k++) if (!scenes[k].part) out[k] = "(" + (k - i + 1) + "/" + (j - i) + ")";
+    i = j;
+  }
+  return out;
+}

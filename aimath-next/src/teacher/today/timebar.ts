@@ -66,3 +66,30 @@ export function marksLabel(done: number, part: number): string {
   if (part) out.push(part + "레슨 진행 중");
   return out.length ? out.join(", ") : "아직 기록이 없어요";
 }
+
+export type TimeState = "over" | "under" | "fit";
+
+/** 이 분 이하로 넘치는 것은 '넘침 없음'(맞아요)으로 봐요. 줄이기 상자(cuts.ts)와 timeVerdict 가 같이 써요 */
+export const OVER_TOLERANCE_MIN = 0.5;
+
+/**
+ * 수업 시간을 넘는 분(0.5분 단위로 반올림). 0.5분 이하는 0 이에요.
+ * 줄이기 상자는 이 값이 0 보다 클 때만 '넘쳐요'를 보여 주세요(cuts.ts 의 cutInfo 가 `over < 0.5` 대신 이 함수를 쓰면 같아져요).
+ */
+export function overMin(total: number, minutes: number): number {
+  const o = r05(Math.max(0, total - minutes));
+  return o <= OVER_TOLERANCE_MIN ? 0 : o;
+}
+
+/**
+ * 시간 한 줄 판단. 지금 켜 둔 장면 기준이에요(이야기 장면을 꺼 둔 상태면 그렇다고 밝혀요).
+ * 꺼 둔 이야기를 켜면 어떻게 되는지는 storyAddText 가 따로 말하므로 여기서는 '맞아요/넘어요'를 한 줄에 같이 내지 않아요.
+ * 기준: 예상 분이 수업 시간보다 0.5분(반올림 값 기준) 넘게 길면 over, 3분 넘게 모자라면 under, 나머지는 fit.
+ */
+export function timeVerdict(total: number, minutes: number, sAdd?: { count: number; over: number } | null): { state: TimeState; text: string } {
+  const off = sAdd && sAdd.count > 0 ? "이야기 장면 " + sAdd.count + "장을 꺼 둔 지금 기준으로 " : "";
+  const over = overMin(total, minutes);
+  if (over > 0) return { state: "over", text: off + "시간이 " + minLabel(over) + " 넘쳐요." };
+  if (total < minutes - 3) return { state: "under", text: off + minLabel(minutes - total) + " 남아요." };
+  return { state: "fit", text: off ? off + "수업 " + minutes + "분 안에 들어와요." : "수업 시간에 잘 맞아요." };
+}

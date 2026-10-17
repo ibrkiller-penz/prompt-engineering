@@ -56,8 +56,11 @@
 }
 
 /* 차시별 목표: 고른 차시 목표만 진하게, 다른 차시 목표는 흐리게 + 'n차시' 표시 */
-.pp-goals > li.is-now { font-weight: 700; }
-.pp-goals > li.is-other { color: var(--ink-2); }
+.pp-goals > li.is-now { font-weight: 800; font-size: var(--t-lg); color: var(--ink); }
+.pp-goals > li.is-other { color: var(--ink-3); font-size: var(--t-sm); }
+.pp-next { margin: 0; padding-top: var(--sp-2); border-top: 1px solid var(--line); font-size: var(--t-sm); color: var(--ink-2); }
+.pp-next-tag { font-weight: 800; color: var(--accent-ink); }
+.pp-grid .pp-story-add { grid-column: 1 / -1; margin: 0; }
 .pp-goal-p { margin-right: .4em; font-size: var(--t-sm); font-weight: 700; }
 .pp-story { margin: 0; }
 .pp-story-btn { min-height: 48px; }

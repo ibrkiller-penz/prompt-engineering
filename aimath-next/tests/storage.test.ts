@@ -13,6 +13,7 @@ test("접두사: 학생 aimn:s1:, 교사 aimn:t1:", () => {
   assert.equal(T_PREFIX, "aimn:t1:");
   for (const k of studentKeyList) assert.ok(STUDENT_KEYS[k].desc.length > 5, k);
   for (const k of teacherKeyList) assert.ok(TEACHER_KEYS[k].desc.length > 5, k);
+  assert.ok(teacherKeyList.indexOf("log") >= 0, "교사 log 키 등록");
 });
 
 test("읽기·쓰기·고치기·지우기", () => {

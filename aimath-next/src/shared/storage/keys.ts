@@ -30,6 +30,7 @@ export const TEACHER_KEYS: Record<TeacherKey, KeyInfo> = {
   pick: { label: "고른 문제", desc: "칠판·끝 확인·숙제 바구니에 담은 문제 번호를 저장해요.", backup: true },
   progress: { label: "반별 진도", desc: "반 이름(예: 2-3)과 레슨별 진도 표시를 저장해요. 학생 이름은 저장하지 않아요.", backup: true },
   results: { label: "손들기 결과", desc: "문제마다 보기별로 손든 학생 수(숫자만)를 저장해요.", backup: true },
+  log: { label: "수업 기록 카드", desc: "수업 끝에 남긴 반별 기록(반 이름, 레슨·차시, 숙제 번호, 문제별 손든 수와 정답률)을 최근 60개까지 저장해요. 학생 이름·번호는 저장하지 않아요.", backup: true },
 };
 
 export const studentKeyList = Object.keys(STUDENT_KEYS) as StudentKey[];

@@ -1,4 +1,4 @@
-// 내 기록(#/me): 진행률 · 단원별 레슨 상태 · 기록 파일 저장/불러오기 · 읽기 설정 · 기록 지우기 · (맨 아래) 교사용 링크
+// 내 기록(#/me): 진행률 · 단원별 레슨 상태 · 기록 파일 저장/불러오기 · 읽기 설정 · 기록 지우기
 // 기록은 이 기기의 브라우저에만 있어요. 다른 기기로 옮기려면 기록 파일로 저장해 불러와요.
 import { useRef, useState } from "react";
 import { STUDENT_ROUTES } from "../../shared/contracts.ts";
@@ -6,7 +6,6 @@ import { href } from "../../shared/router/index.ts";
 import { INDEX } from "../../content/index.ts";
 import { Icon, UnitIcon } from "../../shared/icons/index.ts";
 import { PrefsPanel, ProgressBar } from "../../shared/ui/index.ts";
-import { TEACHER_URL } from "../../site.ts";
 import { Screen, useDocTitle } from "../shell/Shell.tsx";
 import { MASTERY_LABEL, exportBackup, importBackup, masteryOf, overall, resetAll, unitStatusOf, useQ, useRead, useTools } from "../store/index.ts";
 import { pct } from "./student.logic.ts";
@@ -77,15 +76,15 @@ export default function MePage() {
           <div className="s-stats">
             <p>
               <span className="bignum s-stat">{pct(sum.complete, sum.lessons)}%</span>
-              <span className="tiny muted s-block">레슨 완료</span>
+              <span className="tiny muted s-block">끝낸 레슨</span>
             </p>
             <p>
               <span className="bignum s-stat">{sum.ok}</span>
-              <span className="tiny muted s-block">맞힌 문제 / 풀어 본 {sum.tried}</span>
+              <span className="tiny muted s-block">맞힌 문제</span>
             </p>
             <p>
               <span className="bignum s-stat">{toolDone}</span>
-              <span className="tiny muted s-block">체험 미션 해냄</span>
+              <span className="tiny muted s-block">체험 미션 완료</span>
             </p>
           </div>
         </section>
@@ -207,14 +206,6 @@ export default function MePage() {
             <Icon name="next" />
           </a>
         </nav>
-
-        <footer className="s-teacher-link">
-          <a className="btn btn-ghost btn-block" href={TEACHER_URL + "/"} rel="noopener">
-            <Icon name="teacher" />
-            <span>선생님이신가요? 교사용 사이트로 가기</span>
-          </a>
-          <p className="tiny muted center">교사용 사이트는 다른 주소({TEACHER_URL.replace(/^https?:\/\//, "")})예요. 학생 기록은 옮겨 가지 않아요.</p>
-        </footer>
       </div>
     </Screen>
   );

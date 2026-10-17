@@ -1,10 +1,10 @@
 // 교사 저장 값(aimn:t1:*)을 화면에서 쓰는 훅 모음. 저장은 모두 src/shared/storage 의 teacherStore 를 거쳐요(try/catch 포함).
 // 교사 사이트는 학습 기록(aimn:s1:)을 읽거나 쓰지 않아요. 판서·모둠 점수는 저장하지 않아요.
 import { useCallback } from "react";
-import type { TeacherData } from "../../shared/contracts.ts";
+import type { LessonLog, TeacherData } from "../../shared/contracts.ts";
 import { teacherStore, useStored } from "../../shared/storage/index.ts";
 import { cleanDuration, flowKey, type Duration } from "../shell/plan.ts";
-import { bump, isEmptyFlow, resultKey, type FlowState, type PickState } from "./logic.ts";
+import { bump, isEmptyFlow, putLog, resultKey, type FlowState, type PickState } from "./logic.ts";
 
 export * from "./logic.ts";
 
@@ -15,6 +15,7 @@ type ResultMap = TeacherData["results"];
 const EMPTY_FLOW: FlowMap = {};
 const EMPTY_PICK: PickMap = {};
 const EMPTY_RESULTS: ResultMap = {};
+const EMPTY_LOGS: Record<string, LessonLog> = {};
 
 const obj = <T extends object>(v: unknown, def: T): T => (v && typeof v === "object" && !Array.isArray(v) ? (v as T) : def);
 
@@ -111,6 +112,28 @@ export function useTally(lid: string, qid: string, n: number): [number[], (i: nu
     });
   }, [update, key]);
   return [counts, change, reset];
+}
+
+/** 수업 기록 카드: [전체 맵, 저장(card), 지우기(key)]. 같은 반·레슨·차시는 덮어쓰고 최근 60개만 둬요 */
+export function useLessonLogs(): [Record<string, LessonLog>, (card: LessonLog) => void, (key: string) => void] {
+  const [v, set] = useStored(teacherStore, "log", EMPTY_LOGS);
+  const save = useCallback(
+    (card: LessonLog) => {
+      set((all) => putLog(obj(all, EMPTY_LOGS), card));
+    },
+    [set],
+  );
+  const remove = useCallback(
+    (key: string) => {
+      set((all) => {
+        const a = { ...obj(all, EMPTY_LOGS) };
+        delete a[key];
+        return a;
+      });
+    },
+    [set],
+  );
+  return [obj(v, EMPTY_LOGS), save, remove];
 }
 
 /** 이어서 하기 위치(aimn:t1:last). 같은 값이면 쓰지 않아요 */
