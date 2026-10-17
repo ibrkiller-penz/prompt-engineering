@@ -19,6 +19,11 @@
 #ifndef ESP_PANEL_USE_1024_600_LCD
 #define ESP_PANEL_USE_1024_600_LCD           (0)     // 0: 800x480, 1: 1024x600
 #endif
+// BOARD_7B=1: Waveshare ESP32-S3-Touch-LCD-7B (1024x600). 확장 칩이 CH422G 가 아니라 0x24 레지스터 방식이라
+//   화면 라이브러리의 확장 칩·백라이트는 끄고 src/ioexp.cpp 가 맡는다. platformio.ini 의 [env:board7b] 가 켠다.
+#ifndef BOARD_7B
+#define BOARD_7B                             (0)
+#endif
 #define ESP_OPEN_TOUCH 1 // 1 initiates the touch, 0 closes the touch.
 
 /**
@@ -35,7 +40,9 @@
 /**
  * @brief Board name (format: "Manufacturer:Model")
  */
-#if ESP_PANEL_USE_1024_600_LCD
+#if BOARD_7B
+    #define ESP_PANEL_BOARD_NAME                "Waveshare:ESP32-S3-Touch-LCD-7B"
+#elif ESP_PANEL_USE_1024_600_LCD
     #define ESP_PANEL_BOARD_NAME                "Waveshare:ESP32-S3-Touch-LCD-5B"
 #else
     #define ESP_PANEL_BOARD_NAME                "Waveshare:ESP32-S3-Touch-LCD-7"   // 7인치(800x480). Waveshare 5인치 데모에서 시작했고 핀·박자가 7인치와 같다(README 의 핀 확인표)
@@ -95,7 +102,17 @@
     #define ESP_PANEL_BOARD_LCD_RGB_USE_CONTROL_PANEL       (0) // 0/1. Typically set to 1
 
     /* For refresh panel (RGB) */
-#if ESP_PANEL_USE_1024_600_LCD
+#if BOARD_7B
+    // 7B 박자: Waveshare 공식 예제(examples/Arduino/08_TOUCH/rgb_lcd_port.cpp) 값. 공식 예제는 PSRAM 120MHz + 30MHz 지만
+    // 우리는 PSRAM 80MHz(5장 설정 유지)라 18MHz 로 시작한다(초당 약 19.6장). 깜빡임이 보이면 21MHz 까지(22MHz 를 넘기지 않는다).
+    #define ESP_PANEL_BOARD_LCD_RGB_CLK_HZ            (18 * 1000 * 1000)
+    #define ESP_PANEL_BOARD_LCD_RGB_HPW               (162)
+    #define ESP_PANEL_BOARD_LCD_RGB_HBP               (152)
+    #define ESP_PANEL_BOARD_LCD_RGB_HFP               (48)
+    #define ESP_PANEL_BOARD_LCD_RGB_VPW               (45)
+    #define ESP_PANEL_BOARD_LCD_RGB_VBP               (13)
+    #define ESP_PANEL_BOARD_LCD_RGB_VFP               (3)
+#elif ESP_PANEL_USE_1024_600_LCD
     #define ESP_PANEL_BOARD_LCD_RGB_CLK_HZ            (21 * 1000 * 1000)
     #define ESP_PANEL_BOARD_LCD_RGB_HPW               (30)
     #define ESP_PANEL_BOARD_LCD_RGB_HBP               (145)
@@ -223,7 +240,7 @@
  * So it is not necessary to set the macro to `1`. For other drivers (like `Wire`), please set the macro to `1`
  * ensure that the host is initialized only once.
  */
-#define ESP_PANEL_BOARD_TOUCH_BUS_SKIP_INIT_HOST        (0)     // 0/1. Typically set to 0
+#define ESP_PANEL_BOARD_TOUCH_BUS_SKIP_INIT_HOST        (BOARD_7B)     // 7B: ioexp_begin() 이 설치한 I2C 0번을 같이 쓴다
 #endif
 
 /**
@@ -279,7 +296,7 @@
  *
  * Set to `1` to enable backlight support, `0` to disable
  */
-#define ESP_PANEL_BOARD_USE_BACKLIGHT           (1)
+#define ESP_PANEL_BOARD_USE_BACKLIGHT           (!BOARD_7B)   // 7B 는 main.cpp 가 ioexp_backlight() 로 직접
 
 #if ESP_PANEL_BOARD_USE_BACKLIGHT
 /**
@@ -322,7 +339,7 @@
  *
  * Set to `1` to enable IO expander support, `0` to disable
  */
-#define ESP_PANEL_BOARD_USE_EXPANDER            (1)
+#define ESP_PANEL_BOARD_USE_EXPANDER            (!BOARD_7B)   // 7B 는 src/ioexp.cpp
 
 #if ESP_PANEL_BOARD_USE_EXPANDER
 /**
@@ -367,6 +384,7 @@
  * @param[in] p Pointer to the board object
  * @return true on success, false on failure
  */
+#if !BOARD_7B
 #define ESP_PANEL_BOARD_EXPANDER_POST_BEGIN_FUNCTION(p) \
     {  \
         auto board = static_cast<Board *>(p);  \
@@ -374,7 +392,9 @@
         expander->enableAllIO_Output(); \
         return true;    \
     }
+#endif // !BOARD_7B
 
+#if !BOARD_7B   // 7B 는 ioexp_begin() 이 화면 전원·터치 리셋을 맡는다(확장 칩 객체가 없다)
 /**
  * @brief Pre-begin function for LCD initialization
  *
@@ -417,6 +437,7 @@
         return true;    \
     }
 #endif
+#endif // !BOARD_7B
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////// File Version ///////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

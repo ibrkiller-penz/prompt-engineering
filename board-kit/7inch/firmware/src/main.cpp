@@ -1,4 +1,4 @@
-// 교실 알림판 — Waveshare ESP32-S3-Touch-LCD-7 (800x480)
+// 교실 알림판 — Waveshare ESP32-S3-Touch-LCD-7 (800x480) / 7B (1024x600, [env:board7b])
 // 평소 화면: 오늘 시간표 + 큰 시계(미리 계산해 Firebase 에 올려 둔 board/t/NNN.json 을 1시간마다 받는다)
 // 설정: 와이파이(목록 → 비밀번호 → 연결, 보드에 저장), 볼 시간표 고르기
 // 내 값(사이트 주소·학교 코드·위치·수능 날짜)은 include/board_config.h 에서 바꾼다.
@@ -16,6 +16,10 @@
 #include <esp_sntp.h>
 #include <esp_lcd_panel_rgb.h>
 #include "esp_lv_adapter_arduino.h"
+#include "ioexp.h"
+#ifndef BOARD_7B
+#define BOARD_7B 0
+#endif
 #include "wx_icons.h"
 #include "board_config.h"   // 보드(사람)마다 바꾸는 값
 #include <math.h>
@@ -26,6 +30,8 @@ LV_FONT_DECLARE(kr20);
 LV_FONT_DECLARE(kr28);
 LV_FONT_DECLARE(num120);   // 시계 (2026-10-06 140 → 120, 미리보기 F)
 LV_FONT_DECLARE(num36);    // 날씨 기온 (44 → 36)
+LV_FONT_DECLARE(num140);   // 1024x600 시계
+LV_FONT_DECLARE(num44);    // 1024x600 기온
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
@@ -33,7 +39,13 @@ using namespace esp_panel::board;
 static const char *FW_VERSION = "0.1.0";
 // 화면 꾸밈: 1 이면 둥근 모서리·그라데이션, 0 이면 각진 모서리·단색(메뉴를 바꿀 때 다시 그리기가 빨라진다)
 #define UI_FANCY 0
-static inline int R(int r) { return UI_FANCY ? r : 0; }
+// UI_SOFT: 딱딱하지 않게(2026-10-17 디자인팀 안). 따뜻한 어두운 색 · 큰 카드만 둥근 모서리 · 알약 꼬리표 · 탭 밑줄 · 노란 '지금' 칸.
+// 둥근 모서리는 다시 그리기를 느리게 하므로 반경 10 이상인 큰 면에만 준다(줄·칸·찾기 단추는 각진 채). 7B(1024) 빌드에서 켠다.
+#ifndef UI_SOFT
+#define UI_SOFT BOARD_7B
+#endif
+static inline int R(int r) { return UI_FANCY ? r : (UI_SOFT && r >= 10 ? r : 0); }
+static inline int RP(int r) { return UI_SOFT ? LV_RADIUS_CIRCLE : R(r); }   // 작은 꼬리표는 알약 모양
 static const char *BASE_URL = BOARD_BASE_URL;
 
 // board_config.h 의 값이 비어 있으면(=아직 설정 안 함) 그 기능은 조용히 건너뛰고 화면에 '설정 필요'만 보인다.
@@ -42,11 +54,41 @@ static constexpr bool HAS_MEAL = cfgSet(NEIS_ATPT_CODE) && cfgSet(NEIS_SCHOOL_CO
 static constexpr bool HAS_WX = cfgSet(WEATHER_LAT) && cfgSet(WEATHER_LON);              // 날씨·미세먼지
 static bool urlUnset() { return strstr(BASE_URL, "YOUR-SITE-ID") != nullptr; }            // 사이트 주소를 아직 안 바꿨나
 static int s_W = 800, s_H = 480;   // 화면 크기(initDisplay 가 패널에서 읽는다)
+static bool big() { return s_W > 800; }                                   // 1024x600 인가
+static const lv_font_t *FM() { return big() ? &kr16 : &kr14; }             // 작은 설명 글자(1024 는 한 단계 크게)
+static const lv_font_t *FCLK() { return big() ? &num140 : &num120; }       // 큰 시계
+static const lv_font_t *FTEMP() { return big() ? &num44 : &num36; }        // 기온
 // ← 우리 학교 교시 시작 시각으로 바꾸기. 아래 코드의 "12:30"·"13:30"(점심), "08:40"(수업 전), "16:30"(수업 끝) 도 같이 확인한다.
 static const char *PERIOD_START[7] = {"08:40", "09:40", "10:40", "11:40", "13:30", "14:40", "15:40"};
 static const char *DOW[5] = {"월", "화", "수", "목", "금"};
 
-// ── 색 ──
+// ── 색 ── (UI_SOFT 이면 차가운 남색·회색 대신 따뜻한 갈색·크림. 동래 주색·종류색은 그대로)
+#if UI_SOFT
+#define C_PRIMARY 0xdc2626
+#define C_PRIMARY50 0xfef2f2
+#define C_TEXT 0x2a2320
+#define C_MUTED 0x5c5048
+#define C_LIGHT 0x7a6d60
+#define C_BG 0xf6f1e9
+#define C_SURF 0xffffff
+#define C_ALT 0xfbf8f3
+#define C_BORDER 0xdcd2c4
+#define C_LINE 0xece5da
+#define C_EMERALD 0x10b981
+#define C_ROSE 0xe11d48
+#define D_BG 0x1c1714
+#define D_PANEL 0x26201c
+#define D_ROW 0x342c26
+#define D_LINE 0x4a4038
+#define D_TEXT 0xfaf5ee
+#define D_SUB 0xe2d8cc
+#define D_MUTED 0xb8ab9c
+#define D_RED 0xb91c1c
+#define NOW_ROW 0xfff4e0      // 지금 교시 줄(따뜻한 크림)
+#define NOW_TAG 0xfbbf24      // 지금 교시 칸(호박색) — 빨강은 결강·시험처럼 읽혀서 쓰지 않는다
+#define NOW_TX 0x2a2320
+#define NEXT_BD 0xfacc15      // 다음 수업 줄 테두리
+#else
 #define C_PRIMARY 0xdc2626
 #define C_PRIMARY50 0xfef2f2
 #define C_TEXT 0x0f172a
@@ -68,6 +110,11 @@ static const char *DOW[5] = {"월", "화", "수", "목", "금"};
 #define D_SUB 0xcbd5e1
 #define D_MUTED 0x94a3b8
 #define D_RED 0xb91c1c      // 지금 교시 칸. 흰 글자와 명암비 6.5:1(전 0xef4444 는 3.8:1)
+#define NOW_ROW 0xf1f5f9
+#define NOW_TAG D_RED
+#define NOW_TX 0xffffff
+#define NEXT_BD 0
+#endif
 
 struct CellStyle { uint32_t bg, border, text, sub; };
 static CellStyle styleOf(char t) {
@@ -143,7 +190,13 @@ static String s_pickSsid;
 // · 그래도 밀릴 수 있으니 1분마다 한 번 다시 맞춘다(loop) — 밀려도 1분 안에 제자리.
 // (CONFIG_LCD_RGB_RESTART_IN_VSYNC 는 platformio.ini 에서 =n 으로 명시해 끈다 — 기본값이 y 다. esp-idf#19070)
 static LCD *s_lcd = nullptr;
+#if BOARD_7B   // 1024x600: 박자는 esp_panel_board_custom_conf.h 와 같게(18MHz). 받는 동안 12MHz(6MHz 면 초당 6장이라 깜빡임이 심하다)
+static const uint32_t PCLK_HZ = 18 * 1000 * 1000, PCLK_SLOW_HZ = 12 * 1000 * 1000;
+static const uint32_t FRAME_SLOW_MS = 86, FRAME_FAST_MS = 61;   // 한 장 그리는 시간 + 10ms ((1024+362)x(600+61)/pclk)
+#else
 static const uint32_t PCLK_HZ = 16 * 1000 * 1000, PCLK_SLOW_HZ = 6 * 1000 * 1000;
+static const uint32_t FRAME_SLOW_MS = 40, FRAME_FAST_MS = 25;
+#endif
 static bool s_lcdSlow = false;
 static const bool s_diagResync = false;   // true 면 1분마다 하는 다시 맞추기도 기록한다(진단할 때만)
 static esp_lcd_panel_handle_t panelHandle() { return s_lcd ? (esp_lcd_panel_handle_t)s_lcd->getHandle() : nullptr; }
@@ -158,10 +211,27 @@ static void lcdSlow(bool slow) {
   esp_lcd_panel_handle_t p = panelHandle();
   if (!p || slow == s_lcdSlow) return;
   s_lcdSlow = slow;
-  lcdLog(slow ? "pclk 6MHz" : "pclk 16MHz+restart");
+  char w[32]; snprintf(w, sizeof w, "pclk %luMHz%s", (unsigned long)((slow ? PCLK_SLOW_HZ : PCLK_HZ) / 1000000), slow ? "" : "+restart");
+  lcdLog(w);
   esp_lcd_rgb_panel_set_pclk(p, slow ? PCLK_SLOW_HZ : PCLK_HZ);
-  delay(slow ? 40 : 25);           // 한 장 그려질 때까지(6MHz 에서 약 30ms)
+  delay(slow ? FRAME_SLOW_MS : FRAME_FAST_MS);   // 한 장 그려질 때까지
   if (!slow) panelResync();
+}
+
+// 화면 불: 800 보드는 화면 라이브러리의 백라이트, 7B 는 IO 확장 칩 EXIO2
+static bool blReady() {
+#if BOARD_7B
+  return ioexp_ready();
+#else
+  return s_board && s_board->getBacklight();
+#endif
+}
+static void blSet(bool on) {
+#if BOARD_7B
+  ioexp_backlight(on);
+#else
+  if (on) s_board->getBacklight()->on(); else s_board->getBacklight()->off();
+#endif
 }
 
 static void lock() { esp_lv_adapter_lock(-1); }
@@ -185,7 +255,7 @@ static void layoutClock() {
 
   // 시계와 날짜(시계 바로 아래)
   // 미리보기 F(web/sample/dev/clock_preview2.html?v=F): 시계 120(줄 높이 88) · 시계→날짜 20 · 날짜→카드 24
-  const int CLK_Y = S(22), CLK_H = 88, DATE_H = 29;                     // num120 줄 높이 88, kr28 줄 높이 29
+  const int CLK_Y = S(22), CLK_H = big() ? lv_font_get_line_height(FCLK()) : 88, DATE_H = 29;   // num120 줄 높이 88, kr28 줄 높이 29
   lv_obj_align(s_big, LV_ALIGN_TOP_MID, s_h12 ? S(30) : 0, CLK_Y);
   const int DATE_Y = CLK_Y + CLK_H + S(20);
   lv_obj_set_width(s_bigDate, LW); lv_obj_set_pos(s_bigDate, 0, DATE_Y);
@@ -274,7 +344,7 @@ static lv_obj_t *button(lv_obj_t *parent, const char *txt, int w, int h, uint32_
   lv_obj_set_size(b, w, h);
   lv_obj_set_style_bg_color(b, lv_color_hex(bg), 0);
   lv_obj_set_style_shadow_width(b, 0, 0);
-  lv_obj_set_style_radius(b, R(8), 0);
+  lv_obj_set_style_radius(b, UI_SOFT ? 10 : R(8), 0);
   lv_obj_set_style_border_width(b, 1, 0);
   lv_obj_set_style_border_color(b, lv_color_hex(D_LINE), 0);
   lv_obj_t *l = label(b, &kr16, fg, txt);
@@ -396,10 +466,12 @@ static void renderToday() {
     }
     const bool past = isToday && nm >= 0 && !now && (p >= 0 ? nm >= toMin(PERIOD_START[p]) + 50 : nm >= toMin("13:30"));
     if (past) { colA = D_MUTED; colB = D_MUTED; }
-    if (now) { border = 0xf1f5f9; colA = C_TEXT; colB = C_MUTED; }
-    lv_obj_set_style_bg_color(s_row[r], lv_color_hex(now ? 0xf1f5f9 : D_ROW), 0);
+    const bool next = UI_SOFT && !now && p >= 0 && p == nextP && nm >= 0;
+    if (now) { border = NOW_ROW; colA = C_TEXT; colB = C_MUTED; }
+    if (next) border = NEXT_BD;
+    lv_obj_set_style_bg_color(s_row[r], lv_color_hex(now ? NOW_ROW : D_ROW), 0);
     lv_obj_set_style_border_color(s_row[r], lv_color_hex(border), 0);
-    lv_obj_set_style_border_width(s_row[r], 1, 0);
+    lv_obj_set_style_border_width(s_row[r], next ? 2 : 1, 0);
     lv_label_set_text(s_rowA[r], textA);
     lv_label_set_text(s_rowB[r], textB);
     lv_obj_set_style_text_color(s_rowA[r], lv_color_hex(colA), 0);
@@ -410,9 +482,9 @@ static void renderToday() {
       lv_obj_update_layout(s_rowA[r]);                                  // 과목 글 폭이 정해진 뒤 그 뒤에 붙인다
       lv_obj_align_to(s_rowTag[r], s_rowA[r], LV_ALIGN_OUT_RIGHT_MID, 8, 0);
     } else lv_obj_add_flag(s_rowTag[r], LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_style_bg_color(s_rowP[r], lv_color_hex(now ? D_RED : D_LINE), 0);
+    lv_obj_set_style_bg_color(s_rowP[r], lv_color_hex(now ? NOW_TAG : D_LINE), 0);
     lv_obj_t *pl = lv_obj_get_child(s_rowP[r], 0);
-    lv_obj_set_style_text_color(pl, lv_color_hex(now ? 0xffffff : D_SUB), 0);
+    lv_obj_set_style_text_color(pl, lv_color_hex(now ? NOW_TX : D_SUB), 0);
     // 교시 칸: 평소에는 시작 시각, 지금 교시(점심)에는 남은 시간 — 한눈에 '지금 어디쯤인지' 보이게
     if (p < 0) { if (now) lv_label_set_text_fmt(pl, "점심\n%d분 남음", toMin("13:30") - nm); else lv_label_set_text(pl, "점심"); }
     else if (now) lv_label_set_text_fmt(pl, "%d교시\n%d분 남음", p + 1, toMin(PERIOD_START[p]) + 50 - nm);
@@ -495,8 +567,8 @@ static void renderWeek() {
       lv_obj_t *o = s_cell[d][p];
       // 어두운 바탕: 종류 색은 테두리로만
       const bool nowCell = isToday && p == nowP;   // 지금 교시는 흰 칸으로 눈에 띄게(사용자 지시)
-      lv_obj_set_style_bg_color(o, lv_color_hex(nowCell ? 0xf1f5f9 : (*t ? D_ROW : D_PANEL)), 0);
-      lv_obj_set_style_border_color(o, lv_color_hex(nowCell ? 0xf1f5f9 : (*t ? st.border : D_LINE)), 0);
+      lv_obj_set_style_bg_color(o, lv_color_hex(nowCell ? NOW_ROW : (*t ? D_ROW : D_PANEL)), 0);
+      lv_obj_set_style_border_color(o, lv_color_hex(nowCell ? NOW_ROW : (*t ? st.border : D_LINE)), 0);
       lv_obj_set_style_border_width(o, isToday && p == nowP ? 3 : 1, 0);
       lv_label_set_text(s_cellA[d][p], a);
       lv_label_set_text(s_cellB[d][p], b);
@@ -514,8 +586,8 @@ static void renderWeek() {
   }
   for (int p = 0; p < 7; p++) {
     bool now = p == nowP;
-    lv_obj_set_style_bg_color(s_pl[p], lv_color_hex(now ? D_RED : D_PANEL), 0);
-    lv_obj_set_style_text_color(lv_obj_get_child(s_pl[p], 0), lv_color_hex(now ? 0xffffff : D_SUB), 0);
+    lv_obj_set_style_bg_color(s_pl[p], lv_color_hex(now ? NOW_TAG : D_PANEL), 0);
+    lv_obj_set_style_text_color(lv_obj_get_child(s_pl[p], 0), lv_color_hex(now ? NOW_TX : D_SUB), 0);
   }
 }
 
@@ -1146,8 +1218,8 @@ static void renderFinder() {
     char k = whereKind(c);
     bool now = isToday && p == nowP;
     lv_obj_clear_flag(s_findRow[p], LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_style_bg_color(s_findRow[p], lv_color_hex(now ? 0xf1f5f9 : D_ROW), 0);
-    lv_obj_set_style_border_color(s_findRow[p], lv_color_hex(now ? 0xf1f5f9 : (k ? styleOf(k).border : D_LINE)), 0);
+    lv_obj_set_style_bg_color(s_findRow[p], lv_color_hex(now ? NOW_ROW : D_ROW), 0);
+    lv_obj_set_style_border_color(s_findRow[p], lv_color_hex(now ? NOW_ROW : (k ? styleOf(k).border : D_LINE)), 0);
     lv_obj_set_style_text_color(s_findRowP[p], lv_color_hex(now ? C_MUTED : D_MUTED), 0);
     lv_label_set_text(s_findRowT[p], k ? whereText(c) : "공강");
     lv_obj_set_style_text_color(s_findRowT[p], lv_color_hex(now ? C_TEXT : (k ? D_TEXT : D_MUTED)), 0);
@@ -1235,6 +1307,14 @@ static void buildFinder(lv_obj_t *scr, int top) {
 // ── 탭 ──
 // 화면: 0 주간 시간표 · 1 설정 · 2 시계 모드(화면 전체, 누르면 주간으로)
 static void tabStyle(lv_obj_t *tab, bool on) {
+#if UI_SOFT   // 면을 바꾸지 않고 아래 밑줄(호박색)과 글자 밝기로만 표시 — 부드럽고, 다시 그리는 넓이도 작다
+  lv_obj_set_style_bg_color(tab, lv_color_hex(D_ROW), 0);
+  lv_obj_set_style_border_side(tab, LV_BORDER_SIDE_BOTTOM, 0);
+  lv_obj_set_style_border_width(tab, on ? 4 : 0, 0);
+  lv_obj_set_style_border_color(tab, lv_color_hex(NOW_TAG), 0);
+  lv_obj_set_style_text_color(lv_obj_get_child(tab, 0), lv_color_hex(on ? D_TEXT : D_MUTED), 0);
+  return;
+#endif
   lv_obj_set_style_bg_color(tab, lv_color_hex(on ? D_LINE : D_ROW), 0);
   lv_obj_set_style_text_color(lv_obj_get_child(tab, 0), lv_color_hex(on ? D_TEXT : D_MUTED), 0);
 }
@@ -1422,7 +1502,7 @@ static void buildUI() {
       s_cellTag[d][p] = label(c, &kr14, 0xffffff, "");
       lv_obj_set_style_bg_opa(s_cellTag[d][p], LV_OPA_COVER, 0);
       lv_obj_set_style_bg_color(s_cellTag[d][p], lv_color_hex(0xc2410c), 0);
-      lv_obj_set_style_radius(s_cellTag[d][p], R(6), 0);
+      lv_obj_set_style_radius(s_cellTag[d][p], RP(6), 0);
       lv_obj_set_style_pad_hor(s_cellTag[d][p], 3, 0);
       lv_obj_align(s_cellTag[d][p], LV_ALIGN_TOP_RIGHT, -1, 0);
       lv_obj_add_flag(s_cellTag[d][p], LV_OBJ_FLAG_HIDDEN);
@@ -1456,7 +1536,7 @@ static void buildUI() {
   lv_obj_t *left = s_left = box(s_viewClock, D_PANEL, D_LINE, 16);
   lv_obj_set_pos(left, CM, CM);
   lv_obj_clear_flag(left, LV_OBJ_FLAG_CLICKABLE);                    // 눌러도 시계 화면이 받게
-  s_big = label(left, &num120, D_TEXT, "--:--");
+  s_big = label(left, FCLK(), D_TEXT, "--:--");
   s_bigAmPm = label(left, &kr28, D_SUB, "");
   lv_obj_add_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
   s_bigDate = label(left, &kr28, D_SUB, "");
@@ -1467,15 +1547,15 @@ static void buildUI() {
   lv_obj_clear_flag(wc, LV_OBJ_FLAG_CLICKABLE);
   s_wxSep = box(wc, D_LINE, 0, 0);
   s_wxSep2 = box(wc, D_LINE, 0, 0);
-  s_dust = label(wc, &kr14, D_SUB, "");                               // '● 미세먼지 좋음 · PM10 15 · 초미세 12'
+  s_dust = label(wc, FM(), D_SUB, "");                               // '● 미세먼지 좋음 · PM10 15 · 초미세 12'
   lv_label_set_recolor(s_dust, true);
   lv_label_set_long_mode(s_dust, LV_LABEL_LONG_DOT);
   for (int i = 0; i < 2; i++) {
     WxCard &k = s_card[i];
     k.img = lv_img_create(wc);
-    k.desc = label(wc, &kr14, D_MUTED, i == 0 ? "오늘" : "내일");      // "오늘 27°/19°"
-    k.temp = label(wc, &num36, D_TEXT, "");
-    k.hilo = label(wc, &kr14, D_SUB, "");                               // "맑음 · 비 0%"
+    k.desc = label(wc, FM(), D_MUTED, i == 0 ? "오늘" : "내일");      // "오늘 27°/19°"
+    k.temp = label(wc, FTEMP(), D_TEXT, "");
+    k.hilo = label(wc, FM(), D_SUB, "");                               // "맑음 · 비 0%"
     lv_label_set_recolor(k.hilo, true);
     lv_label_set_long_mode(k.hilo, LV_LABEL_LONG_DOT);
     k.rain = nullptr;
@@ -1484,15 +1564,15 @@ static void buildUI() {
   // '오늘' 카드(할 일 · 점심/저녁)
   lv_obj_t *ic = s_infoCard = box(left, D_ROW, D_LINE, 14);
   lv_obj_clear_flag(ic, LV_OBJ_FLAG_CLICKABLE);
-  s_dutyTitle = label(ic, &kr14, D_MUTED, "할 일");
-  s_duty = label(ic, &kr14, 0xfcd34d, "");
+  s_dutyTitle = label(ic, FM(), D_MUTED, "할 일");
+  s_duty = label(ic, FM(), 0xfcd34d, "");
   lv_label_set_long_mode(s_duty, LV_LABEL_LONG_DOT);
   s_infoHr = box(ic, D_LINE, 0, 0);
-  s_mealTitle = label(ic, &kr14, D_MUTED, "점심");
-  s_meal = label(ic, &kr14, 0xe2e8f0, "");
+  s_mealTitle = label(ic, FM(), D_MUTED, "점심");
+  s_meal = label(ic, FM(), UI_SOFT ? D_SUB : 0xe2e8f0, "");
   lv_obj_set_style_text_line_space(s_meal, 2, 0);
   lv_label_set_long_mode(s_meal, LV_LABEL_LONG_DOT);
-  s_kcal = label(ic, &kr14, D_MUTED, "");
+  s_kcal = label(ic, FM(), D_MUTED, "");
 
   // 맨 아래: 수업 10분 전부터 '다음 수업' 띠
   s_notice = box(left, C_PRIMARY, 0, 18);
@@ -1514,7 +1594,7 @@ static void buildUI() {
   s_dayTag = label(right, &kr14, 0x991b1b, "");
   lv_obj_set_style_bg_opa(s_dayTag, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(s_dayTag, lv_color_hex(0xfee2e2), 0);
-  lv_obj_set_style_radius(s_dayTag, R(10), 0);
+  lv_obj_set_style_radius(s_dayTag, RP(10), 0);
   lv_obj_set_style_pad_hor(s_dayTag, 8, 0);
   lv_obj_align(s_dayTag, LV_ALIGN_TOP_RIGHT, -S(12), S(12));
   lv_obj_add_flag(s_dayTag, LV_OBJ_FLAG_HIDDEN);
@@ -1523,7 +1603,7 @@ static void buildUI() {
   lv_obj_set_style_bg_color(s_dday, lv_color_hex(0x7f1d1d), 0);
   lv_obj_set_style_border_width(s_dday, 1, 0);
   lv_obj_set_style_border_color(s_dday, lv_color_hex(0xef4444), 0);
-  lv_obj_set_style_radius(s_dday, R(11), 0);
+  lv_obj_set_style_radius(s_dday, RP(11), 0);
   lv_obj_set_style_pad_hor(s_dday, 10, 0);
   lv_obj_set_style_pad_ver(s_dday, 2, 0);
   lv_obj_align(s_dday, LV_ALIGN_TOP_RIGHT, -S(12), S(11));
@@ -1537,7 +1617,7 @@ static void buildUI() {
     lv_obj_set_size(s_row[r], ROW_W, ROW_H); lv_obj_set_pos(s_row[r], ROW_X, ROW_Y0 + r * ROW_PITCH);
     s_rowP[r] = box(s_row[r], D_LINE, 0, 6);
     lv_obj_set_size(s_rowP[r], PW, ROW_H - 8); lv_obj_align(s_rowP[r], LV_ALIGN_LEFT_MID, S(6) - 1, 0);
-    lv_obj_t *pl = label(s_rowP[r], &kr14, D_SUB, "");
+    lv_obj_t *pl = label(s_rowP[r], FM(), D_SUB, "");
     if (p < 0) lv_label_set_text(pl, "점심");
     else lv_label_set_text_fmt(pl, "%d교시\n%s", p + 1, PERIOD_START[p]);
     lv_obj_set_style_text_align(pl, LV_TEXT_ALIGN_CENTER, 0);
@@ -1548,14 +1628,14 @@ static void buildUI() {
     lv_obj_set_style_max_width(s_rowA[r], S(150), 0);
     lv_label_set_long_mode(s_rowA[r], LV_LABEL_LONG_DOT);
     lv_obj_align(s_rowA[r], LV_ALIGN_LEFT_MID, PW + S(18), 0);
-    s_rowB[r] = label(s_row[r], &kr14, D_SUB, "");
+    s_rowB[r] = label(s_row[r], FM(), D_SUB, "");
     lv_obj_set_width(s_rowB[r], S(110)); lv_label_set_long_mode(s_rowB[r], LV_LABEL_LONG_DOT);
     lv_obj_set_style_text_align(s_rowB[r], LV_TEXT_ALIGN_RIGHT, 0);
     lv_obj_align(s_rowB[r], LV_ALIGN_RIGHT_MID, -S(14), 0);
     s_rowTag[r] = label(s_row[r], &kr14, 0xffffff, "");
     lv_obj_set_style_bg_opa(s_rowTag[r], LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(s_rowTag[r], lv_color_hex(0xc2410c), 0);   // 흰 글자와 명암비 5.2:1
-    lv_obj_set_style_radius(s_rowTag[r], R(6), 0);
+    lv_obj_set_style_radius(s_rowTag[r], RP(6), 0);
     lv_obj_set_style_pad_hor(s_rowTag[r], 5, 0);
     lv_obj_add_flag(s_rowTag[r], LV_OBJ_FLAG_HIDDEN);
   }
@@ -1577,7 +1657,7 @@ static void buildUI() {
   lv_obj_t *wbox = box(s_viewSet, C_SURF, C_BORDER, 10);
   lv_obj_set_size(wbox, WBW, BOXH); lv_obj_set_pos(wbox, M, M);
   lv_obj_set_pos(label(wbox, fTitle, C_TEXT, "와이파이"), 12, 10);
-  s_wifiInfo = label(wbox, &kr14, C_MUTED, "");
+  s_wifiInfo = label(wbox, FM(), C_MUTED, "");
   lv_obj_set_width(s_wifiInfo, WBW - 130); lv_label_set_long_mode(s_wifiInfo, LV_LABEL_LONG_WRAP);
   lv_obj_set_pos(s_wifiInfo, 12, small ? 36 : 44);
   lv_obj_t *bScan = button(wbox, "찾기", small ? 90 : 110, small ? 34 : 40, C_PRIMARY, 0xffffff);
@@ -1603,7 +1683,7 @@ static void buildUI() {
   lv_obj_t *bSync = button(obox, "지금 받기", OBW - 24, small ? 34 : 40, C_PRIMARY, 0xffffff);
   lv_obj_set_pos(bSync, 12, small ? 88 : 104);
   lv_obj_add_event_cb(bSync, [](lv_event_t *) { s_syncReq = true; setStatus("곧 연결합니다…"); }, LV_EVENT_CLICKED, nullptr);
-  s_status = label(obox, &kr14, C_MUTED, "");
+  s_status = label(obox, FM(), C_MUTED, "");
   lv_obj_set_width(s_status, OBW - 24); lv_label_set_long_mode(s_status, LV_LABEL_LONG_WRAP);
   lv_obj_set_pos(s_status, 12, small ? 132 : 156);
   // 시계 화면 설정: 고르는 단추(켜진 것은 빨강). 바꾸면 바로 저장되고 시계에 바로 반영된다.
@@ -1665,6 +1745,9 @@ static void buildUI() {
 
 // ── 화면 장치 ──
 static void initDisplay() {
+#if BOARD_7B
+  ioexp_begin();   // I2C 0번 설치 · 확장 칩(0x24) 모두 출력 · 터치 리셋 — 화면 라이브러리보다 먼저
+#endif
   Board *board = new Board();
   s_board = board;
   if (!board || !board->init()) { Serial.println("Board init failed"); while (true) delay(1000); }
@@ -1690,6 +1773,7 @@ static void initDisplay() {
     esp_lv_adapter_register_touch(&tc);
   }
   ESP_ERROR_CHECK(esp_lv_adapter_start());
+  Serial.printf("screen %dx%d pclk %luMHz%s\n", s_W, s_H, (unsigned long)(PCLK_HZ / 1000000), BOARD_7B ? " (7B)" : "");
 }
 
 void setup() {
@@ -1853,15 +1937,15 @@ void loop() {
     }
   }
   // 불이 꺼져 있을 때 터치가 오면 바로 켠다. 그 터치는 단추로 가지 않는다(esp_lv_adapter 가 삼킨다).
-  if (s_blOff && g_touchWoke && s_board && s_board->getBacklight()) {
+  if (s_blOff && g_touchWoke && blReady()) {
     g_touchWoke = false; g_touchSwallow = false; s_blOff = false;
-    s_board->getBacklight()->on();
+    blSet(true);
     lock(); lv_disp_trig_activity(NULL); unlock();
     Serial.println("backlight on (touch)");
   }
   // 밤(22:00~07:00)·주말·휴일에는 2분 동안 터치가 없으면 화면 불을 끈다. 만지면 켜진다(사용자 지시 2026-09-30).
   static uint32_t lastBl = 0;
-  if (ms - lastBl > 2000 && s_board && s_board->getBacklight() && timeValid()) {
+  if (ms - lastBl > 2000 && blReady() && timeValid()) {
     lastBl = ms;
     time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
     const int m = tm.tm_hour * 60 + tm.tm_min;
@@ -1873,7 +1957,7 @@ void loop() {
     if (off != s_blOff) {
       s_blOff = off;
       g_touchSwallow = off;
-      if (off) s_board->getBacklight()->off(); else s_board->getBacklight()->on();
+      blSet(!off);
       Serial.printf("backlight %s\n", off ? "off" : "on");
     }
   }

@@ -9,13 +9,15 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_board.ps1                 # 빌드 + 업로드(보드 자동 찾기)
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_board.ps1 -Port COM5      # 보드 COM 번호를 직접 지정
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_board.ps1 -NoUpload       # 빌드만(보드 없이도 된다)
+#   powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_board.ps1 -Env board7b -Port COM9   # 1024x600(7B) 보드
 #
 # COM 번호는 -Port 로 주거나, 환경변수 PIO_PORT 에 넣어 둔다. 둘 다 없으면 USB 시리얼 칩(CH343/CH340 등)을 찾아 본다.
 # 처음 한 번은 25~45분 걸린다(ESP-IDF 를 화면 흔들림 방지 설정으로 다시 컴파일한다). 두 번째부터 1~2분.
 # 이 파일은 UTF-8 BOM 으로 저장해야 한다(Windows PowerShell 5.1 이 한글을 깨뜨리지 않게).
 param(
   [switch]$NoUpload,
-  [string]$Port = ''
+  [string]$Port = '',
+  [string]$Env = 'board'     # board = 800x480(기존), board7b = 1024x600(7B)
 )
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
@@ -30,6 +32,10 @@ if ($dst -match '[^\x00-\x7F]') {
 }
 if (-not (Test-Path (Join-Path $src 'platformio.ini'))) { throw "firmware\platformio.ini 가 없습니다: $src" }
 
+# 7B 는 COM 번호를 꼭 받는다(자동 찾기는 같은 PC 의 다른 ESP32 기기를 고를 수 있다)
+if ($Env -ne 'board' -and -not $NoUpload -and -not $Port -and -not $env:PIO_PORT) {
+  throw "$Env 는 -Port COM번호 를 꼭 주세요(자동 찾기는 다른 기기를 고를 수 있습니다)"
+}
 # 업로드할 COM 포트 정하기: -Port > PIO_PORT > 자동(USB 시리얼 칩). 포트를 여는 일은 하지 않고 목록만 본다.
 if (-not $NoUpload -and -not $Port) {
   if ($env:PIO_PORT) { $Port = $env:PIO_PORT }
@@ -47,7 +53,7 @@ New-Item -ItemType Directory -Force $dst | Out-Null
 robocopy $src $dst /MIR /XD .pio /XF build.log build.done /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy 실패 ($LASTEXITCODE)" }
 
-$pioArgs = @('-m', 'platformio', 'run', '-d', $dst)
+$pioArgs = @('-m', 'platformio', 'run', '-d', $dst, '-e', $Env)
 if (-not $NoUpload) {
   $pioArgs += @('-t', 'upload')
   if ($Port) { $pioArgs += @('--upload-port', $Port) }

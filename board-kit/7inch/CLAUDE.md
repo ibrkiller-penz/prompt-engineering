@@ -36,6 +36,19 @@
 | 전원 | 5V 2A 이상. USB-C 충전기로는 안 켜질 수 있다 → USB-A 충전기 + A-C 케이블 |
 | 와이파이 | **2.4GHz** 만(5GHz 불가), 웹 로그인 화면(포털)이 없는 망 |
 
+### 2-1. 1024×600 보드 — Waveshare ESP32-S3-Touch-LCD-7B (2026-10-17 추가, 빌드 환경 `board7b`)
+
+| 항목 | 내용 |
+|---|---|
+| 화면 | 7인치 **1024×600**, RGB 병렬(핀은 아래 표와 **같다**), ST7262, 터치 GT911(0x5D) |
+| 박자 | HPW 162 · HBP 152 · HFP 48 · VPW 45 · VBP 13 · VFP 3, `PCLK_ACTIVE_NEG`=1 (Waveshare 공식 예제 `examples/Arduino/08_TOUCH/rgb_lcd_port.cpp`). 공식은 PSRAM 120MHz + 30MHz 지만 우리는 PSRAM 80MHz 라 **18MHz**(받는 동안 12MHz) |
+| IO 확장 칩 | **I2C 0x24, 레지스터 방식**(방향 0x02 · 출력 0x03 · PWM 0x05). CH422G 가 아니다 → 화면 라이브러리의 확장 칩·백라이트를 끄고 `src\ioexp.cpp` 가 맡는다 |
+| EXIO | 1 터치 리셋 · 2 백라이트 · 4 SD_CS · 5 USB/CAN 선택 · 6 LCD_VDD_EN. 터치 리셋: EXIO1 낮음 → 100ms → INT(GPIO4) 낮음 → 100ms → EXIO1 높음 → 200ms |
+| I2C | 부팅 기록 `i2c scan: 0x24 0x5d` (RTC 없음 — 시각은 와이파이로만 맞춘다) |
+| 연결 | CH343 UART 단자. **같은 PC 에 다른 ESP32(예: ESP32-C6)가 꽂혀 있으면 COM 번호가 바뀔 수 있다** → 업로드 전 `python -m esptool --port COM번호 chip-id` 로 ESP32-S3 인지 확인 |
+| 백업 | 공장 펌웨어 16MB: `backup\factory_1024_rtc_pcf85063_full16MB.bin` (git 제외). 되돌리기: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0 backup\factory_1024_rtc_pcf85063_full16MB.bin` |
+| 화면 꾸밈 | `UI_SOFT`(= BOARD_7B): 따뜻한 어두운 색 · 큰 카드만 둥근 모서리 · 알약 꼬리표 · 탭 밑줄 · 지금 교시 호박색 칸 · 다음 수업 노란 테두리 · 설명 글자 kr16 · 시계 num140 · 기온 num44. 800 보드는 그대로 |
+
 핀(이미 `firmware\include\esp_panel_board_custom_conf.h` 에 들어 있다 — 바꾸지 말 것. Waveshare 7인치 설명서·공식 라이브러리와 대조해 확인했다):
 
 | 신호 | GPIO / 확장핀 |
@@ -79,6 +92,8 @@ board-kit\
   - 이유: `custom_sdkconfig` 때문에 ESP-IDF 를 다시 컴파일하는데, **경로에 한글·빈칸이 있으면 CMake·링커가 실패**한다.
     스크립트가 `firmware` 를 `%USERPROFILE%\.pio-build\penedu-board-7inch-src` 로 복사해 거기서 빌드한다. 복사본은 고치지 말고 **원본 `firmware` 만 고친다.**
   - `-NoUpload`: 빌드만 · `-Port COM번호`(또는 환경변수 `PIO_PORT`): 업로드 포트 · 둘 다 없으면 USB 시리얼 칩을 자동으로 찾는다.
+  - `-Env board`(기본, 800×480) / `-Env board7b`(1024×600, **-Port 필수**). 환경을 바꾸면 ESP-IDF 를 다시 컴파일해 **35분 안팎** 걸린다.
+  - 7B 를 빌드만 하고 굽기: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0x0 %USERPROFILE%\.pio-build\penedu-board-7inch-src\.pio\build\board7b\firmware.factory.bin` (칩이 다르면 esptool 이 거부한다)
 - **처음 한 번은 25~45분**(약 3GB 받아 7GB 로 풀림). 두 번째부터 1~2분. 첫 빌드는 **끝까지 기다린다**(중간에 끄지 말 것).
 - 플랫폼은 **pioarduino**(Arduino-ESP32 3.x). 공식 espressif32 는 Arduino 2.x 라 화면 드라이버가 안 맞는다.
 - **LVGL 은 8.3.11 고정**(`lib_deps`), ArduinoJson 7.x. 버전을 올리지 말 것.

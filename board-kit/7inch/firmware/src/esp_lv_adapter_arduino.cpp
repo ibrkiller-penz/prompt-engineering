@@ -1,4 +1,5 @@
 #include "esp_lv_adapter_arduino.h"
+#include <Arduino.h>
 
 #include <string.h>
 #include <limits.h>
@@ -234,6 +235,12 @@ lv_display_t *esp_lv_adapter_register_display(const esp_lv_adapter_display_confi
     s_ctx.disp_drv.draw_buf = &s_ctx.draw_buf;
     s_ctx.disp_drv.user_data = s_ctx.lcd;
     s_ctx.disp_drv.full_refresh = s_ctx.rgb_full_refresh;
+    // 다시 그리는 데 오래 걸린 때만 기록한다(메뉴 바꿀 때 쓸어내림 측정용)
+    s_ctx.disp_drv.monitor_cb = [](lv_disp_drv_t *, uint32_t ms, uint32_t px) {
+        if (ms >= 60) {
+            Serial.printf("redraw %lums %lupx" "%c", (unsigned long)ms, (unsigned long)px, 10);
+        }
+    };
 
     s_ctx.display = lv_disp_drv_register(&s_ctx.disp_drv);
     if (s_ctx.display == nullptr) {
