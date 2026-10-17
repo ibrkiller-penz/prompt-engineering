@@ -169,9 +169,9 @@ export function createStore<D>(prefix: string, knownKeys: readonly string[], get
 }
 
 /** 학생 기록(aimn:s1:*) — 교사 사이트에서는 쓰지 않아요 */
-export const studentStore = createStore<StudentData>(S_PREFIX, Object.keys(STUDENT_KEYS));
+export const studentStore = /* @__PURE__ */ createStore<StudentData>(S_PREFIX, Object.keys(STUDENT_KEYS));
 /** 교사 설정(aimn:t1:*) */
-export const teacherStore = createStore<TeacherData>(T_PREFIX, Object.keys(TEACHER_KEYS));
+export const teacherStore = /* @__PURE__ */ createStore<TeacherData>(T_PREFIX, Object.keys(TEACHER_KEYS));
 
 /** 시험용: 메모리 저장소 */
 export function memoryStorage(init?: Record<string, string>): StorageLike & { map: Map<string, string> } {

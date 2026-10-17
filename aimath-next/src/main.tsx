@@ -17,7 +17,8 @@ const html = document.documentElement;
 
 /** 저장된 읽기 설정을 html 속성에 반영해요(첫 그림 전에) */
 function applyBootPrefs() {
-  const p: Prefs = IS_TEACHER ? teacherStore.read("prefs", DEFAULT_PREFS) : studentStore.read("prefs", DEFAULT_PREFS);
+  // __SITE__ 를 바로 비교해야 학생 번들에서 교사 저장소가 빠져요
+  const p: Prefs = __SITE__ === "teacher" ? teacherStore.read("prefs", DEFAULT_PREFS) : studentStore.read("prefs", DEFAULT_PREFS);
   const fs = p && typeof p.fs === "number" && p.fs >= 0 && p.fs <= 3 ? p.fs : DEFAULT_PREFS.fs;
   let theme: Theme = "light";
   const pref = p && p.theme ? p.theme : "auto";

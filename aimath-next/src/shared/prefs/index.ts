@@ -11,7 +11,8 @@ import { DEFAULTS, LH_VALUES, htmlAttrs, normalizePrefs, prefsFromQuery, queryOf
 export * from "./logic.ts";
 
 // 두 저장소 모두 "prefs" 키에 같은 모양을 저장해요(교사 aimn:t1:prefs · 학생 aimn:s1:prefs)
-const store = (SITE === "teacher" ? teacherStore : studentStore) as unknown as Store<{ prefs: PrefsX }>;
+// __SITE__ 를 바로 비교해야 빌드에서 접혀서 학생 번들에 교사 저장소(aimn:t1)가 남지 않아요
+const store = (__SITE__ === "teacher" ? teacherStore : studentStore) as unknown as Store<{ prefs: PrefsX }>;
 
 function media(q: string): boolean {
   try {
