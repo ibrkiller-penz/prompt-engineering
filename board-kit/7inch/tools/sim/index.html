@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>알림판 시뮬레이터</title>
+<!--
+  교실 알림판 화면 시뮬레이터 — 보드에 굽기(35분) 전에 화면 모습을 미리 본다.
+  firmware/src/main.cpp 의 배치 계산(layoutClock·buildUI·renderToday·renderWeek)과 색(#define)·글꼴 크기·줄 높이를 그대로 옮겼다.
+  펌웨어의 화면 코드를 고치면 이 파일의 같은 이름 부분도 같이 고친다(함수 이름을 펌웨어와 같게 두었다).
+  열기: 7inch 폴더에서  python -m http.server 8765  →  http://localhost:8765/tools/sim/
+-->
+<style>
+  @font-face { font-family: Pret; src: url("../../firmware/fonts/src/Pretendard-SemiBold.otf") format("opentype"); }
+  :root { --ui-bg: #f4f1ec; --ui-fg: #2a2320; --ui-sub: #6b5e55; --ui-line: #ddd3c4; --ui-acc: #b45309; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ui-bg); color: var(--ui-fg); font-family: system-ui, "Malgun Gothic", sans-serif; }
+  header { padding: 14px 20px 6px; }
+  header h1 { font-size: 18px; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--ui-sub); font-size: 13px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--ui-line); font-size: 14px; }
+  .bar label { display: inline-flex; gap: 6px; align-items: center; }
+  .bar fieldset { border: 1px solid var(--ui-line); border-radius: 8px; padding: 4px 10px; margin: 0; display: flex; gap: 10px; flex-wrap: wrap; }
+  .bar legend { font-size: 12px; color: var(--ui-sub); padding: 0 4px; }
+  select, input[type=time] { font: inherit; padding: 2px 6px; }
+  .stage { padding: 16px 20px 30px; overflow: auto; }
+  .frame { display: inline-block; padding: 14px; background: #111; border-radius: 18px; box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+  #screen { position: relative; overflow: hidden; font-family: Pret, sans-serif; transform-origin: 0 0; }
+  #screen div { position: absolute; }
+  .t { white-space: pre; overflow: hidden; }
+  .dot { text-overflow: ellipsis; }
+  .note { font-size: 13px; color: var(--ui-sub); margin-top: 10px; max-width: 1060px; line-height: 1.5; }
+  .note b { color: var(--ui-fg); }
+</style>
+</head>
+<body>
+<header>
+  <h1>교실 알림판 시뮬레이터</h1>
+  <p>보드 화면을 실제 픽셀 크기로 미리 봅니다. 화면 안의 탭(시간표·시계·찾기·설정)도 눌러 볼 수 있습니다.</p>
+</header>
+<div class="bar">
+  <label>보드 <select id="board"><option value="1024">7B · 1024×600</option><option value="800">7 · 800×480</option></select></label>
+  <label><input type="checkbox" id="soft" checked> 부드러운 디자인(UI_SOFT)</label>
+  <label>지금 시각 <input type="time" id="time" value="10:47"></label>
+  <label><input type="checkbox" id="h12"> 12시간 표시</label>
+  <label>확대 <select id="zoom"><option value="1">100%</option><option value="0.75">75%</option><option value="1.25">125%</option></select></label>
+  <fieldset><legend>시계 화면 보이기</legend>
+    <label><input type="checkbox" class="show" data-b="1" checked>날씨</label>
+    <label><input type="checkbox" class="show" data-b="2" checked>미세먼지</label>
+    <label><input type="checkbox" class="show" data-b="4" checked>할 일</label>
+    <label><input type="checkbox" class="show" data-b="8" checked>급식</label>
+    <label><input type="checkbox" class="show" data-b="16" checked>시간표</label>
+    <label><input type="checkbox" class="show" data-b="32" checked>D-day</label>
+  </fieldset>
+</div>
+<div class="stage">
+  <div class="frame"><div id="screen"></div></div>
+  <div class="note">
+    <b>참고</b> — 글꼴은 보드와 같은 Pretendard SemiBold, 크기·줄 높이·좌표는 펌웨어 계산식 그대로입니다.
+    날씨 그림은 자리만 표시합니다(보드는 52px 그림). 브라우저의 글자 다듬기 때문에 1~2px 차이가 날 수 있습니다.
+    자료는 가짜 예시입니다(실제 보드는 사이트에서 받은 시간표).
+  </div>
+</div>
+<script>
+// ───────── 펌웨어 색 (main.cpp #define) ─────────
+const PAL = {
+  soft: { C_PRIMARY:0xdc2626, C_TEXT:0x2a2320, C_MUTED:0x5c5048, C_LIGHT:0x7a6d60, C_BG:0xf6f1e9, C_SURF:0xffffff, C_ALT:0xfbf8f3, C_BORDER:0xdcd2c4, C_LINE:0xece5da, C_EMERALD:0x10b981, C_ROSE:0xe11d48,
+          D_BG:0x1c1714, D_PANEL:0x26201c, D_ROW:0x342c26, D_LINE:0x4a4038, D_TEXT:0xfaf5ee, D_SUB:0xe2d8cc, D_MUTED:0xb8ab9c, NOW_ROW:0xfff4e0, NOW_TAG:0xfbbf24, NOW_TX:0x2a2320, NEXT_BD:0xfacc15, MEAL:0xe2d8cc },
+  classic: { C_PRIMARY:0xdc2626, C_TEXT:0x0f172a, C_MUTED:0x475569, C_LIGHT:0x64748b, C_BG:0xf1f5f9, C_SURF:0xffffff, C_ALT:0xf8fafc, C_BORDER:0xcbd5e1, C_LINE:0xe2e8f0, C_EMERALD:0x10b981, C_ROSE:0xe11d48,
+          D_BG:0x0b1120, D_PANEL:0x111827, D_ROW:0x1e293b, D_LINE:0x334155, D_TEXT:0xffffff, D_SUB:0xcbd5e1, D_MUTED:0x94a3b8, NOW_ROW:0xf1f5f9, NOW_TAG:0xb91c1c, NOW_TX:0xffffff, NEXT_BD:0, MEAL:0xe2e8f0 },
+};
+const STYLE = { n:0x34d399, d:0xfb923c, j:0x818cf8, x:0xf87171, c:0xa78bfa, e:0xf472b6, f:0x38bdf8, h:0xf87171 };   // styleOf().border
+// 글꼴: 크기와 줄 높이(src/fonts/*.c 의 line_height)
+const FONT = { kr14:[14,16], kr16:[16,17], kr20:[20,21], kr28:[28,29], num120:[120,88], num140:[140,102], num36:[36,25], num44:[44,32] };
+const PERIOD_START = ["08:40","09:40","10:40","11:40","13:30","14:40","15:40"];
+const DOW = ["월","화","수","목","금"];
+
+// ───────── 예시 자료 (data-format.md 모양) ─────────
+const TT = { name:"김선생", kind:"teacher", hours:"16", home:"2-3",
+  days: [
+    { dow:"월", cells:[["n","수학","2-3",""],["n","수학","2-5",""],["",""],["n","수학","1-2",""],["j","공강지도","2-1 · 3층","지도"],["n","수학","2-4",""],["",""]], lunch:"" },
+    { dow:"화", cells:[["",""],["n","수학","1-1",""],["n","수학","2-3",""],["c","창체","2-3",""],["n","수학","2-6",""],["",""],["n","수학","1-4",""]], lunch:"1" },
+    { dow:"수", cells:[["n","수학","2-5",""],["d","수학","2-4","당겨옴"],["",""],["n","수학","1-2",""],["x","수학","2-6","결강"],["n","수학","2-3",""],["",""]], lunch:"" },
+    { dow:"목", cells:[["n","수학","1-1",""],["",""],["n","수학","2-3",""],["e","시험감독","3-2",""],["n","수학","2-5",""],["",""],["j","보강","1-3","보강"]], lunch:"" },
+    { dow:"금", cells:[["n","수학","2-3",""],["n","수학","2-6",""],["n","수학","1-4",""],["",""],["n","수학","2-4",""],["f","학년 행사","강당",""],["",""]], lunch:"1" },
+  ] };
+const TODAY = 4;   // 금요일
+const WX = [{ name:"맑음", tmax:23, tmin:14, now:18, pop:0 }, { name:"구름 많음", tmax:21, tmin:13, pop:40 }];
+
+// ───────── 상태 ─────────
+const st = { W:1024, H:600, soft:true, view:"clock", nm:10*60+47, h12:false, show:63 };
+const $ = id => document.getElementById(id);
+const hex = v => "#" + v.toString(16).padStart(6, "0");
+const toMin = s => +s.slice(0,2) * 60 + +s.slice(3,5);
+
+function rebuild() {
+  const P = st.soft ? PAL.soft : PAL.classic;
+  const W = st.W, H = st.H, K = W / 800, S = v => Math.round(v * K), big = W > 800, small = W <= 800;
+  const R = r => (st.soft && r >= 10) ? r : 0;           // UI_FANCY 0 · UI_SOFT 규칙
+  const RP = r => st.soft ? 999 : 0;                     // 알약
+  const FM = big ? "kr16" : "kr14", FCLK = big ? "num140" : "num120", FTEMP = big ? "num44" : "num36";
+  const scr = $("screen"); scr.innerHTML = "";
+  scr.style.width = W + "px"; scr.style.height = H + "px"; scr.style.background = hex(P.D_BG);
+  scr.style.transform = `scale(${$("zoom").value})`;
+  scr.parentElement.style.width = (W * $("zoom").value + 28) + "px"; scr.parentElement.style.height = (H * $("zoom").value + 28) + "px";
+
+  // 도구: 상자와 글자(LVGL box()/label() 흉내)
+  function box(parent, x, y, w, h, bg, border, radius, extra) {
+    const d = document.createElement("div");
+    Object.assign(d.style, { left:x+"px", top:y+"px", width:w+"px", height:h+"px", background: bg == null ? "transparent" : hex(bg), borderRadius: (radius||0) + "px" });
+    if (border) d.style.boxShadow = `inset 0 0 0 1px ${hex(border)}`;
+    if (extra) Object.assign(d.style, extra);
+    (parent || scr).appendChild(d); return d;
+  }
+  function label(parent, font, color, text, opt = {}) {
+    const d = document.createElement("div"); d.className = "t";
+    const [sz, lh] = FONT[font];
+    Object.assign(d.style, { fontSize: sz + "px", lineHeight: lh + (opt.ls || 0) + "px", color: hex(color) });
+    if (opt.w != null) { d.style.width = opt.w + "px"; d.classList.add("dot"); }
+    if (opt.h != null) d.style.height = opt.h + "px";
+    if (opt.wrap) { d.style.whiteSpace = "pre-wrap"; d.style.wordBreak = "keep-all"; }
+    if (opt.align) d.style.textAlign = opt.align;
+    if (opt.bg != null) { d.style.background = hex(opt.bg); d.style.padding = `${opt.pv||0}px ${opt.ph||0}px`; d.style.borderRadius = (opt.r||0)+"px"; if (opt.bd) d.style.boxShadow = `inset 0 0 0 1px ${hex(opt.bd)}`; }
+    d.innerHTML = text;
+    (parent || scr).appendChild(d); return d;
+  }
+  // 정렬 도우미: 부모 기준 가운데·오른쪽 등 (그린 뒤 크기를 재서 놓는다)
+  function place(el, parent, how, ox = 0, oy = 0) {
+    const pw = parent.offsetWidth, ph = parent.offsetHeight, w = el.offsetWidth, h = el.offsetHeight;
+    const x = { L: 0, C: (pw - w) / 2, R: pw - w }[how[1]], y = { T: 0, M: (ph - h) / 2, B: ph - h }[how[0]];
+    el.style.left = Math.round(x + ox) + "px"; el.style.top = Math.round(y + oy) + "px";
+  }
+  const nm = st.nm, day = TT.days[TODAY], teacher = TT.kind === "teacher";
+  let nowP = -1, nextP = -1;
+  PERIOD_START.forEach((s, p) => { const a = toMin(s); if (nm >= a && nm < a + 50) nowP = p; if (nextP < 0 && a > nm) nextP = p; });
+  const lunchNow = nm >= toMin("12:30") && nm < toMin("13:30");
+  const hh = Math.floor(nm / 60), mm = nm % 60;
+  const clockTxt = st.h12 ? `${(hh % 12) || 12}:${String(mm).padStart(2,"0")}` : `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+  const ampm = st.h12 ? (hh < 12 ? "오전" : "오후") : "";
+
+  if (st.view === "clock") { buildClock(); return; }
+
+  // ── 위쪽 막대 (buildUI) ──
+  const TOP = small ? 50 : 60, M = small ? 8 : 12;
+  const fTitle = small ? "kr16" : "kr20", fClock = small ? "kr20" : "kr28", fBody = small ? "kr14" : "kr16", fCellA = small ? "kr16" : "kr20";
+  const top = box(scr, 0, 0, W, TOP, P.D_PANEL, null, 0, { borderBottom: `1px solid ${hex(P.D_LINE)}` });
+  const LOGO = TOP - 16;
+  const logo = box(top, M, (TOP - LOGO) / 2, LOGO, LOGO, P.C_PRIMARY, null, R(8));
+  place(label(logo, fTitle, 0xffffff, "교"), logo, "MC");
+  const title = label(top, fTitle, P.D_TEXT, TT.name + " 선생님", { w: small ? 116 : 180 }); place(title, top, "ML", M + LOGO + 8);
+  const TABW = small ? 72 : 100, TABH = TOP - 14;
+  const tabs = box(top, small ? 178 : 250, 3, TABW * 4 + 3 * 2 + 8, TOP - 6, P.D_ROW, P.D_LINE, R(10));
+  [["시간표","week"],["시계","clock"],["찾기","find"],["설정","set"]].forEach(([t, v], i) => {
+    const on = st.view === v;
+    const b = st.soft
+      ? box(tabs, 4 + i * (TABW + 2), 3, TABW, TABH, P.D_ROW, null, 10, { boxShadow: on ? `inset 0 -4px 0 ${hex(P.NOW_TAG)}` : "none", cursor: "pointer" })
+      : box(tabs, 4 + i * (TABW + 2), 3, TABW, TABH, on ? P.D_LINE : P.D_ROW, null, 0, { cursor: "pointer" });
+    place(label(b, "kr16", on ? P.D_TEXT : P.D_MUTED, t), b, "MC");
+    b.onclick = () => { st.view = v; rebuild(); };
+  });
+  const wifi = label(top, "kr14", P.C_EMERALD, "10:38 받음", { w: small ? 150 : 200, align: "right" }); place(wifi, top, "MR", small ? -118 : -156);
+  const tclk = label(top, fClock, P.D_TEXT, (ampm ? ampm + " " : "") + clockTxt); place(tclk, top, "MR", -M, small ? -7 : -8);
+  const tdate = label(top, "kr14", P.D_MUTED, "10/17(금)"); place(tdate, top, "MR", -M, small ? 13 : 16);
+
+  const VH = H - TOP;
+  const view = box(scr, 0, TOP, W, VH, st.view === "set" ? P.C_BG : P.D_BG);
+  if (st.view === "week") buildWeek(view); else if (st.view === "set") buildSet(view); else buildFind(view);
+
+  // ── 주간 시간표 (buildUI · renderWeek) ──
+  function buildWeek(v) {
+    const SH = small ? 38 : 46;
+    const strip = box(v, M, M / 2 + 2, W - 2 * M, SH, P.D_PANEL, P.D_LINE, R(10));
+    place(label(strip, fBody, P.D_SUB, `주당 ${TT.hours}시간 · 담임 ${TT.home}`, { w: small ? 300 : 440 }), strip, "ML", 12);
+    const BH = SH - 8;
+    const btn = (txt, w, x) => { const b = box(strip, x, 4, w, BH, P.D_ROW, P.D_LINE, st.soft ? 10 : 0); place(label(b, "kr16", P.D_TEXT, txt), b, "MC"); return b; };
+    const bNow = btn("이번 주", small ? 64 : 74, W - 2 * M - 4 - (small ? 64 : 74));
+    const bNext = btn("▶", 40, bNow.offsetLeft - 6 - 40);
+    const wl = label(strip, fBody, P.D_TEXT, "10월 13일 ~ 17일", { w: small ? 150 : 190, align: "center" }); place(wl, strip, "ML", bNext.offsetLeft - 4 - (small ? 150 : 190));
+    btn("◀", 40, wl.offsetLeft - 4 - 40);
+    const GY = M / 2 + 2 + SH + M / 2 + 2, GW = W - 2 * M, GH = VH - GY - M / 2 - 2;
+    const grid = box(v, M, GY, GW, GH, P.D_PANEL, P.D_LINE, R(10));
+    const X0 = small ? 56 : 70, CW = Math.floor((GW - X0 - 2) / 5), HH = small ? 30 : 40, LH = small ? 24 : 30;
+    const RH = Math.floor((GH - HH - LH - 2) / 7), rowY = p => HH + p * RH + (p >= 4 ? LH : 0), PAD = small ? 2 : 3;
+    TT.days.forEach((d, di) => {
+      const isToday = di === TODAY;
+      const hd = box(grid, X0 + di * CW, 0, CW, HH, isToday ? 0x3f1d24 : P.D_PANEL);
+      place(label(hd, fBody, isToday ? 0xfca5a5 : P.D_SUB, `${d.dow} 10/${13 + di}`, { w: CW - 6, align: "center" }), hd, "MC");
+      const duty = teacher && d.lunch;
+      const lu = box(grid, X0 + di * CW + PAD, HH + 4 * RH + PAD, CW - 2 * PAD, LH - 2 * PAD, P.D_ROW, duty ? 0xf59e0b : P.D_LINE, R(6));
+      place(label(lu, "kr14", duty ? 0xfcd34d : P.D_MUTED, duty ? "급식지도" : "점심", { w: CW - 12, align: "center" }), lu, "MC");
+      d.cells.forEach((c, p) => {
+        const t = c[0] || "", nowCell = isToday && p === nowP;
+        const o = box(grid, X0 + di * CW + PAD, rowY(p) + PAD, CW - 2 * PAD, RH - 2 * PAD, nowCell ? P.NOW_ROW : (t ? P.D_ROW : P.D_PANEL), null, R(6),
+          { boxShadow: `inset 0 0 0 ${nowCell ? 3 : 1}px ${hex(nowCell ? P.NOW_ROW : (t ? STYLE[t] : P.D_LINE))}` });
+        place(label(o, fCellA, nowCell ? P.C_TEXT : P.D_TEXT, c[1] || "", { w: CW - 14, align: "center" }), o, "MC", 0, small ? -8 : -9);
+        place(label(o, "kr14", nowCell ? P.C_MUTED : P.D_SUB, c[2] || "", { w: CW - 14, align: "center" }), o, "MC", 0, small ? 10 : 13);
+        if (c[3]) place(label(o, "kr14", 0xffffff, c[3], { bg: 0xc2410c, ph: 3, r: RP(6) }), o, "TR", -1, 0);
+      });
+    });
+    PERIOD_START.forEach((s, p) => {
+      const now = p === nowP;
+      const pl = box(grid, 0, rowY(p), X0, RH, now ? P.NOW_TAG : P.D_PANEL);
+      place(label(pl, "kr14", now ? P.NOW_TX : P.D_SUB, `${p + 1}교시\n${s}`, { align: "center" }), pl, "MC");
+    });
+    const lp = label(grid, "kr14", P.D_MUTED, "점심"); lp.style.left = (X0 - 28) / 2 + "px"; lp.style.top = HH + 4 * RH + (LH - 16) / 2 + "px";
+  }
+
+  // ── 설정 (간단히: 배치와 색만) ──
+  function buildSet(v) {
+    const WBW = Math.floor((W - 3 * M) * 0.5), OBW = W - 3 * M - WBW, BOXH = VH - 2 * M;
+    const wbox = box(v, M, M, WBW, BOXH, P.C_SURF, P.C_BORDER, R(10));
+    label(wbox, fTitle, P.C_TEXT, "와이파이").style.cssText += "left:12px;top:10px";
+    const info = label(wbox, FM, P.C_MUTED, "'SmartClass_2.4G' 저장됨. 잠깐 연결해 받고 바로 끕니다(수업 중에는 쉬는 시간에 받습니다).\n와이파이 O · 시간 O · 날씨 O · 급식 O · 시간표 O\n마지막 받음 10:38 · 다음 받기 11:38", { w: WBW - 130, wrap: true });
+    info.style.left = "12px"; info.style.top = (small ? 36 : 44) + "px";
+    const scan = box(wbox, WBW - 10 - (small ? 90 : 110), 8, small ? 90 : 110, small ? 34 : 40, P.C_PRIMARY, null, st.soft ? 10 : 0); place(label(scan, "kr16", 0xffffff, "찾기"), scan, "MC");
+    const obox = box(v, 2 * M + WBW, M, OBW, BOXH, P.C_SURF, P.C_BORDER, R(10));
+    label(obox, fTitle, P.C_TEXT, "볼 시간표").style.cssText += "left:12px;top:10px";
+    const pick = box(obox, 12, small ? 40 : 50, OBW - 24, small ? 34 : 40, P.C_SURF, P.C_BORDER, st.soft ? 10 : 0); place(label(pick, fBody, P.C_TEXT, TT.name + " 선생님"), pick, "ML", 10);
+    const sync = box(obox, 12, small ? 88 : 104, OBW - 24, small ? 34 : 40, P.C_PRIMARY, null, st.soft ? 10 : 0); place(label(sync, "kr16", 0xffffff, "지금 받기"), sync, "MC");
+    label(obox, FM, P.C_MUTED, "시간과 시간표를 받았습니다.").style.cssText += `left:12px;top:${small ? 132 : 156}px`;
+    const SY = small ? 190 : 226, RH2 = small ? 30 : 34, LBW = small ? 66 : 80, BW2 = Math.floor((OBW - 24 - LBW - 12) / 3);
+    label(obox, fTitle, P.C_TEXT, "시계 화면").style.cssText += `left:12px;top:${SY}px`;
+    const rows = [["시간 표시", ["24시간","12시간"], st.h12 ? 1 : 0], ["시계로 전환", ["20분 뒤","5분 뒤","안 함"], 0]];
+    rows.forEach(([name, opts, sel], ri) => {
+      const y = SY + (small ? 30 : 36) + ri * (RH2 + 8);
+      label(obox, "kr14", P.C_MUTED, name).style.cssText += `left:12px;top:${y + (RH2 - 16) / 2}px`;
+      opts.forEach((o, i) => { const on = i === sel; const b = box(obox, 12 + LBW + 12 + i * BW2, y, BW2 - 4, RH2, on ? P.C_PRIMARY : P.C_ALT, on ? null : P.C_BORDER, st.soft ? 999 : 0); place(label(b, "kr16", on ? 0xffffff : P.C_MUTED, o), b, "MC"); });
+    });
+  }
+  function buildFind(v) {
+    const msg = label(v, "kr20", P.D_MUTED, "찾기 화면은 시뮬레이터에서 아직 그리지 않습니다"); place(msg, v, "MC");
+  }
+
+  // ── 시계 화면 (buildUI 시계 모드 · layoutClock · renderToday) ──
+  function buildClock() {
+    const view = box(scr, 0, 0, W, H, P.D_BG, null, 0, { cursor: "pointer" });
+    view.onclick = () => { st.view = "week"; rebuild(); };
+    const CM = S(12), PH = H - 2 * CM, Pp = S(20), GAP = S(10);
+    const tt = st.show & 16, wx = st.show & 1, dust = wx && (st.show & 2), duty = st.show & 4, meal = st.show & 8, info = duty || meal;
+    const LW = tt ? S(416) : W - 2 * CM, CW = LW - 2 * Pp;
+    const left = box(view, CM, CM, LW, PH, P.D_PANEL, P.D_LINE, R(16));
+    const CLK_Y = S(22), CLK_H = big ? FONT[FCLK][1] : 88, DATE_H = 29;
+    const bigc = label(left, FCLK, P.D_TEXT, clockTxt); place(bigc, left, "TC", st.h12 ? S(30) : 0, CLK_Y);
+    if (ampm) { const a = label(left, "kr28", P.D_SUB, ampm); a.style.left = (bigc.offsetLeft - a.offsetWidth - 8) + "px"; a.style.top = (bigc.offsetTop + bigc.offsetHeight - a.offsetHeight - 14) + "px"; }
+    const DATE_Y = CLK_Y + CLK_H + S(20);
+    const bd = label(left, "kr28", P.D_SUB, "10월 17일 (금)", { w: LW, align: "center" }); bd.style.left = "0px"; bd.style.top = DATE_Y + "px";
+    // 다음 수업 띠: 수업 10분 전부터
+    let soonP = -1; PERIOD_START.forEach((s, p) => { const d = toMin(s) - nm; if (soonP < 0 && d > 0 && d <= 10) soonP = p; });
+    const noticeOn = soonP >= 0, NOTICE_H = S(40);
+    if (noticeOn) {
+      const n = box(left, Pp, PH - Pp - NOTICE_H + S(6), CW, NOTICE_H, P.C_PRIMARY, null, R(18));
+      const c = day.cells[soonP];
+      place(label(n, "kr16", 0xffffff, `다음 ${soonP + 1}교시  ${c[1] || "공강"}${c[2] ? " · " + c[2] : ""}  ·  ${toMin(PERIOD_START[soonP]) - nm}분 뒤`, { w: CW - S(24), align: "center" }), n, "MC");
+    }
+    const TOPY = DATE_Y + DATE_H + S(24), BOT = PH - Pp - (noticeOn ? NOTICE_H + S(4) : 0), avail = BOT - TOPY;
+    const WX_BASE = dust ? S(96) : S(74);
+    let wxX = Pp, wxY = TOPY, wxW = CW, wxH = 0, inX = Pp, inY = TOPY, inW = CW, inH = 0;
+    if (tt) {
+      wxH = wx ? WX_BASE : 0;
+      const rest = avail - (wx ? wxH + GAP : 0);
+      inH = info ? ((duty && meal) ? Math.max(rest, S(96)) : (meal ? Math.max(rest, S(70)) : S(44))) : 0;
+      if (info) inY = wxY + (wx ? wxH + GAP : 0);
+      if (!info && wx) wxY = TOPY + Math.floor((avail - wxH) / 2);
+    } else {
+      const n = (wx ? 1 : 0) + (info ? 1 : 0), cw = n === 2 ? Math.floor((CW - S(16)) / 2) : CW;
+      wxW = inW = cw; const h = Math.min(avail, S(150)); wxH = wx ? h : 0; inH = info ? h : 0;
+      wxY = inY = TOPY + Math.floor((avail - h) / 2); inX = wx ? Pp + cw + S(16) : Pp;
+    }
+    if (wx) {
+      const wc = box(left, wxX, wxY, wxW, wxH, P.D_ROW, P.D_LINE, R(14));
+      const topArea = dust ? wxH - S(28) : wxH, yOff = Math.floor((topArea - S(70)) / 2);
+      box(wc, Math.floor(wxW / 2), yOff + S(10), 1, S(48), P.D_LINE);
+      if (dust) {
+        box(wc, S(14), wxH - S(28), wxW - S(28), 1, P.D_LINE);
+        const ds = label(wc, FM, P.D_SUB, `<span style="color:#22c55e">● 미세먼지 좋음</span>  <span style="color:#94a3b8">· PM10 18 · 초미세 9</span>`, { w: wxW - S(28) });
+        ds.style.left = S(14) + "px"; ds.style.top = (wxH - S(21)) + "px";
+      }
+      WX.forEach((w, i) => {
+        const x0 = Math.floor(i * wxW / 2);
+        box(wc, x0 + S(8), yOff + Math.floor((S(70) - 2 - 52) / 2), 52, 52, null, null, 26, { background: i ? "radial-gradient(circle at 40% 40%, #cbd5e1, #64748b)" : "radial-gradient(circle at 40% 40%, #fde68a, #f59e0b)" });
+        const d = label(wc, FM, P.D_MUTED, `${i ? "내일" : "오늘"}  ${w.tmax}°/${w.tmin}°`); d.style.left = x0 + S(66) + "px"; d.style.top = yOff + S(10) + "px";
+        const t = label(wc, FTEMP, P.D_TEXT, `${i ? w.tmax : w.now}°`); t.style.left = x0 + S(66) + "px"; t.style.top = yOff + S(26) + "px";
+        const hl = label(wc, FM, P.D_SUB, `${w.name} · <span style="color:${w.pop >= 40 ? "#60a5fa" : "#94a3b8"}">비 ${w.pop}%</span>`, { w: Math.floor(wxW / 2) - S(74) });
+        hl.style.left = x0 + S(66) + "px"; hl.style.top = yOff + S(52) + "px";
+      });
+    }
+    if (info) {
+      const ic = box(left, inX, inY, inW, inH, P.D_ROW, P.D_LINE, R(14));
+      if (duty) {
+        label(ic, FM, P.D_MUTED, "할 일").style.cssText += `left:${S(14)}px;top:${S(14)}px`;
+        label(ic, FM, 0xfcd34d, "5교시 공강지도 2-1  ·  야자 감독 18:30", { w: inW - S(76) }).style.cssText += `left:${S(62)}px;top:${S(14)}px`;
+        if (meal) box(ic, S(14), S(40), inW - S(28), 1, P.D_LINE);
+      }
+      if (meal) {
+        const mealY = duty ? S(52) : S(14);
+        label(ic, FM, P.D_MUTED, "점심").style.cssText += `left:${S(14)}px;top:${mealY}px`;
+        const m = label(ic, FM, P.MEAL, "잡곡밥 · 쇠고기미역국 · 제육볶음 · 계란말이 · 배추김치 · 요구르트", { w: inW - S(76), h: Math.max(18, inH - mealY - S(26)), wrap: true, ls: 2 });
+        m.style.left = S(62) + "px"; m.style.top = (mealY - 1) + "px";
+        label(ic, FM, P.D_MUTED, "812.4 Kcal").style.cssText += `left:${S(62)}px;top:${inH - 2 - S(22)}px`;
+      }
+    }
+    if (!tt) return;
+    // 오른쪽: 오늘 시간표
+    const RX = CM + LW + CM, RW = W - RX - CM;
+    const right = box(view, RX, CM, RW, PH, P.D_PANEL, P.D_LINE, R(16));
+    label(right, "kr16", P.D_TEXT, "오늘 시간표").style.cssText += `left:${S(16)}px;top:${S(14)}px`;
+    if (st.show & 32) place(label(right, "kr14", 0xfecaca, "수능 D-33", { bg: 0x7f1d1d, bd: 0xef4444, ph: 10, pv: 2, r: RP(11) }), right, "TR", -S(12), S(11));
+    const ROW_Y0 = S(44), ROW_X = S(12), ROW_W = RW - 2 * ROW_X, ROW_PITCH = Math.floor((PH - ROW_Y0 - S(12)) / 8), ROW_H = ROW_PITCH - S(6), PW = S(64);
+    for (let r = 0; r < 8; r++) {
+      const p = r < 4 ? r : (r === 4 ? -1 : r - 1);
+      const now = (p >= 0 && p === nowP) || (p < 0 && lunchNow);
+      let border = P.D_LINE, colA = P.D_TEXT, colB = P.D_SUB, A = "", B = "", G = "";
+      if (p < 0) { const dt = teacher && day.lunch; A = dt ? "급식지도" : "점심시간"; B = teacher ? "12:30 ~ 13:30" : ""; if (dt) { border = 0xf59e0b; colA = 0xfcd34d; } else colA = P.D_MUTED; colB = P.D_MUTED; }
+      else { const c = day.cells[p], t = c[0] || ""; A = t ? c[1] : (teacher ? "공강" : ""); B = c[2] || ""; G = c[3] || ""; if (t) border = STYLE[t]; else { colA = P.D_MUTED; colB = P.D_MUTED; } }
+      const past = !now && (p >= 0 ? nm >= toMin(PERIOD_START[p]) + 50 : nm >= toMin("13:30"));
+      if (past) { colA = P.D_MUTED; colB = P.D_MUTED; }
+      const next = st.soft && !now && p >= 0 && p === nextP;
+      if (now) { border = P.NOW_ROW; colA = P.C_TEXT; colB = P.C_MUTED; }
+      if (next) border = P.NEXT_BD;
+      const row = box(right, ROW_X, ROW_Y0 + r * ROW_PITCH, ROW_W, ROW_H, now ? P.NOW_ROW : P.D_ROW, null, R(8), { boxShadow: `inset 0 0 0 ${next ? 2 : 1}px ${hex(border)}` });
+      const pb = box(row, S(6) - 1, Math.floor((ROW_H - (ROW_H - 8)) / 2), PW, ROW_H - 8, now ? P.NOW_TAG : P.D_LINE, null, R(6));
+      const ptxt = p < 0 ? (now ? `점심\n${toMin("13:30") - nm}분 남음` : "점심") : (now ? `${p + 1}교시\n${toMin(PERIOD_START[p]) + 50 - nm}분 남음` : `${p + 1}교시\n${PERIOD_START[p]}`);
+      place(label(pb, FM, now ? P.NOW_TX : P.D_SUB, ptxt, { align: "center" }), pb, "MC");
+      const a = label(row, "kr16", colA, A); a.style.maxWidth = S(150) + "px"; a.classList.add("dot"); place(a, row, "ML", PW + S(18));
+      if (G) { const g = label(row, "kr14", 0xffffff, G, { bg: 0xc2410c, ph: 5, r: RP(6) }); place(g, row, "ML", a.offsetLeft + a.offsetWidth + 8); }
+      place(label(row, FM, colB, B, { w: S(110), align: "right" }), row, "MR", -S(14));
+    }
+  }
+}
+
+// ───────── 조작 ─────────
+function readCtl() {
+  const b = $("board").value; st.W = b === "1024" ? 1024 : 800; st.H = b === "1024" ? 600 : 480;
+  st.soft = $("soft").checked; st.h12 = $("h12").checked;
+  const [h, m] = $("time").value.split(":").map(Number); st.nm = h * 60 + m;
+  st.show = [...document.querySelectorAll(".show")].reduce((a, c) => a | (c.checked ? +c.dataset.b : 0), 0);
+  rebuild();
+}
+document.querySelectorAll("select,input").forEach(e => e.addEventListener("input", readCtl));
+document.fonts.load('20px Pret').then(readCtl, readCtl);
+</script>
+</body>
+</html>
