@@ -2,6 +2,7 @@
 //   vite build --mode student → dist-s (학생용 https://aimaths.web.app)
 //   vite build --mode teacher → dist-t (교사용 https://aimatht.web.app)
 // @site 별칭이 src/student 또는 src/teacher 를 가리켜서, 학생 빌드의 의존 그래프에는 교사 코드가 아예 들어가지 않아요.
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
@@ -73,6 +74,26 @@ function siteHtml(site: Site): Plugin {
   };
 }
 
+/** 이야기 삽화(저장소 public/img/aimath)를 개발 서버와 빌드 결과(img/aimath/)에 함께 내보내요. 기존 /aimath 와 같은 파일을 써서 따로 복사하지 않아요 */
+function storyImages(): Plugin {
+  const dir = path.join(repoRoot, "public", "img", "aimath");
+  const files = () => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /\.(webp|png|jpg)$/.test(f)) : []);
+  return {
+    name: "aimn-story-images",
+    configureServer(server) {
+      server.middlewares.use("/img/aimath", (req, res, next) => {
+        const name = decodeURIComponent((req.url || "").split("?")[0].replace(/^\//, ""));
+        if (!files().includes(name)) return next();
+        res.setHeader("Content-Type", name.endsWith(".webp") ? "image/webp" : name.endsWith(".png") ? "image/png" : "image/jpeg");
+        res.end(fs.readFileSync(path.join(dir, name)));
+      });
+    },
+    generateBundle() {
+      for (const f of files()) this.emitFile({ type: "asset", fileName: "img/aimath/" + f, source: fs.readFileSync(path.join(dir, f)) });
+    },
+  };
+}
+
 export default defineConfig(({ mode, command }) => {
   let site: Site;
   if (mode === "student" || mode === "teacher") site = mode;
@@ -86,7 +107,7 @@ export default defineConfig(({ mode, command }) => {
     root: here,
     base: "/",
     publicDir: "public",
-    plugins: [react(), contentIndexPlugin(CONTENT_DIR), siteHtml(site)],
+    plugins: [react(), contentIndexPlugin(CONTENT_DIR), siteHtml(site), storyImages()],
     define: {
       __SITE__: JSON.stringify(site),
     },

@@ -5,7 +5,7 @@
 import type { Block, Question, Text, WidgetId } from "@legacy/types";
 
 // 옛 콘텐츠 형식(원본 JSON 의 모양)은 그대로 다시 내보내요. 원본은 고치지 않아요.
-export type { Block, Lesson, Question, Section, Text, UnitContent, UnitMeta, WidgetId } from "@legacy/types";
+export type { Block, Lesson, Question, Section, StoryImage, Text, UnitContent, UnitMeta, WidgetId } from "@legacy/types";
 
 /* ─────────────────────────── 사이트 축 ─────────────────────────── */
 

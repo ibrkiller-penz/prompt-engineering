@@ -226,3 +226,20 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 76px; --s-rail-h: 6px;
 @media print {
   .s-actionbar, .s-tabbar, .s-topbar .s-back, .s-band { display: none !important; }
 }
+
+/* ── 단원 이야기 ── */
+.s-story > * + * { margin-top: var(--sp-2); }
+.s-story-text > * + * { margin-top: var(--sp-3); }
+.s-story-p { display: flow-root; line-height: 1.85; }
+.s-story-p > p { margin: 0; }
+.s-story-img { width: 30%; min-width: 104px; max-width: 230px; height: auto; border-radius: var(--r-md, 12px); margin: var(--sp-2) 0 var(--sp-2); }
+.s-story-img.is-right { float: right; margin-left: var(--sp-3); }
+.s-story-img.is-left { float: left; margin-right: var(--sp-3); }
+.s-stories { margin-top: var(--sp-3); }
+.s-stories > * + * { margin-top: var(--sp-3); }
+.s-story-sum { display: flex; align-items: center; min-height: var(--tap); cursor: pointer; list-style: none; }
+.s-story-sum::-webkit-details-marker { display: none; }
+.s-story-sum > * + * { margin-left: var(--sp-3); }
+.s-story-no { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: var(--t-sm); }
+.s-story-title { display: block; font-size: var(--t-lg); line-height: 1.35; }
+.s-story-d[open] > .s-story-sum { margin-bottom: var(--sp-2); }

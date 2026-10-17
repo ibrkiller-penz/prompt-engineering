@@ -10,6 +10,7 @@ import { CardDeck } from "../shell/CardDeck.tsx";
 import { Loading, NotFoundBody, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { MASTERY_LABEL, countOf, isOk, isTried, lessonPercent, masteryOf, setLast, statusOf, unitStatusOf, useQ, useRead } from "../store/index.ts";
 import { QRun } from "./QRun.tsx";
+import { UnitStories } from "./UnitStories.tsx";
 import { cardIndex, challengeStars, shortPrompt, starText } from "./student.logic.ts";
 
 const MASTERY_CHIP = ["", "is-warn", "is-ok", "is-accent"];
@@ -55,6 +56,8 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
             </p>
           </div>
         </header>
+
+        <UnitStories n={num} />
 
         <ol className="s-lessons" aria-label="레슨">
           {u.lessonIds.map((lid) => {
