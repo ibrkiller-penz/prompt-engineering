@@ -13,7 +13,7 @@
     "preview:s": "vite preview --mode student --port 4301 --strictPort",
     "preview:t": "vite preview --mode teacher --port 4302 --strictPort",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test \"tests/*.test.ts\"",
+    "test": "node --test \"tests/**/*.test.ts\"",
     "verify": "node scripts/verify.mjs",
     "shots": "node scripts/shots.mjs",
     "gen:plan": "node scripts/gen-plan.mjs"

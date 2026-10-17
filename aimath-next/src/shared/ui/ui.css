@@ -101,6 +101,8 @@ html[data-theme="dark"] .ui-avatar, html[data-theme="chalk"] .ui-avatar { backgr
 
 /* ── 체험 도구 자리 ── */
 .ui-widget { margin: 0; }
+/* 칠판: 체험 도구는 장면 본문 높이 안에서 세로로 스크롤해요(칠판 무대의 .bd-tool-scene 과 같은 방식, 안내판은 sticky) */
+.ui-widget.is-board { max-height: 852px; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
 .ui-widget-cap { font-size: var(--t-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; }
 .ui-widget-ph { border: var(--border) dashed var(--line-strong); border-radius: var(--radius-l); padding: var(--sp-3) var(--sp-4); background: var(--surface); }
 .ui-widget-ph > * + * { margin-top: var(--sp-2); }

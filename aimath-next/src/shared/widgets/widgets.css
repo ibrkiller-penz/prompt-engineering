@@ -494,6 +494,9 @@ html[data-theme="chalk"] .wg-neg {
 }
 
 /* ── 수식 ── */
+/* 줄 안 수식(안내 글 속 긴 식): base.css 의 .katex 한 줄 묶기를 풀어 =·+ 같은 맨 바깥 기호 뒤에서 줄을 바꿔요(덩어리 안은 그대로) */
+.wg-tex > .katex { white-space: normal; }
+.wg-tex .katex .katex-base, .wg-tex .katex .base { white-space: nowrap; }
 .wg-tex-block {
   max-width: 100%;
   overflow-x: auto;
