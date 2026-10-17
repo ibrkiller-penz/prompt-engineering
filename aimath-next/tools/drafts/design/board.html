@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko" data-surface="board" data-unit="u1" data-site="teacher">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>전자칠판 시안</title>
+<link rel="stylesheet" href="../../../../node_modules/katex/dist/katex.min.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+</head>
+<body>
+<div class="stage-wrap" id="wrap">
+  <div class="stage" id="stage">
+    <div class="site-band"></div>
+    <header class="stage-head">
+      <div>
+        <div class="crumb">Ⅰ-1 인공지능의 개념과 역사 · 개념 ③</div>
+        <h1 class="h1" style="font-size:var(--t-xl)">가중합과 임곗값</h1>
+      </div>
+      <div class="grow"></div>
+      <div class="dots" aria-label="장면 5/9"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+      <div class="bignum num" style="font-size:var(--t-lg);margin-left:48px">12:30</div>
+    </header>
+
+    <div class="stage-body">
+      <button class="navzone prev" aria-label="이전 장면">‹</button>
+      <div class="col-main stack" style="padding-left:56px">
+        <p class="prose" style="margin:0">뉴런은 입력마다 가중치를 곱해 더하고, 그 값이 임곗값보다 <b>크거나 같으면</b> 1을 내보내요.</p>
+        <div class="math-block" id="m1"></div>
+        <div class="callout aha"><b>💡 한 줄 정리</b>같을 때도 1이에요.</div>
+      </div>
+      <div class="col-side stack" style="padding-right:56px">
+        <div class="card stack">
+          <div class="eyebrow">문제 · 함께 풀기</div>
+          <p style="margin:0">가중합이 0.6, 임곗값이 0.5이면 출력은?</p>
+          <div class="reveal-step open">힌트 1 · 0.6 과 0.5 를 비교해요.</div>
+          <div class="reveal-step">힌트 2 · 눌러서 보기</div>
+          <div class="reveal-step">정답과 풀이 · 눌러서 보기</div>
+        </div>
+        <div class="card">
+          <label class="eyebrow" for="r">임곗값 θ</label>
+          <input class="range" id="r" type="range" min="0" max="1" step="0.1" value="0.5">
+        </div>
+      </div>
+      <button class="navzone next" aria-label="다음 장면">›</button>
+    </div>
+
+    <footer class="stage-foot">
+      <button class="btn btn-nav">‹ 이전</button>
+      <div class="grow"></div>
+      <button class="btn" aria-pressed="false">✏️</button>
+      <button class="btn">🖍️</button>
+      <button class="btn">🧽</button>
+      <button class="btn">⏱️</button>
+      <button class="btn">🙈</button>
+      <button class="btn">A+</button>
+      <button class="btn">⛶</button>
+      <div class="grow"></div>
+      <button class="btn btn-primary btn-nav">다음 ›</button>
+    </footer>
+  </div>
+</div>
+<script src="../../../../node_modules/katex/dist/katex.min.js"></script>
+<script>
+katex.render("y=\\begin{cases}1 & (w_1x_1+w_2x_2 \\ge \\theta)\\\\ 0 & (w_1x_1+w_2x_2 < \\theta)\\end{cases}", document.getElementById('m1'), {displayMode:true, output:'htmlAndMathml'});
+function fit(){var s=Math.min(innerWidth/1920, innerHeight/1080);var st=document.getElementById('stage');
+  st.style.transform='translate('+((innerWidth-1920*s)/2)+'px,'+((innerHeight-1080*s)/2)+'px) scale('+s+')';}
+addEventListener('resize',fit);fit();
+</script>
+</body>
+</html>

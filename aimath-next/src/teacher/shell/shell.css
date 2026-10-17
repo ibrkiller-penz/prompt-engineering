@@ -1,0 +1,106 @@
+/* 교사 준비 화면 틀(사이트 띠·이름표·탭·반 고르기·설정 시트). Chrome 80 안전: flex gap 대신 형제 margin, grid-gap 만 써요. */
+
+/* 단원 색을 한 덩어리 안에서만 바꿔요(카드·칩마다 다른 단원일 때) */
+.t-u1 { --accent: var(--u1-c); --accent-ink: var(--u1-ink); --accent-soft: var(--u1-soft); }
+.t-u2 { --accent: var(--u2-c); --accent-ink: var(--u2-ink); --accent-soft: var(--u2-soft); }
+.t-u3 { --accent: var(--u3-c); --accent-ink: var(--u3-ink); --accent-soft: var(--u3-soft); }
+.t-u4 { --accent: var(--u4-c); --accent-ink: var(--u4-ink); --accent-soft: var(--u4-soft); }
+.t-u5 { --accent: var(--u5-c); --accent-ink: var(--u5-ink); --accent-soft: var(--u5-soft); }
+
+.t-app { min-height: 100vh; }
+
+/* ── 머리 ── */
+.t-head {
+  position: -webkit-sticky; position: sticky; top: 0; z-index: 20;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: 0 var(--gutter);
+}
+.t-head-row { display: flex; align-items: center; min-height: var(--topbar-h); }
+.t-head-row > * + * { margin-left: var(--sp-4); }
+.t-brand { display: inline-flex; align-items: center; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.t-brand > * + * { margin-left: var(--sp-2); }
+.t-brand-name { font-weight: 800; font-size: var(--t-md); }
+
+.t-tabs { display: flex; align-items: stretch; flex: 1 1 auto; min-width: 0; align-self: stretch; }
+.t-tab {
+  display: inline-flex; align-items: center; padding: 0 var(--sp-3);
+  color: var(--ink-2); font-weight: 700; font-size: var(--t-sm); text-decoration: none; white-space: nowrap;
+  border-bottom: 4px solid transparent; min-height: var(--tap);
+}
+.t-tab > * + * { margin-left: .4em; }
+.t-tab + .t-tab { margin-left: var(--sp-1); }
+.t-tab[aria-current="page"] { color: var(--site); border-bottom-color: var(--site); }
+.t-gear { flex: 0 0 auto; }
+.t-gear > * + * { margin-left: .4em; }
+
+/* ── 반 고르기 ── */
+.t-klass { display: flex; align-items: center; flex-wrap: wrap; padding: var(--sp-2) 0; border-top: 1px solid var(--line); }
+.t-klass-label { font-size: var(--t-xs); font-weight: 800; color: var(--ink-2); margin-right: var(--sp-3); }
+.t-klass-chips { display: flex; align-items: center; flex-wrap: wrap; margin: calc(var(--sp-1) * -1); }
+.t-klass-chips > * { margin: var(--sp-1); }
+.t-klass .chip { min-height: var(--tap); padding: 0 1em; font-size: var(--t-sm); }
+.t-klass .chip[aria-pressed="true"] { background: var(--site); color: var(--on-site); }
+.t-klass-plus { border: var(--border) dashed var(--line-strong) !important; background: transparent !important; }
+.t-klass-add { display: flex; align-items: center; }
+.t-klass-add > * + * { margin-left: var(--sp-2); }
+.t-klass-add .input { width: 8em; }
+.t-klass-help { width: 100%; margin: var(--sp-1) 0 0; font-size: var(--t-xs); color: var(--ink-2); }
+.t-klass-help.is-bad { color: var(--bad); font-weight: 700; }
+
+/* 메뉴줄 오른쪽에 붙는 반 칩(compact): 줄을 하나 더 쓰지 않아요. 반이 많으면 칩 줄만 옆으로 밀어요 */
+.t-head-row > .t-klass.is-compact { flex: 0 1 auto; min-width: 0; margin-left: auto; padding: 0; border-top: 0; flex-wrap: nowrap; position: relative; }
+.t-head-row > .t-klass.is-compact + .t-gear { margin-left: var(--sp-3); }
+.t-klass.is-compact .t-klass-label { margin-right: var(--sp-2); white-space: nowrap; }
+.t-klass.is-compact .t-klass-chips { flex-wrap: nowrap; min-width: 0; max-width: 46vw; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; padding: 5px 5px; margin: 0; }
+.t-klass.is-compact .t-klass-chips > * { margin: 0; flex: 0 0 auto; }
+.t-klass.is-compact .t-klass-chips > * + * { margin-left: var(--sp-2); }
+.t-klass.is-compact .t-klass-help {
+  position: absolute; top: 100%; right: 0; z-index: 2; width: 22em; max-width: 80vw; margin-top: var(--sp-1); padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-s); background: var(--surface); box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line); white-space: normal;
+}
+
+/* ── 본문 ── */
+.t-main { display: block; outline: none; }
+.t-board-root { display: block; }
+
+/* ── 하단 탭: 좁은 화면(휴대폰·작은 태블릿)에서만 ── */
+.t-tabbar { display: none; }
+@media (max-width: 760px) {
+  .t-tabs { display: none; }
+  .t-gear span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .t-head-row { justify-content: space-between; flex-wrap: wrap; }
+  /* 좁은 화면: 반 칩은 메뉴줄 아래 한 줄로 내려요 */
+  .t-head-row > .t-klass.is-compact { -webkit-box-ordinal-group: 4; order: 3; flex: 1 1 100%; margin: 0 0 var(--sp-2); }
+  .t-head-row > .t-klass.is-compact + .t-gear { margin-left: 0; }
+  .t-klass.is-compact .t-klass-chips { max-width: none; }
+  .t-tabbar { display: flex; }
+  .t-tabbar a { font-size: 14px; }
+  .t-main { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + var(--sp-4)); }
+  html[data-surface="prep"] { --gutter: 16px; --t-base: 18px; --tap: 48px; --tap-main: 56px; --topbar-h: 56px; --tab-h: 64px; }
+}
+.t-tabbar a[aria-current="page"] { color: var(--site); }
+
+/* ── 설정 시트 ── */
+.t-settings > * + * { margin-top: var(--sp-4); }
+.t-set-label { margin: 0; font-size: var(--t-sm); font-weight: 800; color: var(--ink-2); }
+.t-set-val { min-width: 6em; text-align: center; font-weight: 800; }
+.t-keys .list-row { align-items: flex-start; }
+.t-key-name { flex: 0 0 9em; }
+
+/* ── 불러오는 중 ── */
+.t-loading { display: flex; align-items: center; justify-content: center; padding: var(--sp-5); color: var(--ink-2); }
+.t-loading > * + * { margin-left: var(--sp-3); }
+.t-spinner {
+  display: inline-block; width: 1.4em; height: 1.4em; border-radius: 50%;
+  border: 3px solid var(--line); border-top-color: var(--site);
+  -webkit-animation: t-spin 900ms linear infinite; animation: t-spin 900ms linear infinite;
+}
+@-webkit-keyframes t-spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+@keyframes t-spin { to { transform: rotate(360deg); } }
+html[data-motion="reduce"] .t-spinner { -webkit-animation: none; animation: none; }
+@media (prefers-reduced-motion: reduce) { .t-spinner { -webkit-animation: none; animation: none; } }
+
+@media print {
+  .no-print, .t-head, .t-tabbar, .site-band, .skip-link { display: none !important; }
+  .t-main { padding: 0 !important; }
+}
