@@ -243,3 +243,26 @@ html[data-theme="dark"] .ui-avatar, html[data-theme="chalk"] .ui-avatar { backgr
 
 /* 움직임 줄이기 */
 html[data-motion="reduce"] .ui-hint, html[data-motion="reduce"] .ui-fb { transition: none; animation: none; }
+
+/* ── 문제 카드 보강(오답 직후 단추·확인 버튼 대비·단위 안붙임·난이도 글자) ── */
+.ui-q-level { display: inline-flex; align-items: center; }
+.ui-q-level-word { margin-left: .35em; font-size: var(--t-xs); font-weight: 700; color: var(--ink-2); }
+.ui-q-num-row.has-unit { position: relative; }
+.ui-q-num-row.has-unit .ui-q-input { padding-right: 3.2em; }
+.ui-q-num-row.has-unit .ui-q-unit { position: absolute; right: var(--sp-3); top: 50%; margin: 0; transform: translateY(-50%); color: var(--ink-2); pointer-events: none; }
+/* 확인 버튼: 켜졌을 때는 진하게 그림자, 꺼졌을 때는 점선 테두리로 한눈에 달라 보여요 */
+.ui-q-check:not([disabled]) { box-shadow: 0 2px 0 var(--accent-ink); font-weight: 800; }
+.ui-q-check[disabled] { border-style: dashed; font-weight: 600; }
+.ui-q-need { margin: var(--sp-1) 0 0; color: var(--ink-2); }
+.ui-q-after-wrong { display: flex; flex-wrap: wrap; align-items: center; }
+.ui-q-after-wrong > * { margin: 0 var(--sp-2) var(--sp-1) 0; }
+.ui-q-concept { color: var(--accent-ink); text-decoration: underline; }
+.ui-pad-note { margin: 0; font-size: var(--t-xs); color: var(--ink-2); }
+.ui-fb:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 오답 박스는 빨강 점선 하나로만 보여요(포커스 보라 실선 테두리가 겹치지 않게) */
+.ui-fb.is-bad:focus { outline: 0; }
+.ui-fb-extra { margin-top: var(--sp-1); color: var(--ink-2); }
+/* 오답 직후: 두 단추는 오답 박스 바로 아래, 고정 하단바(액션바+진행바)에 가리지 않게 아래 여백 */
+.ui-q.is-wrong { padding-bottom: calc(var(--s-action-h, 76px) + var(--s-rail-h, 10px) + env(safe-area-inset-bottom) + var(--sp-4)); }
+html[data-site="teacher"] .ui-q.is-wrong { padding-bottom: 0; }
+.ui-q-after-wrong { margin-top: var(--sp-2); }

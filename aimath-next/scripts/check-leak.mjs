@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 학생 번들 누출 검사. dist-s 의 모든 파일(js·css·html·txt)에 교사 전용 표식·문구·자료가 0건인지 봐요.
-//   표식: __AIMN_TEACHER_ONLY__, 교사 저장 접두사 aimn:t1, 교사 화면 이름(정답 일괄 · 문제 고르기 · 수업 진행 · 교사 준비)
+//   표식: __AIMN_TEACHER_ONLY__, 교사 저장 접두사 aimn:t1, 교사 화면 이름(정답 일괄 · 문제 고르기 · 수업 진행 · 교사 준비 · 모둠 점수 · 보기 가리기 · 차시 찾기 · 이어서 수업)
 //   자료: data/teacher/prep/u1..u5.json 의 발문·오개념 문장(레슨마다 몇 줄씩 표본)
 // 거꾸로 dist-t 에는 표식이 있어야 해요(표식이 사라져 검사가 헛도는 것을 막아요).
 // 사용: node scripts/check-leak.mjs
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MARK = "__AIMN_TEACHER_ONLY__";
-const FIXED = [MARK, "aimn:t1", "정답 일괄", "문제 고르기", "수업 진행", "교사 준비"];
+const FIXED = [MARK, "aimn:t1", "정답 일괄", "문제 고르기", "수업 진행", "교사 준비", "모둠 점수", "보기 가리기", "차시 찾기", "이어서 수업"];
 
 function files(dir, out = []) {
   if (!fs.existsSync(dir)) return out;

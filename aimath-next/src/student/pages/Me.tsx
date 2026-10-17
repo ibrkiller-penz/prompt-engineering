@@ -211,7 +211,7 @@ export default function MePage() {
         <footer className="s-teacher-link">
           <a className="btn btn-ghost btn-block" href={TEACHER_URL + "/"} rel="noopener">
             <Icon name="teacher" />
-            <span>선생님이신가요? 교사용 사이트로 가기</span>
+            <span>선생님 전용 · 교사용 사이트로 가기</span>
           </a>
           <p className="tiny muted center">교사용 사이트는 다른 주소({TEACHER_URL.replace(/^https?:\/\//, "")})예요. 학생 기록은 옮겨 가지 않아요.</p>
         </footer>

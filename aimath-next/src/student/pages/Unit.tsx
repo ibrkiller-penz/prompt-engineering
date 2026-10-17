@@ -10,7 +10,7 @@ import { CardDeck } from "../shell/CardDeck.tsx";
 import { Loading, NotFoundBody, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { MASTERY_LABEL, countOf, isOk, isTried, lessonPercent, masteryOf, setLast, statusOf, unitStatusOf, useQ, useRead } from "../store/index.ts";
 import { QRun } from "./QRun.tsx";
-import { UnitStories } from "./UnitStories.tsx";
+import { UnitStories, UnitStoriesAfter } from "./UnitStories.tsx";
 import { cardIndex, challengeStars, shortPrompt, starText } from "./student.logic.ts";
 
 const MASTERY_CHIP = ["", "is-warn", "is-ok", "is-accent"];
@@ -33,15 +33,20 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
   const st = unitStatusOf(num, q, read);
   const t = countOf(u.testIds, q);
   const stars = challengeStars(t);
+  const nextLid = st ? st.next : null;
+  const nextSt = nextLid ? statusOf(nextLid, q, read) : null;
+  const nextStarted = !!(nextSt && nextSt.started);
   const unitHref = href(STUDENT_ROUTES.unit, { n: num });
 
   return (
     <Screen title={u.roman + ". " + u.title} eyebrow={"단원 " + u.roman} tab="unit" unitHref={unitHref} backTo="/">
-      <div className="page stack-lg">
+      <div className="page s-unit-page">
+        <UnitStories n={num} />
+
         <nav className="s-unit-tabs" aria-label="단원 고르기">
           {INDEX.units.map((x) => (
             <a key={x.id} className={"chip s-unit-chip" + (x.id === num ? " is-accent" : "")} href={href(STUDENT_ROUTES.unit, { n: x.id })} aria-current={x.id === num ? "page" : undefined}>
-              {x.roman}
+              {x.id}단원
             </a>
           ))}
         </nav>
@@ -54,10 +59,22 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
             <p className="tiny muted">
               레슨 {st ? st.done : 0}/{u.lessonIds.length} 완료
             </p>
+            <p className="small s-unit-next">
+              {nextLid ? (
+                <>
+                  다음 레슨: <strong>{INDEX.lessons[nextLid].code} {INDEX.lessons[nextLid].title}</strong>
+                </>
+              ) : (
+                "이 단원의 레슨을 모두 마쳤어요."
+              )}
+            </p>
+            {nextLid ? (
+              <a className="btn btn-primary s-unit-go" href={href(STUDENT_ROUTES.lesson, { lid: nextLid })}>
+                {nextStarted ? "이어서 공부하기" : "시작하기"}
+              </a>
+            ) : null}
           </div>
         </header>
-
-        <UnitStories n={num} />
 
         <ol className="s-lessons" aria-label="레슨">
           {u.lessonIds.map((lid) => {
@@ -86,6 +103,8 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
             );
           })}
         </ol>
+
+        <UnitStoriesAfter n={num} />
 
         {u.testIds.length ? (
           <section className="card s-challenge" aria-labelledby="h-chal">

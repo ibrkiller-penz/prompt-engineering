@@ -67,9 +67,14 @@ export default function Home() {
   }
   if (!hwRow) {
     const todo = noteList(q, (id) => !!lessonOfQ(id)).filter((x) => x.state === "todo").length;
-    hwRow = { to: href(STUDENT_ROUTES.note), text: todo ? "오답노트에 '아직' " + todo + "문제가 있어요" : "오답노트가 깨끗해요", icon: "note" };
+    hwRow = { to: href(STUDENT_ROUTES.note), text: todo ? "다시 볼 문제 " + todo + "개" : "다시 볼 문제가 없어요", icon: "note" };
   }
+  // 오늘 5문제만 풀기: 복습이 있으면 복습으로, 없으면 이어서 하는 곳으로
+  const quick = rv.length
+    ? { to: href(STUDENT_ROUTES.review), text: "오늘 " + Math.min(5, rv.length) + "문제만 풀기", icon: "review" as const, done: false }
+    : { to: cont.to, text: "오늘 5문제만 풀기 — 이어서 해요", icon: "next" as const, done: false };
   const rows = [
+    quick,
     { to: href(STUDENT_ROUTES.review), text: rv.length ? "오늘의 복습 " + rv.length + "문제" : "오늘의 복습은 다 했어요", icon: "review" as const, done: !rv.length },
     { ...hwRow, done: false },
     nextMeta

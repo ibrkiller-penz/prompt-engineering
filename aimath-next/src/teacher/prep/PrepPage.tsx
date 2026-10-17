@@ -15,6 +15,7 @@ import { useFlowState } from "../store/index.ts";
 import { boardHref, planOf } from "../shell/plan.ts";
 import { barSegments, minLabel } from "../today/timebar.ts";
 import { periodQuestion, shortId } from "../logic/index.ts";
+import { nextPeriodHeads, storyAdd, storyAddText } from "./prep.logic.ts";
 import { goalsForPeriod, usePrep, useLessonPrep, type Baskets, type GoalView } from "./data.ts";
 import "./prep.css";
 
@@ -231,6 +232,8 @@ export default function PrepPage(m: TeacherPageProps) {
   }
   const goalTexts = prep && prep.goals && prep.goals.length ? prep.goals : prep && prep.goal ? [prep.goal] : [];
   const goals = goalsForPeriod(goalTexts, prep && prep.goals && prep.goals.length ? prep.goalSecs : undefined, view.periods, p);
+  const nextHeads = nextPeriodHeads(lesson.sections, view.periods, p);
+  const sAdd = per.first ? storyAdd(view.scenes, view.total, st.duration) : null;
   const asks = prep && prep.questions && prep.questions.length ? prep.questions : prep && prep.asks ? prep.asks.map((q) => ({ q, a: "" })) : [];
 
   return (
@@ -285,6 +288,26 @@ export default function PrepPage(m: TeacherPageProps) {
             학습 목표{view.periods.length > 1 ? " · " + p + "차시" : ""}
           </h2>
           {prep === undefined ? <p className="muted ui-loading">준비 자료를 불러오는 중이에요…</p> : <GoalList goals={goals} />}
+          <p className="pp-next">
+            <span className="pp-next-tag">다음 차시 예고</span>{" "}
+            {nextHeads ? (
+              nextHeads.length ? (
+                <>
+                  {p + 1}차시 ·{" "}
+                  {nextHeads.map((h, k) => (
+                    <span key={k}>
+                      {k ? " · " : ""}
+                      <Rich text={h} />
+                    </span>
+                  ))}
+                </>
+              ) : (
+                <>{p + 1}차시에 이어서 해요.</>
+              )
+            ) : (
+              "이 레슨의 마지막 차시예요."
+            )}
+          </p>
           <div className="pp-q">
             <span className="pp-q-tag">{view.periods.length > 1 ? p + "차시 핵심 질문" : "오늘의 핵심 질문"}</span>
             {qLines.map((t, i) => (
@@ -294,6 +317,12 @@ export default function PrepPage(m: TeacherPageProps) {
             ))}
           </div>
         </section>
+
+        {sAdd ? (
+          <p className={"callout pp-story-add no-print" + (sAdd.over > 0 ? " warn" : "")} role="status">
+            {storyAddText(sAdd, st.duration)}
+          </p>
+        ) : null}
 
         <section className="card pp-card pp-time" aria-labelledby="pp-time-h">
           <h2 className="h3" id="pp-time-h">

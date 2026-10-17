@@ -150,3 +150,19 @@ html[data-motion="reduce"] .t-skel-bar { -webkit-animation: none; animation: non
   .t-skel-body { display: block; }
   .t-skel-side { margin: 0 0 var(--sp-3); }
 }
+
+/* 카드 위 상태 한 줄 · 끝난 레슨의 보조 '이어서' */
+.t-status { margin: 0; padding: var(--sp-2) var(--sp-4); border-radius: var(--radius-m); background: var(--surface-2); box-shadow: inset 0 0 0 var(--border) var(--line); font-size: var(--t-md); font-weight: 800; }
+.t-status.is-done { background: var(--warn-bg); color: var(--ink); }
+.t-status.is-part { background: var(--accent-soft); color: var(--ink); }
+.t-resume-sub { min-height: 48px; margin-left: var(--sp-1); font-size: var(--t-sm); font-weight: 700; }
+.t-lesson > .t-story-add { margin-top: var(--sp-3); }
+.t-start-acts { margin: var(--sp-2) 0 0; }
+.t-start-acts .t-resume-sub { margin-left: 0; }
+.t-mark-who { margin-left: var(--sp-3); }
+.t-mark > .t-chips { margin-top: var(--sp-2); }
+
+/* 수업 전 준비 묶음 · 기록하기 줄 위쪽 여백 */
+.t-prep-h { margin: var(--sp-2) 0 0; font-size: var(--t-md); font-weight: 800; }
+.t-prep-h + .t-prep-links { margin-top: var(--sp-1); }
+.t-plan > .t-mark { margin-top: var(--sp-5); padding-top: var(--sp-3); border-top: 1px solid var(--line); }

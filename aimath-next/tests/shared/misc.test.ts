@@ -90,3 +90,46 @@ test("inlineMath: 20레슨 본문을 분해해도 글자를 잃지 않아요", (
   for (const { lesson } of loadLessons()) walk(lesson);
   assert.ok(n > 2000);
 });
+
+import { padSymbolsFor, pickWrongNote, type Question } from "../../src/shared/contracts.ts";
+import { padKeysForQuestion, isFractionAnswer } from "../../src/shared/ui/padKeys.ts";
+
+const numQ = (over: Record<string, unknown>) =>
+  ({ id: "t", level: 1, group: "개념 확인", prompt: "값을 구해요.", type: "number", answer: 5, hints: ["a", "b"], solution: "s", ...over }) as unknown as Question;
+
+test("키패드: 정수 답이면 기호 키 없음, 음수면 − 만", () => {
+  assert.deepEqual(padSymbolsFor(numQ({ answer: 12 })), []);
+  assert.deepEqual(padSymbolsFor(numQ({ answer: -3 })), ["-"]);
+});
+
+test("키패드: 소수·분수·√·π 는 필요할 때만", () => {
+  assert.deepEqual(padSymbolsFor(numQ({ answer: 0.5 })), ["."]);
+  assert.deepEqual(padSymbolsFor(numQ({ answer: 0.3333, prompt: "$\\frac{1}{3}$ 을 소수로" })), ["/", "."]);
+  assert.deepEqual(padSymbolsFor(numQ({ answer: 1.4142, solution: "$\\sqrt{2}$" })), [".", "√"]);
+  assert.ok(padSymbolsFor(numQ({ answer: 3.14159, hints: ["$\\pi$", "b"] })).indexOf("π") >= 0);
+  assert.deepEqual(padSymbolsFor({ ...numQ({}), type: "ox", answer: true } as unknown as Question), []);
+});
+
+test("오답 설명: 문자열·열쇠별·없음", () => {
+  assert.equal(pickWrongNote(undefined, 1), undefined);
+  assert.equal(pickWrongNote("같은 말", 2), "같은 말");
+  assert.equal(pickWrongNote({ "2": "③은 …" }, 2), "③은 …");
+  assert.equal(pickWrongNote({ O: "맞아요가 아니에요" }, true), "맞아요가 아니에요");
+  assert.equal(pickWrongNote({ "3/4": "분모를 봐요" }, " 3/4 "), "분모를 봐요");
+  assert.equal(pickWrongNote({ "0": "x" }, 1), undefined);
+});
+
+test("키패드: '/' 키는 정답이 분수일 때만(지문에 분수가 있어도 정수 답이면 숫자 키만)", () => {
+  const fracPrompt = "$\\frac{1}{3}$ 과 $\\frac{2}{3}$ 의 합을 구해요.";
+  // 지문에 분수가 있어도 정수 답이면 기호 키가 없어요
+  assert.deepEqual(padKeysForQuestion(numQ({ answer: 3, prompt: fracPrompt })), []);
+  assert.equal(isFractionAnswer(numQ({ answer: 3, prompt: fracPrompt })), false);
+  // 짧은 소수 답도 '/' 없음
+  assert.deepEqual(padKeysForQuestion(numQ({ answer: 0.5, prompt: fracPrompt })), ["."]);
+  // 분수 답(1/3 = 0.333333…)이면 '/' 가 나와요
+  const f = numQ({ answer: 1 / 3 });
+  assert.equal(isFractionAnswer(f), true);
+  assert.ok(padKeysForQuestion(f).indexOf("/") >= 0);
+  // 숫자 유형이 아니면 없음
+  assert.deepEqual(padKeysForQuestion({ ...numQ({}), type: "ox", answer: true } as unknown as Question), []);
+});

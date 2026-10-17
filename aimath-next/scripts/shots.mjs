@@ -529,6 +529,13 @@ async function findScenes(page, base, lid, want, max = 60) {
   return found;
 }
 
+// 보기마다 손든 수를 올린 뒤 정답을 열어요(08b 1920·1366 공용)
+async function voteAndReveal(p) {
+  const plus = await p.$$(".bdq-tally-step.is-plus");
+  for (let i = 0; i < plus.length; i++) for (let k = 0; k < (i === 0 ? 7 : 3); k++) await plus[i].click().catch(() => {});
+  await pressNext(p, 6);
+}
+
 async function qaShots(browser, sBase, tBase) {
   if (tBase) {
     const ctx = await newContext(browser, "t", { width: 1920, height: 1080 });
@@ -563,7 +570,17 @@ async function qaShots(browser, sBase, tBase) {
     if (at.problem !== undefined) await go("07-문제", b(at.problem));
     else miss("칠판 문제");
     await go("07b-한문제-보기가림", "/board/u1-1/q/u1-1-q05");
+    // 득표가 없을 때: 정답을 열어도 '정답률' 한 줄이 없어야 해요
     await go("08-정답공개-풀이", "/board/u1-1/q/u1-1-q05", { after: (p) => pressNext(p, 6) });
+    if (await page.$(".bdq-rate")) problems.push("[t] qa: 득표가 없는데 정답 공개에 '정답률' 줄이 떠요(.bdq-rate)");
+    // 득표가 있을 때: 보기마다 손든 수를 올린 뒤 정답을 열면 '정답률 N% · 다음 행동' 한 줄이 떠요
+    await go("08b-정답공개-득표있음", "/board/u1-1/q/u1-1-q05", { after: voteAndReveal });
+    {
+      const rate = await page.$(".bdq-rate");
+      const txt = rate ? ((await rate.textContent()) || "").trim() : "";
+      if (!rate) problems.push("[t] qa: 득표가 있는데 정답 공개에 '정답률' 줄(.bdq-rate)이 없어요");
+      else if (!/정답률\s*\d+\s*%/.test(txt)) problems.push("[t] qa: 정답률 줄 문구가 '정답률 N%' 로 시작하지 않아요 → " + txt.slice(0, 60));
+    }
     if (at.summary !== undefined) {
       await go("09-마무리-오늘정리", b(at.summary));
       await go("09b-마무리-오늘정리-모두공개", b(at.summary), { after: (p) => pressNext(p, 12, (l) => /공개/.test(l)) });
@@ -571,20 +588,45 @@ async function qaShots(browser, sBase, tBase) {
     await go("10-마무리-수업끝QR", "/board/u1-1/end");
     await go("11-교사준비화면", "/prep/u1-1");
     await go("12-수업흐름", "/flow/u1-1?p=1");
-    // 첫 화면 '수업 시작' 단추가 1080 안에 있어야 해요
-    await page.goto(tBase + "/#/", { waitUntil: "load" });
-    await settle(page);
-    const st = await page.evaluate(() => {
-      const a = document.querySelector(".t-start");
-      if (!a) return null;
-      const r = a.getBoundingClientRect();
-      return { bottom: Math.round(r.bottom), h: window.innerHeight };
-    });
-    if (!st) problems.push("[t] qa: 오늘 수업에 '수업 시작' 단추(.t-start)가 없어요");
-    else if (st.bottom > st.h) problems.push(`[t] qa: 오늘 수업의 '수업 시작' 단추가 첫 화면 밖이에요(아래 끝 ${st.bottom}px > ${st.h}px)`);
-    collect();
     await ctx.close();
+    // 작은 칠판(1366×768): 화면이 깨지지 않는지(가로 넘침은 visit 이 검사해요)
+    {
+      const ctx2 = await newContext(browser, "t", { width: 1366, height: 768 });
+      const p2 = await ctx2.newPage();
+      const c2 = watch(p2, tBase);
+      const g2 = (file, hash, o = {}) => visit(p2, c2, tBase, "t", "qa " + file, hash, Object.assign({ file: "qa-board-1366-" + file }, o));
+      await g2("01-오늘수업", "/");
+      await g2("02-한문제-보기가림", "/board/u1-1/q/u1-1-q05");
+      await g2("03-정답공개-풀이", "/board/u1-1/q/u1-1-q05", { after: (p) => pressNext(p, 6) });
+      await g2("04-수업끝QR", "/board/u1-1/end");
+      await g2("05-정답공개-득표있음", "/board/u1-1/q/u1-1-q05", { after: voteAndReveal });
+      c2();
+      await ctx2.close();
+    }
+    const ctx3 = await newContext(browser, "t", { width: 1920, height: 1080 });
+    const page3 = await ctx3.newPage();
+    // 첫 화면 '수업 시작' 단추 검사는 1920 에서
+    {
+      const page = page3;
+      const collect = watch(page, tBase);
+      await page.goto(tBase + "/#/", { waitUntil: "load" });
+      await settle(page);
+      const st = await page.evaluate(() => {
+        const a = document.querySelector(".t-start");
+        if (!a) return null;
+        const r = a.getBoundingClientRect();
+        return { bottom: Math.round(r.bottom), h: window.innerHeight };
+      });
+      if (!st) problems.push("[t] qa: 오늘 수업에 '수업 시작' 단추(.t-start)가 없어요");
+      else if (st.bottom > st.h) problems.push(`[t] qa: 오늘 수업의 '수업 시작' 단추가 첫 화면 밖이에요(아래 끝 ${st.bottom}px > ${st.h}px)`);
+      collect();
+    }
+    await ctx3.close();
   }
+  await qaPhone(browser, sBase);
+}
+
+async function qaPhone(browser, sBase) {
   if (sBase) {
     const ctx = await newContext(browser, "s", { width: 375, height: 812 });
     const page = await ctx.newPage();
@@ -610,6 +652,23 @@ async function qaShots(browser, sBase, tBase) {
     await go("05-개념카드-수식", "/l/u2-3/s/c1/2");
     await go("06-문제", "/l/u1-1/q");
     await go("07-문제-오답피드백", "/l/u1-1/q", { after: answer("5", 0) });
+    // 오답 직후, 스크롤을 끝까지 내린 사진: '풀이 확인하기'·'이 개념 다시 보기' 단추가 하단바에 가리지 않고 보여야 해요
+    await go("07a-문제-오답직후-끝까지", "/l/u1-1/q", {
+      after: async (p) => {
+        await answer("5", 0)(p);
+        await p.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await p.waitForTimeout(400);
+        const hid = await p.evaluate(() => {
+          const bar = document.querySelector(".s-actionbar, .s-tabbar");
+          const top = bar ? bar.getBoundingClientRect().top : window.innerHeight;
+          const btns = Array.from(document.querySelectorAll(".ui-q-peek, .ui-q-concept"));
+          if (!btns.length) return "단추 없음";
+          const bad = btns.filter((b) => { const r = b.getBoundingClientRect(); return r.bottom > top + 1 || r.top < 0; });
+          return bad.length ? "가려짐 " + bad.length + "개" : "";
+        });
+        if (hid) problems.push("[s] qa: 오답 직후 단추 — " + hid);
+      },
+    });
     await go("07b-문제-정답피드백", "/l/u1-1/q", { after: answer("10", 1) });
     await go("08-오답노트", "/note");
     await go("09-오늘의복습", "/review");
@@ -618,6 +677,22 @@ async function qaShots(browser, sBase, tBase) {
 }
 
 /* ─────────── 실행 ─────────── */
+/** vite preview 서버를 모두 닫아요(남은 연결도 끊어서 프로세스가 남지 않게 해요) */
+async function closeServers(servers) {
+  for (const s of servers.splice(0)) {
+    const h = s.httpServer;
+    if (!h) continue;
+    await new Promise((r) => {
+      const t = setTimeout(() => r(null), 2000);
+      h.close(() => {
+        clearTimeout(t);
+        r(null);
+      });
+      if (h.closeAllConnections) h.closeAllConnections();
+    });
+  }
+}
+
 async function main() {
   const pw = loadPlaywright();
   if (!pw) {
@@ -632,6 +707,9 @@ async function main() {
   if (SAVE) fs.mkdirSync(OUT, { recursive: true });
   const browser = await pw.chromium.launch({ executablePath: chromiumPath(), args: ["--no-sandbox", "--disable-dev-shm-usage", "--force-color-profile=srgb"] });
   const servers = [];
+  const onSig = () => closeServers(servers).then(() => process.exit(130));
+  process.on("SIGINT", onSig);
+  process.on("SIGTERM", onSig);
   try {
     const wantS = ONLY !== "t" && !ALL_SCENES;
     const wantT = ONLY !== "s";
@@ -662,7 +740,7 @@ async function main() {
     }
   } finally {
     await browser.close().catch(() => {});
-    for (const s of servers) await new Promise((r) => (s.httpServer ? s.httpServer.close(() => r(null)) : r(null)));
+    await closeServers(servers);
   }
   if (SAVE && saved.length) {
     const s = saved.filter((f) => /student-/.test(f)).length;

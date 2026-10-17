@@ -1,10 +1,13 @@
 // 학생 문제 한 장: 공용 QuestionCard 에 학생 기록(aimn:s1:q)을 이어 줘요.
 // 힌트 1·2 → 풀이 순서로 열고, 일어난 일(답·힌트·풀이)은 모두 기록해요.
 // 다시 열 때(복습·오답노트·다시 풀기)는 힌트·풀이를 접은 채로 시작하고, 전에 본 힌트 수만 알려 줘요.
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import type { Question } from "../../shared/contracts.ts";
 import { QuestionCard, type QEvent } from "../../shared/ui/index.ts";
-import { isOk, isTried, recordAnswer, recordHint, recordSolution, useQ } from "../store/index.ts";
+import { navigate } from "../../shared/router/index.ts";
+import { isTried, lessonOfQ, recordAnswer, recordHint, recordSolution, useQ } from "../store/index.ts";
+import { prevNote } from "./student.logic.ts";
+import { sectionOfQ } from "./useQuestions.ts";
 
 export interface QRunProps {
   q: Question;
@@ -38,30 +41,35 @@ export function QRun({ q, label, review, showNew, after, onDone }: QRunProps) {
     recordAnswer(qid, ok, { review: asReview, afterSolution });
     if (onDone) onDone(ok && !afterSolution);
   };
+  // 이번에 낸 답(처음 화면에서는 null). 다른 문제로 바뀌면 무시해요
+  const [sub, setSub] = useState<{ qid: string; correct: boolean } | null>(null);
+  const mine = sub && sub.qid === q.id ? sub : null;
+  // 오답 뒤 '이 개념 다시 보기': 문제가 나온 개념 카드로 가요(오답노트와 같은 연결). 연결이 없으면 단추를 숨겨요
+  const lid = lessonOfQ(q.id);
+  const sec = lid ? sectionOfQ(lid, q.id) : -1;
+  const onConcept = lid && sec >= 0 ? () => navigate("/l/" + lid + "/s/c" + (sec + 1) + "/1") : undefined;
   const onResult = (e: QEvent) => {
+    if (e.type === "answered") setSub({ qid: e.qid, correct: e.correct });
     if (e.type === "attempt") answer(e.qid, e.correct, e.afterSolution);
     else if (e.type === "self") answer(e.qid, e.ok, e.afterSolution);
     else if (e.type === "hint") recordHint(e.qid, e.level);
     else if (e.type === "solution") recordSolution(e.qid);
   };
-  const help = r0 ? pastHelp(r0.hints, r0.sol) : "";
-  const showPrev = !!r0 && isTried(r0) && !review;
+  const help0 = r0 ? pastHelp(r0.hints, r0.sol) : "";
+  // 복습 화면의 '전에 힌트를 봤어요'는 제출 뒤에만 보여요
+  const help = review && !mine ? "" : help0;
+  // '지난번엔 맞혔는데…'는 제출 뒤 오답일 때만, 오답 안내 박스 안(wrongExtra)에 보여요(제출 전에는 '맞혔어요'류 표시를 절대 안 내요)
+  const note = review || !mine ? null : prevNote(r0, !!r0 && isTried(r0), mine);
   return (
     <div className="s-q">
-      {showPrev || help ? (
+      {help ? (
         <p className="s-q-prev small">
-          {showPrev && r0 ? (
-            isOk(r0) ? (
-              <span className="verdict ok">전에 맞혔어요</span>
-            ) : (
-              <span className="chip">전에 풀어 봤어요{r0.wrong ? " · 틀린 횟수 " + r0.wrong : ""}</span>
-            )
-          ) : null}
-          {showPrev && help ? " " : null}
-          {help ? <span className="muted s-q-help">{help}</span> : null}
+          <span className="muted s-q-help">{help}</span>
         </p>
       ) : null}
-      <QuestionCard key={q.id} q={q} surface="phone" label={label} initialLevel={0} showNew={showNew !== false} onResult={onResult} after={after} />
+      <QuestionCard key={q.id} q={q} surface="phone" label={label} initialLevel={0} showNew={showNew !== false} onResult={onResult} onConcept={onConcept} conceptNo={sec >= 0 ? sec + 1 : 0} wrongExtra={note ? note.text : undefined} />
+      {/* '맞았어요!' 피드백을 먼저 읽고 누르도록 다음 단추는 카드 아래에 둬요 */}
+      {mine && mine.correct && after ? <div className="s-q-after">{after}</div> : null}
     </div>
   );
 }

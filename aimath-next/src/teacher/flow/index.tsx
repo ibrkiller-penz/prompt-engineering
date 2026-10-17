@@ -1,6 +1,7 @@
 // 수업 흐름(#/flow/:lid?p=): 장면을 켜고 끄고(문제는 칠판/숙제), 분을 −/+ 로 맞춰요.
 // 칠판 문제 차례는 ↑↓ 로 바꿔요(문제 바구니 차례와 같아요). '필수만'·'처음 제안으로'.
 // 바꾼 값은 aimn:t1:flow(장면)와 aimn:t1:pick(칠판 문제 차례)에 저장하고, 오늘 수업·칠판이 같은 값을 써요.
+import { useState } from "react";
 import type { Scene } from "../../shared/contracts.ts";
 import { DURATIONS, TEACHER_ROUTES } from "../../shared/contracts.ts";
 import { href, intParam } from "../../shared/router/index.ts";
@@ -15,7 +16,8 @@ import { boardHref, todayHref, useLessonPlan } from "../shell/plan.ts";
 import { barSegments, minLabel } from "../today/timebar.ts";
 import { TEACHER_MARK } from "../mark.ts";
 import { sceneRoot } from "../logic/index.ts";
-import { clonePick, moveItem, onlyRequired, setSceneMin, toggleScene, useDuration, useFlowMap, useFlowState, usePickMap, usePickState } from "../store/index.ts";
+import { storyAdd, storyAddText } from "../prep/prep.logic.ts";
+import { clonePick, dupTags, moveItem, onlyRequired, setSceneMin, toggleScene, useDuration, useFlowMap, useFlowState, usePickMap, usePickState } from "../store/index.ts";
 import "./flow.css";
 
 export const FLOW_MARK = TEACHER_MARK;
@@ -45,13 +47,13 @@ function clip(s: string, n: number): string {
 function sceneDesc(sc: Scene, prompts: Record<string, string>): string {
   if (sc.kind === "problem") {
     const qb = sc.blocks.filter((b) => b.t === "q")[0] as { id: string } | undefined;
-    return qb ? clip(prompts[qb.id] || "", 60) : "";
+    return qb ? clip(prompts[qb.id] || "", 90) : "";
   }
   for (const b of sc.blocks) {
-    if (b.t === "lines" && b.items.length) return clip(b.items[0], 60);
-    if (b.t === "p") return clip(b.text, 60);
-    if (b.t === "example") return clip(b.problem || b.title, 60);
-    if (b.t === "widget") return clip(b.caption || "", 60);
+    if (b.t === "lines" && b.items.length) return clip(b.items[0], 90);
+    if (b.t === "p") return clip(b.text, 90);
+    if (b.t === "example") return clip(b.problem || b.title, 90);
+    if (b.t === "widget") return clip(b.caption || "", 90);
   }
   return "";
 }
@@ -68,6 +70,7 @@ export default function FlowPage(m: TeacherPageProps) {
   const p = view ? view.p : pq;
   const [flowSt, updateFlow] = useFlowState(lid, p);
   const [pickSt, writePick] = usePickState(lid, p);
+  const [showOff, setShowOff] = useState(false);
 
   if (!meta) return <NotFound />;
   if (loading || (!error && !lesson)) {
@@ -132,6 +135,108 @@ export default function FlowPage(m: TeacherPageProps) {
   const edited = !!flowSt;
   const cut = cutInfo(view, minutes, flowSt);
 
+  const offIdx: number[] = [];
+  view.scenes.forEach((sc, i) => {
+    if (!sc.on) offIdx.push(i);
+  });
+
+  const tags = dupTags(view.scenes);
+  const sAdd = per && per.first ? storyAdd(view.scenes, view.total, minutes) : null;
+
+  const renderRow = (sc: Scene, i: number) => {
+        const isQ = sc.kind === "problem";
+        const qid = isQ ? ((sc.blocks.filter((b) => b.t === "q")[0] as { id: string } | undefined) || { id: "" }).id : "";
+        const qi = isQ ? boardOrder.indexOf(qid) : -1;
+        const customMin = !!(flowSt && flowSt.min[sc.id] !== undefined);
+        const wid = sc.kind === "widget" ? ((sc.blocks.filter((b) => b.t === "widget")[0] as { id: string } | undefined) || { id: "" }).id : "";
+        return (
+          <li key={sc.id} className={"t-scene-row kind-" + sc.kind + (sc.on ? "" : " is-off")}>
+            <span className="t-scene-n num" aria-label={sc.on ? nOf[i] + "번 장면" : "꺼진 장면"}>
+              {sc.on ? nOf[i] : "–"}
+            </span>
+            <div className="t-scene-main">
+              <p className="t-scene-kind">
+                <span className="chip">{KIND[sc.kind]}</span>
+                {sc.required ? <span className="chip is-accent">필수</span> : null}
+                {sc.part ? <span className="chip">이어서 {sc.part.i}/{sc.part.n}</span> : null}
+                {isQ && !sc.on ? <span className="chip t-to-hw">숙제로 가요</span> : null}
+                {sc.fsDown ? <span className="tiny muted">글자 한 단계 작게</span> : null}
+              </p>
+              <p className="t-scene-title">
+                {sc.title ? <Rich text={String(sc.title)} /> : null}
+                {tags[i] ? <span className="t-scene-seq num"> {tags[i]}</span> : null}
+              </p>
+              {sceneDesc(sc, prompts) ? (
+                <p className="t-scene-desc muted">
+                  <Rich text={sceneDesc(sc, prompts)} />
+                </p>
+              ) : null}
+              {isQ || wid ? (
+                <p className="t-scene-links">
+                  {isQ ? (
+                    <a href={href(TEACHER_ROUTES.boardQ, { lid, qid }, { p: view.p, s: i })}>칠판에 크게 띄우기</a>
+                  ) : (
+                    <a href={href(TEACHER_ROUTES.boardTool, { lid, wid }, { p: view.p, s: i })}>체험 도구 크게 열기</a>
+                  )}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="t-scene-ctl">
+              {isQ ? (
+                <div className="t-updown" role="group" aria-label="문제 차례">
+                  <button type="button" className="btn btn-icon" onClick={() => moveQ(qid, -1)} disabled={qi <= 0} aria-label="앞으로">
+                    ↑
+                  </button>
+                  <button type="button" className="btn btn-icon" onClick={() => moveQ(qid, 1)} disabled={qi < 0 || qi >= boardOrder.length - 1} aria-label="뒤로">
+                    ↓
+                  </button>
+                </div>
+              ) : null}
+
+              <div className={"stepper t-min" + (customMin ? " is-custom" : "")} role="group" aria-label="예상 시간">
+                <button type="button" onClick={() => setMin(sc, sc.estMin - 0.5)} disabled={!sc.on || sc.estMin <= 0.5} aria-label="0.5분 줄이기">
+                  −
+                </button>
+                <span className="val num">{minLabel(sc.estMin)}</span>
+                <button type="button" onClick={() => setMin(sc, sc.estMin + 0.5)} disabled={!sc.on || sc.estMin >= 60} aria-label="0.5분 늘리기">
+                  +
+                </button>
+              </div>
+              {customMin ? (
+                <button type="button" className="btn btn-ghost t-auto" onClick={() => resetMin(sc)}>
+                  자동
+                </button>
+              ) : null}
+
+              {sc.required ? (
+                <label className="switch t-onoff is-lock" title="필수 장면이라 끌 수 없어요">
+                  <input type="checkbox" checked disabled readOnly />
+                  <span>
+                    <span aria-hidden="true">🔒 </span>켜짐
+                    <span className="sr-only"> · 필수 장면이라 끌 수 없어요</span>
+                  </span>
+                </label>
+              ) : isQ ? (
+                <div className="t-seg" role="radiogroup" aria-label="칠판 또는 숙제">
+                  <button type="button" role="radio" aria-checked={sc.on} aria-pressed={sc.on} className="btn" onClick={() => toggle(sc, true)}>
+                    칠판
+                  </button>
+                  <button type="button" role="radio" aria-checked={!sc.on} aria-pressed={!sc.on} className="btn" onClick={() => toggle(sc, false)}>
+                    숙제
+                  </button>
+                </div>
+              ) : (
+                <label className="switch t-onoff">
+                  <input type="checkbox" checked={sc.on} onChange={(e) => toggle(sc, e.target.checked)} />
+                  <span>{sc.on ? "켜짐" : "꺼짐"}</span>
+                </label>
+              )}
+            </div>
+          </li>
+        );
+  };
+
   return (
     <div className={"page t-flow t-u" + meta.unit}>
       <header className="t-flow-head">
@@ -149,6 +254,11 @@ export default function FlowPage(m: TeacherPageProps) {
           <p className={"t-flow-total" + (over ? " is-over" : "")}>
             <b className="num">{minLabel(view.total)}</b> / {minutes}분
           </p>
+          {sAdd ? (
+            <p className={"small t-story-add" + (sAdd.over > 0 ? " t-over" : "")} role="status">
+              {storyAddText(sAdd, minutes)}
+            </p>
+          ) : null}
           <div className="t-tb-bar" role="img" aria-label={"시간 배분: " + segs.map((s) => s.label + " " + minLabel(s.min)).join(", ")}>
             {segs.map((s) => (
               <span key={s.key} className={"t-tb-seg is-" + s.key} style={{ width: s.pct + "%" }}>
@@ -156,7 +266,10 @@ export default function FlowPage(m: TeacherPageProps) {
               </span>
             ))}
           </div>
-          <ul className="t-tb-legend t-flow-legend">
+          <p className="t-set-label" id="t-flow-stage">
+            단계별 시간
+          </p>
+          <ul className="t-tb-legend t-flow-legend" aria-labelledby="t-flow-stage">
             {segs.map((s) => (
               <li key={s.key}>
                 <i className={"t-tb-sw is-" + s.key} aria-hidden="true" />
@@ -233,93 +346,13 @@ export default function FlowPage(m: TeacherPageProps) {
         </aside>
 
         <section className="t-flow-list" aria-label="장면 목록">
-          <ol className="t-scene-rows">
-            {view.scenes.map((sc, i) => {
-              const isQ = sc.kind === "problem";
-              const qid = isQ ? ((sc.blocks.filter((b) => b.t === "q")[0] as { id: string } | undefined) || { id: "" }).id : "";
-              const qi = isQ ? boardOrder.indexOf(qid) : -1;
-              const customMin = !!(flowSt && flowSt.min[sc.id] !== undefined);
-              const wid = sc.kind === "widget" ? ((sc.blocks.filter((b) => b.t === "widget")[0] as { id: string } | undefined) || { id: "" }).id : "";
-              return (
-                <li key={sc.id} className={"t-scene-row kind-" + sc.kind + (sc.on ? "" : " is-off")}>
-                  <span className="t-scene-n num" aria-label={sc.on ? nOf[i] + "번 장면" : "꺼진 장면"}>
-                    {sc.on ? nOf[i] : "–"}
-                  </span>
-                  <div className="t-scene-main">
-                    <p className="t-scene-kind">
-                      <span className="chip">{KIND[sc.kind]}</span>
-                      {sc.required ? <span className="chip is-accent">필수</span> : null}
-                      {sc.part ? <span className="chip">이어서 {sc.part.i}/{sc.part.n}</span> : null}
-                      {isQ && !sc.on ? <span className="chip t-to-hw">숙제로 가요</span> : null}
-                      {sc.fsDown ? <span className="tiny muted">글자 한 단계 작게</span> : null}
-                    </p>
-                    <p className="t-scene-title">
-                      {sc.title ? <Rich text={String(sc.title)} /> : null}
-                      <span className="t-scene-desc muted">
-                        {" "}
-                        <Rich text={sceneDesc(sc, prompts)} />
-                      </span>
-                    </p>
-                    {isQ || wid ? (
-                      <p className="t-scene-links">
-                        {isQ ? (
-                          <a href={href(TEACHER_ROUTES.boardQ, { lid, qid }, { p: view.p, s: i })}>칠판에 크게 띄우기</a>
-                        ) : (
-                          <a href={href(TEACHER_ROUTES.boardTool, { lid, wid }, { p: view.p, s: i })}>체험 도구 크게 열기</a>
-                        )}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="t-scene-ctl">
-                    {isQ ? (
-                      <div className="t-updown" role="group" aria-label="문제 차례">
-                        <button type="button" className="btn btn-icon" onClick={() => moveQ(qid, -1)} disabled={qi <= 0} aria-label="앞으로">
-                          ↑
-                        </button>
-                        <button type="button" className="btn btn-icon" onClick={() => moveQ(qid, 1)} disabled={qi < 0 || qi >= boardOrder.length - 1} aria-label="뒤로">
-                          ↓
-                        </button>
-                      </div>
-                    ) : null}
-
-                    <div className={"stepper t-min" + (customMin ? " is-custom" : "")} role="group" aria-label="예상 시간">
-                      <button type="button" onClick={() => setMin(sc, sc.estMin - 0.5)} disabled={!sc.on || sc.estMin <= 0.5} aria-label="0.5분 줄이기">
-                        −
-                      </button>
-                      <span className="val num">{minLabel(sc.estMin)}</span>
-                      <button type="button" onClick={() => setMin(sc, sc.estMin + 0.5)} disabled={!sc.on || sc.estMin >= 60} aria-label="0.5분 늘리기">
-                        +
-                      </button>
-                    </div>
-                    {customMin ? (
-                      <button type="button" className="btn btn-ghost t-auto" onClick={() => resetMin(sc)}>
-                        자동
-                      </button>
-                    ) : null}
-
-                    {sc.required ? (
-                      <span className="t-req muted small">끌 수 없어요</span>
-                    ) : isQ ? (
-                      <div className="t-seg" role="radiogroup" aria-label="칠판 또는 숙제">
-                        <button type="button" role="radio" aria-checked={sc.on} aria-pressed={sc.on} className="btn" onClick={() => toggle(sc, true)}>
-                          칠판
-                        </button>
-                        <button type="button" role="radio" aria-checked={!sc.on} aria-pressed={!sc.on} className="btn" onClick={() => toggle(sc, false)}>
-                          숙제
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="switch t-onoff">
-                        <input type="checkbox" checked={sc.on} onChange={(e) => toggle(sc, e.target.checked)} />
-                        <span>{sc.on ? "켜짐" : "꺼짐"}</span>
-                      </label>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
+          <ol className="t-scene-rows">{view.scenes.map((sc, i) => (sc.on ? renderRow(sc, i) : null))}</ol>
+          {offIdx.length ? (
+            <details className="t-offgroup" open={showOff} onToggle={(e) => setShowOff((e.currentTarget as HTMLDetailsElement).open)}>
+              <summary className="t-offgroup-sum">{showOff ? "꺼진 장면 " + offIdx.length + "개 접기" : "꺼진 장면 " + offIdx.length + "개 펼치기"}</summary>
+              <ol className="t-scene-rows">{offIdx.map((i) => renderRow(view.scenes[i], i))}</ol>
+            </details>
+          ) : null}
           <p className="small muted">이야기는 1차시 요약 한 장만, AI 이야기는 처음에 꺼져 있어요. 켜면 칠판에 함께 나와요. 바꾼 값은 이 기기에만 저장돼요.</p>
         </section>
       </div>

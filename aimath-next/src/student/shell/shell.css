@@ -3,7 +3,7 @@
  * 간격은 형제 margin(> * + *), 너비 1024px 이상은 가운데 720px 칸.
  */
 
-html[data-site="student"] { --s-col: 720px; --s-action-h: 76px; --s-rail-h: 6px; }
+html[data-site="student"] { --s-col: 720px; --s-action-h: 76px; --s-rail-h: 10px; }
 
 .s-screen, .s-deck-wrap { min-height: 100vh; background: var(--bg); }
 .s-band { position: relative; z-index: 21; }

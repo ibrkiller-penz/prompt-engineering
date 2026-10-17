@@ -75,3 +75,28 @@ test("백업 왕복: 가짜 기록 전체가 그대로 돌아와요(rvday·화�
   }
   assert.equal(back.questions, Object.keys(q).length);
 });
+
+// ── 문제 화면·결과 카드의 새 문구 규칙 ──
+import { gainLine, prevNote, resultLine, solvedToday } from "../../src/student/pages/student.logic.ts";
+
+test("결과 카드 문구: 'N문제 중 M문제 맞혔어요', 늘었을 때만 '지난번보다'", () => {
+  assert.equal(resultLine(9, 8), "9문제 중 8문제 맞혔어요");
+  assert.equal(gainLine(6, 8), "지난번보다 2문제 더 맞혔어요");
+  assert.equal(gainLine(8, 8), "");
+  assert.equal(gainLine(9, 8), "");
+});
+
+test("'지난번' 표시: 처음 푸는 문제는 없음 · 제출 전 맞힘 · 제출 뒤 틀리면 '이번엔 달랐어요'", () => {
+  assert.equal(prevNote(undefined, false, null), null);
+  assert.equal(prevNote({ ok: true, wrong: 0 }, true, null)?.text, "지난번에 맞혔어요");
+  assert.equal(prevNote({ ok: true, wrong: 0 }, true, { correct: false })?.text, "지난번엔 맞혔는데 이번엔 달랐어요");
+  assert.equal(prevNote({ ok: true, wrong: 0 }, true, { correct: true }), null);
+  assert.match(prevNote({ ok: false, wrong: 2 }, true, null)?.text || "", /다시 본 횟수 2/);
+});
+
+test("오늘 푼 문제 수는 기존 기록(t1)만 읽어요", () => {
+  const now = new Date(2026, 4, 10, 15, 0).getTime();
+  const earlier = new Date(2026, 4, 10, 8, 0).getTime();
+  const yesterday = new Date(2026, 4, 9, 23, 0).getTime();
+  assert.equal(solvedToday({ a: { t1: earlier }, b: { t1: yesterday }, c: { t1: 0 } }, now), 1);
+});

@@ -30,8 +30,11 @@
 .t-scene-main > p { margin: 0; }
 .t-scene-main > p + p { margin-top: var(--sp-1); }
 .t-scene-kind > * { margin-right: var(--sp-1); }
-.t-scene-title { font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.t-scene-desc { font-weight: 400; }
+.t-scene-title { font-weight: 700; overflow: hidden; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.35; }
+.t-scene-desc { font-weight: 400; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.t-offgroup { margin-top: var(--sp-3); }
+.t-offgroup-sum { min-height: 48px; display: flex; align-items: center; padding: 0 var(--sp-3); border-radius: var(--radius-m); background: var(--surface-2); font-weight: 800; cursor: pointer; box-shadow: inset 0 0 0 var(--border) var(--line); }
+.t-offgroup > .t-scene-rows { margin-top: var(--sp-2); }
 .t-scene-links { font-size: var(--t-sm); }
 .t-to-hw { background: var(--warn-bg); color: var(--ink); }
 .t-scene-ctl { flex: 0 0 auto; display: flex; align-items: center; margin-left: var(--sp-3); }
@@ -63,3 +66,10 @@
 .t-flow .small, .t-flow .eyebrow, .t-flow .chip { font-size: var(--t-sm); }
 .t-flow .btn { min-height: 48px; }
 .t-flow-sum .btn-block { width: 100%; }
+
+/* 같은 제목 순번 · 설명 두 줄 · 필수 장면(잠금 + 켜짐 체크) */
+.t-scene-seq { color: var(--accent-ink); font-weight: 800; white-space: nowrap; }
+.t-scene-desc { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.35; }
+.t-onoff.is-lock { opacity: 1; color: var(--ink-2); font-weight: 700; }
+.t-onoff.is-lock input { opacity: .6; }
+.t-story-add { margin: 0; padding: var(--sp-1) var(--sp-2); border-radius: var(--radius-s); background: var(--surface-2); }

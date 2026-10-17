@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 배포 전 전체 검사. 차례:
-//   tsc → node --test → check-content → build:s / build:t → check-es → check-css → check-leak / check-imports → check-contrast → smoke
+//   tsc → node --test → check-content → build:s / build:t → check-es → check-css → check-leak / check-imports → check-a11y → check-contrast → smoke
 // 모든 단계를 돌리고(빌드가 실패하면 빌드 결과를 보는 단계는 건너뛰어요) 하나라도 실패하면 1로 끝나요.
 // 사용: node scripts/verify.mjs [--no-smoke] [--stop]   (--stop: 처음 실패에서 멈춤)
 import { spawnSync } from "node:child_process";
@@ -33,6 +33,7 @@ const steps = [
   { name: "check-css", cmd: node, args: ["scripts/check-css.mjs"], needsBuild: true },
   { name: "check-leak", cmd: node, args: ["scripts/check-leak.mjs"], needsBuild: true },
   { name: "check-imports", cmd: node, args: ["scripts/check-imports.mjs"] },
+  { name: "check-a11y", cmd: node, args: ["scripts/check-a11y.mjs"] },
   { name: "check-contrast", cmd: node, args: ["scripts/check-contrast.mjs"] },
   { name: "smoke", cmd: node, args: ["scripts/shots.mjs", "--smoke"], needsBuild: true, skip: NO_SMOKE },
 ];

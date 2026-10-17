@@ -117,6 +117,11 @@ export default function CardsPage({ lid, step, card }: { lid: string; step: stri
       onNext={onNext}
       nextLabel={next ? "다음" : "문제 풀기"}
       nextSoft={c.k === "check" && c.qids.some((id) => !isTried(qm[id]))}
+      skip={
+        st.kind === "story" && pos.c < st.cards.length - 1
+          ? { label: "여기까지 읽음 · 건너뛰기", onClick: () => go({ s: pos.s, c: st.cards.length - 1 }) }
+          : null
+      }
     >
       <CardBody lesson={data} lid={lid} card={c} story={sc} />
     </CardDeck>
@@ -211,7 +216,7 @@ function StoryCard({ segs, raw, n, total }: { segs: StorySeg[]; raw: string; n: 
           ),
         )}
       </div>
-      <SpeakButton text={raw} />
+      <SpeakButton text={raw} label="이야기 읽어 주기" />
     </article>
   );
 }

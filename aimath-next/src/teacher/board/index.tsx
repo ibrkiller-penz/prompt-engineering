@@ -14,9 +14,9 @@ import { expandId, summaryForPeriod } from "../logic/index.ts";
 import { planOf } from "../shell/plan.ts";
 import { saveLast } from "../store/index.ts";
 import { TEACHER_MARK } from "../mark.ts";
-import { firstOn, lastOn, qStages, QSTAGE_LABEL, revealMax, segmentInfo, snapOn, stepNext, stepPrev, type Pos } from "./board.logic.ts";
+import { firstOn, lastOn, offScenes, phaseBar, qStages, QSTAGE_LABEL, revealMax, segmentInfo, snapOn, stepNext, stepPrev, type Pos } from "./board.logic.ts";
 import { Stage, type RailItem } from "./Stage.tsx";
-import { ConceptScene, ExampleScene, KIND_LABEL, LinesScene, PrereqScene, QuestionScene, SceneBody, findQ, type Layout } from "./scenes.tsx";
+import { ConceptScene, ExampleScene, KIND_LABEL, LinesScene, OpenCtx, PrereqScene, QuestionScene, SceneBody, findQ, type Layout } from "./scenes.tsx";
 import { BoardQuestion } from "./Question.tsx";
 import { EndScene, useFinish } from "./End.tsx";
 import { useBoardData } from "./data.ts";
@@ -63,6 +63,36 @@ function Missing({ what }: { what: string }) {
 function sceneTitle(sc: Scene): string {
   const t = sc.title ? String(sc.title) : "";
   return t ? KIND_LABEL[sc.kind] + " · " + t : KIND_LABEL[sc.kind];
+}
+
+/** 켜진 문제 장면 가운데 이 문제가 몇 번째인지: "문제 n/m" */
+function problemLabel(scenes: readonly Scene[], pick: (sc: Scene) => boolean): string | undefined {
+  const probs = scenes.filter((x) => x.on && x.kind === "problem");
+  const k = probs.filter(pick).length ? probs.indexOf(probs.filter(pick)[0]) : -1;
+  return k >= 0 ? "문제 " + (k + 1) + "/" + probs.length : undefined;
+}
+
+const qidOf = (sc: Scene): string => ((sc.blocks.filter((b) => b.t === "q")[0] as { t: "q"; id: string } | undefined) || { id: "" }).id;
+
+/** 머리의 '꺼진 장면 N': 누르면 어떤 장면이 꺼져 있는지 목록으로 펼쳐요 */
+function OffList({ scenes }: { scenes: readonly Scene[] }) {
+  const [open, setOpen] = useState(false);
+  const offs = offScenes(scenes);
+  if (!offs.length) return null;
+  return (
+    <span className="bd-offwrap bd-noswipe">
+      <button type="button" className="bd-offbtn" aria-expanded={open} onClick={() => setOpen(!open)}>
+        꺼진 장면 <span className="num">{offs.length}</span> {open ? "▴" : "▾"}
+      </button>
+      {open ? (
+        <ul className="bd-offlist" aria-label="꺼진 장면">
+          {offs.map((i) => (
+            <li key={scenes[i].id}>{sceneTitle(scenes[i])}</li>
+          ))}
+        </ul>
+      ) : null}
+    </span>
+  );
 }
 
 function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number; n: number; exit: string[]; hw: string[]; sQuery: number }) {
@@ -112,6 +142,8 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
     go(stepPrev(cur, env()));
   };
   const jump = (i: number) => go({ s: i, r: 0, page: 0 });
+  // 가려진 칸을 누르면 그 칸까지 열어요
+  const openTo = useCallback((step: number) => setPos((p) => ({ ...p, r: Math.max(p.r, Math.min(step, revealMax(scenes[snapOn(scenes, p.s)], lesson))) })), [scenes, lesson]);
 
   const onLayout = useCallback((l: Layout) => setLayout(l), []);
   const lastPeriod = props.p === 0 || props.p >= props.n;
@@ -160,6 +192,10 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
     nextLabel = finish.label;
     nextHint = finish.hint;
   }
+  if (kind === "widget" && pos.r >= m && nextOn >= 0 && layout.display >= layout.pages - 1) {
+    nextLabel = "체험 마치기";
+    nextHint = KIND_LABEL[scenes[nextOn].kind];
+  }
   const pageable = kind !== "problem" && kind !== "widget" && kind !== "qr";
   const wid = kind === "widget" ? ((scene.blocks.filter((b) => b.t === "widget")[0] as { id: string } | undefined) || { id: "" }).id : "";
 
@@ -180,7 +216,8 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
         </>
       }
       counter={seg.label + " " + seg.n + "/" + seg.m + " · 장면 " + seg.a + "/" + seg.b}
-      counterNote={seg.off ? "꺼진 장면 " + seg.off : undefined}
+      phases={phaseBar(scenes, s)}
+      counterNote={seg.off ? <OffList scenes={scenes} /> : undefined}
       rail={{ items: rails, cur: s, onJump: jump }}
       onNext={isEnd ? finish.run : onNext}
       onPrev={onPrev}
@@ -193,6 +230,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
       exitHref="#/"
       noSwipe={kind === "widget"}
     >
+      <OpenCtx.Provider value={openTo}>
       <SceneBody key={scene.id + ":" + prefs.fs} scene={scene} r={pos.r} page={pos.page} pageable={pageable} onLayout={onLayout}>
         {(level) => {
           switch (kind) {
@@ -201,7 +239,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
             case "story":
             case "aiStory":
             case "summary":
-              return <LinesScene scene={scene} r={pos.r} />;
+              return <LinesScene scene={scene} r={pos.r} lid={lid} onAll={() => setPos({ s, r: m, page: pos.page })} />;
             case "prereq":
               return <PrereqScene scene={scene} r={pos.r} />;
             case "concept":
@@ -218,7 +256,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
               );
             case "problem":
               return q ? (
-                <BoardQuestion lid={lid} q={q} r={pos.r} onStage={(r) => setPos({ s, r, page: 0 })} label={"문제 " + (scenes.filter((x, i) => x.on && x.kind === "problem" && i <= s).length || 1)} />
+                <BoardQuestion lid={lid} q={q} r={pos.r} onStage={(r) => setPos({ s, r, page: 0 })} label={problemLabel(scenes, (x) => x === scene)} />
               ) : (
                 <p className="muted">문제를 찾지 못했어요.</p>
               );
@@ -227,6 +265,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
           }
         }}
       </SceneBody>
+      </OpenCtx.Provider>
     </Stage>
   );
 }
@@ -291,7 +330,7 @@ function BoardQ({ lid, qid, query }: { lid: string; qid: string; query: Record<s
     >
       <div className="bd-scene kind-problem">
         <div className="bd-scene-inner">
-          <BoardQuestion lid={lid} q={q} r={r} onStage={setR} />
+          <BoardQuestion lid={lid} q={q} r={r} onStage={setR} label={d.view ? problemLabel(d.view.scenes, (x) => qidOf(x) === full) : undefined} />
         </div>
       </div>
     </Stage>

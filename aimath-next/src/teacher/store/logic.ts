@@ -163,3 +163,17 @@ export function cycleMark(m: Mark | undefined): Mark {
 }
 
 export const MARK_LABEL: Record<"done" | "part" | "none", string> = { done: "끝", part: "진행 중", none: "아직" };
+
+/** 수업 흐름 줄 구분: 같은 종류·같은 제목이 이어지면 "(1/3)" 순번을 붙여요('이어서' 나눔 장면은 칩이 따로 있어 건너뛰어요) */
+export function dupTags(scenes: readonly { kind: string; title?: unknown; part?: unknown }[]): string[] {
+  const out: string[] = scenes.map(() => "");
+  let i = 0;
+  while (i < scenes.length) {
+    let j = i + 1;
+    const key = scenes[i].kind + "|" + String(scenes[i].title || "");
+    while (j < scenes.length && scenes[j].kind + "|" + String(scenes[j].title || "") === key) j++;
+    if (j - i > 1) for (let k = i; k < j; k++) if (!scenes[k].part) out[k] = "(" + (k - i + 1) + "/" + (j - i) + ")";
+    i = j;
+  }
+  return out;
+}

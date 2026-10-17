@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { dupTags } from "../../src/teacher/store/logic.ts";
 import assert from "node:assert/strict";
 import type { Lesson } from "../../src/shared/contracts.ts";
 import {
@@ -265,4 +266,52 @@ test("applyFlow·requiredOnly: 필수는 끌 수 없고, 직접 켠 장면은 �
   const all = applyFlow(f.scenes, { on: f.scenes.map((s) => s.id) }, 45);
   assert.ok(all.scenes.every((s) => s.on));
   assert.deepEqual(all.suggest.dropped, []);
+});
+
+/* ─────────── 칠판 화면 약속(원본 글 검사) ─────────── */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+const BOARD = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "teacher", "board");
+const rd = (f: string) => readFileSync(join(BOARD, f), "utf8");
+
+test("문제 장면: 공개 칩 높이 60px 이상, 정답 칩 색 따로, 득표 있을 때만 정답률 한 줄, '문제 n/m' 유지", () => {
+  const css = rd("board.css");
+  const m = /\.bdq-step \{[^}]*min-height: (\d+)px/.exec(css);
+  assert.ok(m && Number(m[1]) >= 60, "칩 높이");
+  assert.match(css, /\.bdq-step\.is-answer/);
+  assert.match(css, /\.bdq-tally button\.is-plus \{[^}]*width: 88px/);
+  const q = rd("Question.tsx");
+  assert.match(q, /advice \? \(/);
+  assert.match(q, /보기는 아직 가렸어요\. 눌러서 보여 줘요/);
+  assert.match(css, /\.bdq-head > \.bdq-rate/, "정답률 줄은 카드 밖(머리 줄)에 따로 자리를 잡아요");
+  assert.doesNotMatch(/\.bdq-body \{[^}]*overflow/.exec(css) ? /\.bdq-body \{[^}]*\}/.exec(css)![0] : "", /overflow/, "득표 화면에서 카드가 잘리지 않게 .bdq-body 의 overflow 를 풀어요");
+  assert.doesNotMatch(q, /보기 보이기를 누르면 나타나요/);
+  const idx = rd("index.tsx");
+  assert.match(idx, /problemLabel\(d\.view\.scenes/, "한 문제 보기(07b)에서도 문제 n/m");
+  assert.match(idx, /체험 마치기/);
+});
+
+test("가려진 칸은 칸 전체가 눌려요(OpenCtx), Chrome 80 에서 안 되는 문법을 안 써요", () => {
+  const sc = rd("scenes.tsx");
+  assert.match(sc, /className="bd-open bd-noswipe"/);
+  for (const f of ["scenes.tsx", "Question.tsx", "End.tsx", "index.tsx", "Stage.tsx", "board.logic.ts"]) {
+    const src = rd(f);
+    assert.doesNotMatch(src, /\?\.[a-zA-Z_(\[]/, f + ": ?. 금지");
+    assert.doesNotMatch(src, /\?\?/, f + ": ?? 금지");
+  }
+  assert.doesNotMatch(rd("board.css"), /aspect-ratio|:has\(/);
+});
+
+test("수업 흐름: 같은 제목이 이어지면 (i/n) 순번, '이어서' 나눔은 칩이 있어 건너뛰어요", () => {
+  const sc = [
+    { kind: "prereq", title: "먼저 알고 가요" },
+    { kind: "prereq", title: "먼저 알고 가요" },
+    { kind: "prereq", title: "먼저 알고 가요" },
+    { kind: "concept", title: "비율" },
+    { kind: "concept", title: "비율", part: { i: 1, n: 2 } },
+    { kind: "concept", title: "비율", part: { i: 2, n: 2 } },
+    { kind: "concept", title: "다른 개념" },
+  ];
+  assert.deepEqual(dupTags(sc), ["(1/3)", "(2/3)", "(3/3)", "(1/3)", "", "", ""]);
 });

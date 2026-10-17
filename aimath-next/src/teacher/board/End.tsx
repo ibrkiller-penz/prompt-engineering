@@ -2,7 +2,7 @@
 // QR 주소에는 문제 id 만 들어가요(반·이름 없음): https://aimaths.web.app/#/l/:lid?hw=…&ex=…
 // 화면 글자로는 'aimaths.web.app'과 차시 이름만 크게 보여 주고, 긴 쿼리는 QR 에만 넣어요.
 // '수업 마치기(진도 표시)'는 아래 고정 막대의 주 단추가 맡아요(useFinish).
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Lesson } from "../../shared/contracts.ts";
 import { Rich } from "../../shared/ui/index.ts";
 import { navigate } from "../../shared/router/index.ts";
@@ -10,7 +10,7 @@ import { STUDENT_URL } from "../../site.ts";
 import { qrSvg } from "../qr/index.ts";
 import { studentLink, type PeriodSummary } from "../logic/index.ts";
 import { useKlass } from "../shell/klass.tsx";
-import { clip, hwPreview } from "./board.logic.ts";
+import { clip, finishPlan, firstSentence, hwNumbers, hwPreview, practiceNo } from "./board.logic.ts";
 
 export { clip, hwPreview };
 
@@ -28,12 +28,14 @@ export interface EndProps {
 
 /** 수업 마치기: 고른 반이 있으면 진도('끝'/'진행 중')를 적고 오늘 수업으로 가요 */
 export function useFinish(lessonId: string, lastPeriod: boolean): { label: string; hint: string; run: () => void } {
-  const { klass, markLesson } = useKlass();
+  const { klass, progress, markLesson } = useKlass();
+  const cur = klass ? ((progress[klass] || {})[lessonId] as "done" | "part" | undefined) : undefined;
+  const plan = finishPlan(klass, cur, lastPeriod);
   return {
     label: "수업 마치기",
-    hint: klass ? klass + " 진도에 '" + (lastPeriod ? "끝" : "진행 중") + "' 표시" : "오늘 수업으로 돌아가요",
+    hint: plan.hint,
     run: () => {
-      if (klass) markLesson(klass, lessonId, lastPeriod ? "done" : "part");
+      if (klass && plan.mark) markLesson(klass, lessonId, plan.mark);
       navigate("/");
     },
   };
@@ -55,7 +57,8 @@ export function EndScene({ lesson, exit, hw, periodLabel, summary }: EndProps) {
   }, [url]);
   const site = siteShort(STUDENT_URL);
   const qOf = (id: string) => lesson.practice.filter((q) => q.id === id)[0];
-  const prev = hwPreview(hw, 3);
+  const [hwOpen, setHwOpen] = useState(false);
+  const pids = lesson.practice.map((q) => q.id);
   const sum = summary ? summary.lines.slice(0, 4) : [];
   const sumMore = summary ? Math.max(0, summary.lines.length - sum.length) : 0;
 
@@ -85,7 +88,7 @@ export function EndScene({ lesson, exit, hw, periodLabel, summary }: EndProps) {
                     {i + 1}
                   </span>
                   <span className="bd-end-txt">
-                    <Rich text={clip(t, 60)} />
+                    <Rich text={firstSentence(t)} />
                   </span>
                 </li>
               ))}
@@ -106,22 +109,28 @@ export function EndScene({ lesson, exit, hw, periodLabel, summary }: EndProps) {
             숙제 <span className="num">{hw.length}</span>문제
           </h3>
           {hw.length ? (
-            <ol className="bd-end-list is-hw">
-              {prev.shown.map((id, i) => {
-                const q = qOf(id);
-                return q ? (
-                  <li key={id}>
-                    <span className="bd-end-no num" aria-hidden="true">
-                      {i + 1}
-                    </span>
-                    <span className="bd-end-txt">
-                      <Rich text={clip(q.prompt, sum.length ? 34 : 40)} />
-                    </span>
-                  </li>
-                ) : null;
-              })}
-              {prev.more ? <li className="bd-end-more">+{prev.more}문제</li> : null}
-            </ol>
+            <>
+              <p className="bd-end-hwnos num">{hwNumbers(pids, hw)}</p>
+              <button type="button" className="bd-end-morebtn bd-noswipe" aria-expanded={hwOpen} onClick={() => setHwOpen(!hwOpen)}>
+                {hwOpen ? "지문 접어요" : "지문 앞부분 보기"}
+              </button>
+              {hwOpen ? (
+                <ol className="bd-end-list is-hw">
+                  {hw.map((id, i) => {
+                    const q = qOf(id);
+                    const no = practiceNo(pids, id);
+                    return q ? (
+                      <li key={id}>
+                        <span className="bd-end-no is-hw num">{no ? no + "번" : i + 1 + "."}</span>
+                        <span className="bd-end-txt">
+                          <Rich text={clip(q.prompt, sum.length ? 26 : 32)} />
+                        </span>
+                      </li>
+                    ) : null;
+                  })}
+                </ol>
+              ) : null}
+            </>
           ) : (
             <p className="bd-end-none">오늘은 숙제가 없어요.</p>
           )}

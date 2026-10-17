@@ -6,6 +6,7 @@
 //  1) 20레슨: 레슨 개요 → 카드를 '다음'으로 끝까지 넘기며 카드마다 가로 넘침 검사
 //             → 계단 문제·더 풀기에서 문제마다 힌트·풀이를 다 열고 가로 넘침 검사
 //  2) --flow: 가짜 기록(tools/fixtures/student.json)으로 이어서 하기·완료 판정·복습·백업 왕복을 화면에서 확인
+//  3) 오답 직후(항상): 문제를 일부러 틀려서 '풀이 확인하기'·'이 개념 다시 보기' 단추가 보이고 375 폭 안에 드는지 확인
 //  콘솔 오류·pageerror·외부 요청도 문제로 셉니다. 문제가 하나라도 있으면 1로 끝나요.
 import fs from "node:fs";
 import path from "node:path";
@@ -297,6 +298,64 @@ async function flow(browser, base) {
   await ctx.close();
 }
 
+/* ─────────── 오답 직후 단추 ─────────── */
+async function wrongAnswerCheck(page, base) {
+  for (const lid of ["u1-1", "u2-3"]) {
+    if (FILTER && FILTER.indexOf(lid) < 0 && lessons.indexOf(lid) < 0) continue;
+    await page.goto(base + "/#/l/" + lid + "/q", { waitUntil: "load" });
+    await settle(page);
+    let bad = false;
+    const tryCheck = async () => {
+      const ok = page.getByRole("button", { name: "확인" }).first();
+      if (await ok.count()) {
+        await ok.click({ timeout: 1500 }).catch(() => {});
+        await page.waitForTimeout(150);
+      }
+      return (await page.$(".ui-fb.is-bad")) !== null;
+    };
+    // 서술형·자기 점검 같은 문제는 건너뛰고, 틀릴 수 있는 문제가 나올 때까지 최대 12문제를 넘겨 봐요
+    for (let qi = 0; qi < 12 && !bad; qi++) {
+      const input = await page.$("main input[type='text'], main input:not([type]):not([type=checkbox]), main input[inputmode]");
+      if (input) {
+        await input.fill("987654").catch(() => {});
+        bad = await tryCheck();
+      } else {
+        const n = (await page.$$(".opt")).length;
+        for (let i = 0; i < n && !bad; i++) {
+          const opts = await page.$$(".opt");
+          if (!opts[i]) break;
+          await opts[i].click().catch(() => {});
+          bad = await tryCheck();
+        }
+      }
+      if (bad) break;
+      const before = await page.evaluate(() => location.hash);
+      const next = await page.$(".s-next:not([disabled])");
+      if (!next) break;
+      await next.click().catch(() => {});
+      await settle(page);
+      if ((await page.evaluate(() => location.hash)) === before) break;
+    }
+    if (!bad) {
+      problems.push(lid + " 오답 확인: 일부러 틀렸는데 '아쉬워요' 안내(.ui-fb.is-bad)가 안 떠요");
+      continue;
+    }
+    await check(page, lid + " 오답 직후");
+    for (const [cls, name] of [[".ui-q-peek", "풀이 확인하기"], [".ui-q-concept", "이 개념 다시 보기"]]) {
+      const b = await page.$(cls);
+      if (!b || !(await b.isVisible())) {
+        problems.push(lid + " 오답 직후: '" + name + "' 단추가 안 보여요(" + cls + ")");
+        continue;
+      }
+      const box = await b.boundingBox();
+      if (!box || box.x < 0 || box.x + box.width > 376) problems.push(lid + " 오답 직후: '" + name + "' 단추가 375 폭 밖이에요");
+      const t = ((await b.textContent()) || "").trim();
+      if (t.indexOf(name) < 0) problems.push(lid + " 오답 직후: 단추 글자가 '" + name + "' 이 아니에요 → " + t);
+    }
+    await page.screenshot({ path: path.join(SHOTS, "sweep-" + lid + "-wrong.png") }).catch(() => {});
+  }
+}
+
 async function main() {
   const pw = loadPlaywright();
   if (!pw) {
@@ -320,6 +379,7 @@ async function main() {
         const r = await sweepLesson(page, base, lid);
         console.log(`${lid}: 카드 ${r.cards}장 · 문제 화면 ${r.qs}개`);
       }
+      await wrongAnswerCheck(page, base);
       await ctx.close();
     }
     if (FLOW || ONLY_FLOW) await flow(browser, base);

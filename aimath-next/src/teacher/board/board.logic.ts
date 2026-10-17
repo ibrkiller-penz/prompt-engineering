@@ -52,6 +52,12 @@ export function revealMax(scene: Scene, lesson: Lesson | undefined): number {
     for (const b of scene.blocks) if (b.t === "term") n++;
     return n;
   }
+  // 이야기는 문장을 한 번에 한 줄씩(모두 열기로 한 번에도 볼 수 있어요)
+  if (scene.kind === "story") {
+    let n = 0;
+    for (const b of scene.blocks) if (b.t === "lines") n += b.items.length;
+    return Math.max(0, n - 1);
+  }
   return Math.max(0, scene.reveal | 0);
 }
 
@@ -367,4 +373,89 @@ export function cueOf(b: { t: string; [k: string]: unknown }): { kind: string; w
   const first = p.split(" ")[0] || "";
   const word = first === "식" ? "" : first.replace(/[.,!?;:·…]+$/, "").slice(0, 10);
   return { kind, word };
+}
+
+
+/* ─────────── 정답 공개 한 줄 · 구간 막대 · 꺼진 장면 · 삽화 ─────────── */
+
+/** 정답률 한 줄(득표 없으면 null): 80% 이상 다음으로 / 50~80% 풀이 한 번 더 / 50% 미만 개념 카드로 */
+export function rateAdvice(rate: number | null): string | null {
+  if (rate == null || !isFinite(rate)) return null;
+  const r = Math.max(0, Math.min(100, Math.round(rate)));
+  const tail = r >= 80 ? "다음으로 넘어가요" : r >= 50 ? "풀이를 한 번 더 봐요" : "개념 카드로 돌아가요";
+  return "정답률 " + r + "% · " + tail;
+}
+
+export const PHASES = ["도입", "개념", "문제", "정리", "수업 끝"];
+
+export interface PhaseItem {
+  label: string;
+  state: "past" | "cur" | "next";
+}
+
+/** 5구간(도입·개념·문제·정리·수업 끝) 가운데 켜진 장면이 있는 구간과 지금 구간 */
+export function phaseBar(scenes: readonly Pick<Scene, "stage" | "kind" | "on">[], s: number): PhaseItem[] {
+  const present: Record<string, boolean> = {};
+  let cur = "";
+  for (let i = 0; i < scenes.length; i++) {
+    if (!scenes[i].on) continue;
+    const n = segmentName(scenes[i]);
+    present[n] = true;
+    if (i <= s) cur = n;
+  }
+  if (!cur && scenes.length) cur = segmentName(scenes[0]);
+  const list = PHASES.filter((n) => present[n] || n === cur);
+  const ci = list.indexOf(cur);
+  return list.map((label, i) => ({ label, state: i < ci ? "past" : i === ci ? "cur" : "next" }));
+}
+
+/** 꺼진 장면 위치 목록 */
+export function offScenes(scenes: readonly Pick<Scene, "on">[]): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < scenes.length; i++) if (!scenes[i].on) out.push(i);
+  return out;
+}
+
+/** 이야기 삽화: 공개 단계 step(0부터)에 맞춰 n 줄 가운데 어느 그림을 보일지(그림이 없으면 -1) */
+export function storyImageAt(count: number, step: number, n: number): number {
+  if (count <= 0) return -1;
+  if (n <= 1) return 0;
+  return Math.max(0, Math.min(count - 1, Math.floor((Math.max(0, step) / n) * count)));
+}
+
+/** 첫 문장(수식 $…$ 안의 마침표는 문장 끝이 아니에요). 너무 길면 max 글자에서 자르지 않고 그대로 둬요 */
+export function firstSentence(s: string): string {
+  const t = (s || "").replace(/\s*\n\s*/g, " ").trim();
+  let inMath = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t.charAt(i);
+    if (c === "$") inMath = !inMath;
+    if (inMath) continue;
+    if ((c === "." || c === "!" || c === "?" || c === "。") && (i + 1 >= t.length || /\s/.test(t.charAt(i + 1)))) return t.slice(0, i + 1);
+  }
+  return t;
+}
+
+/** 숙제 문제 번호(레슨 연습 순서 기준 1부터, 없으면 0) */
+export function practiceNo(practiceIds: readonly string[], id: string): number {
+  const k = practiceIds.indexOf(id);
+  return k < 0 ? 0 : k + 1;
+}
+
+/** 수업 끝 숙제 번호 줄: "6번 · 7번 · 10번"(번호를 못 찾은 문제는 순서로) */
+export function hwNumbers(pids: readonly string[], hw: readonly string[]): string {
+  return hw
+    .map((id, i) => {
+      const no = practiceNo(pids, id);
+      return (no ? no : i + 1) + "번";
+    })
+    .join(" · ");
+}
+
+/** '수업 마치기' 단추가 하는 일: 이미 '끝'인 레슨을 '진행 중'으로 되돌리지 않아요 */
+export function finishPlan(klass: string | null, cur: "done" | "part" | null | undefined, lastPeriod: boolean): { mark: "done" | "part" | null; hint: string } {
+  if (!klass) return { mark: null, hint: "오늘 수업으로 돌아가요" };
+  if (cur === "done" && !lastPeriod) return { mark: null, hint: klass + " 진도는 '끝' 그대로 둬요" };
+  if (cur === "done") return { mark: "done", hint: klass + " 진도는 이미 '끝'이에요" };
+  return { mark: lastPeriod ? "done" : "part", hint: klass + " 진도에 '" + (lastPeriod ? "끝" : "진행 중") + "' 표시" };
 }

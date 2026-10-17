@@ -17,6 +17,8 @@ import { periodQuestion } from "../logic/index.ts";
 import { useDuration, useFlowMap, useFlowState, usePickMap } from "../store/index.ts";
 import { Skeleton } from "../flow/Skeleton.tsx";
 import { agoLabel, barSegments, marksLabel, minLabel } from "./timebar.ts";
+import { markOf, startLabel, statusLine } from "../progress/progress.logic.ts";
+import { storyAdd, storyAddText } from "../prep/prep.logic.ts";
 import { cutInfo, offScenes, sceneName, setScenes } from "./cuts.ts";
 
 // 이 탭에서 마지막으로 오늘 수업에 올린 차시(주소에 없을 때 다시 씀)
@@ -181,9 +183,9 @@ function MarkRow({ lid }: { lid: string }) {
   return (
     <div className="t-mark" role="group" aria-labelledby="t-mark-h">
       <p className="t-set-label" id="t-mark-h">
-        이 반 진도에 기록하기 <span className="muted">· {klass}반 {meta ? meta.code : ""}</span>
+        이 반 진도에 기록하기 <span className="muted t-mark-who">· {klass}반 {meta ? meta.code : ""}</span>
       </p>
-      <div className="row wrap t-chips">
+      <div className="row t-chips">
         {(["none", "part", "done"] as (ProgressMark | "none")[]).map((m) => (
           <button
             key={m}
@@ -332,6 +334,17 @@ export default function Today({ query }: TeacherPageProps) {
   const todayMeta = lessonMeta(todayLid);
   const lastMeta = lastOk ? lessonMeta(lastOk.lid) : undefined;
   const nPeriods = view ? view.periods.length : 1;
+  const mark = markOf(progress, klass, lid);
+  const lastDone = !!lastOk && markOf(progress, klass, lastOk.lid) === "done";
+  const sl = view && start ? startLabel(mark, start.n, nOn) : null;
+  const fromStart = !!sl && sl.fromStart;
+  const nextCode = (() => {
+    const nx = klass ? nextLessonFor(progress, klass) : null;
+    const nm = nx && nx !== lid ? lessonMeta(nx) : undefined;
+    return nm ? nm.code : "";
+  })();
+  const status = klass ? statusLine(klass, meta.code, mark) + (mark === "done" && nextCode ? " 다음은 " + nextCode + "예요." : "") : "";
+  const sAdd = view && view.periods[view.p - 1] && view.periods[view.p - 1].first ? storyAdd(view.scenes, view.total, dur) : null;
 
   return (
     <div className={"page t-today t-u" + meta.unit}>
@@ -346,6 +359,12 @@ export default function Today({ query }: TeacherPageProps) {
         </a>
       </header>
 
+      {status ? (
+        <p className={"t-status is-" + mark} role="status">
+          {status}
+        </p>
+      ) : null}
+
       <section className="card card-hero t-lesson" aria-labelledby="t-lesson-h">
         {resumeDiff && lastOk && lastMeta && todayMeta ? (
           <div className="t-choice" role="radiogroup" aria-label="오늘 할 레슨 고르기">
@@ -354,10 +373,12 @@ export default function Today({ query }: TeacherPageProps) {
                 {mode === "resume" ? "●" : "○"}
               </span>
               <span className="t-choice-txt">
-                <b>{lastMeta.code} 마저 하기</b>
+                <b>
+                  {lastMeta.code} {lastDone ? "다시 하기" : "마저 하기"}
+                </b>
                 <span className="t-choice-sub">
                   {lastMeta.short || lastMeta.title}
-                  {lastOk.p > 0 ? " · " + lastOk.p + "차시" : ""} · {agoLabel(lastOk.ts)} 멈춘 곳부터
+                  {lastOk.p > 0 ? " · " + lastOk.p + "차시" : ""} · {lastDone ? "끝난 레슨이에요 · " + agoLabel(lastOk.ts) + " 마지막" : agoLabel(lastOk.ts) + " 멈춘 곳부터"}
                 </span>
               </span>
             </button>
@@ -434,24 +455,32 @@ export default function Today({ query }: TeacherPageProps) {
           </p>
         ) : null}
 
-        {view && start ? (
+        {view && sAdd ? (
+          <p className={"callout t-story-add" + (sAdd.over > 0 ? " warn" : "")} role="status">
+            {storyAddText(sAdd, dur)}
+          </p>
+        ) : null}
+
+        {view && start && sl ? (
           <div className="t-start-wrap">
-            <a className="btn btn-primary t-start" href={boardHref(lid, view.p, start.s)}>
+            <a className="btn btn-primary t-start" href={boardHref(lid, view.p, fromStart ? view.on[0].s : start.s)}>
               <span aria-hidden="true">▶</span>
-              <span>{resuming ? "이어서 수업" : "수업 시작"}</span>
-              <span className="t-start-n">
-                · 장면 {start.n}/{nOn}부터
-              </span>
+              <span>{sl.label}</span>
+              <span className="t-start-n">· {sl.sub}</span>
             </a>
-            <p className="small muted t-start-note">
-              켜진 장면 {nOn}개 · 예상 {minLabel(view.total)}
-              {resuming ? (
-                <>
-                  {" · "}
-                  <a href={boardHref(lid, view.p, view.on[0].s)}>처음(장면 1/{nOn})부터 하기</a>
-                </>
-              ) : null}
-            </p>
+            <p className="small muted t-start-note">켜진 장면 {nOn}개 · 예상 {minLabel(view.total)}</p>
+            {mark === "done" && resuming ? (
+              <p className="t-start-acts">
+                <a className="btn btn-soft t-resume-sub" href={boardHref(lid, view.p, start.s)}>
+                  이어서 수업 · 장면 {start.n}/{nOn}부터
+                </a>
+              </p>
+            ) : null}
+            {mark !== "done" && resuming ? (
+              <p className="small t-start-acts">
+                <a href={boardHref(lid, view.p, view.on[0].s)}>처음(장면 1/{nOn})부터 하기</a>
+              </p>
+            ) : null}
           </div>
         ) : null}
       </section>
@@ -463,7 +492,10 @@ export default function Today({ query }: TeacherPageProps) {
           </h2>
           <TimeBar scenes={view.scenes} />
           <FitPanel lid={lid} view={view} minutes={dur} />
-          <nav className="t-prep-links" aria-label="수업 준비">
+          <h3 className="t-prep-h" id="t-prep-h">
+            수업 전 준비
+          </h3>
+          <nav className="t-prep-links" aria-labelledby="t-prep-h">
             <a className="btn" href={"#/flow/" + lid + "?p=" + view.p}>
               <TIcon name="step" size="em" />
               <span>수업 흐름 고치기</span>

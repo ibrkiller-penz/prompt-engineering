@@ -14,6 +14,8 @@ import { BODY_H } from "../../src/teacher/logic/measure.logic.ts";
 import { firstOn, lastOn, railInfo, snapOn } from "../../src/teacher/board/board.logic.ts";
 import { barSegments } from "../../src/teacher/today/timebar.ts";
 import { loadLessons } from "../shared/_content.ts";
+import { klassNowText, markOf, startLabel, statusLine } from "../../src/teacher/progress/progress.logic.ts";
+import { nextPeriodHeads, storyAdd, storyAddText } from "../../src/teacher/prep/prep.logic.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PLAN = JSON.parse(readFileSync(join(ROOT, "data", "plan.json"), "utf8")) as Plan;
@@ -304,5 +306,55 @@ test("plan.json 레슨 차례 = units.json 배열 차례, 차시 정리 줄은 s
     assert.equal(summaryForPeriod(L, plan, 0).title, "이 레슨 전체 정리");
     assert.equal(summaryForPeriod(L, plan, plan.periods.length, { whole: true }).title, "이 레슨 전체 정리");
     assert.equal(summaryForPeriod(L, plan, 1).title, "오늘 정리");
+  }
+});
+
+test("첫 화면 문구: 기록 상태 한 줄 · 끝난 차시는 '처음부터' · 분모는 켜진 장면 수", () => {
+  const prog = { "2-3": { "u1-1": "part" }, "2-4": { "u1-1": "done" }, "2-5": {} };
+  assert.equal(markOf(prog, "2-3", "u1-1"), "part");
+  assert.equal(markOf(prog, null, "u1-1"), "none");
+  assert.equal(statusLine("2-3", "I-1", "part"), "2-3반 I-1 · 진행 중이에요.");
+  assert.equal(statusLine("2-4", "I-1", "done"), "2-4반 I-1 · 끝난 레슨이에요.");
+  assert.equal(statusLine(null, "I-1", "none"), "I-1 · 아직 시작 전이에요.");
+  assert.deepEqual(startLabel("done", 4, 9), { label: "처음부터", sub: "장면 1/9부터", fromStart: true });
+  assert.deepEqual(startLabel("part", 4, 9), { label: "이어서 수업", sub: "장면 4/9부터", fromStart: false });
+  assert.equal(startLabel("none", 1, 7).label, "수업 시작");
+  const order = ["u1-1", "u1-2"];
+  const code = (id: string) => (id === "u1-1" ? "I-1" : "I-2");
+  assert.equal(klassNowText(prog, "2-3", order, code), "2-3: I-1 진행 중");
+  assert.equal(klassNowText(prog, "2-4", order, code), "2-4: I-1 끝");
+  assert.equal(klassNowText(prog, "2-5", order, code), "2-5: 아직 시작 전");
+});
+
+test("이야기 장면을 모두 켜면: 늘어나는 분 · 수업 시간 넘침 안내 · 다음 차시 예고", () => {
+  const sc = [
+    { kind: "story", on: true, estMin: 1 },
+    { kind: "story", on: false, estMin: 2 },
+    { kind: "story", on: false, estMin: 1.5 },
+    { kind: "concept", on: true, estMin: 10 },
+  ] as const;
+  const a = storyAdd(sc, 40, 45);
+  assert.ok(a);
+  assert.equal(a.add, 3.5);
+  assert.equal(a.after, 43.5);
+  assert.equal(a.over, 0);
+  assert.ok(storyAddText(a, 45).indexOf("안에 들어가요") > 0);
+  const b = storyAdd(sc, 44, 45);
+  assert.ok(b && b.over === 2.5);
+  assert.ok(storyAddText(b, 45).indexOf("2.5분 넘어요") > 0);
+  assert.equal(storyAdd([{ kind: "story", on: true, estMin: 1 }], 10, 45), null);
+  const secs = [{ heading: "가" }, { heading: "나" }, { heading: "" }];
+  const pers = [{ p: 1, sections: [0] }, { p: 2, sections: [1, 2] }];
+  assert.deepEqual(nextPeriodHeads(secs, pers, 1), ["나"]);
+  assert.equal(nextPeriodHeads(secs, pers, 2), null);
+});
+
+test("모든 레슨·차시에서 이야기 켜기 안내가 계산돼요(꺼진 이야기 장면이 있을 때만)", () => {
+  for (const L of lessons) {
+    const c = compute(L, 45, 1);
+    const a = storyAdd(c.scenes, c.total, 45);
+    const offStory = c.scenes.filter((s) => s.kind === "story" && !s.on);
+    assert.equal(!!a, offStory.length > 0, L.id);
+    if (a) assert.ok(a.add > 0 && a.after > c.total, L.id);
   }
 });

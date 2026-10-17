@@ -52,7 +52,8 @@ export default function NotePage({ query }: { query: Record<string, string> }) {
             </a>
           ))}
         </div>
-        <p className="small muted">{TABS.filter((t) => t.id === tab)[0].desc}</p>
+        <p className="small muted s-note-tabdesc">{TABS.filter((t) => t.id === tab)[0].desc}</p>
+        <p className="tiny muted s-note-tabs-all">아직 = 다시 맞혀야 해요 · 복습 중 = 날짜에 맞춰 다시 풀어요 · 졸업 = 복습에서 세 번 연속 맞히면 돼요</p>
 
         {!items.length ? (
           <div className="empty">
@@ -74,7 +75,7 @@ export default function NotePage({ query }: { query: Record<string, string> }) {
                 <li key={it.id} className="card s-note">
                   <div className="row between nowrap">
                     <span className="eyebrow">{f ? f.where : it.id}</span>
-                    <span className="tiny muted">틀린 횟수 {it.wrong}</span>
+                    <span className="tiny muted">다시 본 횟수 {it.wrong}</span>
                   </div>
                   {secTitle ? (
                     <p className="small s-note-sec">

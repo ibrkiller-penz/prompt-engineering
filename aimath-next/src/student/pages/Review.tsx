@@ -10,7 +10,7 @@ import { CardDeck } from "../shell/CardDeck.tsx";
 import { Loading, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { REVIEW_MAX_PER_DAY, reviewToday, useQ } from "../store/index.ts";
 import { QRun } from "./QRun.tsx";
-import { cardIndex, shortPrompt } from "./student.logic.ts";
+import { cardIndex, resultLine, shortPrompt, solvedToday } from "./student.logic.ts";
 import { useQuestions } from "./useQuestions.ts";
 
 export default function ReviewPage({ query }: { query: Record<string, string> }) {
@@ -19,7 +19,7 @@ export default function ReviewPage({ query }: { query: Record<string, string> })
   const [ids] = useState<string[]>(() => reviewToday());
   const [results, setResults] = useState<Record<string, boolean>>({});
   const { map, loading } = useQuestions(ids);
-  useQ();
+  const qm = useQ();
   if (!ids.length) {
     return (
       <Screen title="오늘의 복습" tab="note" backTo="/note">
@@ -81,15 +81,19 @@ export default function ReviewPage({ query }: { query: Record<string, string> })
       ) : (
         <div className="stack s-result">
           <h2 className="h2">오늘 복습 끝!</h2>
+          <p className="h3 s-result-line">
+            <strong>{resultLine(ids.length, okN)}</strong>
+          </p>
+          <p className="small">오늘 푼 문제는 모두 {solvedToday(qm, Date.now())}개예요.</p>
           <p>
-            {ids.length}문제 중 {okN}문제를 처음 답에 혼자 맞혔어요. 맞힌 문제는 다음 간격(3일·7일 뒤)으로, 틀렸거나 풀이를 보고 맞힌 문제는 내일 다시 만나요.
+            처음 답에 혼자 맞힌 문제만 세었어요. 맞힌 문제는 다음 간격(3일·7일 뒤)으로, 틀렸거나 풀이를 보고 맞힌 문제는 내일 다시 만나요.
           </p>
           <ul className="list card">
             {ids.map((x, k) => (
               <li key={x}>
                 <a className="list-row" href={"#/review?n=" + (k + 1)}>
                   <span className="grow small">{map[x] ? <Rich text={shortPrompt((map[x] as { q: { prompt: string } }).q.prompt)} /> : x}</span>
-                  {x in results ? results[x] ? <span className="verdict ok">맞힘</span> : <span className="verdict bad">내일 다시</span> : <span className="chip">안 풀었어요</span>}
+                  {x in results ? results[x] ? <span className="verdict ok">맞힘</span> : <span className="chip">내일 다시</span> : <span className="chip">안 풀었어요</span>}
                 </a>
               </li>
             ))}

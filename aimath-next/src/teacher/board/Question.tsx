@@ -5,8 +5,8 @@
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import type { Question } from "../../shared/contracts.ts";
 import { CHOICE_KEYS, Rich, answerText } from "../../shared/ui/index.ts";
-import { useTally, barPcts, sum } from "../store/index.ts";
-import { QSTAGE_LABEL, qStages, stageOpen, tallyAnswer, tallyLabels, type QStage } from "./board.logic.ts";
+import { useTally, barPcts, sum, correctRate } from "../store/index.ts";
+import { QSTAGE_LABEL, qStages, rateAdvice, stageOpen, tallyAnswer, tallyLabels, type QStage } from "./board.logic.ts";
 
 export { tallyAnswer, tallyLabels };
 
@@ -32,7 +32,7 @@ function Tally({ n, label, onChange }: { n: number; label: string; onChange: (d:
   };
   return (
     <div className="bdq-tally bd-noswipe" role="group" aria-label={label + " 손든 학생"}>
-      <button type="button" className="bdq-tally-step" aria-label={label + " 한 명 빼기"} disabled={n <= 0} onClick={() => onChange(-1)}>
+      <button type="button" className="bdq-tally-step is-minus" aria-label={label + " 한 명 빼기"} disabled={n <= 0} onClick={() => onChange(-1)}>
         −
       </button>
       <button
@@ -60,7 +60,7 @@ function Tally({ n, label, onChange }: { n: number; label: string; onChange: (d:
         </span>
         <span className="bdq-tally-unit">명</span>
       </button>
-      <button type="button" className="bdq-tally-step" aria-label={label + " 한 명 더하기"} onClick={() => onChange(1)}>
+      <button type="button" className="bdq-tally-step is-plus" aria-label={label + " 한 명 더하기"} onClick={() => onChange(1)}>
         +
       </button>
     </div>
@@ -82,7 +82,7 @@ function GroupScores({ onClose }: { onClose: () => void }) {
         <strong>모둠 점수</strong>
         <span className="tiny muted">저장하지 않아요</span>
         <button type="button" className="btn btn-ghost" onClick={() => setG([0, 0, 0, 0, 0, 0])}>
-          0으로
+          모둠 점수 0으로
         </button>
         <button type="button" className="bd-x" onClick={onClose} aria-label="모둠 점수 닫기">
           ✕
@@ -142,6 +142,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   const showAns = open("answer");
   const hints = Array.isArray(q.hints) ? (q.hints as string[]).filter((h) => !!h) : [];
   const solution = q.type === "open" ? undefined : q.solution;
+  const advice = showAns && ans >= 0 ? rateAdvice(correctRate(counts, ans)) : null;
   const longPrompt = (q.prompt || "").length > 120;
 
   const bar = (i: number) => {
@@ -157,7 +158,13 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   if (q.type === "choice") {
     const long = q.choices.length > 4 || q.choices.some((c) => c.length > 28);
     body = (
-      <ol className={"bdq-opts" + (long ? " is-long" : " is-grid") + " n" + q.choices.length}>
+      <>
+        {hidden ? (
+          <button type="button" className="bdq-think bd-noswipe" onClick={() => onStage(Math.max(0, stages.indexOf("show")))}>
+            보기는 아직 가렸어요. 눌러서 보여 줘요
+          </button>
+        ) : null}
+      <ol className={"bdq-opts" + (long ? " is-long" : " is-grid") + (hidden ? " is-covered" : "") + " n" + q.choices.length}>
         {q.choices.map((c, i) => {
           const isAns = showAns && i === q.answer;
           return (
@@ -169,7 +176,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
                 <span className="bdq-opt-txt">
                   {hidden ? (
                     <span className="bdq-cover">
-                      <span className="sr-only">보기 {i + 1}: </span>보기 보이기를 누르면 나타나요
+                      <span className="sr-only">보기 {i + 1}: 아직 가려져 있어요</span>
                     </span>
                   ) : (
                     <Rich text={c} />
@@ -183,6 +190,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
           );
         })}
       </ol>
+      </>
     );
   } else if (q.type === "ox") {
     body = (
@@ -230,7 +238,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   const nextIdx = r + 1 < stages.length ? r + 1 : -1;
 
   return (
-    <div className={"bdq" + (panelOpen ? " has-panel" : "") + (longPrompt ? " is-longq" : "")}>
+    <div className={"bdq" + (hidden ? " is-covered" : "") + (panelOpen ? " has-panel" : "") + (longPrompt ? " is-longq" : "")}>
       <div className="bdq-head">
         {label ? <span className="chip is-accent">{label}</span> : null}
         <span className="chip">{q.group.split(" · ")[0]}</span>
@@ -238,6 +246,11 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
           {"★★★★★".slice(0, q.level)}
           {"☆☆☆☆☆".slice(0, 5 - q.level)}
         </span>
+        {advice ? (
+          <span className="bdq-rate" role="status">
+            {advice}
+          </span>
+        ) : null}
       </div>
       <div className="bdq-prompt">
         <Rich text={q.prompt} />
@@ -281,7 +294,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
               <button
                 key={st}
                 type="button"
-                className={"bdq-step" + (isOpen ? " is-open" : "") + (isNext ? " is-next" : "") + (i === r ? " is-cur" : "")}
+                className={"bdq-step" + (isOpen ? " is-open" : "") + (isNext ? " is-next" : "") + (i === r ? " is-cur" : "") + (isOpen && i < r ? " is-past" : "") + (st === "answer" ? " is-answer" : "")}
                 aria-pressed={isOpen}
                 aria-current={isNext ? "step" : undefined}
                 title={QSTAGE_LABEL[st]}
@@ -298,7 +311,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
             손든 학생 <b className="num">{total}</b>명
             {total ? (
               <button type="button" className="btn btn-ghost bdq-reset" onClick={reset}>
-                0으로
+                득표 0으로
               </button>
             ) : null}
           </p>

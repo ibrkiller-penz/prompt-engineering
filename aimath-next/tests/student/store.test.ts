@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { QMap, QRec } from "../../src/shared/contracts.ts";
 import { applyAnswer, applyHint, applySolution, emptyRec, isOk, isTried, normRec } from "../../src/student/store/record.logic.ts";
-import { lessonMastery, lessonStatus, sectionDone, settleRead, unitStatus } from "../../src/student/store/status.logic.ts";
+import { lessonMastery, lessonStatus, overall, sectionDone, settleRead, unitStatus } from "../../src/student/store/status.logic.ts";
 import { addDays, dayStart, noteList, noteState, REVIEW_MAX_PER_DAY, reviewAnswer, todayReview } from "../../src/student/store/review.logic.ts";
 import { makeStudentBackup, parseStudentBackup, sanitize, serializeStudentBackup } from "../../src/student/store/backup.logic.ts";
 import { expandQid, parseAssignQuery } from "../../src/student/store/assign.logic.ts";
@@ -195,6 +195,17 @@ test("단원 배지: 레슨 모두 완료면 done, 단원 마무리 도전까지
   q.t1 = ok();
   q.t2 = ok();
   assert.equal(unitStatus(unit, lessons, q, read).badge, "star");
+});
+
+test("홈(overall)의 완료 레슨 수와 단원 화면(unitStatus.done)의 합이 같아요", () => {
+  const m2 = { ...meta, id: "u9-2", basicIds: ["f"], qids: ["f"] };
+  const lessons = { "u9-1": meta, "u9-2": m2 };
+  const unit = { lessonIds: ["u9-1", "u9-2"], testIds: [] as string[] };
+  const read = { "u9-1": [0, 1, 2], "u9-2": [0, 1, 2] };
+  const q: QMap = { a: ok(), b: ok(), c: ok(), d: ok(), e: ok() };
+  assert.equal(overall(lessons, unit.lessonIds, q, read).complete, unitStatus(unit, lessons, q, read).done);
+  q.f = ok();
+  assert.equal(overall(lessons, unit.lessonIds, q, read).complete, unitStatus(unit, lessons, q, read).done);
 });
 
 /* ─────────── 복습 일정 ─────────── */

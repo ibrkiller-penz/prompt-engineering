@@ -9,6 +9,7 @@ import { TIcon } from "../../shared/icons/teacher.tsx";
 import { UiSurfaceContext } from "../../shared/ui/index.ts";
 import { useTeacherPrefs, stepFs } from "../shell/prefs.ts";
 import { InkLayer } from "./Ink.tsx";
+import type { PhaseItem } from "./board.logic.ts";
 import { addStroke, canUndo, clearPage, InkBook, undo, type InkColor, type InkTool, type Stroke } from "./ink.logic.ts";
 import { BoardToolbar, Curtain, Picker, Timer, canFullscreen, isFullscreen, toggleFullscreen, useTimerBadge } from "./tools.tsx";
 
@@ -37,6 +38,8 @@ export interface StageProps {
   title: ReactNode;
   /** 진행 레일 */
   rail?: { items: RailItem[]; cur: number; onJump: (s: number) => void };
+  /** 5구간 막대(도입·개념·문제·정리·수업 끝): 지금 구간을 크게 */
+  phases?: PhaseItem[];
   /** 머리 오른쪽(예: "개념 2/5 · 장면 7/18") */
   counter?: ReactNode;
   /** 머리 오른쪽 작은 글(예: "꺼진 장면 3") */
@@ -259,6 +262,15 @@ export function Stage(props: StageProps) {
             <div className="bd-head-row">
               <span className="bd-head-lesson">{props.lessonLabel}</span>
               <span className="bd-head-title">{props.title}</span>
+              {props.phases && props.phases.length ? (
+                <ol className="bd-phases" aria-label="수업 구간">
+                  {props.phases.map((ph) => (
+                    <li key={ph.label} className={"is-" + ph.state} aria-current={ph.state === "cur" ? "step" : undefined}>
+                      {ph.label}
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
               <span className="bd-head-count num">{props.counter}</span>
               {props.counterNote ? <span className="bd-head-off">{props.counterNote}</span> : null}
               <span className="site-tag bd-tag">교사용</span>
