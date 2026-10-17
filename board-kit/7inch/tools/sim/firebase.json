@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "site": "dongnae-board-sim",
+    "public": "_site",
+    "ignore": ["firebase.json", "**/.*"]
+  }
+}

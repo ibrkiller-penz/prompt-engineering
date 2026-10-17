@@ -7,3 +7,4 @@ build.log
 *.log
 backup/
 firmware/include/board_config.local.h
+_site/
