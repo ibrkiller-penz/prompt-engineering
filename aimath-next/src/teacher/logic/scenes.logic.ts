@@ -180,12 +180,12 @@ function finish(d: Draft, fsDown: 0 | 1, h: number): BuiltScene {
 }
 
 /** 블록 목록을 896px 에 맞게 여러 묶음으로(앞에서부터 채움). 첫 묶음 앞머리(heading)는 첫 조각에만 */
-function packByHeight(blocks: SceneBlock[], fs: number): SceneBlock[][] {
+function packByHeight(blocks: SceneBlock[], fs: number, cap: number = BODY_H): SceneBlock[][] {
   const out: SceneBlock[][] = [];
   let cur: SceneBlock[] = [];
   for (const b of blocks) {
     const next = cur.concat([b]);
-    if (cur.length && stackHeight(next, fs) > BODY_H) {
+    if (cur.length && stackHeight(next, fs) > cap) {
       out.push(cur);
       cur = [b];
     } else cur = next;
@@ -317,8 +317,18 @@ function splitDraft(d: Draft): Draft[] | null {
   const fs = BOARD_FS[0];
   let pieces: SceneBlock[] = [];
   for (const b of d.blocks) pieces = pieces.concat(splitBlock(b, fs));
-  const groups = packByHeight(pieces, fs);
+  let groups = packByHeight(pieces, fs);
   if (groups.length < 2) return null;
+  // 고르게 나눠요: 같은 조각 수가 나오는 가장 낮은 한도로 다시 채워요(앞 조각만 꽉 차서 어림 오차로 넘치는 일을 막아요)
+  const n = groups.length;
+  const total = stackHeight(pieces, fs);
+  for (let cap = Math.ceil(total / n); cap < BODY_H; cap += 16) {
+    const g = packByHeight(pieces, fs, cap);
+    if (g.length === n) {
+      groups = g;
+      break;
+    }
+  }
   return asParts(d, groups);
 }
 
