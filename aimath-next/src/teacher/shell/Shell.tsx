@@ -1,4 +1,5 @@
 // 교사 준비 화면 틀: 사이트 띠(주황갈색) + '교사용' 이름표 + 상단 탭(넓은 화면) / 하단 탭(좁은 화면) + 반 고르기 칩 + 화면 설정.
+// 메뉴줄 한 줄: [이름][오늘 수업 · 차시 찾기 · 반별 진도 · 손들기 결과][반 칩(오른쪽)][화면 설정]. 차시를 고르는 곳은 '차시 찾기' 하나예요.
 // 칠판 무대(#/board/…)는 이 틀 없이 화면 전체를 써요.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { TeacherRoute } from "../../shared/contracts.ts";
@@ -279,12 +280,12 @@ export function TeacherShell({ route, children }: { route: TeacherRoute | null; 
               </a>
             ))}
           </nav>
+          <KlassChips compact={true} />
           <button type="button" className="btn btn-ghost t-gear" onClick={() => setSettings(true)} aria-haspopup="dialog">
             <TIcon name="gear" size="em" />
             <span>화면 설정</span>
           </button>
         </div>
-        <KlassChips />
       </header>
 
       <main id="main" ref={mainRef} tabIndex={-1} className="t-main">

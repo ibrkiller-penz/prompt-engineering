@@ -35,7 +35,7 @@ import {
   type SelfLevel,
 } from "../store/index.ts";
 import { QRun } from "./QRun.tsx";
-import { buildDeck, flatIndex, locate, nextPos, passedSectionOnArrive, passedSectionOnLeave, prevPos, type DeckCard, type DeckPos } from "./deck.logic.ts";
+import { buildDeck, deckTitle, flatIndex, locate, nextPos, passedSectionOnArrive, passedSectionOnLeave, prevPos, storyCount, type DeckCard, type DeckPos } from "./deck.logic.ts";
 import { stripNum } from "./Lesson.tsx";
 
 export default function CardsPage({ lid, step, card }: { lid: string; step: string; card: string }) {
@@ -94,13 +94,15 @@ export default function CardsPage({ lid, step, card }: { lid: string; step: stri
     else navigate("/l/" + lid + "/q");
   };
   const fi = flatIndex(steps, pos);
+  const sc = storyCount(steps, pos);
+  const headTitle = deckTitle(st, data.sections.map((x) => x.heading));
   const rail = <ProgressRail steps={steps.map((s) => ({ id: s.id, label: s.label, cards: s.cards.length }))} at={pos.s} card={pos.c} />;
 
   return (
     <CardDeck
       cardKey={st.id + "/" + pos.c}
-      title={meta.title}
-      eyebrow={meta.code + " · " + st.label}
+      title={<span title={headTitle}>{headTitle}</span>}
+      eyebrow={meta.code + " " + meta.title}
       backTo={overview}
       rail={rail}
       pos={
@@ -116,17 +118,18 @@ export default function CardsPage({ lid, step, card }: { lid: string; step: stri
       nextLabel={next ? "다음" : "문제 풀기"}
       nextSoft={c.k === "check" && c.qids.some((id) => !isTried(qm[id]))}
     >
-      <CardBody lesson={data} lid={lid} card={c} />
+      <CardBody lesson={data} lid={lid} card={c} story={sc} />
     </CardDeck>
   );
 }
 
-function CardBody({ lesson, lid, card }: { lesson: Lesson; lid: string; card: DeckCard }) {
+function CardBody({ lesson, lid, card, story }: { lesson: Lesson; lid: string; card: DeckCard; story: { n: number; total: number } | null }) {
   switch (card.k) {
     case "story":
-      return <StoryCard segs={card.segs} raw={lesson.story[card.idx] || ""} n={card.idx + 1} total={lesson.story.length} />;
+      // 위 칩(n/total)은 아래 진행 막대와 같은 값(이 단계의 카드 수)을 써요
+      return <StoryCard segs={card.segs} raw={lesson.story[card.idx] || ""} n={story ? story.n : card.idx + 1} total={story ? story.total : lesson.story.length} />;
     case "think":
-      return <ThinkCard lid={lid} question={lesson.question} />;
+      return <ThinkCard lid={lid} question={lesson.question} n={story ? story.n : 0} total={story ? story.total : 0} />;
     case "prereq-intro":
       return (
         <article className="stack">
@@ -180,27 +183,13 @@ function CardBody({ lesson, lid, card }: { lesson: Lesson; lid: string; card: De
 /* ─────────── 이야기 ─────────── */
 
 function StoryCard({ segs, raw, n, total }: { segs: StorySeg[]; raw: string; n: number; total: number }) {
-  const who: string[] = [];
-  for (const s of segs) if (s.k === "say" && s.who && who.indexOf(s.who) < 0) who.push(s.who);
+  // 등장인물 이름은 말풍선 위에 한 번만 보여요(위쪽 인물 칩은 두지 않아요)
   return (
     <article className="stack s-story">
       <p className="eyebrow">
         이야기 {n}/{total}
       </p>
       <h2 className="sr-only">이야기 {n}번째 장면</h2>
-      {who.length ? (
-        <ul className="row wrap s-cast" aria-label="이 장면의 등장인물">
-          {who.map((w) => {
-            const c = characterOf(w);
-            return (
-              <li key={w} className="chip s-cast-chip" title={c.line || undefined}>
-                <Avatar who={w} />
-                <span>{c.name}</span>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
       <div className="stack s-story-body">
         {segs.map((s, i) =>
           s.k === "narr" ? (
@@ -227,7 +216,7 @@ function StoryCard({ segs, raw, n, total }: { segs: StorySeg[]; raw: string; n: 
   );
 }
 
-function ThinkCard({ lid, question }: { lid: string; question: string }) {
+function ThinkCard({ lid, question, n, total }: { lid: string; question: string; n: number; total: number }) {
   const think = useThink();
   const saved = (think[lid] && think[lid].story) || "";
   const [text, setText] = useState(saved);
@@ -239,7 +228,9 @@ function ThinkCard({ lid, question }: { lid: string; question: string }) {
   };
   return (
     <article className="stack">
-      <p className="eyebrow">오늘의 핵심 질문</p>
+      <p className="eyebrow">
+        오늘의 핵심 질문{total ? " · 이야기 " + n + "/" + total : ""}
+      </p>
       <h2 className="h2 s-core-q">
         <Rich text={question} />
       </h2>

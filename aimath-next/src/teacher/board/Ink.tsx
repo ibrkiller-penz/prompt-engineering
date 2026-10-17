@@ -126,6 +126,14 @@ export function InkLayer(props: InkLayerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, w, h]);
 
+  // 판서를 끄면(그리는 도중이어도) 그리던 획을 버려요. 꺼진 뒤에는 입력을 하나도 가로채지 않아요
+  useEffect(() => {
+    if (active || !cur.current) return;
+    cur.current = null;
+    redraw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
   const pos = (e: RPointerEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     return toLogical(e.clientX, e.clientY, el.getBoundingClientRect(), w, h);
@@ -148,7 +156,7 @@ export function InkLayer(props: InkLayerProps) {
   };
   const onMove = (e: RPointerEvent<HTMLDivElement>) => {
     const c = cur.current;
-    if (!c || c.id !== e.pointerId) return;
+    if (!active || !c || c.id !== e.pointerId) return;
     e.preventDefault();
     const [x, y] = pos(e);
     if (!farEnough(c.s.pts, x, y)) return;
@@ -159,6 +167,7 @@ export function InkLayer(props: InkLayerProps) {
     const c = cur.current;
     if (!c || c.id !== e.pointerId) return;
     cur.current = null;
+    if (!active) return;
     onAdd({ ...c.s, pts: c.s.pts.slice() });
   };
 

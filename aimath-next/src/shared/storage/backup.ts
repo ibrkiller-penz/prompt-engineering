@@ -36,7 +36,7 @@ export function parseBackup(text: string, site: SiteMode): ParseResult {
   try {
     obj = JSON.parse(text);
   } catch {
-    return { ok: false, reason: "기록 파일 모양이 아니에요(JSON 을 읽을 수 없어요)." };
+    return { ok: false, reason: "기록 파일 모양이 아니에요(JSON을 읽을 수 없어요)." };
   }
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return { ok: false, reason: "기록 파일 모양이 아니에요." };
   const b = obj as Partial<Backup>;

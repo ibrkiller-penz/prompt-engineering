@@ -13,6 +13,29 @@ export const PREP_MARK = TEACHER_MARK;
 export interface PrepLessonX extends PrepLesson {
   goals?: string[];
   questions?: { q: string; a: string }[];
+  /** 목표 i 가 다루는 소제목 번호(0부터). 차시별 목표를 가려 보여 줄 때 써요 */
+  goalSecs?: number[][];
+}
+
+export interface GoalView {
+  text: string;
+  /** 지금 고른 차시의 목표인가 */
+  now: boolean;
+  /** 다른 차시 목표면 그 차시 번호들(예: [2]) */
+  periods: number[];
+}
+
+/** 목표를 차시별로 나눠요: 고른 차시 소제목에 걸리면 now, 아니면 걸리는 차시 번호. goalSecs 가 없거나 한 차시면 모두 now */
+export function goalsForPeriod(goals: string[], goalSecs: number[][] | undefined, periods: { p: number; sections: number[] }[], p: number): GoalView[] {
+  const cur = periods.filter((x) => x.p === p)[0];
+  return goals.map((text, i) => {
+    const secs = goalSecs && goalSecs[i] && goalSecs[i].length ? goalSecs[i] : null;
+    if (!secs || periods.length <= 1 || !cur) return { text, now: true, periods: [] };
+    const now = secs.some((s) => cur.sections.indexOf(s) >= 0);
+    const ps: number[] = [];
+    for (const x of periods) if (x.p !== p && secs.some((s) => x.sections.indexOf(s) >= 0)) ps.push(x.p);
+    return { text, now, periods: now ? [] : ps };
+  });
 }
 
 const loaders = import.meta.glob<PrepUnit>("../../../data/teacher/prep/u*.json", { import: "default" });

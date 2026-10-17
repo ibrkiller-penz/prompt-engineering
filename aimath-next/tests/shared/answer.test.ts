@@ -106,3 +106,15 @@ test("checkAnswer: 콘텐츠의 모든 숫자 문제는 정답을 그대로 치�
     assert.equal(st(q, String(q.answer + 1)), "wrong", q.id + " 오답");
   }
 });
+
+test("checkAnswer: 단위를 띄어 써도(10 명) 붙여 써도(10명) 맞아요 — 화면의 정답 글자는 한글 단위를 붙여 써요", () => {
+  assert.equal(st(num(10, { unit: "명" }), "10명"), "correct");
+  assert.equal(st(num(10, { unit: "명" }), "10 명"), "correct");
+  assert.equal(st(num(10, { unit: "명" }), "11명"), "wrong");
+  const qs: any[] = [];
+  for (const { lesson } of loadLessons()) qs.push(...lesson.practice);
+  for (const { unit } of loadUnits()) qs.push(...unit.test);
+  for (const q of qs.filter((x) => x.type === "number" && x.unit)) {
+    assert.equal(st(q, String(q.answer) + " " + q.unit), "correct", q.id + " 띄어 쓴 단위");
+  }
+});

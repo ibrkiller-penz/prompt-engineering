@@ -71,7 +71,7 @@ export default function WidgetHost(props: WidgetHostProps) {
         ) : null}
       </div>
   );
-  // 칠판 틀에서는 도구 단추를 왼쪽 안내판으로 옮겨 그림판 세로 자리를 아껴요
+  // 칠판 틀에서는 도구 단추를 위쪽 안내 띠로 옮겨 도구의 세로 자리를 아껴요
   const toolsInSide = board && !props.bare && !!guide;
   const body = (
     <Guard>
@@ -90,7 +90,7 @@ export default function WidgetHost(props: WidgetHostProps) {
 
   return (
     <SurfaceContext.Provider value={surface}>
-      <div className={"wg-host wg-w-" + id + " wg-on-" + surface} data-widget={id} data-noswipe="">
+      <div className={"wg-host wg-w-" + id + " wg-on-" + surface + (board ? " is-board" : "")} data-widget={id} data-noswipe="">
         {props.bare ? (
           body
         ) : (

@@ -58,3 +58,11 @@ export function agoLabel(ts: number, now: number = Date.now()): string {
   if (day < 30) return day + "일 전";
   return Math.floor(day / 30) + "달 전";
 }
+
+/** "1레슨 끝, 1레슨 진행 중" (하나도 없으면 "아직 기록이 없어요") */
+export function marksLabel(done: number, part: number): string {
+  const out: string[] = [];
+  if (done) out.push(done + "레슨 끝");
+  if (part) out.push(part + "레슨 진행 중");
+  return out.length ? out.join(", ") : "아직 기록이 없어요";
+}

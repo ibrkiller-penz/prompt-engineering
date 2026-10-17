@@ -20,13 +20,11 @@ import {
   useRvDay,
   lessonOfQ,
 } from "../store/index.ts";
+import { lessonOfPath, nextLessonAfter } from "./student.logic.ts";
 
-function firstIncomplete(): string | null {
-  for (const lid of INDEX.order) {
-    const st = statusOf(lid);
-    if (st && !st.complete) return lid;
-  }
-  return null;
+function isComplete(lid: string): boolean {
+  const st = statusOf(lid);
+  return !st || st.complete;
 }
 
 export default function Home() {
@@ -37,14 +35,22 @@ export default function Home() {
   const assigned = useAssigned();
   useRvDay();
   const sum = overall(INDEX.lessons, INDEX.order, q, read);
-  const nextLid = firstIncomplete();
-  const nextMeta = nextLid ? INDEX.lessons[nextLid] : null;
-
-  // 이어서 공부하기
+  // '이어서 공부하기'와 '다음 레슨'은 같은 기록(마지막으로 본 곳)에서 계산해요
+  const lastLid = last && last.path ? lessonOfPath(last.path) : null;
   let cont: { to: string; title: string; sub: string };
-  if (last && last.path) cont = { to: "#" + last.path, title: last.title, sub: "보던 곳에서 이어서 해요." };
-  else if (nextMeta) cont = { to: href(STUDENT_ROUTES.lesson, { lid: nextMeta.id }), title: nextMeta.code + " " + nextMeta.title, sub: "첫 레슨부터 카드 한 장씩 시작해요." };
-  else cont = { to: href(STUDENT_ROUTES.me), title: "모든 레슨을 마쳤어요!", sub: "오답노트와 오늘의 복습으로 실력을 다져요." };
+  let contLid: string | null = null;
+  if (last && last.path && !(lastLid && isComplete(lastLid) && nextLessonAfter(INDEX.order, lastLid, isComplete))) {
+    cont = { to: "#" + last.path, title: last.title, sub: "보던 곳에서 이어서 해요." };
+    contLid = lastLid;
+  } else {
+    // 기록이 없거나, 마지막으로 본 레슨을 이미 마쳤으면 그다음 레슨으로
+    contLid = nextLessonAfter(INDEX.order, lastLid, isComplete);
+    const cm = contLid ? INDEX.lessons[contLid] : null;
+    if (cm) cont = { to: href(STUDENT_ROUTES.lesson, { lid: cm.id }), title: cm.code + " " + cm.title, sub: lastLid ? INDEX.lessons[lastLid].code + " 레슨을 마쳤어요. 다음 레슨으로 가요." : "첫 레슨부터 카드 한 장씩 시작해요." };
+    else cont = { to: href(STUDENT_ROUTES.me), title: "모든 레슨을 마쳤어요!", sub: "오답노트와 오늘의 복습으로 실력을 다져요." };
+  }
+  const nextLid = contLid ? nextLessonAfter(INDEX.order, contLid, isComplete) : nextLessonAfter(INDEX.order, null, isComplete);
+  const nextMeta = nextLid ? INDEX.lessons[nextLid] : null;
 
   // 오늘 할 일 3줄
   const rv = reviewToday();
@@ -68,7 +74,9 @@ export default function Home() {
     { ...hwRow, done: false },
     nextMeta
       ? { to: href(STUDENT_ROUTES.lesson, { lid: nextMeta.id }), text: "다음 레슨: " + nextMeta.code + " " + nextMeta.title, icon: "book" as const, done: false }
-      : { to: href(STUDENT_ROUTES.me), text: "모든 레슨 완료! 내 기록을 확인해요", icon: "badge" as const, done: true },
+      : contLid && !isComplete(contLid)
+        ? { to: cont.to, text: "이 레슨만 마치면 모든 레슨 완료예요", icon: "book" as const, done: false }
+        : { to: href(STUDENT_ROUTES.me), text: "모든 레슨 완료! 내 기록을 확인해요", icon: "badge" as const, done: true },
   ];
 
   return (

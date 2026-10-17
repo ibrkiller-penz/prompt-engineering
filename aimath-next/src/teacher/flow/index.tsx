@@ -8,7 +8,9 @@ import { Rich } from "../../shared/ui/index.ts";
 import { TIcon } from "../../shared/icons/teacher.tsx";
 import { lessonMeta, useLesson } from "../../content/index.ts";
 import type { TeacherPageProps } from "../shell/pages.tsx";
-import { Loading, NotFound } from "../shell/Fallbacks.tsx";
+import { NotFound } from "../shell/Fallbacks.tsx";
+import { Skeleton, reloadPage } from "./Skeleton.tsx";
+import { cutInfo, setScenes } from "../today/cuts.ts";
 import { boardHref, todayHref, useLessonPlan } from "../shell/plan.ts";
 import { barSegments, minLabel } from "../today/timebar.ts";
 import { TEACHER_MARK } from "../mark.ts";
@@ -68,13 +70,28 @@ export default function FlowPage(m: TeacherPageProps) {
   const [pickSt, writePick] = usePickState(lid, p);
 
   if (!meta) return <NotFound />;
-  if (loading) return <Loading label="수업 흐름을 만들고 있어요…" />;
+  if (loading || (!error && !lesson)) {
+    return (
+      <div className={"page t-flow t-u" + meta.unit}>
+        <header className="t-flow-head">
+          <p className="eyebrow">{meta.code} · 수업 흐름</p>
+          <h1 className="h1">{meta.title}</h1>
+        </header>
+        <Skeleton label="수업 흐름을 만들고 있어요…" rows={8} side />
+      </div>
+    );
+  }
   if (error || !lesson || !view) {
     return (
       <section className="page">
-        <p className="callout bad" role="alert">
-          레슨을 불러오지 못했어요. 새로고침해 보세요.
-        </p>
+        <div className="callout bad" role="alert">
+          <p>레슨을 불러오지 못했어요. 다시 불러와 보세요.</p>
+          <p>
+            <button type="button" className="btn btn-primary" onClick={reloadPage}>
+              다시 불러오기
+            </button>
+          </p>
+        </div>
       </section>
     );
   }
@@ -113,6 +130,7 @@ export default function FlowPage(m: TeacherPageProps) {
   for (const o of onList) nOf[o.s] = o.n;
   const per = view.periods[view.p - 1];
   const edited = !!flowSt;
+  const cut = cutInfo(view, minutes, flowSt);
 
   return (
     <div className={"page t-flow t-u" + meta.unit}>
@@ -134,11 +152,11 @@ export default function FlowPage(m: TeacherPageProps) {
           <div className="t-tb-bar" role="img" aria-label={"시간 배분: " + segs.map((s) => s.label + " " + minLabel(s.min)).join(", ")}>
             {segs.map((s) => (
               <span key={s.key} className={"t-tb-seg is-" + s.key} style={{ width: s.pct + "%" }}>
-                {s.pct >= 14 ? <span className="t-tb-txt">{s.label}</span> : null}
+                {s.pct >= 18 ? <span className="t-tb-txt">{s.label}</span> : null}
               </span>
             ))}
           </div>
-          <ul className="t-tb-legend">
+          <ul className="t-tb-legend t-flow-legend">
             {segs.map((s) => (
               <li key={s.key}>
                 <i className={"t-tb-sw is-" + s.key} aria-hidden="true" />
@@ -148,19 +166,24 @@ export default function FlowPage(m: TeacherPageProps) {
           </ul>
           <p className={"small " + (over ? "t-over" : "muted")} role={over ? "alert" : undefined}>
             {over
-              ? minLabel(view.total - minutes) + " 넘쳐요. 장면을 끄거나 분을 줄여 보세요."
+              ? "시간이 " + minLabel(view.total - minutes) + " 넘쳐요. 장면을 끄거나 분을 줄여 보세요."
               : under
                 ? minLabel(minutes - view.total) + " 남아요. 체험이나 문제를 더 켜도 돼요."
                 : "수업 시간에 잘 맞아요."}
           </p>
+          {cut.over && cut.scenes.length ? (
+            <button type="button" className="btn btn-soft btn-block" onClick={() => updateFlow((cur) => setScenes(cur, view, cut.scenes, false))}>
+              줄이기 · 장면 {cut.scenes.length}개 끄기
+            </button>
+          ) : null}
 
           <div className="stack tight">
             <p className="t-set-label" id="t-flow-dur">
               수업 시간
             </p>
-            <div className="row" role="radiogroup" aria-labelledby="t-flow-dur">
+            <div className="row t-chips" role="radiogroup" aria-labelledby="t-flow-dur">
               {DURATIONS.map((d) => (
-                <button key={d} type="button" role="radio" aria-checked={minutes === d} aria-pressed={minutes === d} className="btn" onClick={() => setMinutes(d)}>
+                <button key={d} type="button" role="radio" aria-checked={minutes === d} aria-pressed={minutes === d} className="btn t-dur" onClick={() => setMinutes(d)}>
                   {d}분
                 </button>
               ))}
@@ -172,14 +195,14 @@ export default function FlowPage(m: TeacherPageProps) {
               <p className="t-set-label" id="t-flow-per">
                 차시
               </p>
-              <div className="row wrap" role="radiogroup" aria-labelledby="t-flow-per">
+              <div className="row t-chips" role="radiogroup" aria-labelledby="t-flow-per">
                 {view.periods.map((pp) => (
-                  <a key={pp.p} role="radio" aria-checked={pp.p === view.p} aria-pressed={pp.p === view.p} className="btn" href={href(TEACHER_ROUTES.flow, { lid }, { p: pp.p })}>
+                  <a key={pp.p} role="radio" aria-checked={pp.p === view.p} aria-pressed={pp.p === view.p} className="btn t-dur" href={href(TEACHER_ROUTES.flow, { lid }, { p: pp.p })}>
                     {pp.p}차시
                   </a>
                 ))}
               </div>
-              {per ? <p className="tiny muted">이 차시 소제목: {per.sections.map((i) => i + 1).join(", ")}번</p> : null}
+              {per ? <p className="small muted">이 차시 소제목: {per.sections.map((i) => i + 1).join(", ")}번</p> : null}
             </div>
           ) : null}
 
@@ -192,7 +215,7 @@ export default function FlowPage(m: TeacherPageProps) {
             </button>
           </div>
           {view.flow.dropped.length && !edited ? (
-            <p className="tiny muted">시간에 맞추려고 장면 {view.flow.dropped.length}개를 자동으로 꺼 두었어요.</p>
+            <p className="small muted">시간에 맞추려고 장면 {view.flow.dropped.length}개를 꺼 두었어요.</p>
           ) : null}
 
           <a className="btn btn-primary btn-lg btn-block" href={boardHref(lid, view.p, firstS)}>
@@ -297,7 +320,7 @@ export default function FlowPage(m: TeacherPageProps) {
               );
             })}
           </ol>
-          <p className="tiny muted">이야기와 AI 이야기는 처음에 꺼져 있어요. 켜면 칠판에 함께 나와요. 바꾼 값은 이 기기에만 저장돼요.</p>
+          <p className="small muted">이야기는 1차시 요약 한 장만, AI 이야기는 처음에 꺼져 있어요. 켜면 칠판에 함께 나와요. 바꾼 값은 이 기기에만 저장돼요.</p>
         </section>
       </div>
     </div>

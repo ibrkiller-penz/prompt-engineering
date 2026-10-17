@@ -1,8 +1,14 @@
 // 칠판 장면 자동 생성(buildScenes)과 시간 배분. 순수 로직(DOM 없음), 같은 입력이면 늘 같은 결과.
 //
 // 장면 차례
-//   핵심 질문 → (이야기: 기본 꺼짐) → 먼저 알고 가요 → 개념(소제목마다, 예산 100으로 나눔; example 은 단독)
-//   → 체험(widget, 단독) → 칠판 문제 5~8개 → (AI 이야기: 기본 꺼짐) → 정리 → 끝(QR)
+//   핵심 질문(차시 질문 1~2줄)
+//   → 도입: 1차시는 [이야기 나머지(꺼짐) → 이야기 한 장면(켜짐, 이야기 마지막 문단)], 2차시부터는 '지난 시간 되짚기'(이전 차시 정리 2~3줄)
+//   → 먼저 알고 가요(1차시)
+//   → 소제목마다 [개념 장면(예산 100으로 나눔; example 은 단독) → 그 소제목의 체험 도구 → 소제목 끝 확인 문제 1개]
+//   → 남은 칠판 문제('문제' 구간) → (AI 이야기: 기본 꺼짐, 마지막 차시) → 정리(summaryForPeriod) → 끝(QR)
+//
+// 시간: 기본은 장면을 자동으로 끄지 않아요. 넘치면 over(분)와 '줄이기 제안'(suggest: 끌 장면 목록)을 함께 돌려줘요.
+//   제안도 소제목마다 확인 문제 1개는 남겨요.
 //
 // 개념 예산(measure.logic.ts 의 blockWeight): p = 글자수/6, math = 18/줄, table = 12/행 + 20.
 //   6행 초과나 5열 이상인 표, example, widget 은 혼자 한 장면이에요.
@@ -10,8 +16,8 @@
 //   그래도 넘치면 "이어서" 장면으로 나눠요(part). 큰 표는 행을 나눠 머리줄을 다시 붙이고, 긴 예제는 풀이 단계를 나눠요.
 import type { Block, Lesson, PlanLesson, Question, Scene, SceneBlock, SceneKind, SceneStage } from "../../shared/contracts.ts";
 import { BODY_H, BOARD_FS, blockWeight, exampleSceneHeight, isBigTable, linesSceneHeight, qHeight, stackHeight } from "./measure.logic.ts";
-import { lessonPeriods, pickPeriod, type PeriodInfo } from "./periods.logic.ts";
-import { pickAll, type PickSet } from "./pick.logic.ts";
+import { lessonPeriods, periodQuestion, pickPeriod, recapLines, summaryForPeriod, type PeriodInfo } from "./periods.logic.ts";
+import { pickAll, questionSections, sectionCheckIds, type PickSet } from "./pick.logic.ts";
 
 export const CONCEPT_BUDGET = 100;
 
@@ -25,6 +31,20 @@ export interface BuiltScene extends Scene {
   baseMin: number;
   /** 문제 장면이면 문제 id */
   qid?: string;
+  /** 소제목 끝 확인 문제 장면이면 그 소제목 번호(줄이기 제안에서도 끄지 않아요) */
+  secCheck?: number;
+}
+
+/** 줄이기 제안: 이 장면들을 끄면 수업 시간 안에 들어와요 */
+export interface CutSuggestion {
+  /** 끄자고 제안하는 장면 id(이어서 조각 포함) */
+  dropped: string[];
+  /** 제안대로 껐을 때(applyFlow 로 끈 흐름과 같은 계산) 켜진 장면 예상 분 합 */
+  total: number;
+  /** 제안대로 꺼도 남는 넘침(분). 필수 장면만으로도 길면 0 보다 커요 */
+  over: number;
+  /** 제안대로 껐을 때 숙제로 돌아갈 문제 id */
+  toHw: string[];
 }
 
 export interface BuildOptions {
@@ -36,6 +56,10 @@ export interface BuildOptions {
   board?: readonly string[];
   /** 시간 배분을 하지 않고 기본 예상 분만(검사용) */
   noAllocate?: boolean;
+  /** 마지막 차시에서 정리를 '이 레슨 전체 정리'로(기본은 이 차시 소제목 줄만) */
+  fullSummary?: boolean;
+  /** 예전처럼 시간이 넘치면 덜 중요한 장면을 자동으로 끄기(기본 false: 끄지 않고 제안만) */
+  autoDrop?: boolean;
 }
 
 export interface LessonFlow {
@@ -47,8 +71,12 @@ export interface LessonFlow {
   pick: PickSet;
   /** 켜진 장면 예상 분 합 */
   total: number;
-  /** 시간이 모자라 자동으로 끈 장면 id */
+  /** 수업 시간을 넘는 분(0 이면 들어맞아요). "시간이 n분 넘쳐요 · 줄이기" 안내에 써요 */
+  over: number;
+  /** 시간이 모자라 자동으로 끈 장면 id(autoDrop 일 때만. 기본은 빈 목록) */
   dropped: string[];
+  /** 넘칠 때 줄이기 제안(넘치지 않으면 dropped 가 빈 목록) */
+  suggest: CutSuggestion;
   /** 꺼진 문제 장면의 문제 id — '숙제로' 돌아가요 */
   toHw: string[];
 }
@@ -74,6 +102,8 @@ interface Draft {
   q?: Question;
   /** "이어서"로 나눈 조각(머리줄에 이어서 이름표가 붙어요) */
   split?: boolean;
+  /** 소제목 끝 확인 문제 */
+  secCheck?: number;
 }
 
 const LINES_KINDS: SceneKind[] = ["story", "aiStory", "summary"];
@@ -144,6 +174,7 @@ function finish(d: Draft, fsDown: 0 | 1, h: number): BuiltScene {
   if (d.section !== undefined) s.section = d.section;
   if (d.src) s.src = d.src;
   if (d.qid) s.qid = d.qid;
+  if (d.secCheck !== undefined) s.secCheck = d.secCheck;
   if (fsDown) s.fsDown = 1;
   return s;
 }
@@ -436,6 +467,29 @@ function linesScenes(base: Omit<Draft, "blocks" | "reveal">, items: string[]): B
   return fit(d, splitDraft);
 }
 
+/** 칠판 문제 장면 하나 */
+function problemDraft(q: Question, secCheck?: number): Draft {
+  const blocks: SceneBlock[] = [{ t: "q", id: q.id }];
+  const d: Draft = {
+    id: "q:" + q.id,
+    stage: "practice",
+    kind: "problem",
+    title: q.group,
+    blocks,
+    reveal: revealFor("problem", blocks),
+    required: false,
+    on: true,
+    baseMin: q.level <= 2 ? 1.5 : q.level === 3 ? 2 : 3,
+    qid: q.id,
+    q,
+  };
+  if (secCheck !== undefined) {
+    d.secCheck = secCheck;
+    d.section = secCheck;
+  }
+  return d;
+}
+
 /**
  * 한 차시의 장면 흐름을 만들어요(시간 배분 포함).
  * @param lesson  레슨 원본(content/aimath 의 lesson-N.json)
@@ -447,28 +501,67 @@ export function buildLessonFlow(lesson: L, plan: PlanLesson | null | undefined, 
   const periods = lessonPeriods(lesson, plan, minutes);
   const per = pickPeriod(periods, period, lesson.sections.length);
   const pick = pickAll(lesson, plan, per);
-  const board = opts.board ? opts.board.filter((id) => lesson.practice.some((q) => q.id === id)) : pick.board;
+  const has = (id: string) => lesson.practice.some((q) => q.id === id);
+  const board = opts.board ? opts.board.filter(has) : pick.board;
+  const byId = (id: string) => lesson.practice.filter((x) => x.id === id)[0];
   const scenes: BuiltScene[] = [];
   const push = (arr: BuiltScene[]) => {
     for (const s of arr) scenes.push(s);
   };
 
-  // 1) 핵심 질문
+  // 소제목 끝 확인: 칠판 목록에 든 것만 소제목 자리로 옮겨요(교사가 바구니에서 뺀 것은 넣지 않아요)
+  const checkOf: Record<number, string> = {};
+  for (const c of sectionCheckIds(lesson, plan, per.sections)) if (board.indexOf(c.id) >= 0) checkOf[c.s] = c.id;
+  // 바구니를 직접 정했는데 그 소제목 확인 문제가 없으면, 바구니 안에서 그 소제목 문제 하나를 자리로 옮겨요
+  if (opts.board) {
+    const secOf = questionSections(lesson, plan);
+    const used: string[] = [];
+    for (const k in checkOf) used.push(checkOf[k]);
+    for (const s of per.sections) {
+      if (checkOf[s]) continue;
+      const id = board.filter((x) => used.indexOf(x) < 0 && secOf[x] === s)[0];
+      if (id) {
+        checkOf[s] = id;
+        used.push(id);
+      }
+    }
+  }
+  const checkIds: string[] = [];
+  for (const k in checkOf) checkIds.push(checkOf[k]);
+
+  // 1) 핵심 질문(차시 질문 1~2줄)
   push(
     linesScenes(
       { id: "question", stage: "open", kind: "question", title: "오늘의 핵심 질문", required: true, on: true, baseMin: 1.5 },
-      [lesson.question],
+      periodQuestion(lesson, plan, per),
     ),
   );
 
-  // 2) 이야기(기본 꺼짐, 첫 차시만)
+  // 2) 도입: 1차시는 이야기(나머지 꺼짐 + 한 장면 켜짐), 2차시부터는 지난 시간 되짚기
   if (per.first && lesson.story && lesson.story.length) {
+    const story = lesson.story.slice();
+    const brief = story.pop() as string;
+    if (story.length)
+      push(
+        linesScenes(
+          { id: "story", stage: "open", kind: "story", title: "이야기", required: false, on: !!opts.story, baseMin: round05(1 + story.length * 0.5) },
+          story,
+        ),
+      );
     push(
       linesScenes(
-        { id: "story", stage: "open", kind: "story", title: "이야기", required: false, on: !!opts.story, baseMin: round05(1 + lesson.story.length * 0.5) },
-        lesson.story.slice(),
+        { id: "story-brief", stage: "open", kind: "story", title: "이야기 한 장면", required: false, on: true, baseMin: 1.5 },
+        [brief],
       ),
     );
+  }
+  if (!per.first && per.p > 1) {
+    const prev = periods[per.p - 2];
+    const lines = prev ? recapLines(lesson, plan, prev) : [];
+    if (lines.length)
+      push(
+        linesScenes({ id: "recap", stage: "open", kind: "summary", title: "지난 시간 되짚기", required: false, on: true, baseMin: round05(0.5 + lines.length * 0.5) }, lines),
+      );
   }
 
   // 3) 먼저 알고 가요(첫 차시만)
@@ -495,38 +588,24 @@ export function buildLessonFlow(lesson: L, plan: PlanLesson | null | undefined, 
     );
   }
 
-  // 4) 개념(소제목 순) · 5) 체험
-  const tools: Draft[] = [];
+  // 4) 소제목마다 [개념 → 체험 → 확인 문제 1개]
   for (const s of per.sections) {
     const { concept, widgets } = conceptDrafts(lesson, s);
     for (const d of concept) push(fit(d, splitDraft));
-    for (const w of widgets) tools.push(w);
+    for (const w of widgets) push(fit(w));
+    const cid = checkOf[s];
+    const cq = cid ? byId(cid) : undefined;
+    if (cq) push(fit(problemDraft(cq, s)));
   }
-  for (const w of tools) push(fit(w));
 
-  // 6) 칠판 문제
+  // 5) 남은 칠판 문제('문제' 구간)
   for (const qid of board) {
-    const q = lesson.practice.filter((x) => x.id === qid)[0];
-    if (!q) continue;
-    const blocks: SceneBlock[] = [{ t: "q", id: qid }];
-    push(
-      fit({
-        id: "q:" + qid,
-        stage: "practice",
-        kind: "problem",
-        title: q.group,
-        blocks,
-        reveal: revealFor("problem", blocks),
-        required: false,
-        on: true,
-        baseMin: q.level <= 2 ? 1.5 : q.level === 3 ? 2 : 3,
-        qid,
-        q,
-      }),
-    );
+    if (checkIds.indexOf(qid) >= 0) continue;
+    const q = byId(qid);
+    if (q) push(fit(problemDraft(q)));
   }
 
-  // 7) AI 이야기(기본 꺼짐, 마지막 차시만)
+  // 6) AI 이야기(기본 꺼짐, 마지막 차시만)
   if (per.last && lesson.aiStory && lesson.aiStory.paragraphs && lesson.aiStory.paragraphs.length) {
     push(
       linesScenes(
@@ -536,18 +615,17 @@ export function buildLessonFlow(lesson: L, plan: PlanLesson | null | undefined, 
     );
   }
 
-  // 8) 정리
-  push(
-    linesScenes(
-      { id: "summary", stage: "wrap", kind: "summary", title: "오늘 정리", required: true, on: true, baseMin: 2 },
-      lesson.summary.slice(),
-    ),
-  );
+  // 7) 정리(이 차시 소제목 줄. 마지막 차시에서 fullSummary 면 레슨 전체)
+  const sum = summaryForPeriod(lesson, plan, per, { whole: !!opts.fullSummary });
+  push(linesScenes({ id: "summary", stage: "wrap", kind: "summary", title: sum.title, required: true, on: true, baseMin: 2 }, sum.lines));
 
-  // 9) 끝(QR)
+  // 8) 끝(QR)
   scenes.push(finish({ id: "end", stage: "end", kind: "qr", title: "수업 끝", blocks: [], reveal: 0, required: true, on: true, baseMin: 1.5 }, 0, BODY_H));
 
-  const res = opts.noAllocate ? { scenes, total: sumOn(scenes), dropped: [] as string[] } : allocate(scenes, minutes);
+  const res = opts.noAllocate
+    ? { scenes, total: sumOn(scenes), dropped: [] as string[], over: Math.max(0, sumOn(scenes) - minutes) }
+    : allocate(scenes, minutes, { drop: !!opts.autoDrop });
+  const suggest = opts.noAllocate ? { dropped: [], total: res.total, over: res.over, toHw: [] } : suggestCuts(scenes, minutes);
   return {
     lid: lesson.id,
     period: per,
@@ -556,7 +634,9 @@ export function buildLessonFlow(lesson: L, plan: PlanLesson | null | undefined, 
     scenes: res.scenes,
     pick: { board: board.slice(), exit: pick.exit, hw: pick.hw },
     total: res.total,
+    over: res.over,
     dropped: res.dropped,
+    suggest,
     toHw: homeworkFromOff(res.scenes),
   };
 }
@@ -579,14 +659,29 @@ export function sumOn(scenes: readonly Scene[]): number {
   return Math.round(t * 2) / 2;
 }
 
+export interface AllocateResult<S> {
+  scenes: S[];
+  total: number;
+  /** 이번 배분에서 끈 장면 id(drop: false 면 빈 목록) */
+  dropped: string[];
+  /** 수업 시간을 넘는 분(0.5분 단위, 0 이상) */
+  over: number;
+}
+
 /**
  * 켜진 장면의 예상 분을 수업 시간에 맞춰요.
- *  1) 0.7배로 줄여도 넘치면 덜 중요한 것부터 꺼요: 소제목마다 둘째 이후 예제 → 칠판 문제 6번째부터 → 먼저 알고 가요
- *     → 남은 예제 → 둘째 이후 체험 → 칠판 문제 4·5번째. 필수(질문·개념·정리·끝)는 끄지 않아요.
- *     칠판 문제는 적어도 3개는 남겨요.
- *  2) 남거나 모자란 시간은 장면 분량에 비례해 늘리거나(최대 1.5배) 줄여요(최소 0.5배). 0.5분 단위.
+ *  1) drop(기본 true)일 때만: 0.7배로 줄여도 넘치면 덜 중요한 것부터 꺼요: 소제목마다 둘째 이후 예제 → '문제' 구간 칠판 문제 6번째부터
+ *     → 먼저 알고 가요 → 이야기 한 장면 · 지난 시간 되짚기 → 남은 예제 → 둘째 이후 체험 → '문제' 구간 칠판 문제 4·5번째.
+ *     필수(질문·개념·정리·끝)와 소제목 끝 확인 문제(secCheck)는 끄지 않아요. 칠판 문제는 적어도 3개는 남겨요.
+ *  2) 남거나 모자란 시간은 장면 분량에 비례해 늘리거나(최대 1.5배) 줄여요(drop 이면 최소 0.5배, 아니면 0.7배). 0.5분 단위.
+ *     그래도 넘치면 over 에 넘친 분을 적어요.
  */
-export function allocate<S extends Scene & { baseMin?: number }>(input: readonly S[], minutes: number): { scenes: S[]; total: number; dropped: string[] } {
+export function allocate<S extends Scene & { baseMin?: number; secCheck?: number }>(
+  input: readonly S[],
+  minutes: number,
+  opts: { drop?: boolean } = {},
+): AllocateResult<S> {
+  const drop = opts.drop !== false;
   const scenes = input.map((s) => ({ ...s, estMin: s.baseMin !== undefined ? s.baseMin : s.estMin }));
   const dropped: string[] = [];
   const base = () => {
@@ -595,11 +690,11 @@ export function allocate<S extends Scene & { baseMin?: number }>(input: readonly
     return t;
   };
   const off = (s: S) => {
-    if (!s.on || s.required) return;
+    if (!s.on || s.required || s.secCheck !== undefined) return;
     s.on = false;
     dropped.push(s.id);
   };
-  const problems = scenes.filter((s) => s.kind === "problem");
+  const problems = scenes.filter((s) => s.kind === "problem" && s.secCheck === undefined);
   const examples = scenes.filter((s) => s.kind === "example");
   const firstEx: Record<number, string> = {};
   for (const e of examples) if (e.section !== undefined && firstEx[e.section] === undefined) firstEx[e.section] = e.id.replace(/\+\d+$/, "");
@@ -608,6 +703,7 @@ export function allocate<S extends Scene & { baseMin?: number }>(input: readonly
     () => examples.filter((e) => e.section === undefined || firstEx[e.section] !== exRoot(e)).reverse(),
     () => problems.slice(5).reverse(),
     () => scenes.filter((s) => s.kind === "prereq"),
+    () => scenes.filter((s) => s.id === "story-brief" || s.id === "recap"),
     () => examples.slice().reverse(),
     () => scenes.filter((s) => s.kind === "widget").slice(1).reverse(),
     () => problems.slice(3, 5).reverse(),
@@ -616,7 +712,7 @@ export function allocate<S extends Scene & { baseMin?: number }>(input: readonly
   const room = minutes / SQUEEZE;
   const onCount = () => scenes.filter((s) => s.on).length;
   const tooMuch = () => base() > room || onCount() > MAX_ON;
-  for (const step of steps) {
+  for (const step of drop ? steps : []) {
     if (!tooMuch()) break;
     for (const s of step()) {
       if (!tooMuch()) break;
@@ -627,10 +723,11 @@ export function allocate<S extends Scene & { baseMin?: number }>(input: readonly
   }
   const t0 = base();
   if (t0 > 0) {
-    const f = Math.max(0.5, Math.min(1.5, minutes / t0));
+    const floor = drop ? 0.5 : SQUEEZE;
+    const f = Math.max(floor, Math.min(1.5, minutes / t0));
     for (const s of scenes) s.estMin = round05(s.estMin * f);
     // 0.5분 반올림으로 생긴 차이를 큰 장면부터 0.5분씩 고쳐요(배율 한도 안에서)
-    const lo = t0 * 0.5;
+    const lo = t0 * floor;
     const hi = t0 * 1.5;
     const target = Math.max(lo, Math.min(hi, minutes));
     const ons = scenes.filter((s) => s.on).sort((a, b) => b.estMin - a.estMin);
@@ -645,14 +742,32 @@ export function allocate<S extends Scene & { baseMin?: number }>(input: readonly
       } else break;
     }
   }
-  return { scenes, total: sumOn(scenes), dropped };
+  const total = sumOn(scenes);
+  return { scenes, total, dropped, over: Math.max(0, total - minutes) };
 }
 
-/** '필수만': 필수 장면만 켜고 다시 배분해요 */
-export function requiredOnly<S extends Scene & { baseMin?: number }>(scenes: readonly S[], minutes: number): { scenes: S[]; total: number; dropped: string[] } {
-  return allocate(
-    scenes.map((s) => ({ ...s, on: s.required })),
+/**
+ * 줄이기 제안: 지금 켜진 장면 그대로 자동 끄기(allocate drop)를 해 보고, 끄게 되는 장면을 돌려줘요(장면은 바꾸지 않아요).
+ * 넘치지 않으면 빈 목록. 소제목 끝 확인 문제는 제안에도 넣지 않아요.
+ */
+export function suggestCuts<S extends Scene & { baseMin?: number; secCheck?: number; qid?: string }>(scenes: readonly S[], minutes: number): CutSuggestion {
+  const r = allocate(scenes, minutes, { drop: true });
+  // 제안대로 끈 흐름을 다시 배분(자동 끄기 없이)한 합 — 교사가 '줄이기'를 누른 뒤 보게 될 값과 같아요
+  const offs = r.dropped;
+  const after = allocate(
+    scenes.map((s) => (offs.indexOf(s.id) >= 0 ? { ...s, on: false } : s)),
     minutes,
+    { drop: false },
+  );
+  return { dropped: offs, total: after.total, over: after.over, toHw: homeworkFromOff(after.scenes) };
+}
+
+/** '필수만': 필수 장면(과 소제목 끝 확인 문제)만 켜고 다시 배분해요 */
+export function requiredOnly<S extends Scene & { baseMin?: number; secCheck?: number }>(scenes: readonly S[], minutes: number): AllocateResult<S> {
+  return allocate(
+    scenes.map((s) => ({ ...s, on: s.required || s.secCheck !== undefined })),
+    minutes,
+    { drop: false },
   );
 }
 
@@ -662,12 +777,15 @@ export function sceneRoot(id: string): string {
 }
 
 /** 교사가 흐름 화면에서 바꾼 값(켜기/끄기·분)을 덮어써요. 필수 장면은 끌 수 없어요 */
-export function applyFlow<S extends Scene & { baseMin?: number }>(
+export function applyFlow<S extends Scene & { baseMin?: number; secCheck?: number; qid?: string }>(
   scenes: readonly S[],
   state: { off?: readonly string[]; on?: readonly string[]; min?: Record<string, number> } | null | undefined,
   minutes: number,
-): { scenes: S[]; total: number; dropped: string[] } {
-  if (!state) return allocate(scenes, minutes);
+): AllocateResult<S> & { suggest: CutSuggestion } {
+  if (!state) {
+    const r0 = allocate(scenes, minutes, { drop: false });
+    return { ...r0, suggest: suggestCuts(scenes, minutes) };
+  }
   // "이어서" 조각(id+2, id+3…)은 한 장면처럼 함께 켜고 꺼요(예제 앞쪽만 켜져 답이 빠지는 일이 없게)
   const offs = (state.off || []).map(sceneRoot);
   const ons = (state.on || []).map(sceneRoot);
@@ -680,7 +798,9 @@ export function applyFlow<S extends Scene & { baseMin?: number }>(
   });
   // 교사가 직접 켠 장면은 자동으로 끄지 않게 필수처럼 다뤄요(배분이 끝나면 원래대로)
   const pinned = toggled.map((s) => (ons.indexOf(sceneRoot(s.id)) >= 0 ? { ...s, required: true } : s));
-  const res = allocate(pinned, minutes);
+  // 교사가 고친 흐름은 자동으로 끄지 않아요(넘치면 over 와 제안만)
+  const res = allocate(pinned, minutes, { drop: false });
+  const suggest = suggestCuts(pinned, minutes);
   res.scenes = res.scenes.map((s, i) => {
     const m = state.min ? state.min[s.id] : undefined;
     const out = { ...s, required: toggled[i].required };
@@ -688,7 +808,8 @@ export function applyFlow<S extends Scene & { baseMin?: number }>(
     return out;
   });
   res.total = sumOn(res.scenes);
-  return res;
+  res.over = Math.max(0, res.total - minutes);
+  return { ...res, suggest };
 }
 
 /** 꺼진 칠판 문제는 숙제로 돌아가요 */

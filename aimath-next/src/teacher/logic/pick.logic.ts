@@ -1,7 +1,9 @@
 // 문제 고르기(칠판 · 수업 끝 확인 · 숙제)와 학생 링크 만들기. 순수 로직(DOM 없음), 늘 같은 결과(무작위 없음).
-//  - 칠판 5~8개: 개념 확인 2 → 소제목별 기초 → 쉬운 응용 1 → 실력 UP 1. 서술형(open)은 빼요.
+//  - 칠판 5~8개: 소제목 끝 확인 문제(소제목마다 1개, plan.sectionChecks) → 개념 확인 → 소제목별 기초 → 쉬운 응용 1 → 실력 UP 1. 서술형(open)은 빼요.
 //  - 끝 확인 3개: choice·ox, 난이도 1~3, 칠판과 겹치지 않게.
 //  - 숙제 5개: 칠판·끝 확인과 겹치지 않게.
+//  - 차시를 나눈 레슨(2차시 이상)에서는 세 바구니 모두 이 차시 소제목에 속한 문제(inP)만 골라요.
+//    쉬운 응용·실력 UP·도전처럼 원래 '레슨 전체'인 문제는 plan.json 의 secOf 태그로 소제목을 정해요.
 //  - 학생 링크: https://aimaths.web.app/#/l/:lid?hw=…&ex=… (문제 id 만. 반·이름 같은 개인 정보는 넣지 않아요)
 import type { Lesson, PlanLesson, Question } from "../../shared/contracts.ts";
 import type { PeriodInfo } from "./periods.logic.ts";
@@ -20,6 +22,17 @@ export const EXIT_N = 3;
 export const HW_N = 5;
 
 type L = Pick<Lesson, "id" | "sections" | "practice">;
+
+/** plan.json 레슨 항목 가운데 이 파일이 읽는 덧붙은 필드(contracts 의 PlanLesson 밖) */
+export interface PlanTags {
+  /** 문제 id → 소제목 번호 덧씌우기(내용 기준 태그). 기본 규칙과 다른 것만 적어요 */
+  secOf?: Record<string, number>;
+}
+type PlanLike = (Partial<Pick<PlanLesson, "sectionChecks" | "board" | "exit" | "hw">> & PlanTags) | null | undefined;
+
+function tagsOf(plan: PlanLike): PlanTags {
+  return (plan || {}) as PlanTags;
+}
 
 /** group 첫머리로 문제 갈래를 정해요 */
 export function qKind(q: Pick<Question, "group">): QKind {
@@ -49,11 +62,28 @@ function bigrams(s: string): string[] {
 }
 
 /**
- * 문제 id → 소제목 번호(0부터). 쉬운 응용·실력 UP·도전은 레슨 전체(-1).
+ * 문제 id → 소제목 번호(0부터).
+ *  기본 규칙(plan 없이)
  *  - 기초력 UP: 유형 이름과 소제목 제목이 겹치는 두 글자 묶음이 2개 이상이면 그 소제목, 아니면 유형 순서대로 고르게 나눠요.
  *  - 개념 확인: 나온 순서대로 소제목에 고르게 나눠요.
+ *  - 쉬운 응용·실력 UP·도전은 레슨 전체(-1).
+ *  plan.secOf 가 있으면 그 값(내용 기준으로 붙인 태그)을 덧씌워요. 범위를 벗어난 값은 무시해요.
  */
-export function questionSections(lesson: L): Record<string, number> {
+export function questionSections(lesson: L, plan?: PlanLike): Record<string, number> {
+  const out = baseSections(lesson);
+  const tags = tagsOf(plan).secOf;
+  if (tags) {
+    const S = lesson.sections.length;
+    for (const q of lesson.practice) {
+      const v = tags[q.id];
+      if (typeof v === "number" && Number.isInteger(v) && v >= 0 && v < S) out[q.id] = v;
+    }
+  }
+  return out;
+}
+
+/** plan 없이 쓰는 기본 규칙(위 설명) */
+export function baseSections(lesson: L): Record<string, number> {
   const S = Math.max(1, lesson.sections.length);
   const out: Record<string, number> = {};
   const checks = lesson.practice.filter((q) => qKind(q) === "check");
@@ -102,30 +132,83 @@ function stableSort<T>(arr: T[], cmp: (a: T, b: T) => number, order: (t: T) => n
   return arr.slice().sort((a, b) => cmp(a, b) || order(a) - order(b));
 }
 
+/**
+ * 소제목 끝 확인 문제(소제목마다 1개). 칠판에서는 그 소제목 개념 장면 바로 뒤에 나와요.
+ *  - plan.sectionChecks[s] 가운데 실제로 있고 서술형이 아닌 첫 문제
+ *  - 없으면: 그 소제목(secOf)의 개념 확인 문제 → 가장 쉬운 기초 문제(선택형·OX 먼저)
+ */
+export function sectionCheckIds(lesson: L, plan: PlanLike, sections?: readonly number[]): { s: number; id: string }[] {
+  const secOf = questionSections(lesson, plan);
+  const S = lesson.sections.length;
+  const list = sections && sections.length ? sections : lesson.sections.map((_, i) => i);
+  const byId: Record<string, Question> = {};
+  const order: Record<string, number> = {};
+  lesson.practice.forEach((q, i) => {
+    byId[q.id] = q;
+    order[q.id] = i;
+  });
+  const out: { s: number; id: string }[] = [];
+  const used: string[] = [];
+  for (const s of list) {
+    if (!(s >= 0 && s < S)) continue;
+    const fromPlan = plan && plan.sectionChecks && plan.sectionChecks[s] ? plan.sectionChecks[s] : [];
+    let id = "";
+    for (const x of fromPlan) {
+      const q = byId[x];
+      if (q && q.type !== "open" && used.indexOf(x) < 0) {
+        id = x;
+        break;
+      }
+    }
+    if (!id) {
+      const mine = lesson.practice.filter((q) => q.type !== "open" && secOf[q.id] === s && used.indexOf(q.id) < 0);
+      const chk = mine.filter((q) => qKind(q) === "check")[0];
+      const basic = stableSort(
+        mine.filter((q) => qKind(q) === "basic"),
+        (a, b) => typeRank(a, ["choice", "ox", "number"]) - typeRank(b, ["choice", "ox", "number"]) || a.level - b.level,
+        (q) => order[q.id],
+      )[0];
+      const q = chk || basic;
+      if (q) id = q.id;
+    }
+    if (id) {
+      out.push({ s, id });
+      used.push(id);
+    }
+  }
+  return out;
+}
+
 export interface PickContext {
   lesson: L;
   /** 이 차시 소제목. 없으면 레슨 전체 */
   sections?: number[];
   /** 차시 번호(1부터) — 레슨 전체 문제(쉬운 응용·실력 UP)를 차시마다 다르게 고를 때 */
   p?: number;
+  /** plan.json 의 이 레슨(secOf 태그를 읽어요) */
+  plan?: PlanLike;
+  /** 차시를 나눈 레슨의 한 차시면 true: 모든 문제를 이 차시 소제목(inP) 안에서만 골라요 */
+  split?: boolean;
 }
 
 function ctx(c: PickContext) {
   const { lesson } = c;
   const order: Record<string, number> = {};
   lesson.practice.forEach((q, i) => (order[q.id] = i));
-  const secOf = questionSections(lesson);
+  const secOf = questionSections(lesson, c.plan);
   const all = lesson.sections.map((_, i) => i);
   const P = c.sections && c.sections.length ? c.sections : all;
   const inP = (q: Question) => P.indexOf(secOf[q.id]) >= 0;
+  /** 고를 수 있는 문제: 나눈 차시면 inP 만, 아니면 레슨 전체 */
+  const okQ = (q: Question) => (c.split ? inP(q) : true);
   const ord = (q: Question) => order[q.id];
-  return { lesson, order, secOf, P, inP, ord, p: c.p && c.p > 0 ? c.p : 1 };
+  return { lesson, order, secOf, P, inP, okQ, split: !!c.split, ord, p: c.p && c.p > 0 ? c.p : 1 };
 }
 
 /** 칠판 문제 5~8개(쉬운 것부터) */
 export function pickBoard(c: PickContext): string[] {
-  const { lesson, secOf, P, inP, ord, p } = ctx(c);
-  const usable = lesson.practice.filter((q) => q.type !== "open");
+  const { lesson, secOf, P, inP, okQ, ord, p } = ctx(c);
+  const usable = lesson.practice.filter((q) => q.type !== "open" && okQ(q));
   const taken: string[] = [];
   const take = (q: Question | undefined) => {
     if (q && taken.indexOf(q.id) < 0) taken.push(q.id);
@@ -166,7 +249,7 @@ export function pickBoard(c: PickContext): string[] {
     basicPicks.push(got.map((q) => q.id));
   }
 
-  // 3) 쉬운 응용 1, 실력 UP 1: 레슨 전체 문제라 차시마다 돌아가며 골라요
+  // 3) 쉬운 응용 1, 실력 UP 1: 나눈 차시면 이 차시 소제목 것만(usable 이 이미 걸러요), 아니면 차시마다 돌아가며 골라요
   const rot = (arr: Question[]) => (arr.length ? arr[(p - 1) % arr.length] : undefined);
   const easy = rot(stableSort(usable.filter((q) => qKind(q) === "easy" && q.level <= 3), byLevelNear(2), ord));
   const adv = rot(stableSort(usable.filter((q) => qKind(q) === "adv"), (a, b) => a.level - b.level, ord));
@@ -235,8 +318,8 @@ function kindRank(k: QKind): number {
 
 /** 수업 끝 확인 3개: choice·ox, 난이도 1~3, exclude 와 겹치지 않게, 서로 다른 유형을 먼저 */
 export function pickExit(c: PickContext, exclude: readonly string[] = []): string[] {
-  const { lesson, inP, ord } = ctx(c);
-  const free = lesson.practice.filter((q) => exclude.indexOf(q.id) < 0 && q.type !== "open");
+  const { lesson, inP, okQ, ord } = ctx(c);
+  const free = lesson.practice.filter((q) => exclude.indexOf(q.id) < 0 && q.type !== "open" && okQ(q));
   const lvRank = (q: Question) => (q.level === 2 ? 0 : q.level === 1 ? 1 : 2);
   const tiers: Question[][] = [
     free.filter((q) => (q.type === "choice" || q.type === "ox") && q.level <= 3 && inP(q)),
@@ -270,8 +353,8 @@ function ordOf(lesson: L, id: string): number {
 
 /** 숙제 5개: 소제목마다 돌아가며 기초(난이도 2~3) → 쉬운 응용 1 → 실력 UP 1 → 나머지로 채움 */
 export function pickHw(c: PickContext, exclude: readonly string[] = []): string[] {
-  const { lesson, secOf, P, inP, ord } = ctx(c);
-  const free = lesson.practice.filter((q) => exclude.indexOf(q.id) < 0 && q.type !== "open");
+  const { lesson, secOf, P, inP, okQ, ord } = ctx(c);
+  const free = lesson.practice.filter((q) => exclude.indexOf(q.id) < 0 && q.type !== "open" && okQ(q));
   const out: string[] = [];
   const add = (q: Question | undefined) => {
     if (q && out.length < HW_N && out.indexOf(q.id) < 0) out.push(q.id);
@@ -315,24 +398,66 @@ export function validIds(lesson: L, ids: readonly string[] | undefined, opts: { 
   return out;
 }
 
+/** 차시를 나눈 레슨의 한 차시인가(이때는 모든 바구니를 그 차시 소제목 안에서만 골라요) */
+export function isSplitPeriod(period?: Pick<PeriodInfo, "p" | "n"> | null): boolean {
+  return !!period && period.n > 1 && period.p > 0;
+}
+
+/** 칠판 목록 = 소제목 끝 확인(소제목 차례) + 나머지(모두 max 개까지, 기본 BOARD_MAX) */
+export function mergeBoard(checks: readonly string[], rest: readonly string[], max: number = BOARD_MAX): string[] {
+  const out = checks.slice();
+  const room = Math.max(0, max - out.length);
+  let n = 0;
+  for (const id of rest) {
+    if (n >= room) break;
+    if (out.indexOf(id) >= 0) continue;
+    out.push(id);
+    n++;
+  }
+  return out;
+}
+
 /**
  * 한 차시의 문제 바구니 3개. plan.json 에 차시(또는 1차시 레슨)용 목록이 있으면 그것을 쓰고, 없으면 자동으로 골라요.
+ *  - 칠판 앞머리에는 늘 이 차시 소제목들의 끝 확인 문제(소제목마다 1개)가 소제목 차례로 들어가요.
+ *  - 차시를 나눈 레슨이면 plan 목록도 이 차시 소제목(inP) 문제만 남겨요.
  * 교사가 바구니를 고친 값(TeacherData.pick)은 화면 쪽에서 이 결과 위에 덮어써요.
  */
-export function pickAll(lesson: L, plan?: PlanLesson | null, period?: Pick<PeriodInfo, "p" | "n" | "sections" | "plan"> | null): PickSet {
-  const c: PickContext = { lesson, sections: period ? period.sections : undefined, p: period ? period.p : 1 };
+export function pickAll(lesson: L, plan?: (PlanLesson & PlanTags) | null, period?: Pick<PeriodInfo, "p" | "n" | "sections" | "plan"> | null): PickSet {
+  const split = isSplitPeriod(period);
+  const c: PickContext = { lesson, sections: period ? period.sections : undefined, p: period ? period.p : 1, plan, split };
+  const { okQ } = ctx(c);
   const pp = period && period.plan ? period.plan : undefined;
   const whole = !period || period.n <= 1 || period.p === 0;
+  const keepOk = (ids: string[]) => (split ? ids.filter((id) => okQ(lesson.practice.filter((q) => q.id === id)[0])) : ids);
+  const checks = sectionCheckIds(lesson, plan, period ? period.sections : undefined).map((x) => x.id);
 
-  let board = validIds(lesson, pp && pp.board ? pp.board : whole && plan ? plan.board : undefined, { noOpen: true });
-  if (!board.length) board = pickBoard(c);
-  board = board.slice(0, BOARD_MAX);
+  // 나눈 차시는 고를 문제가 적을 수 있어요: 끝 확인 3 · 숙제 5 몫을 남기도록 칠판을 줄여요(5개 아래로는 줄이지 않아요)
+  let cap = BOARD_MAX;
+  if (split) {
+    const pool = lesson.practice.filter((q) => q.type !== "open" && okQ(q)).length;
+    cap = Math.max(BOARD_MIN, Math.min(BOARD_MAX, pool - EXIT_N - HW_N));
+  }
+  // plan 목록을 이 차시 것만 남겼더니 모자라면 자동으로 고른 것으로 채워요
+  const topUp = (have: string[], auto: () => string[], n: number) => {
+    if (!have.length) return auto();
+    if (!split || have.length >= n) return have;
+    const out = have.slice();
+    for (const id of auto()) {
+      if (out.length >= n) break;
+      if (out.indexOf(id) < 0) out.push(id);
+    }
+    return out;
+  };
+  let board = keepOk(validIds(lesson, pp && pp.board ? pp.board : whole && plan ? plan.board : undefined, { noOpen: true }));
+  board = topUp(board, () => pickBoard(c), BOARD_MIN);
+  board = mergeBoard(checks, board, cap);
 
-  let exit = validIds(lesson, pp && pp.exit ? pp.exit : whole && plan ? plan.exit : undefined, { noOpen: true, exclude: board });
-  if (!exit.length) exit = pickExit(c, board);
+  let exit = keepOk(validIds(lesson, pp && pp.exit ? pp.exit : whole && plan ? plan.exit : undefined, { noOpen: true, exclude: board }));
+  exit = topUp(exit, () => pickExit(c, board.concat(exit)), EXIT_N);
 
-  let hw = validIds(lesson, pp && pp.hw ? pp.hw : whole && plan ? plan.hw : undefined, { noOpen: true, exclude: board.concat(exit) });
-  if (!hw.length) hw = pickHw(c, board.concat(exit));
+  let hw = keepOk(validIds(lesson, pp && pp.hw ? pp.hw : whole && plan ? plan.hw : undefined, { noOpen: true, exclude: board.concat(exit) }));
+  hw = topUp(hw, () => pickHw(c, board.concat(exit, hw)), HW_N);
   return { board, exit, hw };
 }
 

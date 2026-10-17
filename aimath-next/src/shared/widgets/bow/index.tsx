@@ -88,10 +88,10 @@ export default function Bow(props: WidgetProps) {
         {st.nUnion}개
       </Big>
       <Hide label="계산 과정">
-      <Tex block tex={`n(A\\cup B)=n(A)+n(B)-n(A\\cap B)=${st.nA}+${st.nB}-${st.nInter}=${st.rhs}`} />
-      <Verdict ok={st.holds}>
-        A의 단어 {st.nA}개, B의 단어 {st.nB}개, 함께 쓴 단어 {st.nInter}개({uniqueInOrder(ta.filter((w) => tb.indexOf(w) >= 0)).join(", ") || "없음"})예요. 단어집합 크기 {st.nUnion}개와 같아요.
-      </Verdict>
+        <Tex block tex={`n(A\\cup B)=n(A)+n(B)-n(A\\cap B)=${st.nA}+${st.nB}-${st.nInter}=${st.rhs}`} />
+        <Verdict ok={st.holds}>
+          A의 단어 {st.nA}개, B의 단어 {st.nB}개, 함께 쓴 단어 {st.nInter}개({uniqueInOrder(ta.filter((w) => tb.indexOf(w) >= 0)).join(", ") || "없음"})예요. 단어집합 크기 {st.nUnion}개와 같아요.
+        </Verdict>
       </Hide>
     </div>
   );

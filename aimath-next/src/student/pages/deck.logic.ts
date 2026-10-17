@@ -130,3 +130,39 @@ export function secOfStep(id: string): number {
   const m = /^c(\d+)$/.exec(id);
   return m ? parseInt(m[1], 10) - 1 : -1;
 }
+
+/** 머리 제목용 짧은 소제목: 앞 번호·괄호 풀이를 걷고, 길면 뒤쪽을 '…'로 줄여요(앞에는 말줄임을 붙이지 않아요).
+ *  수식($…$)이 들어 있으면 수식 가운데서 자르지 않아요. */
+export function shortHeading(h: string, max = 16): string {
+  let t = String(h || "")
+    .replace(/^\s*\d+\.\s*/, "")
+    .replace(/\s*\([^)]*\)\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  // "A: B", "A — B" 처럼 덧붙인 설명은 앞부분만
+  const m = /^(.{4,}?)\s*(?::|—|–| - )\s+/.exec(t);
+  if (m && t.length > max) t = m[1].trim();
+  if (t.length <= max) return t;
+  let cut = t.slice(0, max);
+  if ((cut.match(/\$/g) || []).length % 2 === 1) cut = cut.slice(0, cut.lastIndexOf("$"));
+  const sp = cut.lastIndexOf(" ");
+  if (sp >= Math.floor(max / 2)) cut = cut.slice(0, sp);
+  cut = cut.replace(/[\s,.·:;—–-]+$/, "");
+  return cut ? cut + "…" : t.slice(0, max) + "…";
+}
+
+/** 머리 제목: 개념 단계면 "개념 n · 짧은 제목", 그 밖이면 단계 이름 */
+export function deckTitle(step: DeckStep, headings: readonly string[]): string {
+  if (step.kind === "concept" && step.sec !== undefined && headings[step.sec] !== undefined) {
+    const s = shortHeading(headings[step.sec]);
+    return s ? step.label + " · " + s : step.label;
+  }
+  return step.label;
+}
+
+/** 이야기 단계의 위치(위 칩과 아래 막대가 같은 값을 쓰게): n 은 1부터, total 은 그 단계 카드 수 */
+export function storyCount(steps: readonly DeckStep[], p: DeckPos): { n: number; total: number } | null {
+  const st = steps[p.s];
+  if (!st || st.kind !== "story") return null;
+  return { n: p.c + 1, total: st.cards.length };
+}

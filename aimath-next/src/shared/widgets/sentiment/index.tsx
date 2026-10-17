@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { WidgetProps } from "../../contracts.ts";
 import { highlight, matchReview, totalScore, verdict, type DictEntry } from "@legacy/widgets/Sentiment.logic";
 import Stepper from "../Stepper.tsx";
-import { Big, Btn, Hide, Note, Row, Table, Tex, useIsBoard } from "../kit.tsx";
+import { Big, Btn, Hide, Note, Row, Split, Table, Tex, useIsBoard } from "../kit.tsx";
 import { mission } from "./mission.ts";
 import { useMission } from "../useMission.ts";
 
@@ -39,8 +39,8 @@ export default function Sentiment(props: WidgetProps) {
   const segs = highlight(text, DICT);
   useMission(props, mission, { matches: matches.length, total, verdict: v, trickySeen });
 
-  return (
-    <div className="wg-body">
+  const review = (
+    <>
       <Row>
         {REVIEWS.map((r) => (
           <Btn key={r.name} onClick={() => setText(r.text)}>
@@ -66,20 +66,38 @@ export default function Sentiment(props: WidgetProps) {
           ),
         )}
       </p>
-      <Table
-        caption="감성 사전(일부)"
-        head={["낱말", "점수"]}
-        rows={DICT.map((d) => [d.word, sign(d.score)])}
-      />
+    </>
+  );
+  // 칠판: 사전 표(11줄) 대신 낱말 칩으로 줄여 세로 자리를 아껴요
+  const dict = board ? (
+    <div>
+      <p className="wg-line-label">감성 사전(일부)</p>
+      <ul className="wg-dict" aria-label="감성 사전(일부)">
+        {DICT.map((d) => (
+          <li key={d.word} className={d.score > 0 ? "is-pos" : "is-neg"}>
+            {d.word} <b>{sign(d.score)}</b>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : (
+    <Table caption="감성 사전(일부)" head={["낱말", "점수"]} rows={DICT.map((d) => [d.word, sign(d.score)])} />
+  );
+  const calc = (
+    <>
       <Hide label="점수 합계">
-      <Tex block tex={matches.length ? `\\text{합계}=${matches.map((m) => (m.score < 0 ? `(${m.score})` : String(m.score))).join("+")}=${total}` : "\\text{합계}=0"} />
+        <Tex block tex={matches.length ? `\\text{합계}=${matches.map((m) => (m.score < 0 ? `(${m.score})` : String(m.score))).join("+")}=${total}` : "\\text{합계}=0"} />
       </Hide>
-      <Stepper label="기준점 t" value={threshold} min={1} max={4} onChange={setThreshold} />
+      <Stepper inline label="기준점 t" value={threshold} min={1} max={4} onChange={setThreshold} />
       <Big label="판정" tone={v === "긍정" ? "ok" : v === "부정" ? "bad" : "plain"} sub={`합계 ${sign(total)}, 기준 ±${threshold}`}>
         {v === "긍정" ? "＋ " : v === "부정" ? "− " : "○ "}
         {v}
       </Big>
       <Note>합계가 t 이상이면 긍정, −t 이하면 부정, 그 사이면 중립이에요.</Note>
+    </>
+  );
+  const tricky = (
+    <>
       <p className="wg-line-label">사전이 헷갈리는 문장</p>
       <Row>
         {TRICKY.map((t) => (
@@ -95,6 +113,32 @@ export default function Sentiment(props: WidgetProps) {
         ))}
       </Row>
       {trickySeen ? <Note>'않다', '~기엔' 같은 말은 사전에 점수가 없어서 뜻이 뒤집혀도 점수는 그대로예요. 사전 방식의 한계예요.</Note> : null}
+    </>
+  );
+
+  // 칠판: 왼쪽 = 후기 고르기·색칠된 후기, 가운데 = 사전·헷갈리는 문장, 오른쪽 = 합계·기준점·판정
+  if (board) {
+    return (
+      <div className="wg-body wg-body-split">
+        <Split
+          a={review}
+          b={
+            <>
+              {dict}
+              {tricky}
+            </>
+          }
+          c={calc}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="wg-body">
+      {review}
+      {dict}
+      {calc}
+      {tricky}
     </div>
   );
 }

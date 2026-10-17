@@ -1,9 +1,26 @@
 // 행렬로 이미지 바꾸기: 6×6 흑백 그림(0~255 행렬)에 밝기·반전·대칭·회전·필터를 차례로 적용해요.
 import { useState } from "react";
 import type { WidgetProps } from "../../contracts.ts";
-import { PRESETS, blur, brightness, contrast, edge, flipH, flipV, invert, matrixTex, rotateCCW, rotateCW, sharpen, transpose, cycleValue, type Img, type OpResult } from "@legacy/widgets/ImgTransform.logic";
+import {
+  PRESETS,
+  blur,
+  brightness,
+  contrast,
+  edge,
+  flipH,
+  flipV,
+  invert,
+  matrixTex,
+  rotateCCW,
+  rotateCW,
+  sharpen,
+  transpose,
+  cycleValue,
+  type Img,
+  type OpResult,
+} from "@legacy/widgets/ImgTransform.logic";
 import Stepper from "../Stepper.tsx";
-import { Big, Note, Row, Seg, Tex } from "../kit.tsx";
+import { Big, Note, Row, Seg, Split, Tex, useIsBoard } from "../kit.tsx";
 import { mission } from "./mission.ts";
 import { useMission } from "../useMission.ts";
 
@@ -27,7 +44,7 @@ const res = (img: Img): OpResult => ({ img, clipped: 0 });
 function Pic({ img, label, onCell }: { img: Img; label: string; onCell?: (i: number, j: number) => void }) {
   const C = img.length ? img[0].length : 0;
   return (
-    <div className="wg-pixels wg-pic" style={{ gridTemplateColumns: `repeat(${C}, 1fr)` }} role="img" aria-label={label}>
+    <div className={"wg-pixels wg-pic" + (onCell ? " is-edit" : " is-view")} style={{ gridTemplateColumns: `repeat(${C}, 1fr)` }} role="img" aria-label={label}>
       {img.map((row, i) =>
         row.map((v, j) =>
           onCell ? (
@@ -46,6 +63,7 @@ function Pic({ img, label, onCell }: { img: Img; label: string; onCell?: (i: num
 }
 
 export default function ImgTransform(props: WidgetProps) {
+  const board = useIsBoard();
   const [preset, setPreset] = useState("smiley");
   const [start, setStart] = useState<Img>(PRESETS.smiley.img);
   const [img, setImg] = useState<Img>(PRESETS.smiley.img);
@@ -65,17 +83,27 @@ export default function ImgTransform(props: WidgetProps) {
   };
   const apply = (key: OpKey) => {
     const r: OpResult =
-      key === "bright" ? brightness(img, k)
-      : key === "contrast" ? contrast(img, a)
-      : key === "invert" ? invert(img)
-      : key === "flipH" ? res(flipH(img))
-      : key === "flipV" ? res(flipV(img))
-      : key === "transpose" ? res(transpose(img))
-      : key === "rotCW" ? res(rotateCW(img))
-      : key === "rotCCW" ? res(rotateCCW(img))
-      : key === "blur" ? blur(img)
-      : key === "sharpen" ? sharpen(img)
-      : edge(img);
+      key === "bright"
+        ? brightness(img, k)
+        : key === "contrast"
+          ? contrast(img, a)
+          : key === "invert"
+            ? invert(img)
+            : key === "flipH"
+              ? res(flipH(img))
+              : key === "flipV"
+                ? res(flipV(img))
+                : key === "transpose"
+                  ? res(transpose(img))
+                  : key === "rotCW"
+                    ? res(rotateCW(img))
+                    : key === "rotCCW"
+                      ? res(rotateCCW(img))
+                      : key === "blur"
+                        ? blur(img)
+                        : key === "sharpen"
+                          ? sharpen(img)
+                          : edge(img);
     setImg(r.img);
     setClipped(r.clipped);
     setOps(ops.concat([key]));
@@ -92,25 +120,29 @@ export default function ImgTransform(props: WidgetProps) {
     return f ? f.label : o;
   });
 
-  return (
-    <div className="wg-body">
-      <Seg label="그림" value={preset} options={Object.keys(PRESETS).map((id) => ({ value: id, label: PRESETS[id].label }))} onChange={choose} />
-      <div className="wg-two">
-        <div className="wg-card">
-          <h4 className="wg-h">처음 그림</h4>
-          <Pic img={start} label="처음 그림(칸을 누르면 밝기가 바뀌어요)" onCell={editStart} />
-          <Note>칸을 누르면 0 → 64 → 128 → 192 → 255 차례로 바뀌어요.</Note>
-        </div>
-        <div className="wg-card">
-          <h4 className="wg-h">바꾼 그림</h4>
-          <Pic img={img} label="연산을 적용한 그림" />
-          <p className="wg-line">{isSame ? "처음 그림과 같아요." : "처음 그림과 달라요."}</p>
-        </div>
-      </div>
-      <Row>
-        <Stepper label="밝기 k" value={k} min={-120} max={120} step={10} onChange={setK} />
-        <Stepper label="대비 a" value={a} min={0.5} max={3} step={0.5} onChange={setA} />
-      </Row>
+  const seg = <Seg label="그림" value={preset} options={Object.keys(PRESETS).map((id) => ({ value: id, label: PRESETS[id].label }))} onChange={choose} />;
+  const steppers = (
+    <Row>
+      <Stepper inline label="밝기 k" value={k} min={-120} max={120} step={10} onChange={setK} />
+      <Stepper inline label="대비 a" value={a} min={0.5} max={3} step={0.5} onChange={setA} />
+    </Row>
+  );
+  const startCard = (
+    <div className="wg-card">
+      <h4 className="wg-h">처음 그림</h4>
+      <Pic img={start} label="처음 그림(칸을 누르면 밝기가 바뀌어요)" onCell={editStart} />
+      <Note>칸을 누르면 0 → 64 → 128 → 192 → 255 차례로 바뀌어요.</Note>
+    </div>
+  );
+  const nowCard = (
+    <div className="wg-card">
+      <h4 className="wg-h">바꾼 그림</h4>
+      <Pic img={img} label="연산을 적용한 그림" />
+      <p className="wg-line">{isSame ? "처음 그림과 같아요." : "처음 그림과 달라요."}</p>
+    </div>
+  );
+  const opsBox = (
+    <>
       <div className="wg-chips" role="group" aria-label="연산 적용하기">
         {OPS.map((o) => (
           <button key={o.key} type="button" className="wg-btn wg-chip-btn" onClick={() => apply(o.key)}>
@@ -134,7 +166,41 @@ export default function ImgTransform(props: WidgetProps) {
         {isSame ? "같아요" : "달라요"}
       </Big>
       {clipped > 0 ? <Note>0보다 작거나 255보다 큰 값 {clipped}칸은 0 또는 255로 잘랐어요.</Note> : null}
-      <Tex block tex={matrixTex(img)} />
+    </>
+  );
+  const mat = <Tex block tex={matrixTex(img)} />;
+
+  // 칠판: 맨 위 = 그림 고르기·밝기 k·대비 a, 아래 = [처음 그림 | 바꾼 그림 + 행렬 | 연산 단추·비교]
+  if (board) {
+    return (
+      <div className="wg-body wg-body-split">
+        <div className="wg-topline">
+          {seg}
+          {steppers}
+        </div>
+        <Split
+          a={startCard}
+          b={
+            <>
+              {nowCard}
+              {mat}
+            </>
+          }
+          c={opsBox}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="wg-body">
+      {seg}
+      <div className="wg-two">
+        {startCard}
+        {nowCard}
+      </div>
+      {steppers}
+      {opsBox}
+      {mat}
     </div>
   );
 }

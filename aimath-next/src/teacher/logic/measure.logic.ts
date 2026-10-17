@@ -113,7 +113,12 @@ const hasTall = (tex: string) => /\\(frac|dfrac|sum|prod|int|sqrt|begin|binom|li
 export function blockHeight(b: SceneBlock, fs: number): number {
   const lh = fs * LINE;
   const k = fs / 32; // 여백도 글자 크기에 맞춰 줄어요
-  const lines = (s: string, w = BODY_W) => lineCount(s, w, fs) * lh;
+  // 글 속 큰 분수(\dfrac)·시그마·루트는 그 줄을 높여요(줄마다 한 번만 셈)
+  const tallInline = (s: string, w: number) => {
+    const m = s.match(/\$[^$]*\\(dfrac|sum|sqrt|frac)[^$]*\$/g);
+    return m ? Math.min(m.length, lineCount(s, w, fs)) * fs * 0.5 : 0;
+  };
+  const lines = (s: string, w = BODY_W) => lineCount(s, w, fs) * lh + tallInline(s, w);
   switch (b.t) {
     case "heading":
       return lineCount(b.text, BODY_W, fs * 1.25) * fs * 1.25 * 1.3 + 8 * k;

@@ -109,22 +109,6 @@ html[data-theme="chalk"] .wg-host {
 .wf-mission.is-ok .wf-mission-tag {
   color: var(--wg-ok);
 }
-.wf-board {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  grid-column-gap: 32px;
-  align-items: start;
-  padding: 24px;
-}
-.wf-board > * + * {
-  margin-top: 0;
-}
-.wf-side > * + * {
-  margin-top: 1em;
-}
-.wf-side {
-  font-size: 0.8em;
-}
 .wf-stage {
   min-width: 0;
 }
@@ -166,6 +150,9 @@ html[data-theme="chalk"] .wg-host {
 .wg-card > * + * {
   margin-top: 0.6em;
 }
+.wg-stack > * + * {
+  margin-top: 0.75em;
+}
 .wg-two {
   display: grid;
   grid-template-columns: 1fr;
@@ -178,6 +165,9 @@ html[data-theme="chalk"] .wg-host {
 }
 html[data-surface="board"] .wg-two {
   grid-template-columns: 1fr 1fr;
+}
+.wg-on-board .wg-two {
+  align-items: start;
 }
 .wg-grid3 {
   display: grid;
@@ -502,6 +492,11 @@ html[data-theme="chalk"] .wg-neg {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0.2em 0;
+}
+.wg-tex-block.is-wrap {
+  overflow: visible;
+  text-align: center;
+  line-height: 1.9;
 }
 .wg-mats > * + * {
   margin-top: 0.3em;
@@ -830,14 +825,123 @@ html.kbd .wg-handle:focus .wg-handle-dot {
   stroke-width: 5;
 }
 
-/* ── 칠판(1920×1080 무대): 글자 24px 이상, 큰 결과 120px, 손잡이 48/잡히는 영역 80 ── */
-.wg-on-board .wf-side {
-  font-size: 26px;
+/* ── 칠판(1920×1080 무대, 도구 칸 1664×864): 도구 안 글자 28px 이상, 단추 64px 이상 ──
+   위쪽 안내 띠(단계 단추·도구 단추 한 줄 + 지금 안내 한 줄) 아래에서 도구가 무대 폭을 다 써요. */
+.wg-on-board .wf-board {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 28px;
 }
+.wg-on-board .wf-board > * + * {
+  margin-top: 14px;
+}
+.wf-bar {
+  border-bottom: 2px solid var(--wg-line);
+  padding-bottom: 10px;
+}
+.wf-bar-top,
+.wf-line {
+  display: flex;
+  align-items: center;
+}
+.wf-bar-top > * + * {
+  margin-left: 16px;
+}
+.wf-tabs {
+  display: flex;
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+}
+.wf-tabs > * + * {
+  margin-left: 8px;
+}
+.wf-tab {
+  white-space: nowrap;
+}
+.wf-tab-no {
+  display: inline-block;
+  width: 1.4em;
+  height: 1.4em;
+  line-height: 1.4em;
+  border-radius: 50%;
+  text-align: center;
+  margin-right: 0.35em;
+  background: var(--wg-soft);
+  color: var(--wg-ink);
+}
+.wf-tab.is-on .wf-tab-no {
+  background: #fff;
+  color: var(--wg-accent-ink);
+}
+.wf-bar-tools {
+  margin-left: auto !important;
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+}
+.wf-bar-tools .wg-tools {
+  margin: 0;
+  flex-wrap: nowrap;
+}
+.wf-bar-tools .wg-tools > * {
+  margin: 0;
+}
+.wf-bar-tools .wg-tools > * + * {
+  margin-left: 12px;
+}
+.wf-line {
+  margin-top: 10px;
+  min-height: 52px;
+}
+.wf-line-tag {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  margin-right: 16px;
+  padding: 0 0.6em;
+  min-width: 2.6em;
+  line-height: 52px;
+  border-radius: 999px;
+  text-align: center;
+  font-weight: 800;
+  background: var(--wg-soft);
+  color: var(--wg-accent-ink);
+  white-space: nowrap;
+}
+.wf-line-text {
+  -webkit-box-flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.wf-line.is-mission .wf-line-tag {
+  background: var(--wg-bg);
+  border: 2px dashed var(--wg-accent);
+  line-height: 48px;
+}
+.wf-line.is-mission.is-ok .wf-line-tag {
+  border: 2px solid var(--wg-ok);
+  color: var(--wg-ok);
+}
+.wf-line.is-reveal .wf-line-text {
+  border-left: 6px solid var(--wg-accent);
+  padding-left: 16px;
+}
+.wf-next {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.wf-ok-chip {
+  white-space: nowrap;
+}
+
 .wg-on-board .wg-body,
-.wg-on-board .wg-tools {
-  font-size: 26px;
-}
+.wg-on-board .wg-tools,
 .wg-on-board .wg-readout-label,
 .wg-on-board .wg-stepper-label,
 .wg-on-board .wg-seg-label,
@@ -849,102 +953,259 @@ html.kbd .wg-handle:focus .wg-handle-dot {
 .wg-on-board .wg-chip,
 .wg-on-board .wg-bignum-label,
 .wg-on-board .wg-bignum-sub,
-.wg-on-board .wg-btn-small {
-  font-size: 24px;
-}
-.wf-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  margin: -4px;
-}
-.wf-tabs > * {
-  margin: 4px;
-}
-.wf-mission-mini {
-  margin: 0;
-  color: var(--wg-muted);
-}
-.wf-mission-mini.is-ok {
-  color: var(--wg-ok);
-  font-weight: 700;
+.wg-on-board .wg-btn,
+.wg-on-board .wg-btn-small,
+.wg-on-board .wg-code,
+.wg-on-board .wg-marked sup,
+.wg-on-board .wg-toggle-mark,
+.wg-on-board .wf-no {
+  font-size: 28px;
 }
 .wg-on-board .wg-pixels {
   max-width: 440px;
 }
-.wg-on-board .wf-no {
-  font-size: 24px;
-}
-/* KaTeX 의 첨자(0.7배)도 24px 이상이 되게 */
+/* KaTeX 의 첨자(0.7배)도 28px 가까이 되게 */
 .wg-on-board .katex {
-  font-size: 1.34em;
-}
-.wg-on-board .wg-code,
-.wg-on-board .wg-marked sup,
-.wg-on-board .wg-toggle-mark {
-  font-size: 24px;
+  font-size: 1.3em;
 }
 .wg-on-board .wg-bignum-value {
-  font-size: 120px;
+  font-size: 80px;
   line-height: 1.05;
 }
 .wg-on-board .wg-btn,
+.wg-on-board .wg-btn-small,
 .wg-on-board .wg-stepper-btn {
   min-height: 64px;
   min-width: 64px;
 }
+.wg-on-board .wg-btn {
+  padding: 0.2em 0.75em;
+}
 .wg-on-board .wg-stepper-btn {
   width: 64px;
+  padding: 0;
 }
-/* 칠판은 세로 1080 안에 들어가야 해서 몸통을 두 단으로 흘려요(읽는 차례는 그대로: 왼쪽 단 위→아래, 다음 오른쪽 단) */
+/* 칠판은 세로 864 안에 들어가야 해서 몸통을 두 단으로 흘려요(읽는 차례는 그대로: 왼쪽 단 위→아래, 다음 오른쪽 단) */
 .wg-on-board .wg-body {
   -webkit-column-count: 2;
   column-count: 2;
-  -webkit-column-gap: 40px;
+  -webkit-column-gap: 48px;
+  line-height: 1.4;
 }
 .wg-on-board .wg-body > * {
   -webkit-column-break-inside: avoid;
   break-inside: avoid;
 }
+.wg-on-board .wg-body > * + * {
+  margin-top: 0.5em;
+}
+/* 그림이 있는 도구: 왼쪽 그림 · 오른쪽 조작(.wg-split). 단으로 흘리지 않아요 */
+.wg-on-board .wg-body.wg-body-split {
+  -webkit-column-count: 1;
+  column-count: 1;
+}
+.wg-on-board .wg-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-column-gap: 40px;
+  align-items: start;
+}
+.wg-on-board .wg-split.is-wide-a {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+}
+.wg-on-board .wg-split.is-three {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-column-gap: 28px;
+}
+.wg-split-a > * + *,
+.wg-split-b > * + * {
+  margin-top: 0.5em;
+}
+.wg-on-board .wg-split-a > * + *,
+.wg-on-board .wg-split-b > * + * {
+  margin-top: 0.45em;
+}
+.wg-split-b {
+  margin-top: 0.75em;
+}
+.wg-on-board .wg-split-b {
+  margin-top: 0;
+}
 .wg-on-board .wg-plot-svg.has-handles {
   touch-action: none;
 }
-
-/* 칠판: 그림판이 길어 도구 칸 안에서 스크롤해도 왼쪽 안내판은 제자리에 있어요 */
-.wg-on-board .wf-side {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
+/* 칠판 맨 위 한 줄(고르기 단추 + 예시 단추) */
+.wg-on-board .wg-topline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: -6px -8px;
 }
-.wg-on-board .wf-side-tools .wg-tools {
+.wg-on-board .wg-topline > * {
+  margin: 6px 8px;
+}
+.wg-on-board .wg-topline .wg-row {
   margin: 0;
 }
-.wg-on-board .wf-board {
-  padding: 20px 24px;
+.wg-on-board .wg-card > .wg-stepper.is-inline,
+.wg-on-board .wg-split-a > .wg-stepper.is-inline,
+.wg-on-board .wg-split-b > .wg-stepper.is-inline {
+  display: flex;
 }
-.wg-on-board .wg-body {
-  line-height: 1.4;
+/* 칠판 행렬: 세 개가 세로 864 안에 들도록 본문 글자 크기(28px)로 */
+.wg-on-board .wg-mats .katex,
+.wg-on-board.wg-w-imgtransform .wg-tex-block .katex {
+  font-size: 1em;
 }
-.wg-on-board .wg-body > * + * {
-  margin-top: 0.55em;
+/* 이름을 왼쪽에 붙인 한 줄 스테퍼(칠판) */
+.wg-on-board .wg-stepper.is-inline {
+  display: inline-flex;
+  align-items: center;
+}
+.wg-on-board .wg-stepper.is-inline .wg-stepper-label {
+  display: inline-block;
+  margin: 0 12px 0 0;
+  color: var(--wg-ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.wg-on-board .wg-stepper.is-inline .wg-stepper-value {
+  min-width: 2.2em;
+  margin: 0 0.25em;
+}
+.wg-row-label {
+  font-weight: 700;
+  align-self: center;
+}
+.wg-on-board .wf-stage {
+  padding: 0 8px;
 }
 /* 반 칸(두 단·카드 둘) 안의 스테퍼·큰 숫자는 칸 폭을 넘지 않게 */
 .wg-on-board .wg-stepper {
   min-width: 0;
 }
+.wg-on-board .wg-stepper-value {
+  min-width: 3.4em;
+}
 .wg-on-board .wg-two .wg-bignum-value,
 .wg-on-board .wg-grid3 .wg-bignum-value {
-  font-size: 72px;
+  font-size: 64px;
 }
 .wg-on-board .wg-bignum {
-  padding: 0.35em 0.7em;
+  padding: 0.3em 0.7em;
 }
 .wg-on-board .wg-code {
   font-family: inherit;
   font-weight: 600;
 }
-/* 칠판에서 6×6 그림은 카드 폭을 다 써요(한 칸 40px 남짓 = 75인치 칠판에서 3cm 이상) */
+.wg-on-board .wg-table th,
+.wg-on-board .wg-table td {
+  padding: 0.15em 0.5em;
+}
+.wg-on-board .wg-mask,
+.wg-on-board .wg-verdict,
+.wg-on-board .wg-readout {
+  padding: 0.3em 0.7em;
+}
+/* 칠판에서 6×6 그림: 누르는 그림은 한 칸 64px 이상, 보기만 하는 그림은 한 칸 48px 남짓 */
 .wg-on-board .wg-pic {
   max-width: none;
+}
+.wg-on-board .wg-pic.is-edit {
+  width: 400px;
+}
+.wg-on-board .wg-pic.is-view {
+  width: 260px;
+}
+.wg-on-board.wg-w-imgtransform .wg-card .wg-note,
+.wg-on-board.wg-w-imgtransform .wg-card .wg-line {
+  display: none;
+}
+/* 칠판 맨 위 줄의 고르기 단추는 이름을 왼쪽에 붙여 한 줄(64px)로 */
+.wg-on-board .wg-topline .wg-seg {
+  display: flex;
+  align-items: center;
+}
+.wg-on-board .wg-topline .wg-seg-label {
+  margin: 0 12px 0 0;
+  color: var(--wg-ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.wg-on-board .wg-topline .wg-seg-row {
+  flex-wrap: wrap;
+}
+
+/* ── 감성 사전 칩(칠판) ── */
+.wg-dict {
+  list-style: none;
+  margin: -4px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+}
+.wg-dict li {
+  margin: 4px;
+  padding: 0.1em 0.6em;
+  border-radius: 999px;
+  border: 2px solid var(--wg-line);
+  white-space: nowrap;
+}
+.wg-dict li.is-pos {
+  border-color: var(--wg-ok);
+}
+.wg-dict li.is-neg {
+  border-style: dashed;
+  border-color: var(--wg-bad);
+}
+/* ── 사람일까 기계일까: 진행 → 질문 → 대답 말풍선과 그 아래 단추(간격 16px 이상) 한 흐름 ── */
+.wg-turing-top > * + * {
+  margin-top: 0.5em;
+}
+.wg-pick > * + * {
+  margin-top: 16px;
+}
+.wg-pick .wg-btn {
+  display: block;
+  width: 100%;
+}
+.wg-turing .wg-answer {
+  position: relative;
+  border-radius: 14px;
+  background: var(--wg-soft);
+  border: 2px solid var(--wg-line);
+}
+.wg-on-board .wg-turing-top {
+  display: flex;
+  align-items: stretch;
+}
+.wg-on-board .wg-turing-top > * {
+  margin: 0;
+}
+.wg-on-board .wg-turing-top > * + * {
+  margin: 0 0 0 20px;
+  -webkit-box-flex: 1;
+  flex: 1 1 auto;
+}
+.wg-on-board .wg-turing-top .wg-readout {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+}
+.wg-on-board .wg-turing .wg-card {
+  padding: 20px 24px;
+}
+.wg-on-board .wg-turing .wg-two {
+  grid-column-gap: 32px;
+  align-items: stretch;
+}
+.wg-on-board .wg-turing .wg-answer {
+  padding: 0.6em 0.8em;
+  -webkit-box-flex: 1;
+  flex: 1 1 auto;
+}
+.wg-pick {
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── 휴대폰: 세로로 쌓고 누르는 곳 44px 이상 ── */
@@ -968,14 +1229,6 @@ html.kbd .wg-handle:focus .wg-handle-dot {
 
 .wg-on-phone .wg-slider {
   min-height: 44px;
-}
-
-/* ── KaTeX 의 svg 글자(벡터 화살표·근호 등) ──
-   공용 base.css 의 'svg { overflow: visible }'·'img, svg { max-width: 100% }' 때문에 화살표가 폭 0 으로 사라지고,
-   보이지 않는 path 가 옆 단추의 터치를 가로채요. 도구 안에서는 KaTeX 기본값으로 되돌려요 */
-.wg-host .katex svg {
-  max-width: none;
-  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {

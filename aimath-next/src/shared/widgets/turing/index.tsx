@@ -2,7 +2,8 @@
 import { useMemo, useState } from "react";
 import type { WidgetProps } from "../../contracts.ts";
 import { buildGame, scoreGame } from "@legacy/widgets/Turing.logic";
-import { Big, Btn, Note, Readout, Row, Verdict } from "../kit.tsx";
+import { Big, Btn, Note, Readout, Verdict, useIsBoard } from "../kit.tsx";
+import { toneRound } from "./tone.ts";
 import { mission } from "./mission.ts";
 import { useMission } from "../useMission.ts";
 
@@ -10,7 +11,9 @@ const ROUNDS = 8;
 
 export default function Turing(props: WidgetProps) {
   const [game, setGame] = useState(1);
-  const rounds = useMemo(() => buildGame(game, ROUNDS), [game]);
+  const board = useIsBoard();
+  // 화면 문장만 해요체로 고쳐요(정답·순서는 그대로)
+  const rounds = useMemo(() => buildGame(game, ROUNDS).map(toneRound), [game]);
   const [picks, setPicks] = useState<("A" | "B")[]>([]);
   const idx = picks.length;
   const done = idx >= rounds.length;
@@ -29,38 +32,43 @@ export default function Turing(props: WidgetProps) {
   };
   const last = shown !== null ? rounds[shown] : null;
 
+  // 한 흐름: 진행 → (방금 판 결과) → 질문 → A 대답과 단추 · B 대답과 단추. 칠판에서도 두 단으로 나누지 않아요
   return (
-    <div className="wg-body">
-      <Note>질문 하나에 대답이 두 개 있어요. 하나는 사람, 하나는 정해진 규칙으로 대답하는 기계예요. 기계라고 생각하는 쪽을 골라요.</Note>
-      <Readout label="진행" keep>
-        {Math.min(idx + 1, rounds.length)} / {rounds.length}판 · 맞힌 판 {score}
-      </Readout>
-      {last && shown !== null ? (
-        <Verdict keep ok={picks[shown] === last.machineIs}>
-          {picks[shown] === last.machineIs ? "맞혔어요. " : "아쉬워요. "}기계는 {last.machineIs}였어요. {last.tell}
-        </Verdict>
-      ) : null}
+    <div className="wg-body wg-body-split wg-turing">
+      {board ? null : <Note>질문 하나에 대답이 두 개 있어요. 하나는 사람, 하나는 정해진 규칙으로 대답하는 기계예요. 기계라고 생각하는 쪽을 골라요.</Note>}
+      <div className="wg-turing-top">
+        <Readout label="진행" keep>
+          {Math.min(idx + 1, rounds.length)} / {rounds.length}판 · 맞힌 판 {score}
+        </Readout>
+        {last && shown !== null ? (
+          <Verdict keep ok={picks[shown] === last.machineIs}>
+            {picks[shown] === last.machineIs ? "맞혔어요. " : "아쉬워요. "}기계는 {last.machineIs}였어요. {last.tell}
+          </Verdict>
+        ) : null}
+      </div>
       {!done ? (
         <div className="wg-card">
           <p className="wg-q">
             <span className="wg-chip">질문</span> {rounds[idx].q}
           </p>
           <div className="wg-two">
-            <div className="wg-answer">
-              <span className="wg-chip">A</span> {rounds[idx].a}
+            <div className="wg-pick">
+              <div className="wg-answer">
+                <span className="wg-chip">A</span> {rounds[idx].a}
+              </div>
+              <Btn primary onClick={() => pick("A")}>
+                A가 기계 같아요
+              </Btn>
             </div>
-            <div className="wg-answer">
-              <span className="wg-chip">B</span> {rounds[idx].b}
+            <div className="wg-pick">
+              <div className="wg-answer">
+                <span className="wg-chip">B</span> {rounds[idx].b}
+              </div>
+              <Btn primary onClick={() => pick("B")}>
+                B가 기계 같아요
+              </Btn>
             </div>
           </div>
-          <Row>
-            <Btn primary onClick={() => pick("A")}>
-              A가 기계 같아요
-            </Btn>
-            <Btn primary onClick={() => pick("B")}>
-              B가 기계 같아요
-            </Btn>
-          </Row>
         </div>
       ) : (
         <div className="wg-card">

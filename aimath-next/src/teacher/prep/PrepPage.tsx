@@ -8,11 +8,14 @@ import { lessonMeta, unitOf, useLesson } from "../../content/index.ts";
 import { Rich, answerText, guideOf, TYPE_LABEL } from "../../shared/ui/index.ts";
 import { WIDGET_TITLES, isWidgetId } from "../../shared/widgets/ids.ts";
 import type { TeacherPageProps } from "../shell/pages.tsx";
-import { Loading, NotFound } from "../shell/Fallbacks.tsx";
-import { boardHref } from "../shell/plan.ts";
+import { NotFound } from "../shell/Fallbacks.tsx";
+import { Skeleton } from "../flow/Skeleton.tsx";
+import { setScenes } from "../today/cuts.ts";
+import { useFlowState } from "../store/index.ts";
+import { boardHref, planOf } from "../shell/plan.ts";
 import { barSegments, minLabel } from "../today/timebar.ts";
-import { shortId } from "../logic/index.ts";
-import { usePrep, useLessonPrep, type Baskets } from "./data.ts";
+import { periodQuestion, shortId } from "../logic/index.ts";
+import { goalsForPeriod, usePrep, useLessonPrep, type Baskets, type GoalView } from "./data.ts";
 import "./prep.css";
 
 const BASKET_NAMES: Record<keyof Baskets, string> = { board: "칠판", exit: "끝 확인", hw: "숙제" };
@@ -44,11 +47,7 @@ function TimePlan({ scenes, minutes, total }: { scenes: Parameters<typeof barSeg
       <div className="t-tb-bar" role="img" aria-label={"시간 배분: " + segs.map((s) => s.label + " " + minLabel(s.min)).join(", ")}>
         {segs.map((s) => (
           <span key={s.key} className={"t-tb-seg is-" + s.key} style={{ width: s.pct + "%" }}>
-            {s.pct >= 9 ? (
-              <span className="t-tb-txt">
-                {s.label} {minLabel(s.min)}
-              </span>
-            ) : null}
+            {s.pct >= 12 ? <span className="t-tb-txt">{s.label}</span> : null}
           </span>
         ))}
       </div>
@@ -62,7 +61,7 @@ function TimePlan({ scenes, minutes, total }: { scenes: Parameters<typeof barSeg
         ))}
       </ul>
       <p className={"small " + (over ? "t-over" : "muted")}>
-        {over ? "예상 " + minLabel(total) + "로 " + minutes + "분을 넘어요. 수업 흐름에서 장면을 꺼 보세요." : "예상 " + minLabel(total) + " / 수업 " + minutes + "분"}
+        {over ? "시간이 " + minLabel(total - minutes) + " 넘쳐요(예상 " + minLabel(total) + " / 수업 " + minutes + "분). 오늘 수업이나 수업 흐름에서 줄일 수 있어요." : "예상 " + minLabel(total) + " / 수업 " + minutes + "분"}
       </p>
     </div>
   );
@@ -126,6 +125,55 @@ function AnswerTable({ lesson, baskets, only }: { lesson: Lesson; baskets: Baske
   );
 }
 
+function GoalList({ goals }: { goals: GoalView[] }) {
+  if (!goals.length) return <p className="muted">이 레슨의 목표 자료가 아직 없어요.</p>;
+  return (
+    <ul className="pp-list pp-goals">
+      {goals.map((g, i) => (
+        <li key={i} className={g.now ? "is-now" : "is-other"}>
+          {!g.now && g.periods.length ? <span className="chip pp-goal-p">{g.periods.join("·") + "차시"}</span> : null}
+          <Rich text={g.text} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** 1차시 이야기 장면: 기본은 요약 한 장만 켜져 있어요. 여기서 바로 켜고 끌 수 있어요 */
+function StoryNote({ lid, view }: { lid: string; view: NonNullable<ReturnType<typeof useLessonPrep>["view"]> }) {
+  const [, updateFlow] = useFlowState(lid, view.p);
+  const story = view.scenes.filter((s) => s.kind === "story");
+  if (!story.length) return null;
+  const on = story.filter((s) => s.on);
+  const off = story.filter((s) => !s.on);
+  const rest = story.filter((s) => s.id.indexOf("story-brief") !== 0);
+  return (
+    <p className="small pp-story no-print">
+      {off.length ? (
+        <>
+          <span>이야기 장면은 {on.length ? on.length + "장만" : "모두 꺼져"} {on.length ? "켜져 있어요" : "있어요"}</span>
+          {" · "}
+          <button type="button" className="btn btn-soft pp-story-btn" onClick={() => updateFlow((cur) => setScenes(cur, view, off, true))}>
+            켜기
+          </button>
+        </>
+      ) : (
+        <>
+          <span>이야기 장면이 모두 켜져 있어요</span>
+          {rest.length ? (
+            <>
+              {" · "}
+              <button type="button" className="btn btn-ghost pp-story-btn" onClick={() => updateFlow((cur) => setScenes(cur, view, rest, false))}>
+                요약 한 장만 남기기
+              </button>
+            </>
+          ) : null}
+        </>
+      )}
+    </p>
+  );
+}
+
 function List({ items, empty }: { items: string[] | undefined; empty: string }) {
   if (!items || !items.length) return <p className="muted">{empty}</p>;
   return (
@@ -156,14 +204,33 @@ export default function PrepPage(m: TeacherPageProps) {
         <p role="alert">레슨을 불러오지 못했어요. 새로고침해 주세요.</p>
       </section>
     );
-  if (!lesson || !st.view) return <Loading />;
+  if (!lesson || !st.view)
+    return (
+      <section className="page pp">
+        <header className="pp-head">
+          <p className="eyebrow">준비 한 장</p>
+          <h1 className="h1">
+            {meta.code} {meta.title}
+          </h1>
+        </header>
+        <Skeleton label="준비 자료를 불러오는 중이에요…" rows={6} />
+      </section>
+    );
 
   const view = st.view;
   const p = view.p;
   const per = view.flow.period;
   const widgets = widgetsIn(lesson, per.sections);
   const firstOn = view.on.length ? view.on[0].s : 0;
-  const goals = prep && prep.goals && prep.goals.length ? prep.goals : prep && prep.goal ? [prep.goal] : [];
+  let qLines: string[] = [lesson.question];
+  try {
+    const ql = periodQuestion(lesson, planOf(lid), per);
+    if (ql.length) qLines = ql;
+  } catch (e) {
+    /* 원래 질문 그대로 */
+  }
+  const goalTexts = prep && prep.goals && prep.goals.length ? prep.goals : prep && prep.goal ? [prep.goal] : [];
+  const goals = goalsForPeriod(goalTexts, prep && prep.goals && prep.goals.length ? prep.goalSecs : undefined, view.periods, p);
   const asks = prep && prep.questions && prep.questions.length ? prep.questions : prep && prep.asks ? prep.asks.map((q) => ({ q, a: "" })) : [];
 
   return (
@@ -181,7 +248,7 @@ export default function PrepPage(m: TeacherPageProps) {
             <div className="pp-picker" role="group" aria-label="차시">
               <span className="pp-picker-k">차시</span>
               {view.periods.map((x) => (
-                <a key={x.p} className={"btn " + (x.p === p ? "btn-primary" : "btn-ghost")} aria-current={x.p === p ? "page" : undefined} href={href(TEACHER_ROUTES.prep, { lid }, { p: x.p })}>
+                <a key={x.p} className="btn t-dur" aria-pressed={x.p === p} aria-current={x.p === p ? "page" : undefined} href={href(TEACHER_ROUTES.prep, { lid }, { p: x.p })}>
                   {x.p}차시
                 </a>
               ))}
@@ -190,7 +257,7 @@ export default function PrepPage(m: TeacherPageProps) {
           <div className="pp-picker" role="group" aria-label="수업 시간">
             <span className="pp-picker-k">수업 시간</span>
             {DURATIONS.map((d) => (
-              <button key={d} type="button" className={"btn " + (d === st.duration ? "btn-primary" : "btn-ghost")} aria-pressed={d === st.duration} onClick={() => st.setDuration(d)}>
+              <button key={d} type="button" className="btn t-dur" aria-pressed={d === st.duration} onClick={() => st.setDuration(d)}>
                 {d}분
               </button>
             ))}
@@ -215,14 +282,16 @@ export default function PrepPage(m: TeacherPageProps) {
       <div className="pp-grid">
         <section className="card pp-card pp-goal" aria-labelledby="pp-goal-h">
           <h2 className="h3" id="pp-goal-h">
-            학습 목표
+            학습 목표{view.periods.length > 1 ? " · " + p + "차시" : ""}
           </h2>
-          {prep === undefined ? <p className="muted">준비 자료를 불러오는 중이에요…</p> : <List items={goals} empty="이 레슨의 목표 자료가 아직 없어요." />}
+          {prep === undefined ? <p className="muted ui-loading">준비 자료를 불러오는 중이에요…</p> : <GoalList goals={goals} />}
           <div className="pp-q">
-            <span className="pp-q-tag">오늘의 핵심 질문</span>
-            <p>
-              <Rich text={lesson.question} />
-            </p>
+            <span className="pp-q-tag">{view.periods.length > 1 ? p + "차시 핵심 질문" : "오늘의 핵심 질문"}</span>
+            {qLines.map((t, i) => (
+              <p key={i}>
+                <Rich text={t} />
+              </p>
+            ))}
           </div>
         </section>
 
@@ -231,6 +300,7 @@ export default function PrepPage(m: TeacherPageProps) {
             시간 배분 {view.periods.length > 1 ? "· " + p + "/" + view.periods.length + "차시" : ""}
           </h2>
           <TimePlan scenes={view.scenes} minutes={st.duration} total={view.total} />
+          {per.first ? <StoryNote lid={lid} view={view} /> : null}
           <p className="small muted">
             다루는 소제목:{" "}
             {per.sections.map((si, k) => (

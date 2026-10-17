@@ -1,5 +1,6 @@
 // 칠판 무대: 1920×1080 고정, 화면 크기에 맞춰 scale 해요.
-//   위 64px: 진행 레일 + 레슨·장면 이름   ·   가운데: 좌우 120px 넘김 띠 + 본문 1680×896   ·   아래 120px: 도구띠
+//   위 64px: 진행 레일 + 레슨·장면 이름·'구간 n/m · 장면 a/b'   ·   가운데: 본문 1760×896(좌우 80px 여백)   ·   아래 120px: 도구띠
+// 이전·다음은 아래 막대의 단추 하나로만 해요(가장자리 화살표는 없앴어요). '다음' 단추 폭은 고정이라 글자가 바뀌어도 자리가 그대로예요.
 // 넘김: →·Space·PageDown(다음) / ←·PageUp(이전) / Home·End, 한 손가락 스와이프(두 손가락은 무시).
 // 판서·확대·가림막·타이머·번호 뽑기·A±·전체 화면·칠판 테마는 이 무대가 맡아요(메모리에만, 저장 안 함).
 import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
@@ -14,8 +15,8 @@ import { Curtain, Picker, Timer, canFullscreen, isFullscreen, toggleFullscreen, 
 
 export const HEAD_H = 64;
 export const BAR_H = 120;
-export const SIDE_W = 120;
-export const BODY_W = BOARD_W - SIDE_W * 2; // 1680
+export const SIDE_W = 80;
+export const BODY_W = BOARD_W - SIDE_W * 2; // 1760(measure.logic 의 BODY_W 와 같아요)
 export const BODY_H = BOARD_H - HEAD_H - BAR_H; // 896
 
 // 판서는 탭을 닫거나 새로 고치면 사라져요(저장 안 함)
@@ -37,8 +38,10 @@ export interface StageProps {
   title: ReactNode;
   /** 진행 레일 */
   rail?: { items: RailItem[]; cur: number; onJump: (s: number) => void };
-  /** 머리 오른쪽(예: "3 / 18") */
+  /** 머리 오른쪽(예: "개념 2/5 · 장면 7/18") */
   counter?: ReactNode;
+  /** 머리 오른쪽 작은 글(예: "꺼진 장면 3") */
+  counterNote?: ReactNode;
   onNext: () => void;
   onPrev: () => void;
   onFirst?: () => void;
@@ -46,6 +49,8 @@ export interface StageProps {
   /** '다음' 단추 글자(예: "공개 2/4", "다음 장면") */
   nextLabel: string;
   nextHint?: string;
+  /** '다음' 단추 모양: finish 면 수업 마치기(초록) */
+  nextTone?: "finish";
   canPrev: boolean;
   /** 나가기(준비 화면) 주소 */
   exitHref: string;
@@ -273,20 +278,13 @@ export function Stage(props: StageProps) {
               <span className="bd-head-lesson">{props.lessonLabel}</span>
               <span className="bd-head-title">{props.title}</span>
               <span className="bd-head-count num">{props.counter}</span>
+              {props.counterNote ? <span className="bd-head-off">{props.counterNote}</span> : null}
               <span className="site-tag bd-tag">교사용</span>
             </div>
           </header>
 
-          {/* ── 좌우 넘김 띠 ── */}
-          <button type="button" className="bd-side is-prev" onClick={props.onPrev} disabled={!props.canPrev} aria-label="이전">
-            <TIcon name="prev" size="xl" />
-          </button>
-          <button type="button" className="bd-side is-next" onClick={props.onNext} aria-label={"다음: " + props.nextLabel}>
-            <TIcon name="next" size="xl" />
-          </button>
-
           {/* ── 본문 ── */}
-          <div className="bd-frame" style={{ width: BODY_W + "px", height: BODY_H + "px" }}>
+          <div className="bd-frame" style={{ left: SIDE_W + "px", width: BODY_W + "px", height: BODY_H + "px" }}>
             <div
               className={"bd-zoom" + (zoom.on ? " is-zoomed" : "")}
               style={zoom.on ? { transform: "scale(2)", transformOrigin: zoom.x + "% " + zoom.y + "%" } : undefined}
@@ -364,7 +362,12 @@ export function Stage(props: StageProps) {
                 <TIcon name="prev" size="lg" />
                 <span>이전</span>
               </button>
-              <button type="button" className="btn btn-primary bd-next" onClick={props.onNext}>
+              <button
+                type="button"
+                className={"btn btn-primary bd-next" + (props.nextTone === "finish" ? " is-finish" : "")}
+                onClick={props.onNext}
+                aria-label={(props.nextTone === "finish" ? "마지막 장면: " : "") + props.nextLabel + (props.nextHint ? " · " + props.nextHint : "")}
+              >
                 <span className="bd-next-txt">
                   <span>{props.nextLabel}</span>
                   {props.nextHint ? <small>{props.nextHint}</small> : null}

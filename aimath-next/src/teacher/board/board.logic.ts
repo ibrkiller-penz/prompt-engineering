@@ -202,3 +202,169 @@ export function tallyAnswer(q: Question): number {
   return -1;
 }
 
+
+/* ─────────── 머리: 구간 · 장면 번호 ─────────── */
+
+/** 장면이 속한 구간 이름(도입·개념·문제·정리·수업 끝) */
+export function segmentName(sc: Pick<Scene, "stage" | "kind">): string {
+  switch (sc.stage) {
+    case "open":
+    case "prereq":
+      return "도입";
+    case "concept":
+    case "tool":
+      return "개념";
+    case "practice":
+      return "문제";
+    case "wrap":
+      return "정리";
+    case "end":
+      return "수업 끝";
+  }
+  return "수업";
+}
+
+/** 구간 열쇠: 소제목이 붙은 개념·체험·확인 문제는 소제목마다 한 구간이에요 */
+function segmentKey(sc: Pick<Scene, "stage" | "kind" | "section">): string {
+  const name = segmentName(sc);
+  if (typeof sc.section === "number" && (sc.stage === "concept" || sc.stage === "tool" || sc.stage === "practice")) return "개념#" + sc.section;
+  return name;
+}
+
+export interface SegmentInfo {
+  /** 구간 이름(예: "개념②", "문제") */
+  label: string;
+  /** 지금 구간 번호(1부터)와 켜진 구간 수 */
+  n: number;
+  m: number;
+  /** 켜진 장면 가운데 지금 번호(1부터)와 전체 */
+  a: number;
+  b: number;
+  /** 꺼진 장면 수 */
+  off: number;
+}
+
+/** 켜진 장면만 이어 보면서 같은 구간이 이어지는 덩어리를 한 구간으로 세요 */
+export function segmentInfo(scenes: readonly Pick<Scene, "stage" | "kind" | "section" | "on">[], s: number): SegmentInfo {
+  let m = 0;
+  let n = 0;
+  let a = 0;
+  let b = 0;
+  let off = 0;
+  let prev = "";
+  let label = "";
+  for (let i = 0; i < scenes.length; i++) {
+    const sc = scenes[i];
+    if (!sc.on) {
+      off++;
+      continue;
+    }
+    b++;
+    const key = segmentKey(sc);
+    if (key !== prev) {
+      m++;
+      prev = key;
+    }
+    if (i <= s) {
+      a = b;
+      n = m;
+      label = key.indexOf("개념#") === 0 ? "개념" + circled((sc.section as number) + 1) : segmentName(sc);
+    }
+  }
+  if (!label && scenes.length) label = segmentName(scenes[Math.max(0, Math.min(scenes.length - 1, s))]);
+  return { label, n: Math.max(1, n), m: Math.max(1, m), a: Math.max(1, a), b: Math.max(1, b), off };
+}
+
+/* ─────────── 수업 끝 ─────────── */
+
+const TAIL_PUNCT = /[\s.,!?;:·…、。，！？：；~\-–—(（[「『"'“‘]+$/;
+
+/**
+ * 한 줄 미리보기: 줄바꿈은 빈칸으로, 길면 잘라요. 수식($…$) 가운데서는 자르지 않고,
+ * 자른 끝의 구두점·여는 괄호를 지운 뒤 '…'을 붙여요(예: "확률은," → "확률은…").
+ */
+export function clip(s: string, n: number): string {
+  const t = (s || "").replace(/\s*\n\s*/g, " ").trim();
+  if (t.length <= n) return t;
+  let cut = t.slice(0, n);
+  // 낱말 가운데서 자르지 않아요(남는 글이 너무 짧아지면 그대로)
+  const word = cut.replace(/\s+\S*$/, "");
+  if (word.length >= Math.min(8, n / 2)) cut = word;
+  // 수식($…$) 가운데면 그 수식 앞에서 잘라요
+  if ((cut.match(/\$/g) || []).length % 2 === 1) cut = cut.slice(0, cut.lastIndexOf("$"));
+  // 굵게(**) 표시가 짝이 안 맞으면 지워요
+  if ((cut.match(/\*\*/g) || []).length % 2 === 1) cut = cut.replace(/\*\*(?!.*\*\*)/, "");
+  cut = cut.replace(TAIL_PUNCT, "");
+  return cut + "…";
+}
+
+/** 숙제 미리보기: 앞 max 개만 보이고 나머지는 '+n문제' */
+export function hwPreview<T>(ids: readonly T[], max = 3): { shown: T[]; more: number } {
+  const k = Math.max(0, max | 0);
+  return { shown: ids.slice(0, k), more: Math.max(0, ids.length - k) };
+}
+
+/* ─────────── 개념 단계 공개 자리표시 ─────────── */
+
+const CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
+
+/** 1→①, 21 이상은 (21) */
+export function circled(n: number): string {
+  return n >= 1 && n <= 20 ? CIRCLED.charAt(n - 1) : "(" + n + ")";
+}
+
+/** 글 속 표시(수식·굵게)를 걷어낸 맨 글자 */
+function plain(t: string): string {
+  return (t || "")
+    .replace(/\$\$[\s\S]*?\$\$/g, " 식 ")
+    .replace(/\$[^$]*\$/g, " 식 ")
+    .replace(/\*\*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** 공개 전 블록의 짧은 단서: 종류 이름과 첫 낱말(흐리게 보여 줘요) */
+export function cueOf(b: { t: string; [k: string]: unknown }): { kind: string; word: string } {
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  let kind = "글";
+  let src = "";
+  switch (b.t) {
+    case "p":
+      src = str(b.text);
+      break;
+    case "math":
+      return { kind: "수식", word: "" };
+    case "table":
+      kind = "표";
+      src = Array.isArray(b.head) ? str((b.head as unknown[])[0]) : "";
+      break;
+    case "list":
+      kind = "목록";
+      src = Array.isArray(b.items) ? str((b.items as unknown[])[0]) : "";
+      break;
+    case "callout":
+      kind = b.kind === "warn" ? "주의" : b.kind === "aha" ? "아하" : b.kind === "try" ? "해 봐요" : "도움말";
+      src = str(b.title) || str(b.text);
+      break;
+    case "term":
+      kind = "용어";
+      src = str(b.term);
+      break;
+    case "dialog":
+      kind = "대화";
+      src = Array.isArray(b.lines) && b.lines.length ? str((b.lines[0] as { who?: unknown }).who) : "";
+      break;
+    case "example":
+      kind = "예제";
+      src = str(b.title);
+      break;
+    case "widget":
+      return { kind: "체험", word: "" };
+    default:
+      src = str(b.text);
+  }
+  const p = plain(src);
+  const first = p.split(" ")[0] || "";
+  const word = first === "식" ? "" : first.replace(/[.,!?;:·…]+$/, "").slice(0, 10);
+  return { kind, word };
+}

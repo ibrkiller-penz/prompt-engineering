@@ -157,3 +157,7 @@ html[data-surface="phone"] .grid3 { grid-template-columns: 1fr; }
 }
 /* 줄 안 수식이 들어간 줄은 위아래가 겹치지 않게 조금 더 띄워요 */
 p .katex, li .katex { line-height: 1.2; }
+/* KaTeX 의 svg 글자(\vec·\overrightarrow 화살표, 긴 근호, \widehat 등)는 KaTeX 기본값으로 되돌려요.
+ * 위의 'img, svg { max-width: 100% }'·'svg { overflow: visible }' 가 걸리면 화살표 칸이 폭 0 으로 줄어 사라지고,
+ * 보이지 않는 path 가 옆 단추의 터치를 가로채요. 휴대폰 · 준비 · 칠판 모두에 적용돼요(명시도가 svg 보다 높아요). */
+.katex svg { max-width: none; overflow: hidden; }

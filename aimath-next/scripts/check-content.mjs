@@ -8,11 +8,16 @@
 //  6) data/overrides/tone.json: where·path 가 실제로 있고, from(또는 match) 문장이 그 자리에 정확히 있는지
 //  7) data/teacher/prep/u1..u5.json: 그 단원의 레슨만, 필수 항목(목표·발문 3개·막히는 곳·오개념·준비물)
 //  8) 출판사 이름·교과서 쪽수 같은 금지어가 data/ 와 src/ 에 없는지
+//  9) 해요체: 20레슨 문제(practice)·단원 마무리(test)의 prompt·choices·hints·solution 에
+//     덧씌우기(tone.json 정확 일치 + src/content/tone.ts 규칙)를 거친 뒤 '한다.' '는가?' '인가?' '이다.' '하시오' 가 0건인지
+//     (수식 $…$ · 따옴표 안 · 코드 안은 빼요). 정답(answer)·종류·보기 개수가 그대로인지도 봐요.
+// 10) 화면 문구 띄어쓰기: 영문·숫자(또는 } · </b>) 뒤에 ' 로/을/를/에서/으로' 를 띄어 쓴 곳이 src/ 와 data/ 에 없는지(주석은 빼요)
 // 하나라도 어긋나면 1로 끝나요. 사용: node scripts/check-content.mjs [--verbose]
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildContentIndex } from "../tools/content-index.mjs";
+import { applyTone, haeyoDoc, haeraLeft } from "../src/content/tone.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = path.resolve(ROOT, "..");
@@ -227,6 +232,128 @@ for (const f of walk(path.join(ROOT, "data"), walk(path.join(ROOT, "src"), [path
 for (const f of built.files) {
   const text = fs.readFileSync(f, "utf8");
   for (const b of BANNED) if (text.indexOf(b) >= 0) warn(`원본 콘텐츠에 '${b}' 가 있어요(원본은 고치지 않아요): ${path.relative(REPO, f)}`);
+}
+
+/* ───── 9) 문제 본문 해요체 ───── */
+{
+  const tone = fs.existsSync(toneFile) ? readJson(toneFile) : null;
+  const QFIELDS = ["prompt", "solution", "choices", "hints"];
+  let nQ = 0;
+  let nLeft = 0;
+  const checkDoc = (raw, where, key) => {
+    const out = haeyoDoc(applyTone(raw, where, tone));
+    const before = raw[key] || [];
+    const after = out[key] || [];
+    if (before.length !== after.length) err(`해요체: ${where} ${key} 문제 수가 바뀌었어요`);
+    before.forEach((q, i) => {
+      const o = after[i];
+      nQ++;
+      // 정답·종류·보기 개수는 그대로여야 해요
+      if (!o || o.id !== q.id || o.type !== q.type || JSON.stringify(o.answer) !== JSON.stringify(q.answer) || o.tolerance !== q.tolerance || o.unit !== q.unit)
+        err(`해요체: ${q.id} 정답·종류가 바뀌었어요`);
+      if (Array.isArray(q.choices) && (!o || !Array.isArray(o.choices) || o.choices.length !== q.choices.length)) err(`해요체: ${q.id} 보기 개수가 바뀌었어요`);
+      for (const f of QFIELDS) {
+        const v = o ? o[f] : undefined;
+        const arr = Array.isArray(v) ? v : v == null ? [] : [v];
+        arr.forEach((t, k) => {
+          for (const hit of haeraLeft(t)) {
+            nLeft++;
+            err(`해요체: ${q.id} ${f}${Array.isArray(v) ? "[" + k + "]" : ""} 에 해라체가 남았어요: '${hit}' (tone.ts 규칙이나 tone.json 정확 일치로 바꿔 주세요)`);
+          }
+        });
+      }
+    });
+  };
+  for (const lid of index.order) checkDoc(lessons[lid], lid, "practice");
+  for (const u of index.units) checkDoc(unitDocs[u.id], u.slug, "test");
+  if (VERBOSE) console.log(`  · 해요체 검사: 문제 ${nQ}개, 남은 해라체 ${nLeft}건`);
+}
+
+/* ───── 10) 화면 문구 띄어쓰기(영문·숫자 뒤 조사) ───── */
+// 주석을 같은 자리의 공백으로 지워요(줄 번호는 그대로). 문자열·템플릿·정규식 안의 '//' 는 주석이 아니에요.
+function stripComments(src) {
+  let out = "";
+  let i = 0;
+  const n = src.length;
+  let prevSig = "";
+  const blank = (x) => x.replace(/[^\n]/g, " ");
+  while (i < n) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (c === "/" && d === "/") {
+      let j = src.indexOf("\n", i);
+      if (j < 0) j = n;
+      out += blank(src.slice(i, j));
+      i = j;
+      continue;
+    }
+    if (c === "/" && d === "*") {
+      let j = src.indexOf("*/", i + 2);
+      j = j < 0 ? n : j + 2;
+      out += blank(src.slice(i, j));
+      i = j;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < n && src[j] !== c && src[j] !== "\n") j += src[j] === "\\" ? 2 : 1;
+      out += src.slice(i, j + 1);
+      i = j + 1;
+      prevSig = c;
+      continue;
+    }
+    if (c === "`") {
+      let j = i + 1;
+      while (j < n && src[j] !== "`") j += src[j] === "\\" ? 2 : 1;
+      out += src.slice(i, j + 1);
+      i = j + 1;
+      prevSig = c;
+      continue;
+    }
+    if (c === "/" && (prevSig === "" || /[(,=:[!&|?{};+\-*%~^]/.test(prevSig) || /\b(return|typeof|case)$/.test(out.trimEnd()))) {
+      let j = i + 1;
+      let cls = false;
+      while (j < n && src[j] !== "\n") {
+        if (src[j] === "\\") {
+          j += 2;
+          continue;
+        }
+        if (src[j] === "[") cls = true;
+        else if (src[j] === "]") cls = false;
+        else if (src[j] === "/" && !cls) break;
+        j++;
+      }
+      out += src.slice(i, j + 1);
+      i = j + 1;
+      prevSig = "/";
+      continue;
+    }
+    out += c;
+    if (!/\s/.test(c)) prevSig = c;
+    i++;
+  }
+  return out;
+}
+{
+  const SPACING = [/[A-Za-z0-9] (로|을|를|에서|으로)(?![가-힣])/, /(\}|<\/[a-z]+>) (로|을|를|에서|으로)(?![가-힣])/];
+  const files = walk(path.join(ROOT, "src"), []).concat(walk(path.join(ROOT, "data"), [])).filter((f) => /\.(ts|tsx|json)$/.test(f));
+  let n = 0;
+  for (const f of files) {
+    const raw = fs.readFileSync(f, "utf8");
+    // JSON 의 tone 원문(from)·칩 찾기(match)는 원본 콘텐츠 글이라 화면에 그대로 나오지 않아요 — 빼고 봐요
+    const text = /\.json$/.test(f) ? raw.replace(/"(from|match)"\s*:\s*"(?:[^"\\]|\\.)*"/g, '""') : stripComments(raw);
+    text.split("\n").forEach((line, i) => {
+      for (const re0 of SPACING) {
+        const re = new RegExp(re0.source, "g");
+        let m;
+        while ((m = re.exec(line))) {
+          n++;
+          err(`띄어쓰기: ${rel(f)}:${i + 1} '${line.slice(Math.max(0, m.index - 12), m.index + m[0].length + 4).trim()}' — 조사는 붙여 써요(예: 'QR로', 'web.app에서')`);
+        }
+      }
+    });
+  }
+  if (VERBOSE) console.log(`  · 띄어쓰기 검사: 파일 ${files.length}개, ${n}건`);
 }
 
 /* ───── 결과 ───── */

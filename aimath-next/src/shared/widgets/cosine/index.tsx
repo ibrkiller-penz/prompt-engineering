@@ -83,7 +83,16 @@ export default function Cosine(props: WidgetProps) {
               </label>
             </div>
           )}
-          {vocab.length ? <Table caption="빈도 벡터" head={["", ...vocab]} rows={[["A", ...A.map(String)], ["B", ...B.map(String)]]} /> : null}
+          {vocab.length ? (
+            <Table
+              caption="빈도 벡터"
+              head={["", ...vocab]}
+              rows={[
+                ["A", ...A.map(String)],
+                ["B", ...B.map(String)],
+              ]}
+            />
+          ) : null}
           <Tex block tex={`A=${vecTex(A)}`} />
           <Tex block tex={`B=${vecTex(B)}`} />
         </>
@@ -108,8 +117,24 @@ export default function Cosine(props: WidgetProps) {
             equal
             ratio={1}
             series={[
-              { label: "A", s: 1, kind: "line", data: [{ x: 0, y: 0 }, { x: va[0], y: va[1] }] },
-              { label: "B", s: 2, kind: "line", data: [{ x: 0, y: 0 }, { x: vb[0], y: vb[1] }] },
+              {
+                label: "A",
+                s: 1,
+                kind: "line",
+                data: [
+                  { x: 0, y: 0 },
+                  { x: va[0], y: va[1] },
+                ],
+              },
+              {
+                label: "B",
+                s: 2,
+                kind: "line",
+                data: [
+                  { x: 0, y: 0 },
+                  { x: vb[0], y: vb[1] },
+                ],
+              },
             ]}
             summary={`A는 (${va[0]}, ${va[1]}), B는 (${vb[0]}, ${vb[1]})이에요.`}
             handles={[

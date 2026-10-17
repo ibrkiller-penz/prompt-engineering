@@ -54,3 +54,14 @@
   .pp-q { background: #fff !important; border: 1px solid #000 !important; }
   .pp-card, .pp-card * { background-image: none !important; }
 }
+
+/* 차시별 목표: 고른 차시 목표만 진하게, 다른 차시 목표는 흐리게 + 'n차시' 표시 */
+.pp-goals > li.is-now { font-weight: 700; }
+.pp-goals > li.is-other { color: var(--ink-2); }
+.pp-goal-p { margin-right: .4em; font-size: var(--t-sm); font-weight: 700; }
+.pp-story { margin: 0; }
+.pp-story-btn { min-height: 48px; }
+.pp .tiny, .pp .eyebrow { font-size: var(--t-sm); }
+@media print {
+  .pp-goals > li.is-other { color: #555; }
+}

@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { WidgetProps } from "../../contracts.ts";
 import { channelMatrix, countNumbers, grayAll, heartGrid, makeGrid, matrixTex, randomGrid, resizeGrid, rgbCss, rng, setChannel, setGray, type Grid } from "@legacy/widgets/Pixels.logic";
 import Stepper from "../Stepper.tsx";
-import { Big, Btn, Note, Row, Seg, Tex, Toggle } from "../kit.tsx";
+import { Big, Btn, Note, Row, Seg, Split, Tex, Toggle, useIsBoard } from "../kit.tsx";
 import { mission } from "./mission.ts";
 import { useMission } from "../useMission.ts";
 
@@ -33,8 +33,10 @@ export default function Pixels(props: WidgetProps) {
     if (on) setGrid(grayAll(grid));
   };
 
-  return (
-    <div className="wg-body">
+  // 칠판: 왼쪽 = 크기·예시·그림, 가운데 = 고른 칸의 값 ± · 필요한 수, 오른쪽 = 행렬
+  const board = useIsBoard();
+  const left = (
+    <>
       <Row>
         <Seg label="크기" value={n} options={SIZES.map((s) => ({ value: s, label: s + "×" + s }))} onChange={changeN} />
         <Toggle label="흑백" on={gray} onChange={toGray} />
@@ -66,20 +68,38 @@ export default function Pixels(props: WidgetProps) {
           </button>
         ))}
       </div>
+    </>
+  );
+  const mid = (
+    <>
       <p className="wg-line-label">
         고른 칸: {Math.floor(sel / n) + 1}행 {(sel % n) + 1}열
       </p>
       {gray ? (
-        <Stepper label="밝기" value={p[0]} min={0} max={255} step={5} slider onChange={(v) => setGrid(setGray(grid, sel, v))} />
+        <Stepper inline label="밝기" value={p[0]} min={0} max={255} step={5} slider onChange={(v) => setGrid(setGray(grid, sel, v))} />
       ) : (
-        CH.map((c) => <Stepper key={c.ch} label={c.name} value={p[c.ch]} min={0} max={255} step={5} slider onChange={(v) => setGrid(setChannel(grid, sel, c.ch, v))} />)
+        CH.map((c) => <Stepper inline key={c.ch} label={c.name} value={p[c.ch]} min={0} max={255} step={5} slider onChange={(v) => setGrid(setChannel(grid, sel, c.ch, v))} />)
       )}
       <Big label="그림을 저장하는 데 필요한 수" sub={gray ? `${n}×${n} 밝기 행렬 1개` : `${n}×${n} 행렬 3개(R, G, B)`}>
         {countNumbers(n, gray)}개
       </Big>
-      <div className="wg-mats">
-        {gray ? <Tex block tex={matrixTex(channelMatrix(grid, n, 0), "L")} /> : CH.map((c) => <Tex key={c.ch} block tex={matrixTex(channelMatrix(grid, n, c.ch), c.sym)} />)}
+    </>
+  );
+  const mats = (
+    <div className="wg-mats">{gray ? <Tex block tex={matrixTex(channelMatrix(grid, n, 0), "L")} /> : CH.map((c) => <Tex key={c.ch} block tex={matrixTex(channelMatrix(grid, n, c.ch), c.sym)} />)}</div>
+  );
+  if (board) {
+    return (
+      <div className="wg-body wg-body-split">
+        <Split a={left} b={mid} c={mats} />
       </div>
+    );
+  }
+  return (
+    <div className="wg-body">
+      {left}
+      {mid}
+      {mats}
       <Note>컬러 그림은 R, G, B 행렬 세 개로, 흑백 그림은 밝기 행렬 하나로 나타내요. 0은 어둡고 255는 가장 밝아요.</Note>
     </div>
   );

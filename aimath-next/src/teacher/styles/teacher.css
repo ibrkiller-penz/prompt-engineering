@@ -71,6 +71,16 @@ html[data-surface="prep"] .t-prog-card .small { font-variant-numeric: tabular-nu
 
 /* ════════════════ 반 고르기 칩 ════════════════ */
 html[data-surface="prep"] .t-klass { padding: var(--sp-2) 0 var(--sp-3); }
+/* 메뉴줄 안 반 칩: 줄 높이를 늘리지 않아요. 글자 18px · 터치 48px 이상 */
+html[data-surface="prep"] .t-head-row > .t-klass.is-compact { padding: 0; }
+html[data-surface="prep"] .t-klass.is-compact .chip { min-height: 48px; min-width: 3.6em; font-size: max(18px, var(--t-sm)); }
+html[data-surface="prep"] .t-klass.is-compact .t-klass-label { font-size: max(18px, var(--t-xs)); }
+/* 메뉴줄: 탭·설정 단추 글자 18px · 터치 48px 이상, 탭 사이를 넉넉하게 */
+html[data-surface="prep"] .t-head-row { min-height: 64px; }
+html[data-surface="prep"] .t-tab { min-height: 56px; padding: 0 var(--sp-3); font-size: max(18px, var(--t-sm)); }
+html[data-surface="prep"] .t-tab + .t-tab { margin-left: var(--sp-2); }
+html[data-surface="prep"] .t-gear { min-height: 48px; font-size: max(18px, var(--t-sm)); }
+html[data-surface="prep"] .t-brand { min-height: 48px; }
 html[data-surface="prep"] .t-klass .chip { min-width: 4.6em; justify-content: center; font-weight: 800; border-width: var(--border); }
 html[data-surface="prep"] .t-klass .chip[aria-pressed="true"] { border-color: var(--site); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--site); }
 html[data-surface="prep"] .t-klass .chip[aria-pressed="false"] { background: var(--surface); color: var(--ink); }

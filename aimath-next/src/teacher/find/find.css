@@ -45,3 +45,10 @@
 }
 
 .t-lsheet .stack > * + * { margin-top: var(--sp-4); }
+
+/* 칩 단추는 오늘 수업·수업 흐름과 같은 모양(.btn.t-dur) */
+.t-sheet-opts { align-items: center; }
+.t-sheet-opts > .t-set-label { margin: 0 var(--sp-3) var(--sp-2) 0; }
+.t-unit-chip { min-width: 0; }
+.t-find .small, .t-find .eyebrow, .t-lsheet .small, .t-lcard-meta { font-size: var(--t-sm); }
+.t-lsheet .btn, .t-find .btn { min-height: 48px; }

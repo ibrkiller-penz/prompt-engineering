@@ -76,3 +76,36 @@ test("콘텐츠의 모든 수식이 KaTeX 오류 · 경고 없이 그려져요",
   assert.ok(n > 5000, "수식 수가 너무 적어요: " + n);
   assert.deepEqual(bad, [], bad.slice(0, 10).join("\n"));
 });
+
+/* ── 벡터 화살표(\vec · \overrightarrow) ──
+ * KaTeX 는 화살표를 svg 로 그려요. 공용 base.css 의 'svg { max-width:100%; overflow:visible }' 가 그대로 걸리면
+ * 화살표 칸이 폭 0 이 되어 사라지므로, '.katex svg { max-width:none; overflow:hidden }' 되돌림이 뒤에 있어야 해요. */
+test("\\vec · \\overrightarrow 는 svg 경로와 폭이 있는 화살표 칸으로 그려져요", () => {
+  for (const display of [false, true]) {
+    const vec = katex.renderToString("\\vec{a}+\\vec{v}", { displayMode: display, output: "htmlAndMathml", throwOnError: true });
+    const overlays = vec.match(/class="katex-overlay"[^>]*style="[^"]*width:\s*([0-9.]+)em/g) || [];
+    assert.equal(overlays.length, 2, "\\vec 마다 화살표 칸(overlay)이 하나씩 있어야 해요");
+    for (const o of overlays) {
+      const w = Number(/width:\s*([0-9.]+)em/.exec(o)![1]);
+      assert.ok(w > 0, "화살표 칸 폭이 0 이에요: " + o);
+    }
+    assert.ok(/<svg[^>]*>\s*<path d="M/.test(vec), "\\vec 에 svg 경로가 있어야 해요");
+    assert.ok(vec.indexOf("<mo>⃗</mo>") >= 0 || vec.indexOf("<mo>→</mo>") >= 0 || vec.indexOf("&#x20D7;") >= 0 || /<mover/.test(vec), "읽기 도구용 MathML 에도 화살표가 있어야 해요");
+
+    const arr = katex.renderToString("\\overrightarrow{AB}", { displayMode: display, output: "htmlAndMathml", throwOnError: true });
+    assert.ok(/class="hide-tail"[^>]*min-width:\s*[0-9.]+em/.test(arr), "\\overrightarrow 의 화살표 칸(hide-tail)이 있어야 해요");
+    assert.ok(/<svg[^>]*>\s*<path d="M/.test(arr), "\\overrightarrow 에 svg 경로가 있어야 해요");
+  }
+});
+
+test("base.css: .katex svg 되돌림이 svg 전역 규칙보다 뒤에 있어요", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const css = readFileSync(fileURLToPath(new URL("../../src/styles/base.css", import.meta.url)), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const globalAt = css.search(/(^|[\s,}])svg\s*\{[^}]*overflow\s*:\s*visible/m);
+  const m = /\.katex svg\s*\{([^}]*)\}/.exec(css);
+  assert.ok(m, "base.css 에 '.katex svg { … }' 규칙이 있어야 해요");
+  assert.ok(/max-width\s*:\s*none/.test(m![1]), ".katex svg 는 max-width: none 이어야 해요");
+  assert.ok(/overflow\s*:\s*hidden/.test(m![1]), ".katex svg 는 overflow: hidden 이어야 해요");
+  assert.ok(globalAt < 0 || m!.index > globalAt, ".katex svg 규칙이 svg 전역 규칙보다 뒤에 와야 해요");
+});

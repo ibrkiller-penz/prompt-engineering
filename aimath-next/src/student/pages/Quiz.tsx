@@ -79,7 +79,7 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
     return (
       <Screen title={SET_NAME[set]} eyebrow={meta.code} noTabs backTo={overview}>
         <div className="page empty">
-          <p>{set === "hw" || set === "ex" ? "선생님이 고른 문제가 아직 없어요. 수업 끝에 선생님이 보여 주는 QR 로 들어오면 여기에 생겨요." : "풀 문제가 없어요."}</p>
+          <p>{set === "hw" || set === "ex" ? "선생님이 고른 문제가 아직 없어요. 수업 끝에 선생님이 보여 주는 QR로 들어오면 여기에 생겨요." : "풀 문제가 없어요."}</p>
           <a className="btn btn-primary" href={href(STUDENT_ROUTES.quiz, { lid })}>
             계단 문제로 가기
           </a>

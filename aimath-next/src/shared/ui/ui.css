@@ -23,11 +23,28 @@
 .ui-tex.is-short > .katex { white-space: nowrap; } /* 짧은 식($I \le 10$ 등)은 가운데서 끊지 않아요 */
 .ui-tex.is-wide { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
 .ui-tex.is-wide > .katex { white-space: nowrap; }
+/* 휴대폰 글 속 분수: KaTeX 는 분자·분모를 0.7배로 그려 17px 본문에서 12px 남짓이 돼요.
+ * 맨 바깥 글 속 분수(첨자 속 분수 · \dfrac 말고)만 상자째 키워 분자·분모가 13px 이상이 되게 해요(19px × 0.7 ≈ 13.3px).
+ * 상자째 키우면 KaTeX 의 세로 위치(em)도 같이 커져서 선과 글자가 겹치지 않아요. 위아래 여백으로 줄 높이를 보정해요. */
+html[data-surface="phone"] .ui-tex .mfrac.ui-tfrac { /* tex.tsx 가 글 속 맨 바깥 분수(\dfrac 제외)에만 붙여요 */
+  font-size: max(1.12em, 19px); padding: .12em .04em;
+}
+html[data-surface="phone"] .ui-p .ui-tex, html[data-surface="phone"] .ui-list .ui-tex { line-height: 1.2; }
 
 /* ── 수식 블록 ── */
 .ui-math { text-align: center; padding: var(--sp-2) 0; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
 .ui-math .katex-display { margin: .2em 0; overflow: visible; }
-.ui-math.is-shrink .katex-display > .katex { font-size: calc(var(--math-block) * .85); }
+/* 줄임(is-shrink)은 MathBlock 이 .ui-math 에 font-size(em 배율)를 직접 줘요. 칠판 무대의 .katex 크기 규칙보다 늘 이기도록 바깥 상자를 줄여요 */
+.ui-math.is-board { overflow-x: hidden; } /* 칠판은 가로 스크롤 대신 내림 → 줄임 → 나눔 → 캡션으로 맞춰요 */
+.ui-math.is-board.is-overflow { overflow-x: auto; } /* 마지막 안전망(시험이 is-overflow 를 잡아요) */
+.ui-math.is-split .katex-display { margin: .3em 0; }
+/* \text{한글} 만 있는 줄 · 풀어 쓴 줄: 수식 아래 캡션 */
+.ui-math-cap { margin: .2em auto 0; max-width: 40em; text-align: center; font-size: var(--t-md); line-height: var(--lh-tight); color: var(--ink-2); }
+.ui-math.is-board .ui-math-cap { font-size: max(28px, .9em); line-height: 1.35; }
+/* 칠판 개념 2단(.bd-cols)의 옆 칸에서 수식이 넘치면 MathBlock 이 ui-wide-math 를 붙여 옆 칸을 전체 폭으로 내려요 */
+.bd-cols.ui-wide-math { flex-wrap: wrap; }
+.bd-cols.ui-wide-math > .bd-col-main { flex: 1 1 100%; width: 100%; }
+.bd-cols.ui-wide-math > .bd-col-side { flex: 1 1 100%; width: 100%; margin-left: 0; margin-top: 24px; }
 .ui-math:focus { outline: none; }
 html.kbd .ui-math:focus, html.kbd .ui-table-scroll:focus { outline: var(--focus-w) solid var(--focus); outline-offset: 2px; }
 .ui-scroll-hint { display: block; margin: var(--sp-1) 0 0; font-size: var(--t-xs); color: var(--ink-2); text-align: right; }
@@ -84,6 +101,18 @@ caption.ui-caption { display: table-caption; } /* <caption> 을 block 으로 두
 .ui-example-ans-tag { font-weight: 800; color: var(--ok); }
 .ui-example-ctl > * + * { margin-left: var(--sp-2); }
 .ui-example.is-board .ui-example-title { font-size: var(--t-xl); }
+/* 아직 안 연 단계 자리표시(칠판·준비 화면): 번호 원 + 흐린 단서, 낮은 높이, 연한 점선(그래픽 3:1 = --ph-line) */
+.ui-ex-ph {
+  display: flex; align-items: center; min-height: 0; padding: 4px var(--sp-3);
+  border: 2px dashed var(--ph-line); border-radius: var(--radius-m); background: transparent;
+  color: var(--hint-ink); font-weight: 600; line-height: var(--lh-tight); white-space: nowrap; overflow: hidden;
+}
+.ui-ex-ph + .ui-ex-ph, .ui-ex-step + .ui-ex-ph { margin-top: var(--sp-2); }
+.ui-ex-ph .ui-ex-n { background: transparent; box-shadow: inset 0 0 0 2px var(--ph-line); color: var(--accent-ink); }
+.ui-ex-ph-cue { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--hint-ink); }
+.ui-ex-ph-cue::after { content: " \2026"; }
+.ui-ex-ph.is-ans .ui-ex-n { border-radius: var(--radius-pill); padding: 0 .5em; width: auto; }
+.ui-example.is-board .ui-ex-ph { padding: 4px 16px; font-size: .8em; }
 
 /* ── 말풍선 ── */
 .ui-bubbles > * + * { margin-top: var(--sp-3); }

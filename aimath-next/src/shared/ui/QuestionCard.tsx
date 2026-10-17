@@ -31,10 +31,33 @@ export function answerText(q: Question): string {
     case "ox":
       return q.answer ? "O" : "X";
     case "number":
-      return String(q.answer) + (q.unit ? " " + q.unit : "") + (q.tolerance ? " (±" + q.tolerance + ")" : "");
+      return String(q.answer) + unitJoin(q.unit) + (q.tolerance ? " (±" + q.tolerance + ")" : "");
     case "open":
       return q.model;
   }
+}
+
+/** 숫자 뒤 단위 붙이기: 한글 단위·%·° 는 붙여 쓰고(10명, 20%), 영문 단위는 띄어 써요(3 cm) */
+export function unitJoin(unit?: string): string {
+  const u = String(unit || "").trim();
+  if (!u) return "";
+  return /^[\uAC00-\uD7A3%°℃]/.test(u) ? u : " " + u;
+}
+
+/** 학생이 낸 답을 다시 보여 줄 글자 */
+function inputText(q: Question, input: number | boolean | string): string {
+  if (q.type === "choice" && typeof input === "number") return (CHOICE_KEYS[input] || String(input + 1)) + " " + (q.choices[input] || "");
+  if (q.type === "ox") return input === true ? "O" : "X";
+  if (q.type === "number") return String(input).trim() + unitJoin(q.unit);
+  return String(input);
+}
+
+/** 틀린 횟수에 따라 달라지는 안내(1회: 조건·단위 → 2회: 힌트 → 3회부터: 풀이) */
+export function wrongTip(n: number, hasHintLeft: boolean, hasSolution: boolean): string {
+  if (n <= 1) return "문제의 조건과 단위를 한 번 더 천천히 읽어 봐요.";
+  if (n === 2 && hasHintLeft) return "힌트를 하나 열어 보면 실마리가 보일 거예요.";
+  if (hasSolution) return "풀이를 열어 한 줄씩 따라가 봐요. 이해한 뒤 다시 풀면 돼요.";
+  return hasHintLeft ? "힌트를 열어 보고 다시 해 봐요." : "개념 카드를 다시 보고 와도 좋아요.";
 }
 
 export const TYPE_LABEL: Record<Question["type"], string> = { choice: "고르기", ox: "OX", number: "숫자 답", open: "서술형" };
@@ -59,6 +82,8 @@ export interface QuestionCardProps {
   readOnly?: boolean;
   /** 맞힌 뒤 나오는 단추(예: '다음 문제') */
   after?: ReactNode;
+  /** '새로 더해진 것' 띠 보이기(기본 true. 복습·오답노트에서는 끄기) */
+  showNew?: boolean;
 }
 
 function Stars({ level }: { level: number }) {
@@ -82,6 +107,10 @@ export function QuestionCard(props: QuestionCardProps) {
   const [selfOpen, setSelfOpen] = useState(false);
   const [checks, setChecks] = useState<boolean[]>([]);
   const [selfDone, setSelfDone] = useState<null | boolean>(null);
+  const [wrongN, setWrongN] = useState(0);
+  const [lastIn, setLastIn] = useState("");
+  // 맞힌 뒤 '풀이 확인하기'(기록하지 않아요)
+  const [peek, setPeek] = useState(false);
   const emit = (e: QEvent) => {
     if (onResult) onResult(e);
   };
@@ -115,6 +144,10 @@ export function QuestionCard(props: QuestionCardProps) {
     const ok = res.status === "correct";
     setFb(ok ? (solShown ? "shown" : "ok") : "bad");
     if (ok) setSolved(true);
+    else {
+      setWrongN((n) => n + 1);
+      setLastIn(inputText(q, input));
+    }
     emit({ type: "attempt", qid: q.id, correct: ok, afterSolution: solShown, input: shownInput });
   };
 
@@ -326,11 +359,13 @@ export function QuestionCard(props: QuestionCardProps) {
   }
 
   const canCheck = !locked && q.type !== "open" && (q.type === "number" ? text.trim().length > 0 : pick !== null);
+  const needId = "ui-q-need-" + q.id;
+  const hintLeft = !!hints && hints.filter((h) => !!h).length > Math.min(level, 2);
 
   return (
     <article className={"ui-q is-" + sf + (solved ? " is-solved" : "")} aria-label={"문제 " + q.id}>
       {meta}
-      {q.new ? (
+      {q.new && props.showNew !== false ? (
         <p className="ui-q-new">
           <span className="ui-q-new-tag">새로 더해진 것</span> <Rich text={q.new} />
         </p>
@@ -343,23 +378,59 @@ export function QuestionCard(props: QuestionCardProps) {
       {q.type !== "open" && !props.readOnly ? (
         <div className="ui-q-actions">
           {!solved ? (
-            <button type="button" className="btn btn-primary ui-q-check" disabled={!canCheck} onClick={() => submit(q.type === "number" ? text : (pick as number | boolean))}>
+            <button
+              type="button"
+              className="btn btn-primary ui-q-check"
+              disabled={!canCheck}
+              aria-describedby={!canCheck ? needId : undefined}
+              onClick={() => submit(q.type === "number" ? text : (pick as number | boolean))}
+            >
               확인
             </button>
+          ) : null}
+          {!solved && !canCheck ? (
+            <span id={needId} className="small muted ui-q-need">
+              {q.type === "number" ? "답을 먼저 적어 주세요" : "답을 먼저 골라 주세요"}
+            </span>
           ) : null}
           {solved && props.after ? props.after : null}
         </div>
       ) : null}
       {fb ? (
         <Feedback kind={fb}>
-          {fb === "bad" ? (level < 2 && hints && hints.length ? "힌트를 하나 열어 보고 다시 해 봐요." : "풀이를 천천히 읽고 다시 해 봐요.") : null}
+          {fb === "bad" ? (
+            <>
+              {lastIn ? (
+                <span className="ui-fb-input" style={{ display: "block" }}>
+                  적은 답: <strong><Rich text={lastIn} /></strong>
+                </span>
+              ) : null}
+              <span style={{ display: "block" }}>{wrongTip(wrongN, hintLeft, !!solution && level < 3)}</span>
+            </>
+          ) : null}
           {fb === "invalid" ? "숫자로 적어 줘요. 예: 3, -2, 3/4, 0.5, 2√3, π/2" : null}
           {fb === "shown" ? "풀이를 먼저 봤으니 '풀어 봄'으로 남아요. 다음엔 혼자 맞혀 봐요!" : null}
           {fb === "self" ? "모범 답안의 기준을 하나씩 채워서 다시 써 봐요." : null}
           {fb === "ok" && q.type === "open" ? "기준을 잘 갖췄어요." : null}
         </Feedback>
       ) : null}
-      {!props.readOnly ? <HintLadder hints={hints} solution={solution} level={level} onOpen={openLevel} surface={sf} /> : null}
+      {!props.readOnly && !solved ? <HintLadder hints={hints} solution={solution} level={level} onOpen={openLevel} surface={sf} /> : null}
+      {!props.readOnly && solved ? (
+        <div className={"ui-hints is-" + sf}>
+          {solution && (peek || solShown) ? (
+            <div className="reveal-step open ui-hint is-sol">
+              <span className="ui-hint-tag">풀이</span>
+              <div className="ui-hint-txt">
+                <Rich text={solution} />
+              </div>
+            </div>
+          ) : solution ? (
+            <button type="button" className="btn btn-soft ui-hint-btn ui-q-peek" onClick={() => setPeek(true)}>
+              풀이 확인하기
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {q.type === "choice" && solShown && !solved ? (
         <p className="ui-q-answer">
           정답: <strong><Rich text={answerText(q)} /></strong>

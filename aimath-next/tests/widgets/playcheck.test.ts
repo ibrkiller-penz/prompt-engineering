@@ -55,8 +55,10 @@ test("칠판에서 줄어든 무대(scale) 안의 그림 폭은 배치 폭(clien
   assert.match(src("Plot.tsx"), /el\.clientWidth \|\| el\.getBoundingClientRect\(\)\.width/);
 });
 
-test("KaTeX svg(벡터 화살표·근호)가 공용 svg 규칙에 눌리지 않게 되돌려 둬요", () => {
+test("KaTeX svg(벡터 화살표·근호)는 공용 base.css 전역 규칙이 지켜요(도구 안 국소 규칙은 없애요)", () => {
   const css = src("widgets.css");
-  assert.match(css, /\.wg-host \.katex svg \{\s*max-width: none;\s*overflow: hidden;/);
+  assert.doesNotMatch(css, /\.wg-host \.katex svg/);
+  const base = readFileSync(join(NEW_WIDGETS, "..", "..", "styles", "base.css"), "utf8");
+  assert.match(base, /\.katex svg \{\s*max-width: none;\s*overflow: hidden;/);
   assert.match(src("kit.tsx"), /import "katex\/dist\/katex\.min\.css"/);
 });

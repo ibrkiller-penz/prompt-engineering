@@ -5,7 +5,7 @@ import type { WidgetProps } from "../../contracts.ts";
 import { FUNCTIONS, classify, stepOnce, type Status } from "@legacy/widgets/Gradient.logic";
 import Plot from "../Plot.tsx";
 import Stepper from "../Stepper.tsx";
-import { Big, Btn, Hide, Note, Readout, Row, Seg, Tex, Verdict } from "../kit.tsx";
+import { Big, Btn, Hide, Note, Readout, Row, Seg, Split, Tex, Verdict, useIsBoard } from "../kit.tsx";
 import { fmtNum, sampleFn } from "../plot.logic.ts";
 import { mission } from "./mission.ts";
 import { useMission } from "../useMission.ts";
@@ -46,27 +46,37 @@ export default function Gradient(props: WidgetProps) {
   const w = ws[ws.length - 1];
   const { slope, wNew } = stepOnce(fn, w, eta);
   const fvals = ws.map((v) => fn.f(v));
-  const yHi = Math.max.apply(null, sampleFn(fn.f, fn.lo, fn.hi, 60).map((p) => p.y));
-  const yLo = Math.min.apply(null, sampleFn(fn.f, fn.lo, fn.hi, 60).map((p) => p.y));
+  const yHi = Math.max.apply(
+    null,
+    sampleFn(fn.f, fn.lo, fn.hi, 60).map((p) => p.y),
+  );
+  const yLo = Math.min.apply(
+    null,
+    sampleFn(fn.f, fn.lo, fn.hi, 60).map((p) => p.y),
+  );
   const path = ws.map((v, i) => ({ x: v, y: fvals[i] })).filter((p) => p.x >= fn.lo - 1 && p.x <= fn.hi + 1);
   const m = MESSAGES[status];
 
-  return (
-    <div className="wg-body">
-      <Seg
-        label="함수"
-        value={fnId}
-        options={FUNCTIONS.map((f) => ({ value: f.id, label: f.formula }))}
-        onChange={(id) => {
-          const f = FUNCTIONS.filter((x) => x.id === id)[0];
-          setFnId(id);
-          setStart(f.defaultStart);
-          setWs([f.defaultStart]);
-        }}
-      />
+  const board = useIsBoard();
+  const fnSeg = (
+    <Seg
+      label="함수"
+      value={fnId}
+      options={FUNCTIONS.map((f) => ({ value: f.id, label: f.formula }))}
+      onChange={(id) => {
+        const f = FUNCTIONS.filter((x) => x.id === id)[0];
+        setFnId(id);
+        setStart(f.defaultStart);
+        setWs([f.defaultStart]);
+      }}
+    />
+  );
+  const graph = (
+    <>
       <Tex block tex={fn.tex + ",\\quad " + fn.dtex} />
       <Plot
         title="함수 그래프와 내려간 길"
+        boardMaxH={420}
         x={[fn.lo, fn.hi]}
         y={[Math.floor(yLo - 0.5), Math.ceil(yHi)]}
         xLabel="w"
@@ -83,8 +93,13 @@ export default function Gradient(props: WidgetProps) {
           reset(v);
         }}
       />
+    </>
+  );
+  const controls = (
+    <>
       <Row>
         <Stepper
+          inline
           label="시작점 w₀"
           value={start}
           min={fn.lo}
@@ -96,6 +111,7 @@ export default function Gradient(props: WidgetProps) {
           }}
         />
         <Stepper
+          inline
           label="학습률 η"
           value={etaIdx}
           min={0}
@@ -117,18 +133,50 @@ export default function Gradient(props: WidgetProps) {
         <Btn onClick={() => reset()}>처음으로</Btn>
       </Row>
       <Hide label="다음 자리 계산">
-      <Tex block tex={`w_{\\text{new}}=w-\\eta f'(w)=${fmtNum(w, 3)}-${eta}\\times(${fmtNum(slope, 3)})=${fmtNum(wNew, 3)}`} />
+        <Tex block tex={`w_{\\text{new}}=w-\\eta f'(w)=${fmtNum(w, 3)}-${eta}\\times(${fmtNum(slope, 3)})=${fmtNum(wNew, 3)}`} />
       </Hide>
-      <Big label="지금 w" sub={`f(w) = ${fmtNum(fn.f(w), 3)}`}>
-        {fmtNum(w, 3)}
-      </Big>
-      <div className="wg-grid3">
-        <Readout label="걸음 수" keep>
-          {steps}
-        </Readout>
-        <Readout label="기울기 f'(w)">{fmtNum(slope, 3)}</Readout>
+    </>
+  );
+  const result = (
+    <>
+      <div className={board ? "wg-two" : "wg-stack"}>
+        <Big label="지금 w" sub={`f(w) = ${fmtNum(fn.f(w), 3)}`}>
+          {fmtNum(w, 3)}
+        </Big>
+        <div className="wg-grid3">
+          <Readout label="걸음 수" keep>
+            {steps}
+          </Readout>
+          <Readout label="기울기 f'(w)">{fmtNum(slope, 3)}</Readout>
+        </div>
       </div>
       <Verdict ok={m.ok}>{m.text}</Verdict>
+    </>
+  );
+
+  // 칠판: 맨 위 = 함수 고르기, 왼쪽 = 식과 그림, 오른쪽 = ± 조작·걸음 → 계산 → 지금 w · 걸음 수 → 판정
+  if (board) {
+    return (
+      <div className="wg-body wg-body-split">
+        <div className="wg-topline">{fnSeg}</div>
+        <Split
+          a={graph}
+          b={
+            <>
+              {controls}
+              {result}
+            </>
+          }
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="wg-body">
+      {fnSeg}
+      {graph}
+      {controls}
+      {result}
       <Note>기울기가 양수면 왼쪽으로, 음수면 오른쪽으로 움직여요. 학습률 η는 한 걸음의 크기를 정해요.</Note>
     </div>
   );

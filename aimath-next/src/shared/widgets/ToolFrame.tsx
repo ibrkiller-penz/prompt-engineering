@@ -1,6 +1,6 @@
 // 체험 도구의 틀: ① 예상해요 → ② 해 봐요(조작) → ③ 알게 된 점.
-// 휴대폰·준비 화면은 위에서 아래로 한 줄, 칠판은 왼쪽 안내판(360px) + 오른쪽 그림판이에요.
-// 칠판 안내판은 세로 1080 안에 들어가도록 ①②③ 중 한 단계만 크게 보여 주고, 단계 단추로 넘겨요.
+// 휴대폰·준비 화면은 위에서 아래로 한 줄, 칠판은 위쪽 안내 띠 + 무대 폭을 다 쓰는 도구예요.
+// 칠판 안내 띠는 ①②③ 중 지금 단계의 안내를 한 줄로만 보여 주고, '다음' 단추로 넘겨요.
 // 예상·알게 된 점에 적은 글은 저장하지 않아요(화면을 떠나면 사라져요).
 import { useId, useState } from "react";
 import type { ReactNode } from "react";
@@ -22,6 +22,13 @@ export interface ToolFrameProps {
 
 const MAX_NOTE = 200;
 
+/** 칠판 ② 해 봐요에서 한 줄씩 넘길 안내: 할 일 세 줄 + (있으면) 미션 한 줄 */
+export function boardDoItems(guide: WidgetGuide): { text: string; mission: boolean }[] {
+  const out = guide.steps.map((s) => ({ text: s, mission: false }));
+  if (guide.mission) out.push({ text: guide.mission.text, mission: true });
+  return out;
+}
+
 export default function ToolFrame(props: ToolFrameProps) {
   const { guide, surface, onEvent } = props;
   const board = surface === "board";
@@ -31,6 +38,7 @@ export default function ToolFrame(props: ToolFrameProps) {
   const [learned, setLearned] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [phase, setPhase] = useState(0);
+  const [sub, setSub] = useState(0);
 
   const sendGuess = () => {
     setGuessed(true);
@@ -53,13 +61,18 @@ export default function ToolFrame(props: ToolFrameProps) {
   const predict = (
     <section className="wf-step" aria-labelledby={uid + "p"}>
       <h4 id={uid + "p"} className="wf-h">
-        <span className="wf-no" aria-hidden="true">1</span>예상해요
+        <span className="wf-no" aria-hidden="true">
+          1
+        </span>
+        예상해요
       </h4>
       <p className="wf-text">
         <Rich text={guide.predict} />
       </p>
       {board ? null : guessed ? (
-        guess.trim() ? <p className="wf-mine">내 예상: {guess.trim()}</p> : null
+        guess.trim() ? (
+          <p className="wf-mine">내 예상: {guess.trim()}</p>
+        ) : null
       ) : (
         <div className="wf-form">
           <label className="wg-sr" htmlFor={uid + "pi"}>
@@ -78,7 +91,10 @@ export default function ToolFrame(props: ToolFrameProps) {
   const doIt = (
     <section className="wf-step" aria-labelledby={uid + "d"}>
       <h4 id={uid + "d"} className="wf-h">
-        <span className="wf-no" aria-hidden="true">2</span>해 봐요
+        <span className="wf-no" aria-hidden="true">
+          2
+        </span>
+        해 봐요
       </h4>
       <ol className="wf-steps">
         {guide.steps.map((s, i) => (
@@ -101,7 +117,10 @@ export default function ToolFrame(props: ToolFrameProps) {
   const learn = (
     <section className="wf-step" aria-labelledby={uid + "l"}>
       <h4 id={uid + "l"} className="wf-h">
-        <span className="wf-no" aria-hidden="true">3</span>알게 된 점
+        <span className="wf-no" aria-hidden="true">
+          3
+        </span>
+        알게 된 점
       </h4>
       <p className="wf-text">
         <Rich text={guide.ask} />
@@ -132,28 +151,60 @@ export default function ToolFrame(props: ToolFrameProps) {
   );
 
   if (board) {
+    // 칠판: 위쪽 안내 띠(단계 단추·도구 단추 한 줄 + 지금 안내 한 줄) 아래에 도구가 무대 폭을 다 써요.
+    // ② 해 봐요는 할 일을 한 줄씩(1/3 → 2/3 → 3/3 → 미션) 넘겨요. '다음' 한 번에 한 줄이에요.
     const names = ["예상해요", "해 봐요", "알게 된 점"];
+    const items = boardDoItems(guide);
+    const si = Math.min(sub, items.length - 1);
+    const go = (p: number) => {
+      setPhase(p);
+      setSub(0);
+    };
+    let line: ReactNode;
+    let tag = "";
+    let next: { label: string; run: () => void } | null = null;
+    if (phase === 0) {
+      line = <Rich text={guide.predict} />;
+      next = { label: "다음: 해 봐요", run: () => go(1) };
+    } else if (phase === 1) {
+      const it = items[si];
+      tag = it.mission ? (props.missionOk ? "✓ 미션 성공" : "미션") : si + 1 + " / " + guide.steps.length;
+      line = <Rich text={it.text} />;
+      next = si < items.length - 1 ? { label: items[si + 1].mission ? "다음: 미션" : "다음 할 일", run: () => setSub(si + 1) } : { label: "다음: 알게 된 점", run: () => go(2) };
+    } else {
+      if (revealed) tag = "정리";
+      line = <Rich text={revealed ? guide.reveal : guide.ask} />;
+      next = revealed ? null : { label: "정리 보기", run: reveal };
+    }
+    const nextBtn = next ? (
+      <button type="button" className="wg-btn wg-btn-primary wf-next" onClick={next.run}>
+        {next.label}
+        <span aria-hidden="true"> →</span>
+      </button>
+    ) : null;
     return (
       <div className="wf wf-board">
-        <div className="wf-side">
-          <h3 className="wf-title">{props.title}</h3>
-          <div className="wf-tabs" role="group" aria-label="체험 단계">
-            {names.map((n, i) => (
-              <button key={i} type="button" className={"wg-btn wg-btn-small wf-tab" + (phase === i ? " is-on" : "")} aria-pressed={phase === i} onClick={() => setPhase(i)}>
-                {i + 1} {n}
-              </button>
-            ))}
+        <h3 className="wg-sr">{props.title}</h3>
+        <div className="wf-bar">
+          <div className="wf-bar-top">
+            <div className="wf-tabs" role="group" aria-label="체험 단계">
+              {names.map((n, i) => (
+                <button key={i} type="button" className={"wg-btn wf-tab" + (phase === i ? " is-on" : "")} aria-pressed={phase === i} onClick={() => go(i)}>
+                  <span className="wf-tab-no" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  {n}
+                </button>
+              ))}
+            </div>
+            {nextBtn}
+            {mission && props.missionOk && !(phase === 1 && items[si].mission) ? <span className="wg-mission-chip wf-ok-chip">✓ 미션 성공</span> : null}
+            {props.sideTools ? <div className="wf-bar-tools">{props.sideTools}</div> : null}
           </div>
-          {phase === 0 ? predict : phase === 1 ? doIt : learn}
-          {phase < 2 ? (
-            <button type="button" className="wg-btn wg-btn-primary" onClick={() => setPhase(phase + 1)}>
-              다음 단계: {names[phase + 1]}
-            </button>
-          ) : null}
-          {phase !== 1 && mission ? (
-            <p className={"wf-mission-mini" + (props.missionOk ? " is-ok" : "")}>{props.missionOk ? "✓ 미션 성공" : "미션은 ② 해 봐요에 있어요"}</p>
-          ) : null}
-          {props.sideTools ? <div className="wf-side-tools">{props.sideTools}</div> : null}
+          <div className={"wf-line" + (phase === 1 && items[si].mission ? " is-mission" + (props.missionOk ? " is-ok" : "") : "") + (phase === 2 && revealed ? " is-reveal" : "")} aria-live="polite">
+            {tag ? <span className="wf-line-tag">{tag}</span> : null}
+            <p className="wf-line-text">{line}</p>
+          </div>
         </div>
         <div className="wf-stage">{props.children}</div>
       </div>

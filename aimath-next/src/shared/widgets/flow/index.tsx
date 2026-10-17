@@ -3,14 +3,18 @@ import { useState } from "react";
 import type { WidgetProps } from "../../contracts.ts";
 import { COND_OPTIONS, PRESET_INFO, PRESET_ORDER, buildProgram, checkBlank, explainTex, run, type Inputs, type PresetId } from "@legacy/widgets/Flow.logic";
 import Stepper from "../Stepper.tsx";
-import { Big, Btn, Hide, Note, Row, Seg, Table, Tex, Toggle, Verdict } from "../kit.tsx";
+import { Big, Btn, Hide, Note, Row, Seg, Split, Table, Tex, Toggle, Verdict, useIsBoard } from "../kit.tsx";
 import { mission } from "./mission.ts";
 import { useMission } from "../useMission.ts";
 
 const KIND_NAME: Record<string, string> = { start: "시작", end: "끝", proc: "처리", dec: "판단", io: "입출력" };
 const DEF: Inputs = { n: 5, a: 7, b: 12, c: 6 };
 
+// 칠판에서는 변수 값 표를 최근 몇 줄만 보여 줘요(세로 864 안에 들도록)
+const BOARD_ROWS = 6;
+
 export default function Flow(props: WidgetProps) {
+  const board = useIsBoard();
   const [preset, setPreset] = useState<PresetId>("sum");
   const [inp, setInp] = useState<Inputs>(DEF);
   const [idx, setIdx] = useState(-1);
@@ -43,12 +47,13 @@ export default function Flow(props: WidgetProps) {
   const nodeLabel = (id: string | undefined) => (id && prog.nodes[id] ? prog.nodes[id].label : "");
   const shown = steps.slice(0, idx + 1);
 
-  return (
-    <div className="wg-body">
+  const skip = board ? Math.max(0, shown.length - BOARD_ROWS) : 0;
+  const setup = (
+    <>
       <Seg label="순서도" value={preset} options={PRESET_ORDER.map((id) => ({ value: id, label: PRESET_INFO[id].name }))} onChange={choose} />
       <Row>
         {info.inputs.map((k) => (
-          <Stepper key={k} label={k === "n" ? "N" : k} value={inp[k]} min={info.min} max={info.max} onChange={(v) => setVal(k, v)} />
+          <Stepper inline key={k} label={k === "n" ? "N" : k} value={inp[k]} min={info.min} max={info.max} onChange={(v) => setVal(k, v)} />
         ))}
       </Row>
       {preset === "sum" ? (
@@ -95,6 +100,10 @@ export default function Flow(props: WidgetProps) {
           ) : null}
         </div>
       ) : null}
+    </>
+  );
+  const chart = (
+    <>
       <ol className="wg-flow" aria-label="순서도 칸">
         {order.map((id) => {
           const n = prog.nodes[id];
@@ -125,11 +134,17 @@ export default function Flow(props: WidgetProps) {
           끝까지
         </Btn>
       </Row>
+    </>
+  );
+  const result = (
+    <>
       <Table
-        caption={`변수 값 표 (${Math.max(0, idx + 1)} / ${steps.length}칸)`}
+        caption={`변수 값 표 (${Math.max(0, idx + 1)} / ${steps.length}칸)` + (skip ? ` · 최근 ${BOARD_ROWS}줄` : "")}
         head={["차례", "칸", ...prog.varNames]}
-        rows={shown.map((s, i) => [String(i + 1), s.label + (s.branch ? " (" + s.branch + ")" : ""), ...prog.varNames.map((v) => (s.vars[v] === undefined ? "" : String(s.vars[v])))])}
-        hl={(i) => i === idx}
+        rows={shown
+          .slice(skip)
+          .map((s, i) => [String(skip + i + 1), s.label + (s.branch ? " (" + s.branch + ")" : ""), ...prog.varNames.map((v) => (s.vars[v] === undefined ? "" : String(s.vars[v])))])}
+        hl={(i) => skip + i === idx}
       />
       {trace.truncated && done ? <Note>너무 오래 반복해서 멈췄어요. 끝나지 않는 순서도예요.</Note> : null}
       {done && trace.output !== null ? (
@@ -140,6 +155,22 @@ export default function Flow(props: WidgetProps) {
           </Hide>
         </>
       ) : null}
+    </>
+  );
+
+  // 칠판: 왼쪽 = 순서도 고르기·입력·빈칸, 가운데 = 순서도와 넘기기 단추, 오른쪽 = 변수 값 표(최근 줄)·출력
+  if (board) {
+    return (
+      <div className="wg-body wg-body-split">
+        <Split a={setup} b={chart} c={result} />
+      </div>
+    );
+  }
+  return (
+    <div className="wg-body">
+      {setup}
+      {chart}
+      {result}
     </div>
   );
 }

@@ -55,3 +55,11 @@
   .t-scene-row { flex-wrap: wrap; }
   .t-scene-ctl { width: 100%; margin: var(--sp-2) 0 0; flex-wrap: wrap; }
 }
+
+/* 범례는 두 칸 격자로(좁은 옆 칸에서 잘리지 않게) · 칩 단추는 오늘 수업과 같은 모양 */
+.t-flow-legend { display: grid; grid-template-columns: 1fr 1fr; grid-gap: var(--sp-1) var(--sp-3); }
+.t-flow-legend > li { margin: 0; white-space: nowrap; }
+.t-flow-sum .t-chips > .btn + .btn { margin-left: 0; }
+.t-flow .small, .t-flow .eyebrow, .t-flow .chip { font-size: var(--t-sm); }
+.t-flow .btn { min-height: 48px; }
+.t-flow-sum .btn-block { width: 100%; }

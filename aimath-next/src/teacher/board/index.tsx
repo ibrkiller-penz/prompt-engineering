@@ -10,14 +10,15 @@ import { lessonMeta } from "../../content/index.ts";
 import { useTeacherPrefs } from "../shell/prefs.ts";
 import { Loading } from "../shell/Fallbacks.tsx";
 import type { TeacherPageProps } from "../shell/pages.tsx";
-import { expandId } from "../logic/index.ts";
+import { expandId, summaryForPeriod } from "../logic/index.ts";
+import { planOf } from "../shell/plan.ts";
 import { saveLast } from "../store/index.ts";
 import { TEACHER_MARK } from "../mark.ts";
-import { firstOn, lastOn, qStages, QSTAGE_LABEL, railInfo, revealMax, snapOn, stepNext, stepPrev, type Pos } from "./board.logic.ts";
+import { firstOn, lastOn, qStages, QSTAGE_LABEL, revealMax, segmentInfo, snapOn, stepNext, stepPrev, type Pos } from "./board.logic.ts";
 import { Stage, type RailItem } from "./Stage.tsx";
 import { ConceptScene, ExampleScene, KIND_LABEL, LinesScene, PrereqScene, QuestionScene, SceneBody, findQ, type Layout } from "./scenes.tsx";
 import { BoardQuestion } from "./Question.tsx";
-import { EndScene } from "./End.tsx";
+import { EndScene, useFinish } from "./End.tsx";
 import { useBoardData } from "./data.ts";
 import "./board.css";
 
@@ -29,6 +30,16 @@ const DEFAULT_LAYOUT: Layout = { pages: 1, display: 0, pfr: [0], level: 0 };
 function lessonLabel(lid: string, lesson?: Lesson) {
   const m = lessonMeta(lid);
   return (m ? m.code + " " : "") + (lesson ? lesson.title : m ? m.title : lid);
+}
+
+/** 수업 끝 화면에 크게 쓰는 차시 이름(예: "Ⅰ-1 인공지능이란? · 1차시") */
+function periodLabel(lid: string, lesson: Lesson | undefined, p: number, n: number) {
+  return lessonLabel(lid, lesson) + (n > 1 && p >= 1 ? " · " + p + "차시" : "");
+}
+
+/** 다음 단추: 문제 단계 이름 */
+function qNextLabel(st: string): string {
+  return st === "show" ? "보기 보이기" : QSTAGE_LABEL[st as keyof typeof QSTAGE_LABEL] + " 열기";
 }
 
 function Missing({ what }: { what: string }) {
@@ -103,6 +114,8 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
   const jump = (i: number) => go({ s: i, r: 0, page: 0 });
 
   const onLayout = useCallback((l: Layout) => setLayout(l), []);
+  const lastPeriod = props.p === 0 || props.p >= props.n;
+  const finish = useFinish(lid, lastPeriod);
 
   if (!scene) return <Missing what="장면" />;
 
@@ -111,7 +124,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
   scenes.forEach((sc, i) => {
     if (sc.on) rails.push({ s: i, label: sceneTitle(sc) });
   });
-  const info = railInfo(scenes, s);
+  const seg = segmentInfo(scenes, s);
   let nextOn = -1;
   for (let i = s + 1; i < scenes.length; i++)
     if (scenes[i].on) {
@@ -125,8 +138,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
   const q = qid ? findQ(lesson, qid) : undefined;
   if (pos.r < m) {
     if (q) {
-      const st = qStages(q)[pos.r + 1];
-      nextLabel = st === "show" ? "보기 보이기" : QSTAGE_LABEL[st] + " 열기";
+      nextLabel = qNextLabel(qStages(q)[pos.r + 1]);
       nextHint = pos.r + 1 + " / " + m;
     } else {
       nextLabel = "다음 공개";
@@ -142,6 +154,12 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
   }
 
   const kind = scene.kind;
+  // 수업 끝 장면에서는 아래 주 단추가 '수업 마치기(진도 표시)'예요
+  const isEnd = kind === "qr" && pos.r >= m && layout.display >= layout.pages - 1;
+  if (isEnd) {
+    nextLabel = finish.label;
+    nextHint = finish.hint;
+  }
   const pageable = kind !== "problem" && kind !== "widget" && kind !== "qr";
   const wid = kind === "widget" ? ((scene.blocks.filter((b) => b.t === "widget")[0] as { id: string } | undefined) || { id: "" }).id : "";
 
@@ -161,14 +179,16 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
           {scene.part ? <span className="chip bd-part">이어서 {scene.part.i}/{scene.part.n}</span> : null}
         </>
       }
-      counter={info.n + " / " + info.total}
+      counter={seg.label + " " + seg.n + "/" + seg.m + " · 장면 " + seg.a + "/" + seg.b}
+      counterNote={seg.off ? "꺼진 장면 " + seg.off : undefined}
       rail={{ items: rails, cur: s, onJump: jump }}
-      onNext={onNext}
+      onNext={isEnd ? finish.run : onNext}
       onPrev={onPrev}
       onFirst={() => jump(firstOn(scenes))}
       onLast={() => jump(lastOn(scenes))}
       nextLabel={nextLabel}
       nextHint={nextHint}
+      nextTone={isEnd ? "finish" : undefined}
       canPrev={pos.r > 0 || layout.display > 0 || s > firstOn(scenes)}
       exitHref="#/"
       noSwipe={kind === "widget"}
@@ -185,7 +205,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
             case "prereq":
               return <PrereqScene scene={scene} r={pos.r} />;
             case "concept":
-              return <ConceptScene scene={scene} r={pos.r} level={level} lid={lid} />;
+              return <ConceptScene scene={scene} r={pos.r} level={level} lid={lid} onAll={() => setPos({ s, r: m, page: pos.page })} />;
             case "example":
               return <ExampleScene scene={scene} r={pos.r} />;
             case "widget":
@@ -203,7 +223,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
                 <p className="muted">문제를 찾지 못했어요.</p>
               );
             case "qr":
-              return <EndScene lesson={lesson} exit={exit} hw={hw} lastPeriod={props.p === 0 || props.p >= props.n} />;
+              return <EndScene lesson={lesson} exit={exit} hw={hw} periodLabel={periodLabel(lid, lesson, props.p, props.n)} />;
           }
         }}
       </SceneBody>
@@ -264,7 +284,7 @@ function BoardQ({ lid, qid, query }: { lid: string; qid: string; query: Record<s
       onPrev={() => setR((v) => Math.max(0, v - 1))}
       onFirst={() => setR(0)}
       onLast={() => setR(m)}
-      nextLabel={r < m ? (stages[r + 1] === "show" ? "보기 보이기" : QSTAGE_LABEL[stages[r + 1]] + " 열기") : "다 열었어요"}
+      nextLabel={r < m ? qNextLabel(stages[r + 1]) : "다 열었어요"}
       nextHint={r < m ? r + 1 + " / " + m : undefined}
       canPrev={r > 0}
       exitHref={exitHref}
@@ -302,24 +322,30 @@ function BoardTool({ lid, wid, query }: { lid: string; wid: string; query: Recor
 function BoardEnd({ lid, query }: { lid: string; query: Record<string, string> }) {
   const d = useBoardData(lid, intParam(query.p, 1, 0, 20));
   const lastS = useMemo(() => (d.view ? lastOn(d.view.scenes) : 0), [d.view]);
+  const finish = useFinish(lid, !d.view || d.view.p === 0 || d.view.p >= d.view.periods.length);
   if (d.loading) return <Loading label="수업 끝 화면을 준비하고 있어요…" />;
   if (!d.lesson || !d.view) return <Missing what="레슨" />;
   const view = d.view;
   const toBoard = () => navigate(fillPath(TEACHER_ROUTES.board, { lid }), { p: view.p, s: Math.max(0, lastS - 1) });
+  // 정리 줄: 이 차시 소제목 정리만. 칠판 정리 장면이 '이 레슨 전체 정리'(마지막 차시)면 끝 화면도 같은 제목·줄로 맞춰요
+  const whole = view.scenes.some((sc) => sc.kind === "summary" && sc.on && /^이 레슨 전체 정리/.test(sc.title || ""));
+  const summary = summaryForPeriod(d.lesson, planOf(lid), view.flow.period, { whole });
   return (
     <Stage
       inkKey={"end:" + lid}
       lessonLabel={lessonLabel(lid, d.lesson)}
       title="수업 끝"
-      onNext={() => navigate("/")}
+      onNext={finish.run}
       onPrev={toBoard}
-      nextLabel="오늘 수업으로"
+      nextLabel={finish.label}
+      nextHint={finish.hint}
+      nextTone="finish"
       canPrev={true}
       exitHref="#/"
     >
       <div className="bd-scene kind-qr">
         <div className="bd-scene-inner">
-          <EndScene lesson={d.lesson} exit={d.exit} hw={d.hw} lastPeriod={view.p === 0 || view.p >= view.periods.length} withSummary={true} />
+          <EndScene lesson={d.lesson} exit={d.exit} hw={d.hw} periodLabel={periodLabel(lid, d.lesson, view.p, view.periods.length)} summary={summary} />
         </div>
       </div>
     </Stage>

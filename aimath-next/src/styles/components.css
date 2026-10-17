@@ -32,7 +32,13 @@
 .btn:active { transform: scale(.97); }
 /* 단추 안 아이콘·글자 사이 간격(flex gap 대체). 안 보이는 .ui-sr 는 절대 위치라 영향 없어요 */
 .btn > * + * { margin-left: .4em; }
-.btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: default; transform: none; }
+/* 비활성: opacity 대신 회색 바탕·회색 테두리·4.5:1 글자(check-contrast 의 --disabled-* 쌍) */
+.btn[disabled], .btn[aria-disabled="true"],
+.btn-primary[disabled], .btn-primary[aria-disabled="true"],
+.btn-soft[disabled], .btn-ghost[disabled] {
+  background: var(--disabled-bg); border-color: var(--disabled-line); color: var(--disabled-ink);
+  cursor: default; transform: none; box-shadow: none;
+}
 .btn-primary {
   background: var(--accent); border-color: var(--accent); color: var(--on-accent);
   min-height: var(--tap-main); font-size: var(--t-md); padding: var(--sp-1) var(--sp-5);
@@ -97,7 +103,7 @@ button.chip, a.chip {
 button.chip:active, a.chip:active { transform: scale(.97); }
 button.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 button.chip[aria-pressed="true"]::before { content: "\2713"; margin-right: .3em; font-weight: 800; }
-button.chip[disabled] { opacity: .5; cursor: default; }
+button.chip[disabled] { background: var(--disabled-bg); border-color: var(--disabled-line); color: var(--disabled-ink); cursor: default; transform: none; }
 /* 칩 여러 개 줄(감기기) */
 .chips { display: flex; flex-wrap: wrap; align-items: center; margin: -3px; }
 .chips > * { margin: 3px; }
@@ -275,7 +281,7 @@ html[data-surface="phone"] .tbl-cards td[data-label]::before {
 /* ── 단계 공개(힌트·풀이·칠판 공개) ── */
 .reveal-step {
   border-radius: var(--radius-m); padding: var(--sp-3) var(--sp-4);
-  background: var(--surface); border: var(--border) dashed var(--line-strong); color: var(--ink-2);
+  background: var(--surface); border: var(--border) dashed var(--ph-line); color: var(--ink-2);
 }
 .reveal-step.open { border-style: solid; border-color: var(--accent); color: var(--ink); }
 .reveal-step + .reveal-step { margin-top: var(--sp-3); }
@@ -284,6 +290,10 @@ html[data-surface="phone"] .tbl-cards td[data-label]::before {
 /* 아직 안 연 단계(칠판 공개 자리): 글자 대신 자리만 보여요 */
 .reveal-step.is-locked { min-height: var(--tap); color: var(--ink-2); font-weight: 700; }
 ol.reveal-steps, ul.reveal-steps { list-style: none; margin: 0; padding: 0; }
+/* 자리표시 안의 번호(①②)와 흐린 단서(첫 단어). 흐림은 opacity 가 아니라 --hint-ink 색으로 해요 */
+.reveal-num { display: inline-block; min-width: 1.4em; margin-right: .4em; font-weight: 800; color: var(--accent-ink); }
+.reveal-cue { color: var(--hint-ink); font-weight: 600; }
+.reveal-cue::after { content: " \2026"; }
 
 /* ── 큰 숫자(타이머·집계) ── */
 .bignum { font-size: var(--t-num); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -310,7 +320,7 @@ ol.reveal-steps, ul.reveal-steps { list-style: none; margin: 0; padding: 0; }
 .stepper > button:first-child { border-radius: var(--radius-m) 0 0 var(--radius-m); }
 .stepper > button:last-child { border-radius: 0 var(--radius-m) var(--radius-m) 0; }
 .stepper > button:active { background: var(--accent-soft); }
-.stepper > button[disabled] { opacity: .4; cursor: default; }
+.stepper > button[disabled] { background: var(--disabled-bg); color: var(--disabled-ink); cursor: default; }
 
 /* ── 슬라이더(휴대폰은 슬라이더 + 스테퍼, 칠판은 스테퍼 우선) ── */
 .range { -webkit-appearance: none; appearance: none; width: 100%; height: var(--tap); margin: 0; background: transparent; touch-action: none; }

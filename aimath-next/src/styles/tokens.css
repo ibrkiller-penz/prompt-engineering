@@ -36,6 +36,12 @@
   --shadow-1: 0 1px 2px rgba(16, 24, 40, .08), 0 1px 3px rgba(16, 24, 40, .06);
   --shadow-2: 0 4px 12px rgba(16, 24, 40, .12);
   --scroll-shadow: rgba(0, 0, 0, .18);
+  /* 비활성 단추·공개 자리표시·흐린 단서. opacity 로 흐리게 하지 않고 이 색을 써요(글자 4.5 · 테두리 3 이상) */
+  --disabled-bg: var(--surface-2);
+  --disabled-ink: var(--ink-3);
+  --disabled-line: var(--line-strong);  /* 회색 테두리(그래픽 3:1 이상) */
+  --ph-line: var(--line-strong);        /* 단계 공개 자리표시 점선 */
+  --hint-ink: var(--ink-3);             /* 자리표시의 흐린 단서 글자(첫 단어) */
 
   /* 단원 색: -c 장식, -ink 글자, -soft 옅은 바탕 */
   --u1-c: #4f46e5; --u1-ink: #4338ca; --u1-soft: #eef0ff;
@@ -76,6 +82,12 @@
   --lh-tight: 1.3;
   --math-inline: 1.08em;  /* KaTeX 인라인 배율 */
   --math-block: 1.2em;
+  /* 문제·보기·체험 도구 글자. 칠판에서 크게(문제 36 · 보기 32 · 도구 글자 28 · 도구 라벨 24) */
+  --t-q: calc(var(--t-base) * var(--fs-scale));     /* 문제 본문 */
+  --t-opt: calc(var(--t-base) * var(--fs-scale));   /* 보기 */
+  --t-tool: max(15px, calc(15px * var(--fs-scale)));       /* 체험 도구 안 글자 */
+  --t-tool-label: max(13px, calc(13px * var(--fs-scale))); /* 체험 도구 라벨 */
+  --t-min: var(--t-xs);    /* 이 면에서 가장 작은 글자 */
 
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
   --gutter: 16px;
@@ -84,6 +96,8 @@
   --radius-s: 8px; --radius-m: 12px; --radius-l: 16px; --radius-pill: 999px;
   --tap: 44px;             /* 최소 터치 대상 */
   --tap-main: 52px;        /* 주 행동 단추 */
+  --tap-tool: 44px;        /* 체험 도구·교실 도구 막대 단추 */
+  --tap-min: 44px;         /* 이 면에서 가장 작은 터치 칸 */
   --topbar-h: 52px;
   --bar-h: 64px;           /* 하단 '다음' 띠 */
   --tab-h: 56px;           /* 하단 탭 */
@@ -103,12 +117,17 @@
 /* ── 교사 준비 화면(책상 노트북·전자칠판 준비, 본문 22 · 터치 56) ── */
 html[data-surface="prep"] {
   --t-base: 22px;
-  --t-xs: max(16px, calc(16px * var(--fs-scale)));
+  --t-xs: max(18px, calc(18px * var(--fs-scale)));   /* 준비 화면 글자 바닥 18px */
   --t-sm: max(18px, calc(19px * var(--fs-scale)));
   --t-lg: calc(26px * var(--fs-scale));
   --t-xl: calc(32px * var(--fs-scale));
   --t-2xl: calc(40px * var(--fs-scale));
   --t-num: calc(64px * var(--fs-scale));
+  --t-q: max(22px, calc(24px * var(--fs-scale)));
+  --t-opt: max(20px, calc(22px * var(--fs-scale)));
+  --t-tool: max(18px, calc(20px * var(--fs-scale)));
+  --t-tool-label: max(18px, calc(18px * var(--fs-scale)));
+  --t-min: max(18px, calc(18px * var(--fs-scale)));   /* 준비 화면 최소 글자 18 */
   --lh-body: 1.6;
   --math-inline: 1.1em;
   --math-block: 1.3em;
@@ -119,6 +138,8 @@ html[data-surface="prep"] {
   --radius-s: 10px; --radius-m: 14px; --radius-l: 20px;
   --tap: 56px;
   --tap-main: 68px;
+  --tap-tool: 56px;
+  --tap-min: 48px;         /* 준비 화면 최소 터치 칸 48(작은 칩·표 안 단추) */
   --topbar-h: 72px;
   --bar-h: 88px;
   --tab-h: 72px;
@@ -140,6 +161,11 @@ html[data-surface="board"] {
   --t-xl: calc(52px * var(--fs-scale));
   --t-2xl: calc(64px * var(--fs-scale));  /* 장면 제목 */
   --t-num: calc(120px * var(--fs-scale)); /* 타이머·집계 숫자 */
+  --t-q: max(36px, calc(40px * var(--fs-scale)));    /* 한 문제 장면 본문 36 이상 */
+  --t-opt: max(32px, calc(34px * var(--fs-scale)));  /* 보기 32 이상 */
+  --t-tool: max(28px, calc(28px * var(--fs-scale))); /* 체험 도구 안 글자 28 이상 */
+  --t-tool-label: max(24px, calc(26px * var(--fs-scale))); /* 도구 라벨·교실 도구 막대 24 이상 */
+  --t-min: max(22px, calc(22px * var(--fs-scale)));
   --lh-body: 1.55;
   --math-inline: 1.15em;
   --math-block: 1.4em;
@@ -150,6 +176,8 @@ html[data-surface="board"] {
   --radius-s: 12px; --radius-m: 18px; --radius-l: 24px;
   --tap: 64px;
   --tap-main: 88px;
+  --tap-tool: 72px;        /* 체험 도구 단추·교실 도구 막대 72 이상 */
+  --tap-min: 64px;
   --topbar-h: 128px;       /* 무대 머리 */
   --bar-h: 112px;          /* 무대 아래 도구띠 */
   --tab-h: 112px;

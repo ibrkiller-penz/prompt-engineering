@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { WidgetProps } from "../../contracts.ts";
 import { df, idf, tf, tfidf, tokenize, topWords, vocabOf, type LogBase } from "@legacy/widgets/Tfidf.logic";
-import { Big, Btn, Hide, Note, Row, Seg, Table, Tex, useIsBoard } from "../kit.tsx";
+import { Big, Btn, Hide, Note, Row, Seg, Split, Table, Tex, useIsBoard } from "../kit.tsx";
 import { fmtNum } from "../plot.logic.ts";
 import { mission } from "./mission.ts";
 import { useMission } from "../useMission.ts";
@@ -24,12 +24,17 @@ export default function Tfidf(props: WidgetProps) {
   const dfv = word ? df(docs, word) : 0;
   const idfv = word ? idf(N, dfv, base) : null;
   const log = base === "e" ? "\\ln" : "\\log_{10}";
-  const tops = docs.map((d) => topWords(vocab.map((w) => tfidf(d, docs, w, base)), vocab));
+  const tops = docs.map((d) =>
+    topWords(
+      vocab.map((w) => tfidf(d, docs, w, base)),
+      vocab,
+    ),
+  );
   const topInAll = tops.some((t) => t.indexOf(word) >= 0);
   useMission(props, mission, { N, word, df: dfv, topInAll });
 
-  return (
-    <div className="wg-body">
+  const inputs = (
+    <>
       {board ? (
         <ol className="wg-docs">
           {texts.map((t, i) => (
@@ -67,32 +72,39 @@ export default function Tfidf(props: WidgetProps) {
           </button>
         ))}
       </div>
-      {word ? (
-        <>
-          <Big label={`'${word}'의 idf`} sub={`${N}개 문서 중 ${dfv}개에 있어요`}>
-            {idfv === null ? "—" : f3(idfv)}
-          </Big>
-          <Hide label="점수 계산">
-          <Tex block tex={`\\text{idf}=${log}\\frac{N}{\\text{df}}=${log}\\frac{${N}}{${dfv}}=${idfv === null ? "\\text{정의 안 됨}" : f3(idfv)}`} />
-          <Table
-            caption={`'${word}'의 점수`}
-            head={["문서", "tf", "tf × idf"]}
-            rows={docs.map((d, i) => {
-              const t = tf(d, word);
-              const cnt = d.filter((x) => x === word).length;
-              return [`문서 ${i + 1}`, <Tex key="t" tex={`\\frac{${cnt}}{${d.length}}=${f3(t)}`} />, f3(tfidf(d, docs, word, base))];
-            })}
-          />
-          {dfv === N ? <Note>'{word}'는 모든 문서에 있어서 idf 가 0이에요. 어느 문서에서도 특별하지 않은 단어라는 뜻이에요.</Note> : null}
-          <Note>
-            문서마다 점수 1등: {tops.map((t, i) => `문서 ${i + 1} → ${t.length ? t.join(", ") : "없음"}`).join(" · ")}
-          </Note>
-          </Hide>
-          <p className="wg-sr">고른 단어 {word}, 들어 있는 문서 수 {dfv}, idf {idfv === null ? "정의 안 됨" : fmtNum(idfv, 3)}</p>
-        </>
-      ) : (
-        <Note>문서에 단어가 없어요. 문장을 적어 봐요.</Note>
-      )}
+    </>
+  );
+  const out = word ? (
+    <>
+      <Big label={`'${word}'의 idf`} sub={`${N}개 문서 중 ${dfv}개에 있어요`}>
+        {idfv === null ? "—" : f3(idfv)}
+      </Big>
+      <Hide label="점수 계산">
+        <Tex block tex={`\\text{idf}=${log}\\frac{N}{\\text{df}}=${log}\\frac{${N}}{${dfv}}=${idfv === null ? "\\text{정의 안 됨}" : f3(idfv)}`} />
+        <Table
+          caption={`'${word}'의 점수`}
+          head={["문서", "tf", "tf × idf"]}
+          rows={docs.map((d, i) => {
+            const t = tf(d, word);
+            const cnt = d.filter((x) => x === word).length;
+            return [`문서 ${i + 1}`, <Tex key="t" tex={`\\frac{${cnt}}{${d.length}}=${f3(t)}`} />, f3(tfidf(d, docs, word, base))];
+          })}
+        />
+        {dfv === N ? <Note>'{word}'는 모든 문서에 있어서 idf가 0이에요. 어느 문서에서도 특별하지 않은 단어라는 뜻이에요.</Note> : null}
+        <Note>문서마다 점수 1등: {tops.map((t, i) => `문서 ${i + 1} → ${t.length ? t.join(", ") : "없음"}`).join(" · ")}</Note>
+      </Hide>
+      <p className="wg-sr">
+        고른 단어 {word}, 들어 있는 문서 수 {dfv}, idf {idfv === null ? "정의 안 됨" : fmtNum(idfv, 3)}
+      </p>
+    </>
+  ) : (
+    <Note>문서에 단어가 없어요. 문장을 적어 봐요.</Note>
+  );
+
+  // 칠판: 왼쪽 = 문서·예시·로그·단어 고르기, 오른쪽 = idf 와 점수 계산(스크롤 없이 한 화면)
+  return (
+    <div className="wg-body wg-body-split wg-tfidf">
+      <Split a={inputs} b={out} />
     </div>
   );
 }

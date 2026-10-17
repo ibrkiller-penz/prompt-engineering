@@ -9,7 +9,8 @@ import { Rich } from "../../shared/ui/index.ts";
 import { Loading, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { daysUntil, isUnitTestQ, lessonOfQ, noteList, reviewToday, useQ, type NoteState } from "../store/index.ts";
 import { QRun } from "./QRun.tsx";
-import { dueText, shortPrompt } from "./student.logic.ts";
+import { nextReviewText, shortPrompt } from "./student.logic.ts";
+import { stripNum } from "./Lesson.tsx";
 import { sectionOfQ, useQuestions } from "./useQuestions.ts";
 
 const TABS: { id: NoteState; name: string; desc: string }[] = [
@@ -67,18 +68,23 @@ export default function NotePage({ query }: { query: Record<string, string> }) {
               const lid = f && f.lid;
               const sec = lid ? sectionOfQ(lid, it.id) : -1;
               const isOpen = open === it.id;
+              const lm = lid ? INDEX.lessons[lid] : null;
+              const secTitle = lm && sec >= 0 && lm.sections[sec] ? "개념 " + (sec + 1) + " · " + stripNum(lm.sections[sec].heading) : "";
               return (
                 <li key={it.id} className="card s-note">
                   <div className="row between nowrap">
                     <span className="eyebrow">{f ? f.where : it.id}</span>
-                    <span className="tiny muted">
-                      틀린 횟수 {it.wrong}
-                      {it.state === "reviewing" && it.due ? " · 다음 복습 " + dueText(daysUntil(it.due, now)) : ""}
-                    </span>
+                    <span className="tiny muted">틀린 횟수 {it.wrong}</span>
                   </div>
+                  {secTitle ? (
+                    <p className="small s-note-sec">
+                      <Rich text={secTitle} />
+                    </p>
+                  ) : null}
+                  <p className="tiny muted s-note-due">{nextReviewText(it.state, it.due ? daysUntil(it.due, now) : -1)}</p>
                   {f ? (
                     isOpen ? (
-                      <QRun q={f.q} />
+                      <QRun q={f.q} showNew={false} />
                     ) : (
                       <p className="s-note-q">
                         <Rich text={shortPrompt(f.q.prompt, 80)} />

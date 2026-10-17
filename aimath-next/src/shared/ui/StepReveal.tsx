@@ -1,6 +1,7 @@
 // 예제(블록 t:"example"): 문제 → 풀이 단계를 한 줄씩 열고 → 답.
 //  - 학생(휴대폰): '다음 단계 보기'로 한 단계씩, '모두 보기'도 있어요.
 //  - 칠판: 바깥(장면)에서 shown 으로 몇 단계를 보일지 정해 줄 수 있어요('다음'이 먼저 공개).
+//    아직 안 연 단계는 낮은 자리표시(번호 원 + 흐린 첫 낱말, 연한 점선)로 보여요.
 //  - 인쇄·준비 화면: open 이면 처음부터 다 보여요.
 import { useEffect, useState } from "react";
 import type { Surface } from "../contracts.ts";
@@ -19,6 +20,18 @@ export interface StepRevealProps {
   shown?: number;
   /** 공개 단계가 바뀔 때 */
   onStep?: (shown: number, total: number) => void;
+}
+
+/** 자리표시 단서: 단계 글의 첫 낱말(수식·굵게 표시는 걷어 내요). 수식으로 시작하면 '수식' */
+export function cueWord(text: string): string {
+  const t = String(text || "")
+    .replace(/\*\*/g, "")
+    .trim();
+  if (t.charAt(0) === "$") return "수식";
+  const plain = t.replace(/\$[^$]*\$/g, " ").replace(/\s+/g, " ").trim();
+  const w = plain.split(" ")[0] || "";
+  const clean = w.replace(/[:：,.·]+$/, "");
+  return clean.length > 12 ? clean.slice(0, 12) : clean || "다음 단계";
 }
 
 /** 공개 단계 수(풀이 단계 + 답) */
@@ -61,8 +74,19 @@ export function StepReveal(props: StepRevealProps) {
                 <Rich text={s} />
               </span>
             </li>
+          ) : controlled ? (
+            <li key={i} className="ui-ex-ph" aria-hidden="true">
+              <span className="ui-ex-n">{i + 1}</span>
+              <span className="ui-ex-ph-cue">{cueWord(s)}</span>
+            </li>
           ) : null,
         )}
+        {controlled && shown < total ? (
+          <li className="ui-ex-ph is-ans" aria-hidden="true">
+            <span className="ui-ex-n">답</span>
+            <span className="ui-ex-ph-cue">다음을 누르면 보여요</span>
+          </li>
+        ) : null}
       </ol>
       {shown >= total ? (
         <p className="ui-example-answer">

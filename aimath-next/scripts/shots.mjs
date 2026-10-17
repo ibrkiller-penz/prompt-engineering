@@ -7,8 +7,10 @@
 //   node scripts/shots.mjs --check        촬영하면서 콘솔 오류 · pageerror · 외부 요청 · 가로 넘침이 0건인지 봐요(기본으로 켜져 있어요)
 //   node scripts/shots.mjs --all-scenes   20레슨 × 모든 차시의 모든 칠판 장면(공개 단계마다)이 본문 896px 안에 드는지 봐요
 //   node scripts/shots.mjs --smoke        저장 없이 두 사이트 첫 화면과 몇 화면만 빠르게 검사(verify 마지막 단계)
+//   node scripts/shots.mjs --qa           통합 점검 사진 qa-board-1920-01~12 · qa-phone-375-01~09 를 다시 찍어요(tools/shots/qa-*.png)
 //   --only=s | --only=t                   한 사이트만
 //   --lessons=u1-1,u2-3                   --all-scenes 대상 레슨 줄이기
+// 화면마다 '불러오는 중'(.ui-loading · .t-loading · 글자 '불러오는 중')이 사라질 때까지 기다리고, 남아 있으면 문제로 적어요.
 // 하나라도 문제가 있으면 1로 끝나요.
 import fs from "node:fs";
 import path from "node:path";
@@ -27,6 +29,7 @@ const opt = (name) => {
 };
 const SMOKE = has("--smoke");
 const ALL_SCENES = has("--all-scenes");
+const QA = has("--qa");
 const ONLY = opt("only");
 const LESSON_FILTER = opt("lessons") ? opt("lessons").split(",") : null;
 const SAVE = !SMOKE && !has("--no-save");
@@ -145,19 +148,43 @@ function watch(page, base) {
   };
 }
 
-async function settle(page) {
+/** 불러오는 중 표시: 이것들이 남아 있으면 아직 덜 그려진 화면이에요 */
+const LOADING_SEL = ".ui-loading, .t-loading, .is-loading, [aria-busy='true']";
+const LOADING_TXT = "불러오는 중";
+
+/** 화면이 다 그려질 때까지 기다려요. 끝내 '불러오는 중'이 남으면 그 설명을, 아니면 null 을 돌려줘요 */
+async function settle(page, timeout = 10000) {
   try {
     await page.waitForLoadState("networkidle", { timeout: 8000 });
   } catch {
     /* 계속 */
   }
-  await page.waitForFunction(() => {
-    const r = document.getElementById("root");
-    return !!r && r.children.length > 0 && !document.querySelector(".is-loading, [aria-busy='true']");
-  }, null, { timeout: 8000 }).catch(() => {});
+  await page
+    .waitForFunction(
+      ({ sel, txt }) => {
+        const r = document.getElementById("root");
+        return !!r && r.children.length > 0 && !document.querySelector(sel) && (document.body.innerText || "").indexOf(txt) < 0;
+      },
+      { sel: LOADING_SEL, txt: LOADING_TXT },
+      { timeout },
+    )
+    .catch(() => {});
   // 글꼴(KaTeX)까지 기다려요
   await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true)).catch(() => {});
   await page.waitForTimeout(250);
+  return page
+    .evaluate(
+      ({ sel, txt }) => {
+        const el = document.querySelector(sel);
+        if (el) return "불러오는 중 표시가 남아 있어요(" + el.tagName.toLowerCase() + "." + String(el.className || "").trim().split(/\s+/).join(".") + ")";
+        const t = document.body.innerText || "";
+        const i = t.indexOf(txt);
+        if (i >= 0) return "'" + t.slice(Math.max(0, i - 20), i + 20).replace(/\s+/g, " ") + "' 글자가 남아 있어요";
+        return null;
+      },
+      { sel: LOADING_SEL, txt: LOADING_TXT },
+    )
+    .catch(() => null);
 }
 
 async function overflowX(page) {
@@ -196,8 +223,13 @@ async function visit(page, collect, base, site, name, hash, opts = {}) {
   try {
     await page.goto(url, { waitUntil: "load" });
     if (opts.reload) await page.reload({ waitUntil: "load" });
-    await settle(page);
-    if (opts.after) await opts.after(page);
+    const stuck = await settle(page);
+    if (stuck) problems.push(`[${site}] ${name} (${hash}): ${stuck}`);
+    if (opts.after) {
+      await opts.after(page);
+      const stuck2 = await settle(page, 5000);
+      if (stuck2 && !stuck) problems.push(`[${site}] ${name} (${hash}) 조작 뒤: ${stuck2}`);
+    }
   } catch (e) {
     problems.push(`[${site}] ${name} (${hash}): 열지 못했어요 — ${e.message}`);
     return;
@@ -206,7 +238,7 @@ async function visit(page, collect, base, site, name, hash, opts = {}) {
   if (ov) problems.push(`[${site}] ${name} (${hash}): 가로 넘침 ${ov.scrollWidth}>${ov.clientWidth} ${ov.culprit}`);
   for (const p of collect()) problems.push(`[${site}] ${name} (${hash}): ${p}`);
   if (SAVE) {
-    const file = path.join(OUT, `${site === "s" ? "student" : "teacher"}-${name}.png`);
+    const file = path.join(OUT, opts.file ? opts.file + ".png" : `${site === "s" ? "student" : "teacher"}-${name}.png`);
     await page.screenshot({ path: file, fullPage: !!opts.full });
     saved.push(path.relative(ROOT, file));
   }
@@ -327,7 +359,7 @@ async function teacherShots(browser, base) {
   await go("14-board-q-solution", "/board/u1-1/q/u1-1-q05", {
     after: async (p) => {
       for (let i = 0; i < 6; i++) {
-        const b = await p.$(".bd-side.is-next");
+        const b = await p.$(".bd-next");
         if (!b) break;
         await b.click();
         await p.waitForTimeout(80);
@@ -364,7 +396,8 @@ async function allScenes(browser, base) {
     for (const p of periods) {
       const hash = `/board/${lid}?p=${p}&s=0`;
       await page.goto(base + "/#" + hash, { waitUntil: "load" });
-      await settle(page);
+      const stuck = await settle(page);
+      if (stuck) problems.push(`[t] 장면 ${lid} p${p}: ${stuck}`);
       // 첫 켜진 장면으로 가요(Home)
       await page.keyboard.press("Home").catch(() => {});
       await page.waitForTimeout(60);
@@ -384,7 +417,7 @@ async function allScenes(browser, base) {
           const inner = document.querySelector(".bd-scene-inner");
           const title = (document.querySelector(".bd-head-title") || {}).textContent || "";
           const count = (document.querySelector(".bd-head-count") || {}).textContent || "";
-          const nextBtn = document.querySelector(".bd-side.is-next");
+          const nextBtn = document.querySelector(".bd-next");
           const label = nextBtn ? nextBtn.getAttribute("aria-label") || "" : "";
           if (!body || !scene || !inner) {
             out.bad.push({ count, title, why: "장면 본문(#bd-body/.bd-scene)이 없어요" });
@@ -407,6 +440,28 @@ async function allScenes(browser, base) {
             }
           }
           if (body.scrollWidth > body.clientWidth + 2) out.bad.push({ count, title, why: "가로 넘침 " + body.scrollWidth + "px", label });
+          // 본문 글자 28px 이상(무대 1920 기준, scale 을 되돌려 재요). 수식 속·그림 속·번호표·작은 꼬리표는 빼요
+          {
+            const k2 = inner.getBoundingClientRect().width / (inner.offsetWidth || 1) || 1;
+            const els = inner.querySelectorAll("p, li, h2, h3, td, th, .bd-q-prompt, .bd-opt, .bd-line");
+            let minFs = 999;
+            let minTxt = "";
+            for (let i = 0; i < els.length; i++) {
+              const el = els[i];
+              if (el.closest(".katex, svg, .wg-host, .bd-qr, [aria-hidden='true'], .bd-cue, .bd-eyebrow, .bdq-sum, .bdq-tally, .bd-end-note, .bd-end-more, .bd-end-period, .bd-end-site, small, .chip, .bd-tag")) continue;
+              const r = el.getBoundingClientRect();
+              if (!r.width || !r.height) continue;
+              let direct = "";
+              for (let c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3) direct += c.textContent;
+              if (direct.trim().length < 2) continue;
+              const fs = parseFloat(getComputedStyle(el).fontSize) * (k2 > 0 ? 1 : 1);
+              if (fs < minFs) {
+                minFs = fs;
+                minTxt = direct.trim().slice(0, 20);
+              }
+            }
+            if (minFs < 28) out.bad.push({ count, title, why: "본문 글자 " + Math.round(minFs) + "px < 28 ('" + minTxt + "')", label });
+          }
           if (/마지막 장면/.test(label) || !nextBtn) break;
           const sig = count + "|" + label + "|" + (document.querySelector(".bd-next-txt") || {}).textContent;
           same = sig === lastSig ? same + 1 : 0;
@@ -438,6 +493,130 @@ async function allScenes(browser, base) {
   if (has("--verbose")) for (const s of summary) console.log("  · " + s);
 }
 
+/* ─────────── 통합 점검 사진(--qa) ─────────── */
+// 시험·통합 점검에서 보던 사진을 같은 이름으로 다시 찍어요. 장면 위치는 칠판을 차례로 열어 종류(kind-*)로 찾아요.
+const QA_BOARD = "qa-board-1920-";
+const QA_PHONE = "qa-phone-375-";
+
+/** 칠판 '다음'을 눌러요. pred(라벨)가 참인 동안만(최대 n번) */
+async function pressNext(page, n, pred) {
+  for (let i = 0; i < n; i++) {
+    const b = await page.$(".bd-next");
+    if (!b) break;
+    const label = (await b.getAttribute("aria-label")) || "";
+    if (pred && !pred(label)) break;
+    await b.click();
+    await page.waitForTimeout(120);
+  }
+}
+
+/** 칠판 한 차시의 장면을 차례로 열어 종류별 첫 위치를 찾아요(math: 블록 수식이 있는 개념 장면) */
+async function findScenes(page, base, lid, want, max = 60) {
+  const found = {};
+  for (let s = 0; s < max; s++) {
+    await page.goto(base + `/#/board/${lid}?p=1&s=${s}`, { waitUntil: "load" });
+    await settle(page, 6000);
+    const info = await page.evaluate(() => {
+      const sc = document.querySelector(".bd-scene");
+      return sc ? { cls: sc.className, math: !!sc.querySelector(".katex-display"), count: (document.querySelector(".bd-head-count") || {}).textContent || "" } : null;
+    });
+    if (!info) continue;
+    const k = (info.cls.match(/kind-(\w+)/) || [])[1];
+    if (k && want.indexOf(k) >= 0 && found[k] === undefined) found[k] = s;
+    if (k === "concept" && info.math && want.indexOf("math") >= 0 && found.math === undefined) found.math = s;
+    if (want.every((w) => found[w] !== undefined)) break;
+  }
+  return found;
+}
+
+async function qaShots(browser, sBase, tBase) {
+  if (tBase) {
+    const ctx = await newContext(browser, "t", { width: 1920, height: 1080 });
+    const page = await ctx.newPage();
+    const collect = watch(page, tBase);
+    const go = (file, hash, o = {}) => visit(page, collect, tBase, "t", "qa " + file, hash, Object.assign({ file: QA_BOARD + file }, o));
+    const miss = (what) => problems.push(`[t] qa: ${what} 장면을 찾지 못했어요`);
+
+    const at = await findScenes(page, tBase, "u1-1", ["question", "story", "concept", "widget", "problem", "summary"]);
+    collect();
+    const b = (s) => `/board/u1-1?p=1&s=${s}`;
+    await go("01-교사첫화면-오늘수업", "/");
+    await go("02-차시시작-핵심질문", b(at.question !== undefined ? at.question : 0));
+    if (at.story !== undefined) {
+      await go("03-이야기", b(at.story));
+      await go("03b-이야기-공개진행", b(at.story), { after: (p) => pressNext(p, 3) });
+    } else miss("이야기");
+    if (at.concept !== undefined) await go("04-개념설명", b(at.concept));
+    else miss("개념");
+    for (const [lid, name] of [
+      ["u2-3", "05-수식-벡터-u2-3"],
+      ["u4-3", "05b-수식-경사하강-u4-3"],
+    ]) {
+      const m = await findScenes(page, tBase, lid, ["math"], 40);
+      collect();
+      if (m.math !== undefined) await go(name, `/board/${lid}?p=1&s=${m.math}`, { after: (p) => pressNext(p, 12, (l) => /공개/.test(l)) });
+      else miss(lid + " 수식");
+    }
+    if (at.widget !== undefined) await go("06-체험도구-장면", b(at.widget));
+    else miss("체험 도구");
+    await go("06b-체험도구-회귀", "/board/u4-2/tool/regression");
+    if (at.problem !== undefined) await go("07-문제", b(at.problem));
+    else miss("칠판 문제");
+    await go("07b-한문제-보기가림", "/board/u1-1/q/u1-1-q05");
+    await go("08-정답공개-풀이", "/board/u1-1/q/u1-1-q05", { after: (p) => pressNext(p, 6) });
+    if (at.summary !== undefined) {
+      await go("09-마무리-오늘정리", b(at.summary));
+      await go("09b-마무리-오늘정리-모두공개", b(at.summary), { after: (p) => pressNext(p, 12, (l) => /공개/.test(l)) });
+    } else miss("정리");
+    await go("10-마무리-수업끝QR", "/board/u1-1/end");
+    await go("11-교사준비화면", "/prep/u1-1");
+    await go("12-수업흐름", "/flow/u1-1?p=1");
+    // 첫 화면 '수업 시작' 단추가 1080 안에 있어야 해요
+    await page.goto(tBase + "/#/", { waitUntil: "load" });
+    await settle(page);
+    const st = await page.evaluate(() => {
+      const a = document.querySelector(".t-start");
+      if (!a) return null;
+      const r = a.getBoundingClientRect();
+      return { bottom: Math.round(r.bottom), h: window.innerHeight };
+    });
+    if (!st) problems.push("[t] qa: 오늘 수업에 '수업 시작' 단추(.t-start)가 없어요");
+    else if (st.bottom > st.h) problems.push(`[t] qa: 오늘 수업의 '수업 시작' 단추가 첫 화면 밖이에요(아래 끝 ${st.bottom}px > ${st.h}px)`);
+    collect();
+    await ctx.close();
+  }
+  if (sBase) {
+    const ctx = await newContext(browser, "s", { width: 375, height: 812 });
+    const page = await ctx.newPage();
+    const collect = watch(page, sBase);
+    const go = (file, hash, o = {}) => visit(page, collect, sBase, "s", "qa " + file, hash, Object.assign({ file: QA_PHONE + file }, o));
+    // 문제에 답하기: 적는 칸이 있으면 값을 적고, 보기면 i번째 보기를 골라 '확인'
+    const answer = (val, optIdx) => async (p) => {
+      const input = await p.$("main input[type='text'], main input:not([type]), main input[inputmode]");
+      if (input) await input.fill(val);
+      else {
+        const opts = await p.$$(".opt");
+        if (opts[optIdx]) await opts[optIdx].click();
+      }
+      await p.waitForTimeout(100);
+      const ok = p.getByRole("button", { name: "확인" }).first();
+      if (await ok.count()) await ok.click().catch(() => {});
+      await p.waitForTimeout(300);
+    };
+    await go("01-첫화면-홈", "/");
+    await go("02-레슨진행-개요", "/l/u1-2");
+    await go("03-레슨진행-이야기카드", "/l/u1-1/s/story/1");
+    await go("04-개념카드", "/l/u1-2/s/c1/1");
+    await go("05-개념카드-수식", "/l/u2-3/s/c1/2");
+    await go("06-문제", "/l/u1-1/q");
+    await go("07-문제-오답피드백", "/l/u1-1/q", { after: answer("5", 0) });
+    await go("07b-문제-정답피드백", "/l/u1-1/q", { after: answer("10", 1) });
+    await go("08-오답노트", "/note");
+    await go("09-오늘의복습", "/review");
+    await ctx.close();
+  }
+}
+
 /* ─────────── 실행 ─────────── */
 async function main() {
   const pw = loadPlaywright();
@@ -456,12 +635,26 @@ async function main() {
   try {
     const wantS = ONLY !== "t" && !ALL_SCENES;
     const wantT = ONLY !== "s";
-    if (wantS) {
+    if (QA) {
+      let sb = "";
+      let tb = "";
+      if (wantS) {
+        const s = await startPreview("student", 4301);
+        servers.push(s.server);
+        sb = s.base;
+      }
+      if (wantT) {
+        const t = await startPreview("teacher", 4302);
+        servers.push(t.server);
+        tb = t.base;
+      }
+      await qaShots(browser, sb, tb);
+    } else if (wantS) {
       const s = await startPreview("student", 4301);
       servers.push(s.server);
       await studentShots(browser, s.base);
     }
-    if (wantT) {
+    if (wantT && !QA) {
       const t = await startPreview("teacher", 4302);
       servers.push(t.server);
       if (ALL_SCENES) await allScenes(browser, t.base);
@@ -474,7 +667,8 @@ async function main() {
   if (SAVE && saved.length) {
     const s = saved.filter((f) => /student-/.test(f)).length;
     const t = saved.filter((f) => /teacher-/.test(f)).length;
-    console.log(`shots: 학생 ${s}장 · 교사 ${t}장을 ${path.relative(ROOT, OUT)}/ 에 저장했어요`);
+    const q = saved.filter((f) => /qa-/.test(f)).length;
+    console.log(`shots: 학생 ${s}장 · 교사 ${t}장${q ? " · 통합 점검 " + q + "장" : ""}을 ${path.relative(ROOT, OUT)}/에 저장했어요`);
   }
   if (problems.length) {
     for (const p of problems) console.error("  ✗ " + p);

@@ -11,9 +11,9 @@ import { TIcon } from "../../shared/icons/teacher.tsx";
 import type { TeacherPageProps } from "../shell/pages.tsx";
 import { useKlass, type ProgressMark } from "../shell/klass.tsx";
 import { boardHref, cleanDuration, computePlan, todayHref, type Duration } from "../shell/plan.ts";
-import { Loading } from "../shell/Fallbacks.tsx";
+import { Skeleton, reloadPage } from "../flow/Skeleton.tsx";
 
-const MARK_LABEL: Record<ProgressMark, string> = { done: "끝", part: "일부" };
+const MARK_LABEL: Record<ProgressMark, string> = { done: "끝", part: "진행 중" };
 
 /** 검색에 쓰는 글자들(앞일수록 먼저): 제목 · 짧은 제목 · 번호 · 핵심 질문 · 소제목 */
 function keysOf(l: LessonIndex): string[] {
@@ -34,7 +34,7 @@ function LessonCard({ l, mark, onOpen }: { l: LessonIndex; mark: ProgressMark | 
       <button type="button" className="card t-lcard" onClick={(e) => onOpen(l.id, e.currentTarget)} aria-haspopup="dialog">
         <span className="t-lcard-top">
           <span className="t-lcard-code">{l.code}</span>
-          {mark ? <span className={"chip " + (mark === "done" ? "is-ok" : "is-warn")}>{mark === "done" ? "✓ 끝" : "◐ 일부"}</span> : null}
+          {mark ? <span className={"chip " + (mark === "done" ? "is-ok" : "is-warn")}>{mark === "done" ? "✓ 끝" : "◐ 진행 중"}</span> : null}
         </span>
         <span className="t-lcard-title">{l.title}</span>
         <span className="t-lcard-short">{l.short}</span>
@@ -105,34 +105,39 @@ function LessonSheet({ lid, onClose }: { lid: string; onClose: () => void }) {
             <span className="t-q-tag">핵심 질문</span> <Rich text={meta.question} />
           </p>
 
-          <div className="row wrap t-sheet-opts">
+          <div className="row t-chips t-sheet-opts" role="group" aria-label="수업 시간">
             <span className="t-set-label">수업 시간</span>
             {[45, 50, 70].map((d) => (
-              <button key={d} type="button" className="btn" aria-pressed={dur === d} onClick={() => setDur(d as Duration)}>
+              <button key={d} type="button" className="btn t-dur" aria-pressed={dur === d} onClick={() => setDur(d as Duration)}>
                 {d}분
               </button>
             ))}
           </div>
 
           {klass ? (
-            <div className="row wrap t-sheet-opts" role="group" aria-label={klass + "반 진도 표시"}>
-              <span className="t-set-label">{klass}반 진도</span>
-              <button type="button" className="btn" aria-pressed={!mark} onClick={() => markLesson(klass, lid, null)}>
+            <div className="row t-chips t-sheet-opts" role="group" aria-label={"이 반(" + klass + "반) 진도에 기록하기"}>
+              <span className="t-set-label">이 반 진도에 기록하기 · {klass}반</span>
+              <button type="button" className="btn t-dur" aria-pressed={!mark} onClick={() => markLesson(klass, lid, null)}>
                 아직
               </button>
               {(["part", "done"] as ProgressMark[]).map((m) => (
-                <button key={m} type="button" className="btn" aria-pressed={mark === m} onClick={() => markLesson(klass, lid, m)}>
+                <button key={m} type="button" className="btn t-dur" aria-pressed={mark === m} onClick={() => markLesson(klass, lid, m)}>
                   {MARK_LABEL[m]}
                 </button>
               ))}
             </div>
           ) : null}
 
-          {loading ? <Loading label="차시를 나누는 중이에요…" /> : null}
+          {loading ? <Skeleton label="차시를 나누는 중이에요…" rows={3} /> : null}
           {error ? (
-            <p className="callout bad" role="alert">
-              <b>레슨을 불러오지 못했어요.</b> 새로고침해 보세요.
-            </p>
+            <div className="callout bad" role="alert">
+              <p>
+                <b>레슨을 불러오지 못했어요.</b>
+              </p>
+              <button type="button" className="btn btn-primary" onClick={reloadPage}>
+                다시 불러오기
+              </button>
+            </div>
           ) : null}
 
           {plans ? (
@@ -265,12 +270,12 @@ export default function Find({ query }: TeacherPageProps) {
             </button>
           ) : null}
         </div>
-        <div className="row wrap" role="group" aria-label="단원 고르기">
-          <button type="button" className="chip" aria-pressed={!unitOk} onClick={() => setUnit(0)}>
+        <div className="row t-chips" role="group" aria-label="단원 고르기">
+          <button type="button" className="btn t-dur t-unit-chip" aria-pressed={!unitOk} onClick={() => setUnit(0)}>
             전체
           </button>
           {INDEX.units.map((x) => (
-            <button key={x.id} type="button" className={"chip t-u" + x.id} aria-pressed={unitOk === x.id} onClick={() => setUnit(x.id)}>
+            <button key={x.id} type="button" className={"btn t-dur t-unit-chip t-u" + x.id} aria-pressed={unitOk === x.id} onClick={() => setUnit(x.id)}>
               {x.roman} {x.short || x.title}
             </button>
           ))}

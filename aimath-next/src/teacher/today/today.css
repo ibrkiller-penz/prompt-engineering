@@ -1,11 +1,13 @@
-/* 오늘 수업(#/). Chrome 80 안전. */
+/* 오늘 수업(#/) + 교사 준비 화면 공용 조각(시간 배분 막대 · 같은 모양 칩 단추 · 뼈대 화면). Chrome 80 안전(flex gap 없음). */
+
+/* 글자 18px 이상, 터치 48px 이상(준비 화면 토큰 위에서) */
+.t-today { max-width: 1400px; }
+.t-today > * + * { margin-top: var(--sp-4); }
+.t-today .eyebrow, .t-today .tiny, .t-today .chip { font-size: var(--t-sm); }
+.t-today .btn { min-height: 48px; }
 
 .t-today-head { align-items: flex-end; }
-
-/* 이어서 하기 */
-.t-resume { border-left: 8px solid var(--accent); }
-.t-resume .row > .grow { margin-right: var(--sp-4); }
-.t-resume-go > * + * { margin-left: .4em; }
+.t-today-head .h2 { margin: 0; }
 
 /* 처음 쓰는 경우 */
 .t-welcome { border: var(--border) solid var(--site); }
@@ -13,69 +15,138 @@
 .t-steps { margin: 0; padding-left: 1.4em; }
 .t-steps > li + li { margin-top: var(--sp-2); }
 
-/* 오늘 레슨 */
-.t-lesson > * + * { margin-top: var(--sp-5); }
-.t-lesson > .stack > * + * { margin-top: var(--sp-2); }
-.t-question { margin: 0; font-size: var(--t-lg); line-height: 1.5; font-weight: 700; }
+/* 오늘 레슨(첫 화면 위쪽 카드) */
+.t-lesson > * + * { margin-top: var(--sp-4); }
+.t-lesson-top > * + * { margin-top: var(--sp-1); }
+.t-lesson-top p { margin: 0; }
+.t-lesson-title { margin: 0; line-height: 1.2; }
+.t-question { margin: 0; font-size: var(--t-lg); line-height: 1.45; font-weight: 700; }
 .t-q-tag {
-  display: inline-block; vertical-align: middle; margin-right: .3em;
+  display: inline-block; vertical-align: middle; margin-right: .4em;
   padding: 0 .5em; border-radius: var(--radius-s);
-  background: var(--accent); color: var(--on-accent); font-size: var(--t-xs); font-weight: 800; line-height: 1.8;
+  background: var(--accent); color: var(--on-accent); font-size: var(--t-sm); font-weight: 800; line-height: 1.7;
 }
-.t-pickers { display: flex; flex-wrap: wrap; margin: calc(var(--sp-3) * -1); }
-.t-pickers > .t-picker { margin: var(--sp-3); }
-.t-picker > * + * { margin-top: var(--sp-2); }
-.t-dur { min-width: 5.5em; }
+.t-q-line { display: block; }
+.t-q-tag + .t-q-line { display: inline; }
+.t-q-tag + .t-q-line + .t-q-line { margin-top: .15em; }
+
+/* 이어서 할 레슨 ↔ 오늘 레슨 고르기(한 카드 안) */
+.t-choice { display: flex; flex-wrap: wrap; margin: calc(var(--sp-1) * -1); }
+.t-choice-opt {
+  display: flex; align-items: center; flex: 1 1 320px; min-height: 72px; margin: var(--sp-1);
+  padding: var(--sp-2) var(--sp-4); border: var(--border) solid var(--line-strong); border-radius: var(--radius-m);
+  background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.t-choice-opt.is-on { border-color: var(--site); box-shadow: inset 0 0 0 2px var(--site); }
+.t-choice-mark { flex: 0 0 auto; margin-right: var(--sp-3); font-size: var(--t-lg); color: var(--site); }
+.t-choice-txt { display: block; min-width: 0; }
+.t-choice-txt b { display: block; font-size: var(--t-md); }
+.t-choice-sub { display: block; font-size: var(--t-sm); color: var(--ink-2); }
+
+/* 수업 시간 · 차시 고르기: 같은 모양 칩 단추 */
+.t-pickers { display: flex; flex-wrap: wrap; margin: calc(var(--sp-2) * -1) calc(var(--sp-4) * -1); }
+.t-pickers > .t-picker { margin: var(--sp-2) var(--sp-4); }
+.t-picker > * + * { margin-top: var(--sp-1); }
+.t-chips { flex-wrap: wrap; }
+.t-chips > .t-dur { margin: 0 var(--sp-2) var(--sp-2) 0; }
+.t-dur { min-width: 5.5em; min-height: 48px; justify-content: center; font-weight: 700; }
+.t-dur[aria-pressed="true"] { background: var(--site); border-color: var(--site); color: var(--on-site); }
+
+/* 수업 시작(96px) */
+.t-start-wrap > * + * { margin-top: var(--sp-2); }
+.t-start {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 96px; border-radius: var(--radius-l);
+  font-size: var(--t-xl); font-weight: 800; letter-spacing: .01em;
+  background: var(--site); border-color: var(--site); color: var(--on-site);
+}
+.t-start > * + * { margin-left: .4em; }
+.t-start-n { font-weight: 700; }
+.t-start-note { margin: 0; }
 
 /* 시간 배분 막대(5색 + 글자). 색은 장식, 뜻은 글자와 범례로 전해요 */
 .t-timebar > * + * { margin-top: var(--sp-2); }
-.t-tb-bar { display: flex; height: 3.2em; border-radius: var(--radius-m); overflow: hidden; background: var(--surface-2); }
+.t-tb-bar { display: flex; height: 3em; border-radius: var(--radius-m); overflow: hidden; background: var(--surface-2); }
 .t-tb-seg {
   display: flex; align-items: center; justify-content: center; min-width: 6px; overflow: hidden;
   color: #ffffff; font-size: var(--t-sm); font-weight: 800; white-space: nowrap;
 }
 .t-tb-seg + .t-tb-seg { border-left: 3px solid var(--surface); }
-.t-tb-txt { padding: 0 .4em; overflow: hidden; text-overflow: ellipsis; }
+.t-tb-txt { padding: 0 .4em; }
 .t-tb-seg.is-intro, .t-tb-sw.is-intro { background: #1d4ed8; }
 .t-tb-seg.is-concept, .t-tb-sw.is-concept { background: #0f766e; }
 .t-tb-seg.is-tool, .t-tb-sw.is-tool { background: #6d28d9; }
 .t-tb-seg.is-practice, .t-tb-sw.is-practice { background: #9a3412; }
 .t-tb-seg.is-wrap, .t-tb-sw.is-wrap { background: #374151; }
 .t-tb-legend { display: flex; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; font-size: var(--t-sm); }
-.t-tb-legend > li { display: inline-flex; align-items: center; margin-right: var(--sp-5); }
+.t-tb-legend > li { display: inline-flex; align-items: center; margin: 0 var(--sp-5) var(--sp-1) 0; white-space: nowrap; }
 .t-tb-legend b { margin-left: .25em; }
 .t-tb-sw { display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .35em; }
 .t-over { color: var(--warn); font-weight: 800; }
 
-/* 수업 시작(96px) */
-.t-start-wrap > * + * { margin-top: var(--sp-2); }
-.t-start {
-  display: flex; width: 100%; min-height: 96px; border-radius: var(--radius-l);
-  font-size: var(--t-xl); font-weight: 800; letter-spacing: .01em;
-  background: var(--site); border-color: var(--site); color: var(--on-site);
-}
-.t-start > * + * { margin-left: .5em; }
+/* 넘침 안내 · 꺼진 장면 */
+.t-plan > * + * { margin-top: var(--sp-3); }
+.t-plan > h2 { margin: 0; }
+.t-fit > * + * { margin-top: var(--sp-3); }
+.t-fit p { margin: 0; }
+.t-over-box { display: flex; align-items: center; }
+.t-over-box > .grow > * + * { margin-top: var(--sp-1); }
+.t-over-box > .btn { flex: 0 0 auto; margin-left: var(--sp-4); min-width: 7em; }
+.t-over-msg b { color: var(--warn); }
+.t-offs { border: var(--border) solid var(--line); border-radius: var(--radius-m); background: var(--surface); }
+.t-offs-sum { min-height: 48px; padding: var(--sp-2) var(--sp-3); font-weight: 700; cursor: pointer; line-height: 32px; }
+.t-offs-list { list-style: none; margin: 0; padding: 0 var(--sp-3); }
+.t-off-row { display: flex; align-items: center; padding: var(--sp-1) 0; border-top: 1px solid var(--line); }
+.t-off-row > .grow { min-width: 0; }
+.t-off-name > * + * { margin-left: var(--sp-2); }
+.t-off-row > .btn { flex: 0 0 auto; margin-left: var(--sp-3); min-width: 5em; }
+.t-offs-acts { padding: var(--sp-2) var(--sp-3) var(--sp-3); }
+.t-offs-acts > .btn + .btn { margin-left: var(--sp-2); }
 
 .t-prep-links { display: flex; flex-wrap: wrap; margin: calc(var(--sp-1) * -1); }
 .t-prep-links > .btn { margin: var(--sp-1); }
 .t-prep-links .btn > * + * { margin-left: .4em; }
+
+.t-mark > * + * { margin-top: var(--sp-1); }
 
 /* 반별 진도 요약 */
 .t-cls-row { display: flex; align-items: center; padding: var(--sp-2) 0; }
 .t-cls-row > * + * { margin-left: var(--sp-3); }
 .t-cls-row .grow > p { margin: 0; }
 .t-cls-name { min-width: 4.5em; justify-content: center; }
-.t-cls-row.is-now .t-cls-name { background: var(--site); color: var(--on-site); }
+.t-cls-row.is-now .t-cls-name { background: var(--site); border-color: var(--site); color: var(--on-site); }
 
 .t-student-url { background: var(--surface-2); box-shadow: none; }
 .t-student-url p { margin: 0; }
 
+/* 뼈대 화면(불러오는 동안) */
+.t-skel > * + * { margin-top: var(--sp-3); }
+.t-skel-msg { display: flex; flex-wrap: wrap; align-items: center; margin: 0; color: var(--ink-2); font-size: var(--t-sm); }
+.t-skel-msg > * { margin-right: var(--sp-3); }
+.t-skel-retry { min-height: 48px; }
+.t-skel-body { display: flex; align-items: flex-start; }
+.t-skel-side { flex: 0 0 360px; margin-right: var(--sp-5); padding: var(--sp-4); border-radius: var(--radius-l); background: var(--surface); }
+.t-skel-main { flex: 1 1 auto; min-width: 0; }
+.t-skel-bar {
+  display: block; height: 1.2em; border-radius: var(--radius-s); background: var(--surface-2);
+  -webkit-animation: t-skel-pulse 1.4s ease-in-out infinite; animation: t-skel-pulse 1.4s ease-in-out infinite;
+}
+.t-skel-bar + .t-skel-bar { margin-top: var(--sp-3); }
+.t-skel-bar.is-row { height: 64px; border-radius: var(--radius-m); }
+.t-skel-bar.is-lg { height: 2em; width: 60%; }
+.t-skel-bar.is-short { width: 70%; }
+.t-skel-bar.is-btn { height: 56px; }
+@-webkit-keyframes t-skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@keyframes t-skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+html[data-motion="reduce"] .t-skel-bar { -webkit-animation: none; animation: none; }
+@media (prefers-reduced-motion: reduce) { .t-skel-bar { -webkit-animation: none; animation: none; } }
+
 @media (max-width: 760px) {
   .t-today-head { flex-wrap: wrap; }
-  .t-resume .row { flex-wrap: wrap; }
-  .t-resume .row > .grow { margin: 0 0 var(--sp-3); width: 100%; }
-  .t-resume .row > .btn { margin-left: 0; }
+  .t-over-box { display: block; }
+  .t-over-box > .btn { margin: var(--sp-2) 0 0; width: 100%; }
   .t-cls-row { flex-wrap: wrap; }
   .t-cls-row > .btn { margin: var(--sp-2) 0 0; width: 100%; }
-  .t-start { font-size: var(--t-lg); }
+  .t-start { font-size: var(--t-lg); flex-wrap: wrap; }
+  .t-skel-body { display: block; }
+  .t-skel-side { margin: 0 0 var(--sp-3); }
 }

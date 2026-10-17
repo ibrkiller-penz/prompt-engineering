@@ -18,7 +18,7 @@ export const STUDENT_KEYS: Record<StudentKey, KeyInfo> = {
   last: { label: "이어서 공부하기", desc: "마지막으로 공부한 화면 주소와 제목을 저장해요.", backup: true },
   prefs: { label: "읽기 설정", desc: "글자 크기, 화면 밝기, 움직임 줄이기, 읽어 주기 설정을 저장해요.", backup: true },
   prereq: { label: "먼저 알고 가요", desc: "'알아요/헷갈려요'로 고른 것을 저장해요.", backup: true },
-  assigned: { label: "선생님이 고른 문제", desc: "수업 끝 QR 로 받은 숙제·확인 문제 번호를 저장해요. 이름이나 반은 들어 있지 않아요.", backup: true },
+  assigned: { label: "선생님이 고른 문제", desc: "수업 끝 QR로 받은 숙제·확인 문제 번호를 저장해요. 이름이나 반은 들어 있지 않아요.", backup: true },
   tools: { label: "체험 미션", desc: "체험 도구 미션을 해냈는지 저장해요.", backup: true },
 };
 

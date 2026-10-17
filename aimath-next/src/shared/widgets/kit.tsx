@@ -65,9 +65,18 @@ function texHtml(tex: string, display: boolean): string {
   return html;
 }
 
-/** 수식 하나. block 이면 가운데 줄로, 넘치면 가로 스크롤 */
+/** 수식 하나. block 이면 가운데 줄로, 넘치면 가로 스크롤.
+ *  칠판에서는 가로 스크롤 대신 큰 꼴(\\displaystyle)의 줄 안 수식으로 그려 맨 바깥 =·+ 뒤에서 줄을 바꿔요 */
 export function Tex({ tex, block }: { tex: string; block?: boolean }) {
-  const html = useMemo(() => texHtml(tex, !!block), [tex, block]);
+  const surface = useContext(SurfaceContext);
+  const wrap = !!block && surface === "board";
+  const html = useMemo(() => (wrap ? texHtml("\\displaystyle " + tex, false) : texHtml(tex, !!block)), [tex, block, wrap]);
+  if (wrap)
+    return (
+      <div className="wg-tex-block is-wrap">
+        <span className="wg-tex" dangerouslySetInnerHTML={{ __html: html }} />
+      </div>
+    );
   if (block) return <div className="wg-tex-block" tabIndex={0} dangerouslySetInnerHTML={{ __html: html }} />;
   return <span className="wg-tex" dangerouslySetInnerHTML={{ __html: html }} />;
 }
@@ -120,7 +129,9 @@ export function Seg<T extends string | number>(props: { label: string; value: T;
 export function Toggle(props: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
     <button type="button" className={"wg-btn wg-toggle" + (props.on ? " is-on" : "")} aria-pressed={props.on} onClick={() => props.onChange(!props.on)}>
-      <span className="wg-toggle-mark" aria-hidden="true">{props.on ? "✓" : ""}</span>
+      <span className="wg-toggle-mark" aria-hidden="true">
+        {props.on ? "✓" : ""}
+      </span>
       {props.label}
     </button>
   );
@@ -188,7 +199,15 @@ export function Table(props: { caption?: string; head: ReactNode[]; rows: ReactN
         <tbody>
           {props.rows.map((r, i) => (
             <tr key={i} className={props.hl && props.hl(i) ? "is-hl" : undefined}>
-              {r.map((c, j) => (j === 0 ? <th key={j} scope="row">{c}</th> : <td key={j}>{c}</td>))}
+              {r.map((c, j) =>
+                j === 0 ? (
+                  <th key={j} scope="row">
+                    {c}
+                  </th>
+                ) : (
+                  <td key={j}>{c}</td>
+                ),
+              )}
             </tr>
           ))}
         </tbody>
@@ -200,4 +219,16 @@ export function Table(props: { caption?: string; head: ReactNode[]; rows: ReactN
 /** 짧은 설명 글 */
 export function Note({ children }: { children: ReactNode }) {
   return <p className="wg-note">{children}</p>;
+}
+
+/** 칠판에서 왼쪽(그림)·오른쪽(조작) 두 칸(c 를 주면 세 칸). 휴대폰·준비 화면에서는 위아래로 쌓여요.
+ *  쓰는 쪽 몸통은 className="wg-body wg-body-split" 로 두어 칠판의 두 단 흘리기를 꺼요 */
+export function Split(props: { a: ReactNode; b: ReactNode; c?: ReactNode; wideA?: boolean }) {
+  return (
+    <div className={"wg-split" + (props.c ? " is-three" : "") + (props.wideA ? " is-wide-a" : "")}>
+      <div className="wg-split-a">{props.a}</div>
+      <div className="wg-split-b">{props.b}</div>
+      {props.c ? <div className="wg-split-b wg-split-c">{props.c}</div> : null}
+    </div>
+  );
 }

@@ -23,6 +23,36 @@ export function dueText(days: number): string {
   return days + "일 뒤";
 }
 
+/** 오답노트 카드의 '다음 복습 때' 한 줄. days < 0 이면 날짜 없음 */
+export function nextReviewText(state: "todo" | "reviewing" | "graduated", days: number): string {
+  if (state === "graduated") return "졸업했어요. 이제 복습에 나오지 않아요.";
+  if (days < 0) return "다시 풀어 맞히면 복습 일정이 잡혀요.";
+  if (days === 0) return "오늘의 복습에 나와요.";
+  if (days === 1) return "내일 다시 나와요.";
+  return days + "일 뒤 다시 나와요.";
+}
+
+/** 레슨 순서에서 from 다음(from 은 빼고)으로 아직 완료하지 않은 첫 레슨. 뒤에 없으면 앞에서 찾고, 모두 완료면 null.
+ *  from 이 없으면 처음부터 찾아요. skipFrom=false 면 from 자신도 후보예요. */
+export function nextLessonAfter(order: readonly string[], from: string | null, isComplete: (lid: string) => boolean, skipFrom = true): string | null {
+  const at = from ? order.indexOf(from) : -1;
+  const n = order.length;
+  if (!n) return null;
+  const start = at < 0 ? 0 : skipFrom ? at + 1 : at;
+  for (let k = 0; k < n; k++) {
+    const lid = order[(start + k) % n];
+    if (skipFrom && lid === from) continue;
+    if (!isComplete(lid)) return lid;
+  }
+  return null;
+}
+
+/** '이어서 공부하기' 경로("/l/u1-2/s/c2/3", "/l/u1-2/q")에서 레슨 id */
+export function lessonOfPath(path: string | null | undefined): string | null {
+  const m = /^\/l\/(u\d+-\d+)(?:\/|$|\?)/.exec(String(path || ""));
+  return m ? m[1] : null;
+}
+
 /** 쿼리의 카드 번호(1부터)를 0부터로. 범위 밖이면 맞춰요 */
 export function cardIndex(v: string | undefined, total: number): number {
   const n = v && /^\d+$/.test(v) ? parseInt(v, 10) : 1;

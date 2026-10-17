@@ -7,6 +7,7 @@ import { lessonMastery, lessonStatus, sectionDone, settleRead, unitStatus } from
 import { addDays, dayStart, noteList, noteState, REVIEW_MAX_PER_DAY, reviewAnswer, todayReview } from "../../src/student/store/review.logic.ts";
 import { makeStudentBackup, parseStudentBackup, sanitize, serializeStudentBackup } from "../../src/student/store/backup.logic.ts";
 import { expandQid, parseAssignQuery } from "../../src/student/store/assign.logic.ts";
+import { S_PREFIX, studentKeyList } from "../../src/shared/storage/keys.ts";
 
 const T0 = new Date(2026, 9, 16, 10, 0, 0).getTime(); // 이 기기 시간대 오전 10시
 const DAY = 24 * 60 * 60 * 1000;
@@ -45,13 +46,44 @@ test("풀이를 본 뒤 맞힌 것은 '맞힘'이 아니지만 '풀어 봄'이�
   assert.ok(isTried(r));
   assert.ok(!isOk(r));
   assert.ok(r.rv, "풀이를 보면 복습 상자에");
-  r = applyAnswer(r, true, T0 + 1);
-  assert.equal(r.ok, false);
+  r = applyAnswer(r, true, T0 + 1, { afterSolution: true });
+  assert.equal(r.ok, false, "풀이를 펼친 채 맞힌 시도는 맞힘이 아니에요");
+  assert.ok(isTried(r));
   // 이미 맞힌 뒤 풀이를 보면 맞힘은 남아요
   let s = applyAnswer(undefined, true, T0);
   s = applySolution(s, T0 + 5);
   assert.equal(s.ok, true);
   assert.equal(s.rv, undefined);
+});
+
+test("풀이를 본 적이 있어도 다음 날 혼자(풀이 없이) 맞히면 맞힘이에요. sol 은 '본 적 있음' 표시로 남아요", () => {
+  let r = applySolution(undefined, T0);
+  r = applyAnswer(r, true, T0 + 1000, { afterSolution: true });
+  assert.equal(r.ok, false);
+  assert.ok(r.rv, "풀이를 보고 맞힌 문제는 복습 상자에");
+  r = applyAnswer(r, true, T0 + DAY, { afterSolution: false });
+  assert.equal(r.ok, true, "혼자 맞히면 맞힘");
+  assert.equal(r.sol, true, "본 적 있음 표시는 그대로");
+  assert.equal(r.first, false, "처음 제출 기록은 바뀌지 않아요");
+  // 풀이 없이 처음부터 틀리고, 풀이를 보고 맞히면 여전히 맞힘이 아니에요
+  let s = applyAnswer(undefined, false, T0);
+  s = applySolution(s, T0 + 1);
+  s = applyAnswer(s, true, T0 + 2, { afterSolution: true });
+  assert.equal(s.ok, false);
+  assert.equal(isTried(s), true);
+});
+
+test("복습 화면: 풀이를 보고 맞히면 단계를 올리지 않고 내일 다시, 혼자 맞히면 다음 단계", () => {
+  let r = applyAnswer(undefined, false, T0);
+  const d1 = T0 + DAY;
+  const a = applyAnswer(r, true, d1, { review: true, afterSolution: true });
+  assert.deepEqual(a.rv, { step: 0, due: addDays(d1, 1) });
+  assert.equal(a.ok, false);
+  r = applyAnswer(r, true, d1, { review: true });
+  assert.deepEqual(r.rv, { step: 1, due: addDays(d1, 3) });
+  // 복습 상자 1단계에서 풀이를 보고 맞히면 1단계 그대로
+  const b = applyAnswer(r, true, d1 + 3 * DAY, { review: true, afterSolution: true });
+  assert.equal(b.rv && b.rv.step, 1);
 });
 
 test("힌트는 가장 큰 단계만 남고, 힌트만 열면 '풀어 봄'이 아니에요", () => {
@@ -102,9 +134,20 @@ test("읽음 = 마지막 카드를 지나가고 + 끝 확인 문제를 풀어 �
   assert.deepEqual(settleRead([2, 0, 9], [], checks, {}, 3), [0, 2], "범위 밖 번호는 버리고, 한 번 읽음은 남아요");
 });
 
+test("소제목을 펼치기(지나가기)만 해서는 읽음·완료가 되지 않아요", () => {
+  const q: QMap = { a: ok(), b: ok(), c: ok(), d: ok(), e: ok() };
+  // 끝 확인 문제가 있는 소제목 0·2 에서 확인 문제 기록을 지우면
+  const noCheck: QMap = { c: ok(), d: ok(), e: ok() };
+  const seen = { "u9-1": [0, 1, 2] };
+  assert.deepEqual(settleRead(undefined, [0, 1, 2], checks, noCheck, 3), [1], "확인 문제를 안 풀면 지나가기만으로 읽음 아님");
+  assert.equal(lessonStatus(meta, q, {}, seen).complete, false, "read 가 비면 완료 아님");
+  assert.equal(lessonStatus(meta, q, { "u9-1": [1] }, seen).allRead, false);
+  assert.equal(sectionDone(0, [], checks, q), false, "확인 문제를 풀었어도 마지막 카드를 지나가지 않으면 읽음 아님");
+});
+
 test("레슨 완료: 모두 읽음 + 기본 문제 모두 풀어 봄 + 60%(올림) 맞힘, 풀이 본 문제는 맞힘에서 빼요", () => {
   const read = { "u9-1": [0, 1, 2] };
-  const q: QMap = { a: ok(), b: ok(), c: bad(), d: applyAnswer(applySolution(undefined, T0), true, T0), e: bad() };
+  const q: QMap = { a: ok(), b: ok(), c: bad(), d: applyAnswer(applySolution(undefined, T0), true, T0, { afterSolution: true }), e: bad() };
   let st = lessonStatus(meta, q, read);
   assert.equal(st.need, 3);
   assert.equal(st.allTried, true);
@@ -238,6 +281,25 @@ test("백업 왕복: 공용 키 + 학생 전용 키(seen·think·self·proj)가 
   const b = makeStudentBackup(data, new Date(T0));
   assert.equal(b.app, "aimath-next");
   assert.equal(b.site, "student");
+});
+
+test("백업 왕복 뒤 레슨 상태(lessonStatus)가 그대로예요", () => {
+  const qa: QMap = { a: ok(), b: ok(), c: bad(), d: applyAnswer(applySolution(undefined, T0), true, T0, { afterSolution: true }), e: applyAnswer(applySolution(undefined, T0), true, T0 + DAY) };
+  const data: Record<string, unknown> = { q: qa, read: { "u9-1": [0, 1, 2] }, seen: { "u9-1": [0, 1, 2] } };
+  const back = parseStudentBackup(serializeStudentBackup(data, new Date(T0)));
+  assert.ok(back.ok);
+  if (!back.ok) return;
+  const before = lessonStatus(meta, qa, data.read as Record<string, number[]>, data.seen as Record<string, number[]>);
+  const after = lessonStatus(meta, back.data.q as QMap, back.data.read as Record<string, number[]>, back.data.seen as Record<string, number[]>);
+  assert.deepEqual(after, before);
+  assert.equal(before.basic.done, 3, "a·b·e(다음 날 혼자 맞힘) 3개");
+  assert.equal(before.complete, true);
+});
+
+test("학생 저장 키는 aimn:s1: 로 시작해요", () => {
+  assert.equal(S_PREFIX, "aimn:s1:");
+  for (const k of studentKeyList) assert.match(S_PREFIX + k, /^aimn:s1:[a-z]+$/);
+  assert.ok(studentKeyList.indexOf("q" as never) >= 0);
 });
 
 test("백업 불러오기: 다른 사이트·깨진 파일은 거절하고, 이상한 값은 걸러요", () => {

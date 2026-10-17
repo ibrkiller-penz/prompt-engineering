@@ -17,6 +17,8 @@ export interface StepperProps {
   /** 휴대폰에서 미끄럼 막대도 보이기(칠판에서는 보이지 않아요) */
   slider?: boolean;
   disabled?: boolean;
+  /** 칠판에서 이름을 왼쪽에 붙여 한 줄(높이 64)로. 세로 자리가 모자란 도구에서 써요 */
+  inline?: boolean;
 }
 
 export default function Stepper(props: StepperProps) {
@@ -77,7 +79,7 @@ export default function Stepper(props: StepperProps) {
   const showSlider = props.slider && surface !== "board";
 
   return (
-    <div className={"wg-stepper" + (disabled ? " is-disabled" : "")} role="group" aria-label={label}>
+    <div className={"wg-stepper" + (props.inline && surface === "board" ? " is-inline" : "") + (disabled ? " is-disabled" : "")} role="group" aria-label={label}>
       <span className="wg-stepper-label">{label}</span>
       <span className="wg-stepper-row">
         <button

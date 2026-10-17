@@ -25,22 +25,12 @@
 .bd-head-lesson { font-size: 24px; color: var(--ink-3); font-weight: 700; max-width: 520px; overflow: hidden; text-overflow: ellipsis; }
 .bd-head-title { flex: 1 1 auto; min-width: 0; font-size: 28px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; }
 .bd-head-count { font-size: 26px; font-weight: 800; color: var(--ink-2); }
+.bd-head-off { font-size: 20px; font-weight: 700; color: var(--ink-3); }
 .bd-tag { font-size: 20px; }
 .bd-part { margin-left: 16px; vertical-align: middle; font-size: 20px; }
 
-/* ── 좌우 넘김 띠(120px) ── */
-.bd-side {
-  position: absolute; top: 64px; width: 120px; height: 896px; padding: 0; border: 0;
-  background: transparent; color: var(--ink-3); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.bd-side.is-prev { left: 0; }
-.bd-side.is-next { right: 0; }
-.bd-side:active { background: var(--surface-2); }
-.bd-side:disabled { opacity: .25; cursor: default; }
-
-/* ── 본문(1680×896) ── */
-.bd-frame { position: absolute; top: 64px; left: 120px; overflow: hidden; }
+/* ── 본문(1760×896, 좌우 80px 여백. 이전·다음은 아래 막대 단추만) ── */
+.bd-frame { position: absolute; top: 64px; left: 80px; overflow: hidden; }
 .bd-zoom { position: relative; width: 100%; height: 100%; transition: transform var(--dur); }
 .bd-body { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 .bd-zoom-catch { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 15; cursor: zoom-in; }
@@ -67,7 +57,8 @@ html[data-theme="dark"] .bd-ink-hl, html[data-theme="chalk"] .bd-ink-hl { mix-bl
 /* 공개 전 '누르면 보여요' 표시(::before)가 flex 줄(정리 줄·예제 단계) 안에서 칸을 차지하면 글 폭이 줄어
    공개 전후 높이가 달라져요. 흐름 밖에 두어 공개 전후 높이를 같게 해요(장면 높이 어림과도 맞아요). */
 .bd-scene .bd-rv { position: relative; }
-html[data-surface="board"] .bd-scene .bd-rv.is-hidden::before { position: absolute; left: 0; top: 0; }
+/* 표시 글은 칸 가운데에 둬요(왼쪽 위에 두면 정리 줄의 왼쪽 색 막대·둥근 모서리에 첫 글자가 가려져요) */
+html[data-surface="board"] .bd-scene .bd-rv.is-hidden::before { position: absolute; left: 0; right: 0; top: 50%; height: auto; margin-top: -0.8em; text-align: center; z-index: 1; }
 .bd-rv.is-shown { -webkit-animation: bd-in var(--dur) ease-out; animation: bd-in var(--dur) ease-out; }
 @-webkit-keyframes bd-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes bd-in { from { opacity: 0; } to { opacity: 1; } }
@@ -78,7 +69,7 @@ html[data-surface="board"] .bd-scene .bd-rv.is-hidden::before { position: absolu
 /* 핵심 질문 */
 .bd-question { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 820px; text-align: center; padding: 0 80px; }
 .bd-question-text { font-size: 1.75em; line-height: 1.4; font-weight: 800; }
-.bd-question-tip { margin: 48px 0 0; color: var(--ink-3); font-size: .85em; }
+.bd-question-tip { margin: 48px 0 0; color: var(--ink-3); font-size: .875em; }
 
 /* 이야기·정리 */
 .bd-lines-list { margin: 0; padding: 0; list-style: none; }
@@ -125,85 +116,170 @@ html[data-surface="board"] .bd-scene .bd-rv.is-hidden::before { position: absolu
 /* 체험 도구 */
 .bd-tool-scene { height: 864px; overflow: auto; -webkit-overflow-scrolling: touch; }
 
-/* ── 한 문제 ── */
-.bd-q { display: flex; align-items: stretch; height: 100%; }
-.bd-q-main { flex: 1 1 auto; min-width: 0; overflow: hidden; }
-.bd-q-main > * + * { margin-top: 20px; }
-.bd-q-side { flex: 0 0 760px; width: 760px; margin-left: 40px; overflow: auto; -webkit-overflow-scrolling: touch; }
-.bd-q-side > * + * { margin-top: 16px; }
-.bd-q-meta { display: flex; align-items: center; flex-wrap: wrap; font-size: 22px; }
-.bd-q-meta > * { margin-right: 12px; }
-.bd-q-meta .chip { font-size: 20px; min-height: 36px; }
-.bd-q-stars { color: var(--warn); letter-spacing: 2px; }
-.bd-q-prompt { font-size: 1.05em; font-weight: 700; line-height: 1.5; }
-.bd-opts { margin: 0; padding: 0; list-style: none; }
-.bd-opts > li + li { margin-top: 14px; }
-.bd-opt { padding: 10px 14px 12px 20px; border-radius: 18px; background: var(--surface); box-shadow: inset 0 0 0 3px var(--line); }
-.bd-opt.is-ans { box-shadow: inset 0 0 0 4px var(--ok); background: var(--ok-bg); }
-.bd-opt-main { display: flex; align-items: center; min-height: 80px; }
-.bd-opt-main > * + * { margin-left: 16px; }
-.bd-opt-key, .bd-ox-sym { flex: 0 0 auto; font-weight: 800; font-size: 1.1em; color: var(--accent-ink); }
-.bd-ox-sym { width: 1.4em; text-align: center; font-size: 1.4em; }
-.bd-opt-txt { flex: 1 1 auto; min-width: 0; }
-.bd-opt.is-hidden .bd-opt-txt { color: var(--ink-3); }
-.bd-opt-cover { display: inline-block; padding: 0 20px; border-radius: 12px; background: var(--surface-2); color: var(--ink-3); font-size: .8em; letter-spacing: .05em; }
-.bd-mark { flex: 0 0 auto; color: var(--ok); font-weight: 800; font-size: .85em; }
-.bd-tally-btn {
-  flex: 0 0 auto; display: flex; align-items: center; justify-content: center; min-width: 168px; height: 72px; padding: 0 16px;
-  border: 3px solid var(--line-strong); border-radius: 999px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer;
-  -webkit-touch-callout: none; touch-action: manipulation;
+/* ── 개념 단계 공개 자리표시: 큰 점선 상자 대신 위쪽 낮은 띠(① 번호 + 종류 + 흐린 첫 낱말) ──
+ * 블록 자리(높이)는 그대로 두어 쪽 나누기·넘침 재기가 흔들리지 않아요. 무대 겉모습 파일보다 이기도록 선택자를 한 단계 길게 써요. */
+html[data-surface="board"] .bd-scene .bd-rv.is-hidden.has-cue { outline: none; }
+html[data-surface="board"] .bd-scene .bd-rv.is-hidden.has-cue::before { content: none; display: none; }
+html[data-surface="board"] .bd-scene .bd-rv.is-hidden.has-cue > .bd-cue,
+html[data-surface="board"] .bd-scene .bd-rv.is-hidden.has-cue > .bd-cue * { visibility: visible; }
+.bd-cue {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 1; display: flex; align-items: center;
+  height: 48px; max-height: 100%; padding: 0 18px; box-sizing: border-box; overflow: hidden; white-space: nowrap;
+  border: 3px dashed var(--line-strong); border-radius: 14px; background: var(--bg); color: var(--ink-2);
+  font-size: 22px; font-weight: 700; line-height: 1.2;
 }
-.bd-tally-btn:active { background: var(--accent-soft); }
-.bd-tally-btn > * + * { margin-left: 8px; }
-.bd-tally-hand { font-size: 26px; }
-.bd-tally-n { font-size: 36px; font-weight: 800; min-width: 1.4em; text-align: right; }
-.bd-tally-unit { font-size: 22px; color: var(--ink-3); }
-.bd-tbar-row { height: 14px; margin-top: 8px; border-radius: 7px; background: var(--surface-2); overflow: hidden; }
+.bd-cue > * + * { margin-left: 12px; }
+.bd-cue-no { font-size: 28px; font-weight: 800; color: var(--accent-ink); }
+.bd-cue-kind { padding: 0 12px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 20px; line-height: 32px; }
+.bd-cue-word { color: var(--ink-3); font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.bd-cue-tip { margin-left: auto; padding-left: 16px; color: var(--ink-3); font-size: 20px; font-weight: 600; }
+.bd-concept { position: relative; }
+.bd-concept.has-all .bd-h { padding-right: 260px; }
+.bd-all { position: absolute; top: 0; right: 0; z-index: 3; min-height: 64px; padding: 0 24px; font-size: 24px; font-weight: 800; }
+.bd-all > .num { margin-left: 6px; font-weight: 700; color: var(--ink-3); }
+
+/* ── 한 문제(전체 폭, 세로를 채워요): 머리 · 문제 · 보기(남은 높이 모두) · 힌트·정답·풀이 · 공개 단추 한 줄 ── */
+.bdq { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.bdq-head { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; font-size: 22px; }
+.bdq-head > * { margin-right: 12px; }
+.bdq-head .chip { font-size: 20px; min-height: 36px; }
+.bd-q-stars { color: var(--warn); letter-spacing: 2px; }
+.bdq-prompt {
+  flex: 0 1 auto; min-height: 0; max-height: 40%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  margin-top: 12px; font-size: calc(40px * var(--fs-scale, 1)); font-weight: 700; line-height: 1.45;
+}
+.bdq.is-longq .bdq-prompt { font-size: calc(36px * var(--fs-scale, 1)); }
+.bdq-body { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; margin-top: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.bdq-body.is-empty { margin-top: 0; }
+.bdq-opts { flex: 1 1 auto; display: grid; grid-gap: 18px; margin: 0; padding: 0; list-style: none; }
+.bdq-opts.is-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-auto-rows: minmax(116px, 1fr); }
+.bdq-opts.is-long { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(84px, 1fr); grid-gap: 12px; }
+.bdq-opt {
+  display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 10px 18px 12px 22px; box-sizing: border-box;
+  border-radius: 22px; background: var(--surface); box-shadow: inset 0 0 0 3px var(--line-strong);
+}
+.bdq-opt.is-hidden { background: var(--surface-2); box-shadow: inset 0 0 0 3px var(--line); }
+.bdq-opt.is-ans { background: var(--ok-bg); box-shadow: inset 0 0 0 5px var(--ok); }
+.bdq-opt-main { display: flex; align-items: center; min-height: 64px; }
+.bdq-opt-main > * + * { margin-left: 16px; }
+.bdq-key, .bdq-ox {
+  flex: 0 0 auto; width: 1.5em; height: 1.5em; line-height: 1.5em; text-align: center; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent-ink); font-size: 36px; font-weight: 800;
+}
+.bdq-ox { font-size: 44px; }
+.bdq-opt-txt { flex: 1 1 auto; min-width: 0; font-size: calc(34px * var(--fs-scale, 1)); line-height: 1.35; overflow-wrap: break-word; word-wrap: break-word; }
+.bdq-opts.is-long .bdq-opt-txt { font-size: calc(32px * var(--fs-scale, 1)); }
+.bdq-cover {
+  display: inline-block; padding: 6px 20px; border: 3px dashed var(--line-strong); border-radius: 14px;
+  color: var(--ink-2); font-size: 28px; font-weight: 700; line-height: 1.3;
+}
+.bdq-mark { flex: 0 0 auto; padding: 4px 16px; border-radius: 999px; background: var(--ok); color: var(--bg); font-size: 26px; font-weight: 800; }
+.bdq-bar { height: 12px; margin-top: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
 .bd-tbar {
-  display: block; height: 100%; border-radius: 7px; background-color: var(--ink-3);
+  display: block; height: 100%; border-radius: 6px; background-color: var(--ink-3);
   background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .45) 0, rgba(255, 255, 255, .45) 6px, transparent 6px, transparent 14px);
   transition: width var(--dur);
 }
 .bd-tbar.is-ans { background-color: var(--ok); background-image: none; }
-.bd-tally-sum { margin: 12px 0 0; color: var(--ink-3); font-size: 22px; }
-.bd-tally-reset { margin-left: 16px; min-height: 48px; font-size: 22px; }
-.bd-num-box { margin: 0; font-size: 1.1em; font-weight: 800; }
-.bd-num-blank { display: inline-block; min-width: 4em; padding: 0 20px; border-bottom: 4px solid var(--line-strong); text-align: center; }
-.bd-num > * + * { margin-top: 20px; }
 
-.bd-q-steps { display: flex; flex-wrap: wrap; }
-.bd-q-stage { margin: 0 10px 10px 0; min-height: 56px; padding: 0 22px; font-size: 22px; border: 2px solid var(--line-strong); cursor: pointer; }
-.bd-q-stage.is-open { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
-.bd-q-card { padding: 16px 20px; border-radius: 18px; background: var(--surface); box-shadow: inset 0 0 0 2px var(--line); font-size: .85em; line-height: 1.5; }
-.bd-q-card.is-hint { background: var(--info-bg); }
-.bd-q-card.is-ans { background: var(--ok-bg); box-shadow: inset 0 0 0 3px var(--ok); font-weight: 700; }
-.bd-q-card.is-sol { background: var(--aha-bg); }
-.bd-q-tag { display: inline-block; margin-bottom: 6px; font-size: 20px; font-weight: 800; color: var(--ink-2); }
-.bd-q-wait { margin: 0; font-size: 24px; }
-.bd-groups-open { min-height: 56px; font-size: 22px; }
+/* 손든 수: [−] ✋ n명 [+] (64px 칸) */
+.bdq-tally { flex: 0 0 auto; display: flex; align-items: center; }
+.bdq-tally > * + * { margin-left: 6px; }
+.bdq-tally button {
+  height: 64px; padding: 0; border: 3px solid var(--line-strong); background: var(--bg); color: var(--ink);
+  font: inherit; cursor: pointer; -webkit-touch-callout: none; touch-action: manipulation;
+}
+.bdq-tally button:active { border-color: var(--accent); background: var(--accent-soft); }
+.bdq-tally button:disabled { opacity: .4; cursor: default; }
+.bdq-tally-step { width: 64px; border-radius: 50%; font-size: 36px; font-weight: 800; line-height: 1; }
+.bdq-tally-n { display: flex; align-items: center; justify-content: center; min-width: 136px; border-radius: 999px; }
+.bdq-tally-n > * + * { margin-left: 6px; }
+.bdq-tally-n .num { min-width: 1.2em; font-size: 34px; font-weight: 800; text-align: right; }
+.bdq-tally-hand { font-size: 24px; }
+.bdq-tally-unit { font-size: 22px; color: var(--ink-2); }
+/* 두 칸 배치에서 칸이 좁으면 손든 수를 아랫줄 오른쪽으로 */
+.bdq-opts.is-grid .bdq-opt-main { flex-wrap: wrap; }
+.bdq-opts.is-grid .bdq-opt-txt { flex: 1 1 40%; }
+.bdq-opts.is-grid .bdq-tally { margin-left: auto; }
+
+/* 숫자 답 */
+.bdq-num { flex: 1 1 auto; display: flex; flex-direction: column; }
+.bdq-num > * + * { margin-top: 18px; }
+.bdq-num-box { flex: 0 0 auto; margin: 0; font-size: 44px; font-weight: 800; }
+.bdq-num-blank { display: inline-block; min-width: 4em; padding: 0 20px; border-bottom: 4px solid var(--line-strong); text-align: center; }
+
+/* 힌트·정답·풀이(열릴 때만, 높이의 46%까지) */
+.bdq-panel { flex: 0 1 auto; min-height: 0; max-height: 46%; overflow-y: auto; -webkit-overflow-scrolling: touch; margin-top: 16px; }
+.bdq-panel > * + * { margin-top: 12px; }
+.bdq-answer {
+  margin: 0; padding: 10px 24px; border-radius: 18px; background: var(--ok-bg); box-shadow: inset 0 0 0 4px var(--ok);
+  font-size: calc(40px * var(--fs-scale, 1)); font-weight: 800; line-height: 1.35;
+}
+.bdq-answer-tag { color: var(--ok); }
+.bdq-card { display: flex; align-items: flex-start; padding: 12px 20px; border-radius: 18px; background: var(--surface); box-shadow: inset 0 0 0 2px var(--line); font-size: calc(30px * var(--fs-scale, 1)); line-height: 1.45; }
+.bdq-card.is-hint { background: var(--info-bg); box-shadow: inset 6px 0 0 var(--info), inset 0 0 0 2px var(--line); }
+.bdq-card.is-sol { background: var(--aha-bg); box-shadow: inset 6px 0 0 var(--aha), inset 0 0 0 2px var(--line); }
+.bdq-tag { flex: 0 0 auto; margin-right: 16px; padding: 2px 14px; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 22px; font-weight: 800; line-height: 1.6; }
+.bdq-card-txt { flex: 1 1 auto; min-width: 0; }
+
+/* 공개 단추 한 줄: 열린 것은 실선 + ✓, 지금 누를 차례는 진하게 */
+.bdq-controls { flex: 0 0 auto; display: flex; align-items: center; margin-top: 16px; white-space: nowrap; }
+.bdq-steps { display: flex; align-items: center; flex: 0 1 auto; min-width: 0; }
+.bdq-steps > * + * { margin-left: 10px; }
+.bdq-step {
+  min-height: 64px; padding: 0 22px; border: 3px dashed var(--line-strong); border-radius: 999px;
+  background: transparent; color: var(--ink-2); font: inherit; font-size: 24px; font-weight: 700; cursor: pointer;
+}
+.bdq-step.is-open { border-style: solid; border-color: var(--line-strong); background: var(--surface-2); color: var(--ink); }
+.bdq-step.is-next { border-style: solid; border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 800; box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--accent); }
+.bdq-sum { margin: 0 0 0 auto; padding-left: 20px; color: var(--ink-2); font-size: 24px; }
+.bdq-sum b { color: var(--ink); font-size: 30px; }
+.bdq-reset { margin-left: 12px; min-height: 56px; font-size: 22px; }
+.bdq-groups-open { margin-left: 16px; min-height: 64px; font-size: 22px; }
+.bdq-groups-open.is-on { box-shadow: inset 0 0 0 3px var(--accent); }
+.bdq-groups { position: absolute; right: 0; bottom: 88px; z-index: 5; width: 640px; box-sizing: border-box; box-shadow: var(--shadow-2), inset 0 0 0 2px var(--line-strong); }
 .bd-groups { padding: 16px 20px; border-radius: 18px; background: var(--surface); box-shadow: inset 0 0 0 2px var(--line); }
 .bd-groups-head { display: flex; align-items: center; font-size: 24px; }
 .bd-groups-head > * + * { margin-left: 16px; }
 .bd-groups-head .bd-x { margin-left: auto; }
 .bd-groups-list { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px 24px; margin: 12px 0 0; padding: 0; list-style: none; }
 .bd-groups-list li { display: flex; align-items: center; justify-content: space-between; font-size: 24px; }
-.bd-groups-list .stepper > button { min-width: 56px; min-height: 56px; font-size: 28px; }
+.bd-groups-list .stepper > button { min-width: 64px; min-height: 64px; font-size: 28px; }
 .bd-groups-list .stepper > .val { min-width: 2em; font-size: 28px; }
+.bdq-groups.bd-groups { background: var(--surface); }
 
-/* ── 수업 끝 ── */
+/* ── 수업 끝: 왼쪽 QR 카드(700 x 819) · 오른쪽 칸(약 996 x 864, 스크롤 없음) ── */
 .bd-end { display: flex; align-items: flex-start; height: 100%; }
-.bd-end-qr { flex: 0 0 680px; width: 680px; text-align: center; }
-.bd-qr { display: block; width: 640px; height: 640px; margin: 0 auto; border-radius: 16px; background: #fff; box-shadow: 0 0 0 4px var(--line); }
-.bd-qr-fail { padding: 40px; border-radius: 16px; background: var(--warn-bg); }
-.bd-end-url { margin: 16px 0 0; font-size: 22px; font-weight: 800; word-break: break-all; color: var(--ink-2); }
-.bd-end-side { flex: 1 1 auto; min-width: 0; margin-left: 48px; height: 100%; overflow: auto; }
+.bd-end-qr { flex: 0 0 700px; width: 700px; box-sizing: border-box; padding: 20px; border-radius: 28px; background: #fff; color: #111827; text-align: center; box-shadow: 0 0 0 4px var(--line); }
+html[data-surface="board"] .bd-end .bd-end-qr { padding: 20px; }
+html[data-surface="board"] .bd-end .bd-qr { display: block; width: 660px; height: 660px; margin: 0 auto; border-radius: 0; box-shadow: none; background: #fff; }
+.bd-qr { display: block; width: 660px; height: 660px; margin: 0 auto; }
+.bd-qr-fail { padding: 40px; border-radius: 16px; background: #fff3e0; color: #7c2d12; }
+.bd-end-site { margin: 12px 0 0; font-size: 56px; font-weight: 800; line-height: 1.15; letter-spacing: -.01em; color: #111827; }
+.bd-end-period { margin: 4px 0 0; font-size: 30px; font-weight: 700; line-height: 1.3; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bd-end-side { flex: 1 1 auto; min-width: 0; max-height: 864px; margin-left: 48px; overflow: hidden; }
 .bd-end-side > * + * { margin-top: 16px; }
-.bd-end-sec { padding: 16px 24px; border-radius: 18px; background: var(--surface); box-shadow: inset 0 0 0 2px var(--line); }
-.bd-end-h { margin: 0 0 8px; font-size: 28px; font-weight: 800; }
-.bd-end-list { margin: 0; padding-left: 1.4em; font-size: 24px; line-height: 1.5; }
+.bd-end-title { margin: 0; font-size: 40px; font-weight: 800; line-height: 1.3; color: var(--accent-ink); }
+.bd-end.has-sum .bd-end-title { font-size: 36px; }
+.bd-end-sec { padding: 16px 24px; border-radius: 18px; background: var(--surface); box-shadow: inset 6px 0 0 var(--accent), inset 0 0 0 2px var(--line); }
+.bd-end-h { margin: 0 0 8px; font-size: 30px; font-weight: 800; line-height: 1.25; }
+.bd-end-list { margin: 0; padding: 0; list-style: none; font-size: 30px; line-height: 1.45; }
+.bd-end.has-sum .bd-end-list { font-size: 26px; }
+.bd-end-list > li { display: flex; align-items: flex-start; }
 .bd-end-list > li + li { margin-top: 6px; }
-.bd-end-actions { padding-top: 8px; }
-.bd-finish { min-height: 88px; font-size: 30px; }
+.bd-end-no { flex: 0 0 auto; width: 1.4em; color: var(--accent-ink); font-weight: 800; }
+.bd-end-txt { flex: 1 1 auto; min-width: 0; max-height: 2.9em; overflow: hidden; } /* 정리 줄은 두 줄까지 */
+.bd-end-list.is-hw .bd-end-txt { max-height: none; white-space: nowrap; text-overflow: ellipsis; } /* 숙제는 한 줄 */
+.bd-end-list > li.bd-end-more { padding-left: 1.4em; color: var(--ink-2); font-weight: 800; }
+.bd-end-none { margin: 0; font-size: 28px; color: var(--ink-2); }
+.bd-end-badge {
+  display: flex; align-items: center; margin: 16px 0 0; padding: 10px 20px; border-radius: 999px; white-space: nowrap; overflow: hidden;
+  background: var(--accent-soft); color: var(--ink); font-size: 28px; line-height: 1.4;
+}
+.bd-end-badge > * + * { margin-left: 14px; }
+.bd-end-badge-tag { flex: 0 0 auto; padding: 0 14px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 22px; font-weight: 800; line-height: 1.6; }
+.bd-end-badge b { font-size: 32px; }
+.bd-end-note { margin: 16px 0 0; font-size: 22px; color: var(--ink-2); }
 
 /* ── 아래 도구띠(120px) ── */
 .bd-bar {
@@ -243,6 +319,10 @@ html[data-theme="dark"] .bd-pen.c-blue > i, html[data-theme="chalk"] .bd-pen.c-b
 .bd-prev { min-height: 88px; min-width: 150px; font-size: 28px; }
 .bd-prev > * + * { margin-left: 8px; }
 .bd-next { min-height: 96px; min-width: 380px; font-size: 34px; justify-content: space-between; }
+/* '다음' 단추 폭은 고정(글자가 바뀌어도 자리가 그대로): 무대 겉모습 파일의 min/max 보다 이기도록 한 단계 길게 */
+html[data-surface="board"] .bd-bar .bd-next { width: 440px; min-width: 440px; max-width: 440px; box-sizing: border-box; }
+.bd-next-txt > span { display: block; max-width: 330px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+html[data-surface="board"] .bd-bar .bd-next.is-finish { background: var(--ok); border-color: var(--ok); color: var(--bg); box-shadow: 0 0 0 3px var(--tb-bg, var(--surface)), 0 0 0 6px var(--ok); }
 .bd-next-txt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; }
 .bd-next-txt small { font-size: 20px; font-weight: 700; opacity: .85; }
 .bd-next > svg { margin-left: 16px; }

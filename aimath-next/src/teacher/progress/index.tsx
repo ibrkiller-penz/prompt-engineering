@@ -5,12 +5,14 @@ import type { TeacherPageProps } from "../shell/pages.tsx";
 import { useKlass } from "../shell/klass.tsx";
 import { todayHref } from "../shell/plan.ts";
 import { TEACHER_MARK } from "../mark.ts";
-import { MARK_LABEL, cycleMark, type Mark } from "../store/index.ts";
+import { cycleMark, type Mark } from "../store/index.ts";
+import { marksLabel } from "../today/timebar.ts";
 import "./progress.css";
 
 export const PROGRESS_MARK = TEACHER_MARK;
 
 const SYM: Record<"done" | "part" | "none", string> = { done: "✓", part: "◐", none: "·" };
+const MARK_LABEL: Record<"done" | "part" | "none", string> = { done: "끝", part: "진행 중", none: "아직" };
 
 export default function ProgressPage(_m: TeacherPageProps) {
   const { classes, progress, klass, setKlass, markLesson } = useKlass();
@@ -43,7 +45,7 @@ export default function ProgressPage(_m: TeacherPageProps) {
     <div className="page t-prog">
       <header className="t-prog-head">
         <h1 className="h1">반별 진도</h1>
-        <p className="muted">칸을 누를 때마다 아직 → 일부 → 끝 으로 바뀌어요. 수업 끝 화면의 '수업 마치기'도 여기에 표시해요.</p>
+        <p className="muted">칸을 누를 때마다 아직 → 진행 중 → 끝으로 바뀌어요. 수업 끝 화면의 '수업 마치기'도 여기에 표시해요.</p>
       </header>
 
       <ul className="t-prog-sum">
@@ -55,11 +57,13 @@ export default function ProgressPage(_m: TeacherPageProps) {
               <button type="button" className="chip" aria-pressed={c === klass} onClick={() => setKlass(c)}>
                 {c}
               </button>
-              <div className="meter" role="img" aria-label={c + " 진도: 끝 " + done + ", 일부 " + part + " / " + total + "레슨"}>
+              <div className="meter" role="img" aria-label={c + "반 진도: " + marksLabel(done, part) + " (전체 " + total + "레슨)"}>
                 <i style={{ width: pct + "%" }} />
               </div>
-              <p className="small muted num">
-                끝 {done} · 일부 {part} / {total}
+              <p className="small muted">
+                {marksLabel(done, part)}
+                <br />
+                전체 {total}레슨
               </p>
             </li>
           );
@@ -121,7 +125,7 @@ export default function ProgressPage(_m: TeacherPageProps) {
           ))}
         </table>
       </div>
-      <p className="tiny muted">반 이름 지우기는 '화면 설정'의 반 관리에서 할 수 있어요.</p>
+      <p className="small muted">반 이름 지우기는 '화면 설정'의 반 관리에서 할 수 있어요.</p>
     </div>
   );
 }

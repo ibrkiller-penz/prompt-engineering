@@ -47,6 +47,18 @@
 .t-klass-help { width: 100%; margin: var(--sp-1) 0 0; font-size: var(--t-xs); color: var(--ink-2); }
 .t-klass-help.is-bad { color: var(--bad); font-weight: 700; }
 
+/* 메뉴줄 오른쪽에 붙는 반 칩(compact): 줄을 하나 더 쓰지 않아요. 반이 많으면 칩 줄만 옆으로 밀어요 */
+.t-head-row > .t-klass.is-compact { flex: 0 1 auto; min-width: 0; margin-left: auto; padding: 0; border-top: 0; flex-wrap: nowrap; position: relative; }
+.t-head-row > .t-klass.is-compact + .t-gear { margin-left: var(--sp-3); }
+.t-klass.is-compact .t-klass-label { margin-right: var(--sp-2); white-space: nowrap; }
+.t-klass.is-compact .t-klass-chips { flex-wrap: nowrap; min-width: 0; max-width: 46vw; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; padding: 5px 5px; margin: 0; }
+.t-klass.is-compact .t-klass-chips > * { margin: 0; flex: 0 0 auto; }
+.t-klass.is-compact .t-klass-chips > * + * { margin-left: var(--sp-2); }
+.t-klass.is-compact .t-klass-help {
+  position: absolute; top: 100%; right: 0; z-index: 2; width: 22em; max-width: 80vw; margin-top: var(--sp-1); padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-s); background: var(--surface); box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line); white-space: normal;
+}
+
 /* ── 본문 ── */
 .t-main { display: block; outline: none; }
 .t-board-root { display: block; }
@@ -56,9 +68,13 @@
 @media (max-width: 760px) {
   .t-tabs { display: none; }
   .t-gear span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .t-head-row { justify-content: space-between; }
+  .t-head-row { justify-content: space-between; flex-wrap: wrap; }
+  /* 좁은 화면: 반 칩은 메뉴줄 아래 한 줄로 내려요 */
+  .t-head-row > .t-klass.is-compact { -webkit-box-ordinal-group: 4; order: 3; flex: 1 1 100%; margin: 0 0 var(--sp-2); }
+  .t-head-row > .t-klass.is-compact + .t-gear { margin-left: 0; }
+  .t-klass.is-compact .t-klass-chips { max-width: none; }
   .t-tabbar { display: flex; }
-  .t-tabbar a { font-size: 13px; }
+  .t-tabbar a { font-size: 14px; }
   .t-main { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + var(--sp-4)); }
   html[data-surface="prep"] { --gutter: 16px; --t-base: 18px; --tap: 48px; --tap-main: 56px; --topbar-h: 56px; --tab-h: 64px; }
 }

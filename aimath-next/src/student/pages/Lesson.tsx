@@ -54,7 +54,7 @@ export default function LessonPage({ lid, query }: { lid: string; query: Record<
   const a = assigned[lid];
   const hwLeft = a ? a.hw.filter((id) => !isTried(q[id])).length : 0;
   const unitHref = href(STUDENT_ROUTES.unit, { n: meta.unit });
-  const posLabel = pos && steps ? labelOf(steps, pos.step) + " " + pos.card + "번째 카드" : "";
+  const posLabel = pos && steps ? posText(steps, pos.step, pos.card) : "";
 
   const stages = [
     { key: "story", name: "이야기", icon: "story" as const, to: href(STUDENT_ROUTES.card, { lid, step: hasStory ? "story" : firstConcept, card: 1 }), note: hasStory ? "등장인물과 함께 오늘 물음을 만나요" : "이야기가 없는 레슨이에요", done: hasStory ? !!(pos && pos.step !== "story") || readL.length > 0 : true },
@@ -212,7 +212,8 @@ export function stripNum(h: string): string {
   return String(h || "").replace(/^\s*\d+\.\s*/, "");
 }
 
-function labelOf(steps: { id: string; label: string }[], id: string): string {
-  for (const s of steps) if (s.id === id) return s.label;
-  return id;
+/** "개념 1 · 1/9쪽" (단계 이름 · 지금 쪽/그 단계 쪽 수) */
+function posText(steps: { id: string; label: string; cards: unknown[] }[], id: string, card: number): string {
+  for (const s of steps) if (s.id === id) return s.label + " · " + Math.min(Math.max(1, card), s.cards.length) + "/" + s.cards.length + "쪽";
+  return "";
 }

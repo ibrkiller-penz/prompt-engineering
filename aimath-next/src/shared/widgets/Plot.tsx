@@ -71,6 +71,8 @@ export interface PlotProps {
   noTable?: boolean;
   /** 범례 숨기기 */
   noLegend?: boolean;
+  /** 칠판에서 그림 높이 상한(기본 500). 도구가 무대 세로 안에 들도록 쓰는 쪽이 줄여요 */
+  boardMaxH?: number;
   /** 끌어서 옮기는 손잡이들 */
   handles?: PlotHandle[];
   /** 손잡이를 끌거나 화살표 키로 옮길 때(데이터 좌표, 그림 범위 안으로 붙여서). 눈금 맞추기는 쓰는 쪽에서 해요 */
@@ -138,7 +140,7 @@ export default function Plot(props: PlotProps) {
     top: Math.round(14 * unit),
     bottom: Math.round((props.xLabel ? 50 : 32) * unit),
   };
-  const maxH = board ? 500 : surface === "prep" ? 520 : 440;
+  const maxH = board ? props.boardMaxH || 500 : surface === "prep" ? 520 : 440;
   let width = boxW;
   if (props.equal) {
     // 한 칸 길이를 같게 하려면 높이가 넘칠 때 너비를 줄여요(가운데 정렬)
@@ -153,8 +155,8 @@ export default function Plot(props: PlotProps) {
   const sc: PlotScale = { x: sx, y: sy, box: pad, width, height, unit };
   const xt = props.xTicks || niceTicks(props.x[0], props.x[1], width < 420 ? 4 : 6);
   const yt = props.yTicks || niceTicks(props.y[0], props.y[1], height < 260 ? 4 : 6);
-  // 칠판 글자는 24px 이상
-  const fs = board ? 24 : Math.round(13 * unit);
+  // 칠판 글자는 28px 이상
+  const fs = board ? 28 : Math.round(13 * unit);
   const hs = handleSize(surface);
 
   const summary = useMemo(() => props.summary || summarize(props.series), [props.summary, props.series]);

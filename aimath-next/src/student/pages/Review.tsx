@@ -1,5 +1,6 @@
 // 오늘의 복습(#/review): 틀렸던 문제를 1·3·7일 간격으로 다시 만나요. 하루 최대 5문제.
-// 복습에서 맞히면 다음 간격으로, 틀리면 내일 다시. 세 번 연속 맞히면 졸업이에요.
+// 복습에서 혼자 맞히면 다음 간격으로, 틀리거나 풀이를 보고 맞히면 내일 다시. 세 번 연속 맞히면 졸업이에요.
+// 힌트·풀이는 접은 채로 시작하고(전에 본 힌트 수만 알려 줘요), '새로 더해진 것' 띠는 숨겨요.
 import { useState } from "react";
 import { STUDENT_ROUTES } from "../../shared/contracts.ts";
 import { href, navigate } from "../../shared/router/index.ts";
@@ -64,6 +65,7 @@ export default function ReviewPage({ query }: { query: Record<string, string> })
             <QRun
               q={f.q}
               review
+              showNew={false}
               label={"복습 " + (i + 1)}
               onDone={(ok) => setResults((r) => (id in r ? r : { ...r, [id]: ok }))}
               after={
@@ -80,7 +82,7 @@ export default function ReviewPage({ query }: { query: Record<string, string> })
         <div className="stack s-result">
           <h2 className="h2">오늘 복습 끝!</h2>
           <p>
-            {ids.length}문제 중 {okN}문제를 처음 답에 맞혔어요. 맞힌 문제는 다음 간격(3일·7일 뒤)으로, 틀린 문제는 내일 다시 만나요.
+            {ids.length}문제 중 {okN}문제를 처음 답에 혼자 맞혔어요. 맞힌 문제는 다음 간격(3일·7일 뒤)으로, 틀렸거나 풀이를 보고 맞힌 문제는 내일 다시 만나요.
           </p>
           <ul className="list card">
             {ids.map((x, k) => (

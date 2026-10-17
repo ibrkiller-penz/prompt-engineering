@@ -33,6 +33,16 @@ export function texToHtml(tex: string, display = false): string {
  * 그 수식에만 is-wide 를 붙여 옆으로 밀어 보게 해요. 창 크기 · 글자 크기(data-fs) · 표면이 바뀌면 다시 재요. */
 const wideChecks = new Set<() => void>();
 let wideHooked = false;
+let wideLater = 0;
+/** 수식이 많이 한꺼번에 붙으면(긴 쪽 · 글꼴이 늦게 옴) 자리가 잡힌 뒤 한 번 더 재요 */
+function recheckSoon() {
+  if (typeof window === "undefined") return;
+  if (wideLater) window.clearTimeout(wideLater);
+  wideLater = window.setTimeout(() => {
+    wideLater = 0;
+    wideChecks.forEach((f) => f());
+  }, 120);
+}
 function hookWide() {
   if (wideHooked || typeof window === "undefined") return;
   wideHooked = true;
@@ -73,12 +83,23 @@ function blockBox(el: HTMLElement): HTMLElement | null {
   return null;
 }
 
+/** 글 속(textstyle) 맨 바깥 분수에 ui-tfrac 을 붙여요. 분자·분모가 0.7배 글자(.katex-sizing.size3)인 분수만이고,
+ *  \dfrac 이나 첨자 속 분수는 빼요. ui.css 가 휴대폰에서 이 분수만 키워요(분자·분모 13px 이상). */
+function tagTextFracs(el: HTMLElement) {
+  const fr = el.querySelectorAll<HTMLElement>(".katex-html > .katex-base > .mord > .mfrac, .katex-html > .katex-base > .minner > .mord > .mfrac, .katex-html > .base > .mord > .mfrac, .katex-html > .base > .minner > .mord > .mfrac");
+  for (let i = 0; i < fr.length; i++) {
+    const f = fr[i];
+    if (f.querySelector(".vlist > span > .katex-sizing.size3, .vlist > span > .sizing.size3")) f.classList.add("ui-tfrac");
+  }
+}
+
 function useWideInline(key: string) {
   const ref = useRef<HTMLSpanElement | null>(null);
   useIsoLayout(() => {
     const el = ref.current;
     if (!el) return;
     hookWide();
+    tagTextFracs(el);
     const check = () => {
       el.classList.remove("is-wide");
       const box = blockBox(el);
@@ -96,6 +117,7 @@ function useWideInline(key: string) {
     };
     check();
     wideChecks.add(check);
+    recheckSoon();
     return () => {
       wideChecks.delete(check);
     };

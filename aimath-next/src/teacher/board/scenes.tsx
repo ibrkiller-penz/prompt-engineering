@@ -6,7 +6,7 @@ import { useLayoutEffect, useEffect, useRef, useState, type ReactNode } from "re
 import type { Block, Lesson, Scene, SceneBlock } from "../../shared/contracts.ts";
 import { BlockView, Rich } from "../../shared/ui/index.ts";
 import { revealStepOf } from "../logic/index.ts";
-import { pageOfBlock, pageStarts } from "./board.logic.ts";
+import { circled, cueOf, pageOfBlock, pageStarts } from "./board.logic.ts";
 import { BODY_H } from "./Stage.tsx";
 
 export const KIND_LABEL: Record<Scene["kind"], string> = {
@@ -142,12 +142,39 @@ export function SceneBody(props: SceneBodyProps) {
 
 /* ─────────── 공개 조각 ─────────── */
 
-function Rv({ step, r, children, className }: { step: number; r: number; children: ReactNode; className?: string }) {
+/**
+ * 공개 조각. 공개 전에도 제자리 높이를 그대로 차지해서(쪽 나누기·넘침 재기가 흔들리지 않아요) 공개해도 배치가 안 바뀌어요.
+ * cue 를 주면 큰 점선 상자 대신 위쪽에 낮은 자리표시(① 번호 + 흐린 첫 낱말)만 보여요.
+ */
+function Rv({ step, r, children, className, cue }: { step: number; r: number; children: ReactNode; className?: string; cue?: ReactNode }) {
   const hidden = step > r;
+  const withCue = hidden && cue != null;
   return (
-    <div className={"bd-rv" + (className ? " " + className : "") + (hidden ? " is-hidden" : " is-shown")} data-rv={step} aria-hidden={hidden || undefined}>
+    <div
+      className={"bd-rv" + (className ? " " + className : "") + (hidden ? " is-hidden" : " is-shown") + (withCue ? " has-cue" : "")}
+      data-rv={step}
+      aria-hidden={hidden || undefined}
+    >
+      {withCue ? (
+        <span className="bd-cue" aria-hidden="true">
+          {cue}
+        </span>
+      ) : null}
       {children}
     </div>
+  );
+}
+
+/** 개념 블록 자리표시: ② 표 · 확률은 … (첫 낱말은 흐리게) */
+function Cue({ step, block }: { step: number; block: SceneBlock }) {
+  const c = cueOf(block as { t: string });
+  return (
+    <>
+      <span className="bd-cue-no">{circled(step)}</span>
+      <span className="bd-cue-kind">{c.kind}</span>
+      {c.word ? <span className="bd-cue-word">{c.word} …</span> : null}
+      <span className="bd-cue-tip">다음을 누르면 보여요</span>
+    </>
   );
 }
 
@@ -263,19 +290,27 @@ export function PrereqScene({ scene, r }: { scene: Scene; r: number }) {
 const isVisual = (b: SceneBlock) => b.t === "math" || b.t === "table";
 
 /** 개념: 블록 하나씩 공개. 글과 식·표가 함께 있으면 2단(오른쪽 760px) */
-export function ConceptScene({ scene, r, level, lid }: { scene: Scene; r: number; level: number; lid: string }) {
+export function ConceptScene({ scene, r, level, lid, onAll }: { scene: Scene; r: number; level: number; lid: string; onAll?: () => void }) {
   const head = scene.blocks.filter((b) => b.t === "heading")[0] as { t: "heading"; text: string } | undefined;
   const items = scene.blocks.map((b, k) => ({ b, k, step: revealStepOf(scene, k) })).filter((x) => x.b.t !== "heading");
   const vis = items.filter((x) => isVisual(x.b));
   const txt = items.filter((x) => !isVisual(x.b));
   const two = level < 2 && vis.length > 0 && txt.length > 0;
   const one = (x: { b: SceneBlock; k: number; step: number }) => (
-    <Rv key={x.k} step={x.step} r={r} className={"bd-blk t-" + x.b.t}>
+    <Rv key={x.k} step={x.step} r={r} className={"bd-blk t-" + x.b.t} cue={x.step > 0 ? <Cue step={x.step} block={x.b} /> : undefined}>
       <BlockView block={x.b as Block} surface="board" where={lid} />
     </Rv>
   );
+  let maxStep = 0;
+  for (const x of items) if (x.step > maxStep) maxStep = x.step;
+  const left = maxStep - r;
   return (
-    <div className={"bd-concept" + (two ? " is-two" : "")}>
+    <div className={"bd-concept" + (two ? " is-two" : "") + (onAll && maxStep > 0 ? " has-all" : "")}>
+      {onAll && left > 0 ? (
+        <button type="button" className="btn bd-all bd-noswipe" onClick={onAll}>
+          모두 열기 <span className="num">({left})</span>
+        </button>
+      ) : null}
       {head ? (
         <h2 className="bd-h">
           <Rich text={head.text} />

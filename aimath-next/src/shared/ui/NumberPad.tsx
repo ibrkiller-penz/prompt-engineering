@@ -1,5 +1,6 @@
 // 숫자 답 입력판의 기호 줄: / − . √ π (휴대폰 키보드에서 찾기 어려운 것만). 숫자는 기기 키보드로 써요.
 // 칠판에서는 숫자 단추까지 모두 보여요(전자칠판은 화면 키보드가 불편해서).
+// 키는 높이 44px 이상, 지우기 키에는 '지우기' 글자를 함께 붙여요.
 import type { Surface } from "../contracts.ts";
 import { useUiSurface } from "./surface.ts";
 
@@ -29,7 +30,7 @@ export function NumberPad({ onKey, onBack, surface, digits, disabled }: NumberPa
       {showDigits ? (
         <div className="ui-pad-digits">
           {DIGITS.map((d) => (
-            <button key={d} type="button" className="ui-pad-key" disabled={disabled} onClick={() => onKey(d)}>
+            <button key={d} type="button" className="ui-pad-key" style={{ minHeight: 44 }} disabled={disabled} onClick={() => onKey(d)}>
               {d}
             </button>
           ))}
@@ -37,13 +38,23 @@ export function NumberPad({ onKey, onBack, surface, digits, disabled }: NumberPa
       ) : null}
       <div className="ui-pad-syms">
         {SYMS.map((s) => (
-          <button key={s.k} type="button" className="ui-pad-key" aria-label={s.name} title={s.name} disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => onKey(s.k)}>
+          <button key={s.k} type="button" className="ui-pad-key" style={{ minHeight: 44 }} aria-label={s.name} title={s.name} disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => onKey(s.k)}>
             {s.label}
           </button>
         ))}
         {onBack ? (
-          <button type="button" className="ui-pad-key is-back" aria-label="한 글자 지우기" disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={onBack}>
-            ⌫
+          <button
+            type="button"
+            className="ui-pad-key is-back"
+            aria-label="한 글자 지우기"
+            title="한 글자 지우기"
+            style={{ minHeight: 44 }}
+            disabled={disabled}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onBack}
+          >
+            <span aria-hidden="true">⌫ </span>
+            <span style={{ fontSize: "0.8em" }}>지우기</span>
           </button>
         ) : null}
       </div>

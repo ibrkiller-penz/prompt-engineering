@@ -2,7 +2,7 @@
 // 토큰 색 대비 검사. src/styles/tokens.css(+ 있으면 visual.css)를 직접 읽어서
 // 테마(light · dark · chalk · 대비 높이기) × 사이트 × 단원마다 변수를 풀고 WCAG 대비를 계산해요.
 //   글자 4.5:1 이상, 그래픽(테두리·초점·장식 막대) 3:1 이상. 하나라도 모자라면 1로 끝나요.
-// 글자 크기·터치 토큰 바닥값(휴대폰 13/44 · 준비 56 · 칠판 본문 32/64 · 주 단추 88)을 면 × 글자 단계마다 계산하고,
+// 글자 크기·터치 토큰 바닥값(휴대폰 13/44 · 준비 18/48, 터치 56 · 칠판 본문 32/64 · 주 단추 88 · 문제 36 · 보기 32 · 도구 28/24/72)을 면 × 글자 단계마다 계산하고,
 // src 의 css 에 13px 미만 고정 글자가 있는지 봐요(공용 src/styles 는 실패, 나머지는 알림, --strict 면 모두 실패).
 // 덤으로 src/styles/*.css 에 Chrome 80 에서 안 되는 CSS 가 있는지도 봐요(0건이어야 해요).
 // 사용: node scripts/check-contrast.mjs [--verbose] [--strict]
@@ -189,6 +189,20 @@ const PAIRS = [
   ["--line-strong", "--bg", GFX],
   ["--focus", "--surface", GFX],
   ["--focus", "--bg", GFX],
+  // 비활성 단추: 글자는 비활성 바탕·카드 바탕 위에서 4.5, 회색 테두리는 3 이상(opacity 로 흐리게 하지 않아요)
+  ["--disabled-ink", "--disabled-bg", TEXT],
+  ["--disabled-ink", "--surface", TEXT],
+  ["--disabled-ink", "--bg", TEXT],
+  ["--disabled-line", "--surface", GFX],
+  ["--disabled-line", "--bg", GFX],
+  ["--disabled-line", "--disabled-bg", GFX],
+  // 단계 공개 자리표시: 점선 테두리(그래픽)와 흐린 단서 글자(첫 단어)
+  ["--ph-line", "--surface", GFX],
+  ["--ph-line", "--surface-2", GFX],
+  ["--ph-line", "--bg", GFX],
+  ["--hint-ink", "--surface", TEXT],
+  ["--hint-ink", "--surface-2", TEXT],
+  ["--hint-ink", "--bg", TEXT],
 ];
 // visual.css 의 그래프 계열색(있을 때만)
 const SERIES = ["--s1", "--s2", "--s3", "--s4", "--s5", "--axis"];
@@ -268,10 +282,20 @@ function evalPx(expr) {
   }
 }
 
+// 준비 화면은 모든 글자 18 · 터치 48 이상, 칠판 문제 본문 36 · 보기 32 · 도구 글자 28 · 도구 라벨 24 · 도구 터치 72 이상
 const SIZE_RULES = {
-  phone: { "--t-xs": 13, "--t-sm": 13, "--t-md": 13, "--tap": 44, "--tap-main": 44 },
-  prep: { "--t-xs": 13, "--t-sm": 13, "--t-md": 13, "--tap": 56, "--tap-main": 56 },
-  board: { "--t-xs": 13, "--t-sm": 13, "--t-md": 32, "--tap": 64, "--tap-main": 88 },
+  phone: {
+    "--t-xs": 13, "--t-sm": 13, "--t-md": 13, "--t-min": 13, "--t-q": 13, "--t-opt": 13, "--t-tool": 13, "--t-tool-label": 13,
+    "--tap": 44, "--tap-main": 44, "--tap-tool": 44, "--tap-min": 44,
+  },
+  prep: {
+    "--t-xs": 18, "--t-sm": 18, "--t-md": 18, "--t-min": 18, "--t-q": 18, "--t-opt": 18, "--t-tool": 18, "--t-tool-label": 18,
+    "--tap": 56, "--tap-main": 56, "--tap-tool": 48, "--tap-min": 48,
+  },
+  board: {
+    "--t-xs": 22, "--t-sm": 22, "--t-md": 32, "--t-min": 22, "--t-q": 36, "--t-opt": 32, "--t-tool": 28, "--t-tool-label": 24,
+    "--tap": 64, "--tap-main": 88, "--tap-tool": 72, "--tap-min": 64,
+  },
 };
 const BODY_AT_DEFAULT = { phone: 17, prep: 22, board: 32 };
 const sizeFails = [];
