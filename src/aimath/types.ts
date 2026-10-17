@@ -69,11 +69,18 @@ export interface Lesson {
   summary: Text[];
 }
 
+/** 이야기 중간에 들어가는 작은 삽화. after 번째 문단 다음에, 가로폭 30% 이하로 글 옆에 떠 있다(public/ 아래 경로). */
+export interface StoryImage {
+  after: number;
+  src: string;
+  alt: string;
+}
+
 export interface UnitContent {
   id: number;
   why: { title: string; paragraphs: Text[] }; // 왜 배울까
-  opening: { title: string; paragraphs: Text[] }; // 대단원을 여는 이야기
-  stories?: { title: string; kicker?: string; paragraphs: Text[] }[]; // 단원 시작 전에 읽는 이야기 시리즈(역사·사람·사건·현실 사례)
+  opening: { title: string; paragraphs: Text[]; images?: StoryImage[] }; // 대단원을 여는 이야기
+  stories?: { title: string; kicker?: string; paragraphs: Text[]; images?: StoryImage[] }[]; // 단원 시작 전에 읽는 이야기 시리즈(역사·사람·사건·현실 사례)
   test: Question[]; // 대단원 마무리(종합 문제)
   future: { title: string; paragraphs: Text[] }; // 수학! 미래를 꿈꾸다(진로·직업 이야기)
 }
