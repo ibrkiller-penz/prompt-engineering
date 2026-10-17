@@ -91,7 +91,8 @@ test("buildScenes: 모든 레슨·수업 시간·차시에서 켜진 장면 15�
         else assert.equal(f.suggest.over, f.suggest.total - m, where + ": 제안 뒤 넘침");
         if (f.over === 0 && on.length <= MAX_ON) assert.ok(f.suggest.dropped.length <= 1, where + ": 넘치지 않는데 제안이 많아요");
         // 제안 뒤 켜진 장면 수: 상한(MAX_ON) 안. 다만 끄지 않는 소제목 확인 문제만큼은 넘을 수 있어요
-        const nCheck = sc.filter((s) => s.secCheck !== undefined).length;
+        // 소제목마다 끝 확인 문제 1개는 끄지 않아요(계획 없이 태그가 모자라 덜 잡혀도 소제목 수만큼 인정)
+        const nCheck = Math.max(sc.filter((s) => s.secCheck !== undefined).length, L.sections.length);
         const after = applyFlow(sc, { off: f.suggest.dropped }, m);
         assert.ok(after.scenes.filter((s) => s.on).length <= MAX_ON + nCheck, where + ": 제안 뒤 켜진 장면 수");
         for (const id of f.suggest.dropped) {
@@ -117,7 +118,7 @@ test("autoDrop: 예전처럼 자동으로 끄면 수업 시간에 맞고, 소제
         const where = L.id + " " + m + "분 " + per.p + "차시";
         const f = buildLessonFlow(L, null, m, per.p, { autoDrop: true });
         assert.ok(Math.abs(f.total - m) <= 1, where + ": 시간 합 " + f.total);
-        assert.ok(f.scenes.filter((s) => s.on).length <= MAX_ON + f.scenes.filter((s) => s.secCheck !== undefined).length, where);
+        assert.ok(f.scenes.filter((s) => s.on).length <= MAX_ON + Math.max(f.scenes.filter((s) => s.secCheck !== undefined).length, L.sections.length), where);
         for (const s of f.scenes) if (s.secCheck !== undefined) assert.ok(s.on, where + ": 확인 문제 " + s.id + " 가 꺼졌어요");
         assert.deepEqual(f.dropped, buildLessonFlow(L, null, m, per.p).suggest.dropped, where + ": 자동 끄기 = 줄이기 제안");
       }
