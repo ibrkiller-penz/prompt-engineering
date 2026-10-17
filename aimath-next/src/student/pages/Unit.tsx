@@ -56,7 +56,7 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
           <div className="grow">
             <p className="h3">{u.short}</p>
             {st ? <ProgressBar value={st.percent} max={100} label={"단원 진행 " + st.percent + "%"} /> : null}
-            <p className="tiny muted">
+            <p className="small s-unit-sub">
               레슨 {st ? st.done : 0}/{u.lessonIds.length} 완료
             </p>
             <p className="small s-unit-next">
@@ -95,7 +95,7 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
                   <strong className="h3 s-lesson-title">{m.title}</strong>
                   <span className="small muted">{m.short}</span>
                   <ProgressBar value={p} max={100} label={m.code + " 진행 " + p + "%"} />
-                  <span className="tiny muted">
+                  <span className="small s-unit-sub">
                     개념 {ls ? ls.sectionsRead : 0}/{m.sections.length} · 기본 문제 {ls ? ls.basic.tried : 0}/{m.basicIds.length} · 약 {m.minutes}분
                   </span>
                 </a>

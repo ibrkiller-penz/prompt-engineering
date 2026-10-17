@@ -256,12 +256,14 @@ html[data-motion="reduce"] .ui-hint, html[data-motion="reduce"] .ui-fb { transit
 .ui-q-need { margin: var(--sp-1) 0 0; color: var(--ink-2); }
 .ui-q-after-wrong { display: flex; flex-wrap: wrap; align-items: center; }
 .ui-q-after-wrong > * { margin: 0 var(--sp-2) var(--sp-1) 0; }
-.ui-q-concept { color: var(--accent-ink); text-decoration: underline; }
+.ui-q-concept { color: var(--accent-ink); text-decoration: none; border: var(--border, 1px) solid var(--accent); }
+.ui-hints > .ui-q-concept { display: inline-flex; }
 .ui-pad-note { margin: 0; font-size: var(--t-xs); color: var(--ink-2); }
 .ui-fb:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* 오답 박스는 빨강 점선 하나로만 보여요(포커스 보라 실선 테두리가 겹치지 않게) */
 .ui-fb.is-bad:focus { outline: 0; }
-.ui-fb-extra { margin-top: var(--sp-1); color: var(--ink-2); }
+.ui-fb-extra { margin-top: var(--sp-1); color: var(--ink); font-size: 14px; font-size: max(14px, var(--t-sm)); }
+.ui-fb-input { color: var(--ink); font-size: 14px; font-size: max(14px, var(--t-sm)); }
 /* 오답 직후: 두 단추는 오답 박스 바로 아래, 고정 하단바(액션바+진행바)에 가리지 않게 아래 여백 */
 .ui-q.is-wrong { padding-bottom: calc(var(--s-action-h, 76px) + var(--s-rail-h, 10px) + env(safe-area-inset-bottom) + var(--sp-4)); }
 html[data-site="teacher"] .ui-q.is-wrong { padding-bottom: 0; }

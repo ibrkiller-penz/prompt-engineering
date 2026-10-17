@@ -3,3 +3,4 @@ export * from "./measure.logic.ts";
 export * from "./periods.logic.ts";
 export * from "./pick.logic.ts";
 export * from "./scenes.logic.ts";
+export * from "./lessonlog.logic.ts";

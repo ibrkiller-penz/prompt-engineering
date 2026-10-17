@@ -98,11 +98,11 @@ export function solvedToday(qm: Record<string, { t1?: number; wrong?: number; fi
 }
 
 /** 문제 위쪽 '지난번' 표시. rec = 처음 연 때의 기록, submitted = 이번에 낸 답(없으면 null)
- *  처음 푸는 문제는 표시 없음 · 제출 전: 맞힌 적 있으면 '지난번에 맞혔어요' · 제출 뒤 틀리면 '지난번엔 맞혔는데 이번엔 달랐어요' */
+ *  처음 푸는 문제는 표시 없음 · 제출 전: 맞힌 적 있으면 '지난번에 맞혔어요' · 제출 뒤 틀리면 '이번에는 다른 답이었어요. 조건을 다시 볼까요?' */
 export function prevNote(rec: { ok?: boolean; wrong?: number; first?: boolean | null; sol?: boolean } | undefined, tried: boolean, submitted: { correct: boolean } | null): { kind: "ok" | "tried" | "diff"; text: string } | null {
   if (!rec || !tried) return null;
   if (submitted) {
-    return rec.ok && !submitted.correct ? { kind: "diff", text: "지난번엔 맞혔는데 이번엔 달랐어요" } : null;
+    return rec.ok && !submitted.correct ? { kind: "diff", text: "이번에는 다른 답이었어요. 조건을 다시 볼까요?" } : null;
   }
   if (rec.ok) return { kind: "ok", text: "지난번에 맞혔어요" };
   return { kind: "tried", text: "지난번에 풀어 봤어요" + (rec.wrong ? " · 다시 본 횟수 " + rec.wrong : "") };

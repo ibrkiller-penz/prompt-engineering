@@ -15,7 +15,7 @@ import { useFlowState } from "../store/index.ts";
 import { boardHref, planOf } from "../shell/plan.ts";
 import { barSegments, minLabel } from "../today/timebar.ts";
 import { periodQuestion, shortId } from "../logic/index.ts";
-import { nextPeriodHeads, storyAdd, storyAddText } from "./prep.logic.ts";
+import { nextPeriodHeads, storyAdd, storyAddText, timeVerdict, type StoryAdd } from "./prep.logic.ts";
 import { goalsForPeriod, usePrep, useLessonPrep, type Baskets, type GoalView } from "./data.ts";
 import "./prep.css";
 
@@ -40,9 +40,10 @@ function widgetsIn(lesson: Lesson, sections: number[]): WidgetId[] {
   return out;
 }
 
-function TimePlan({ scenes, minutes, total }: { scenes: Parameters<typeof barSegments>[0]; minutes: number; total: number }) {
+function TimePlan({ scenes, minutes, total, sAdd }: { scenes: Parameters<typeof barSegments>[0]; minutes: number; total: number; sAdd: StoryAdd | null }) {
   const segs = barSegments(scenes);
-  const over = total > minutes + 0.25;
+  const tv = timeVerdict(total, minutes, sAdd);
+  const over = tv.state === "over";
   return (
     <div className="t-timebar">
       <div className="t-tb-bar" role="img" aria-label={"시간 배분: " + segs.map((s) => s.label + " " + minLabel(s.min)).join(", ")}>
@@ -62,7 +63,9 @@ function TimePlan({ scenes, minutes, total }: { scenes: Parameters<typeof barSeg
         ))}
       </ul>
       <p className={"small " + (over ? "t-over" : "muted")}>
-        {over ? "시간이 " + minLabel(total - minutes) + " 넘쳐요(예상 " + minLabel(total) + " / 수업 " + minutes + "분). 오늘 수업이나 수업 흐름에서 줄일 수 있어요." : "예상 " + minLabel(total) + " / 수업 " + minutes + "분"}
+        {"예상 " + minLabel(total) + " / 수업 " + minutes + "분 · " + tv.text}
+        {over ? " 오늘 수업이나 수업 흐름에서 줄일 수 있어요." : ""}
+        {sAdd ? <span className="no-print"> {storyAddText(sAdd)}</span> : null}
       </p>
     </div>
   );
@@ -318,17 +321,11 @@ export default function PrepPage(m: TeacherPageProps) {
           </div>
         </section>
 
-        {sAdd ? (
-          <p className={"callout pp-story-add no-print" + (sAdd.over > 0 ? " warn" : "")} role="status">
-            {storyAddText(sAdd, st.duration)}
-          </p>
-        ) : null}
-
         <section className="card pp-card pp-time" aria-labelledby="pp-time-h">
           <h2 className="h3" id="pp-time-h">
             시간 배분 {view.periods.length > 1 ? "· " + p + "/" + view.periods.length + "차시" : ""}
           </h2>
-          <TimePlan scenes={view.scenes} minutes={st.duration} total={view.total} />
+          <TimePlan scenes={view.scenes} minutes={st.duration} total={view.total} sAdd={sAdd} />
           {per.first ? <StoryNote lid={lid} view={view} /> : null}
           <p className="small muted">
             다루는 소제목:{" "}

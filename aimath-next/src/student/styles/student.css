@@ -395,8 +395,9 @@ html[data-site="student"] .s-seg-btn.is-on { box-shadow: var(--shadow-1), inset 
 html[data-site="student"] .s-seg-btn.is-on .s-count { background: var(--accent); color: var(--on-accent); }
 html[data-contrast="more"] .s-seg { box-shadow: inset 0 0 0 2px var(--line-strong); }
 html[data-site="student"] .s-note { border-left: 4px solid var(--ink-3); }
-html[data-site="student"] .s-note-tabdesc { margin: 0; }
-html[data-site="student"] .s-note-tabs-all { margin: 0; }
+html[data-site="student"] .s-note-tabdesc { margin: 0; font-size: 15px; font-size: max(15px, var(--t-sm)); color: var(--ink); }
+html[data-site="student"] .s-note-tabs-all { margin: 0; padding: 0; list-style: none; font-size: 15px; font-size: max(15px, var(--t-sm)); color: var(--ink); line-height: 1.5; }
+html[data-site="student"] .s-note-tabs-all > li + li { margin-top: var(--sp-1); }
 html[data-site="student"] .s-note .eyebrow { font-variant-numeric: tabular-nums; }
 
 /* ───────────────────────── 사전 ───────────────────────── */
@@ -573,3 +574,37 @@ html[data-site="student"] .s-unit-head .s-unit-next { margin: var(--sp-1) 0; }
 html[data-site="student"] .s-unit-head .s-unit-go { margin-top: var(--sp-1); }
 html[data-site="student"] .s-lesson-card { padding-top: var(--sp-3); padding-bottom: var(--sp-3); }
 html[data-site="student"] .s-lesson-title { margin-top: var(--sp-1); }
+
+/* ── 2차 고도화(개발1) ── */
+/* 개념 카드: 본문 끝이 하단바(액션바+진행 레일)에 가리지 않게 아래 여백 */
+html[data-site="student"] .s-deck { padding-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-6, 24px)); }
+/* 머리 줄 제목: 두 줄까지 보이고 그 뒤는 말줄임 */
+html[data-site="student"] .s-title-main {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; text-overflow: ellipsis;
+}
+/* 개념 카드 보조 문구: 14px 이상, 진한 색 */
+html[data-site="student"] .s-concept .tiny,
+html[data-site="student"] .s-concept .muted,
+html[data-site="student"] .s-concept .s-cont { font-size: 14px; font-size: max(14px, var(--t-sm)); color: var(--ink); }
+/* 위치 줄 */
+html[data-site="student"] .s-pos { font-size: 14px; color: var(--ink); }
+/* 단원 삽화: 머리가 잘리지 않게 위쪽 기준 */
+html[data-site="student"] .s-story-top { object-position: center top; }
+/* 단원 탭 줄: 오른쪽에 더 있다는 표시(그림자) */
+html[data-site="student"] .s-unit-tabs { background:
+  linear-gradient(to right, var(--bg) 30%, rgba(255,255,255,0)) left center / 24px 100% no-repeat local,
+  linear-gradient(to left, var(--bg) 30%, rgba(255,255,255,0)) right center / 24px 100% no-repeat local,
+  linear-gradient(to right, rgba(0,0,0,.18), rgba(0,0,0,0)) left center / 10px 100% no-repeat scroll,
+  linear-gradient(to left, rgba(0,0,0,.18), rgba(0,0,0,0)) right center / 10px 100% no-repeat scroll; }
+
+/* ───────────────────────── 3차 마무리 다듬기 ───────────────────────── */
+html[data-site="student"] .s-note-tabdesc { font-size: 16px; font-size: max(16px, var(--t-sm)); line-height: 1.6; margin-bottom: var(--sp-2); }
+html[data-site="student"] .s-note-tabs-all { font-size: 16px; font-size: max(16px, var(--t-sm)); line-height: 1.7; margin-top: var(--sp-1); }
+html[data-site="student"] .s-note-tabs-all > li + li { margin-top: var(--sp-2); }
+html[data-site="student"] .s-note-tabs-all > li { word-break: keep-all; }
+html[data-site="student"] .s-unit-sub { display: block; font-size: 14px; font-size: max(14px, var(--t-xs)); color: var(--ink); }
+html[data-site="student"] .s-stats .tiny { font-size: 14px; white-space: nowrap; color: var(--ink); }
+html[data-site="student"] .ui-q-after-wrong .ui-q-concept { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 700; min-height: var(--tap-main, 48px); }
+html[data-site="student"] .ui-q-after-wrong .ui-q-peek { min-height: var(--tap-main, 48px); }
+html[data-site="student"] .ui-q-after-wrong { margin-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-3)); }
+html[data-site="student"] .s-note-tabdesc { word-break: keep-all; }

@@ -16,7 +16,7 @@ import { boardHref, todayHref, useLessonPlan } from "../shell/plan.ts";
 import { barSegments, minLabel } from "../today/timebar.ts";
 import { TEACHER_MARK } from "../mark.ts";
 import { sceneRoot } from "../logic/index.ts";
-import { storyAdd, storyAddText } from "../prep/prep.logic.ts";
+import { storyAdd, storyAddText, timeVerdict } from "../prep/prep.logic.ts";
 import { clonePick, dupTags, moveItem, onlyRequired, setSceneMin, toggleScene, useDuration, useFlowMap, useFlowState, usePickMap, usePickState } from "../store/index.ts";
 import "./flow.css";
 
@@ -125,8 +125,6 @@ export default function FlowPage(m: TeacherPageProps) {
   };
 
   const segs = barSegments(view.scenes);
-  const over = view.total > minutes + 0.25;
-  const under = view.total < minutes - 3;
   const onList = view.on;
   const firstS = onList.length ? onList[0].s : 0;
   const nOf: Record<number, number> = {};
@@ -142,6 +140,8 @@ export default function FlowPage(m: TeacherPageProps) {
 
   const tags = dupTags(view.scenes);
   const sAdd = per && per.first ? storyAdd(view.scenes, view.total, minutes) : null;
+  const tv = timeVerdict(view.total, minutes, sAdd);
+  const over = tv.state === "over";
 
   const renderRow = (sc: Scene, i: number) => {
         const isQ = sc.kind === "problem";
@@ -254,11 +254,6 @@ export default function FlowPage(m: TeacherPageProps) {
           <p className={"t-flow-total" + (over ? " is-over" : "")}>
             <b className="num">{minLabel(view.total)}</b> / {minutes}분
           </p>
-          {sAdd ? (
-            <p className={"small t-story-add" + (sAdd.over > 0 ? " t-over" : "")} role="status">
-              {storyAddText(sAdd, minutes)}
-            </p>
-          ) : null}
           <div className="t-tb-bar" role="img" aria-label={"시간 배분: " + segs.map((s) => s.label + " " + minLabel(s.min)).join(", ")}>
             {segs.map((s) => (
               <span key={s.key} className={"t-tb-seg is-" + s.key} style={{ width: s.pct + "%" }}>
@@ -278,13 +273,11 @@ export default function FlowPage(m: TeacherPageProps) {
             ))}
           </ul>
           <p className={"small " + (over ? "t-over" : "muted")} role={over ? "alert" : undefined}>
-            {over
-              ? "시간이 " + minLabel(view.total - minutes) + " 넘쳐요. 장면을 끄거나 분을 줄여 보세요."
-              : under
-                ? minLabel(minutes - view.total) + " 남아요. 체험이나 문제를 더 켜도 돼요."
-                : "수업 시간에 잘 맞아요."}
+            {tv.text}
+            {over ? " 장면을 끄거나 분을 줄여 보세요." : tv.state === "under" ? " 체험이나 문제를 더 켜도 돼요." : ""}
+            {sAdd ? " " + storyAddText(sAdd) : ""}
           </p>
-          {cut.over && cut.scenes.length ? (
+          {over && cut.over > 0 && cut.scenes.length ? (
             <button type="button" className="btn btn-soft btn-block" onClick={() => updateFlow((cur) => setScenes(cur, view, cut.scenes, false))}>
               줄이기 · 장면 {cut.scenes.length}개 끄기
             </button>

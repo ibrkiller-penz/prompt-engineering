@@ -16,9 +16,9 @@ import { boardHref, planOf, useLessonPlan, type LessonPlanView } from "../shell/
 import { periodQuestion } from "../logic/index.ts";
 import { useDuration, useFlowMap, useFlowState, usePickMap } from "../store/index.ts";
 import { Skeleton } from "../flow/Skeleton.tsx";
-import { agoLabel, barSegments, marksLabel, minLabel } from "./timebar.ts";
+import { agoLabel, barSegments, marksLabel, minLabel, overMin } from "./timebar.ts";
 import { markOf, startLabel, statusLine } from "../progress/progress.logic.ts";
-import { storyAdd, storyAddText } from "../prep/prep.logic.ts";
+import { storyAdd, storyAddText, timeVerdict, type StoryAdd } from "../prep/prep.logic.ts";
 import { cutInfo, offScenes, sceneName, setScenes } from "./cuts.ts";
 
 // 이 탭에서 마지막으로 오늘 수업에 올린 차시(주소에 없을 때 다시 씀)
@@ -101,11 +101,14 @@ function TimeBar({ scenes }: { scenes: Parameters<typeof barSegments>[0] }) {
 
 /* ─────────── 넘침 안내 · 꺼진 장면 ─────────── */
 
-function FitPanel({ lid, view, minutes }: { lid: string; view: LessonPlanView; minutes: number }) {
+function FitPanel({ lid, view, minutes, sAdd }: { lid: string; view: LessonPlanView; minutes: number; sAdd: StoryAdd | null }) {
   const [flowSt, updateFlow] = useFlowState(lid, view.p);
   const [openOffs, setOpenOffs] = useState(false);
   const cut = cutInfo(view, minutes, flowSt);
   const offs = offScenes(view);
+  const tv = timeVerdict(view.total, minutes, sAdd);
+  // 줄이기 상자와 시간 판단이 같은 값(overMin: 0.5분 단위 반올림, 0.5분 이하는 0)을 써요
+  const over = overMin(view.total, minutes);
 
   const doCut = () => {
     updateFlow((cur) => setScenes(cur, view, cut.scenes, false));
@@ -114,11 +117,11 @@ function FitPanel({ lid, view, minutes }: { lid: string; view: LessonPlanView; m
 
   return (
     <div className="t-fit stack">
-      {cut.over ? (
+      {over > 0 ? (
         <div className="callout warn t-over-box" role="status">
           <div className="grow">
             <p className="t-over-msg">
-              <b>시간이 {minLabel(cut.over)} 넘쳐요.</b> 예상 {minLabel(view.total)} / 수업 {minutes}분
+              <b>시간이 {minLabel(over)} 넘쳐요.</b> 예상 {minLabel(view.total)} / 수업 {minutes}분
             </p>
             <p className="small">
               {cut.scenes.length
@@ -134,7 +137,8 @@ function FitPanel({ lid, view, minutes }: { lid: string; view: LessonPlanView; m
         </div>
       ) : (
         <p className="muted">
-          예상 {minLabel(view.total)} / 수업 {minutes}분 · {view.total < minutes - 3 ? minLabel(minutes - view.total) + " 남아요. 꺼진 장면을 켜도 돼요." : "시간에 잘 맞아요."}
+          예상 {minLabel(view.total)} / 수업 {minutes}분
+          {sAdd ? "" : " · " + tv.text + (tv.state === "under" ? " 꺼진 장면을 켜도 돼요." : "")}
         </p>
       )}
 
@@ -345,6 +349,7 @@ export default function Today({ query }: TeacherPageProps) {
   })();
   const status = klass ? statusLine(klass, meta.code, mark) + (mark === "done" && nextCode ? " 다음은 " + nextCode + "예요." : "") : "";
   const sAdd = view && view.periods[view.p - 1] && view.periods[view.p - 1].first ? storyAdd(view.scenes, view.total, dur) : null;
+  const tv = view && sAdd ? timeVerdict(view.total, dur, sAdd) : null;
 
   return (
     <div className={"page t-today t-u" + meta.unit}>
@@ -456,8 +461,9 @@ export default function Today({ query }: TeacherPageProps) {
         ) : null}
 
         {view && sAdd ? (
-          <p className={"callout t-story-add" + (sAdd.over > 0 ? " warn" : "")} role="status">
-            {storyAddText(sAdd, dur)}
+          <p className={"callout t-story-add" + (tv && (tv.state === "over" || sAdd.over > 0) ? " warn" : "")} role="status">
+            {tv && tv.state !== "over" ? tv.text + " " : ""}
+            {storyAddText(sAdd)}
           </p>
         ) : null}
 
@@ -491,7 +497,7 @@ export default function Today({ query }: TeacherPageProps) {
             시간 배분{view.periods.length > 1 ? " · " + view.p + "차시" : ""}
           </h2>
           <TimeBar scenes={view.scenes} />
-          <FitPanel lid={lid} view={view} minutes={dur} />
+          <FitPanel lid={lid} view={view} minutes={dur} sAdd={sAdd} />
           <h3 className="t-prep-h" id="t-prep-h">
             수업 전 준비
           </h3>

@@ -273,6 +273,31 @@ export interface StudentData {
 }
 
 /** 교사 저장 값의 모양. 학습 기록·판서·모둠 점수는 저장하지 않아요 */
+/** 반별 수업 기록 카드 한 장(학생 이름·번호 필드는 없어요) */
+export interface LessonLogQuestion {
+  id: string;
+  /** 보기별 손든 수(손들기를 안 했으면 빈 배열) */
+  counts: number[];
+  /** 정답 보기 번호(0부터) */
+  answer: number;
+  /** 정답률(%) — 손든 수가 0이면 null */
+  rate: number | null;
+  /** 끝 확인 문제인지 */
+  exit: boolean;
+}
+export interface LessonLog {
+  klass: string; // 교사가 고른 반 이름(예 "2-3")
+  lid: string;
+  p: number;
+  date: string; // YYYY-MM-DD
+  scenesDone: number; // 끝낸 장면 수
+  scenesTotal: number;
+  hw: string[]; // 숙제 문제 번호(id)
+  qs: LessonLogQuestion[];
+  exitDone: boolean; // 끝 확인 문제를 골라 두었는지
+  ts: number;
+}
+
 export interface TeacherData {
   prefs: Prefs;
   last: { lid: string; p: number; s: number; ts: number } | null; // 이어서 하기
@@ -281,6 +306,7 @@ export interface TeacherData {
   pick: Record<string, { board: string[]; exit: string[]; hw: string[] }>; // "lid:p" → 문제 바구니 3개
   progress: Record<string, Record<string, "done" | "part">>; // 반 이름(예 "2-3") → 레슨 → 진도
   results: Record<string, { counts: number[]; ts: number }>; // "lid:qid" → 보기별 손든 수
+  log: Record<string, LessonLog>; // "반|lid:p" → 수업 기록 카드(최근 60개)
 }
 
 export type StudentKey = keyof StudentData;

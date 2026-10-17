@@ -236,10 +236,17 @@ html[data-surface="board"] .bd-scene .bd-rv.is-hidden.has-cue > .bd-cue * { visi
 .bdq-step { border-style: solid; border-color: var(--ink-2); color: var(--ink); }
 .bdq-step.is-open { border-color: var(--ok); background: var(--ok); color: var(--bg); font-weight: 800; }
 .bdq-step.is-next { border-style: solid; border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 800; box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--accent); }
-.bdq-sum { margin: 0 0 0 auto; padding-left: 20px; color: var(--ink-2); font-size: 24px; }
+.bdq-sum { display: flex; align-items: center; flex: 0 0 auto; margin: 0 12px 0 24px; color: var(--ink-2); font-size: 24px; white-space: nowrap; }
+.bdq-sum b { margin: 0 2px 0 8px; }
 .bdq-sum b { color: var(--ink); font-size: 30px; }
-.bdq-reset { margin-left: 12px; min-height: 56px; font-size: 22px; }
-.bdq-groups-open { margin-left: 16px; min-height: 68px; font-size: 24px; }
+.bdq-reset-wrap { margin-left: 28px; }
+.bdq-resetbtn {
+  min-height: 68px; padding: 0 26px; border: 3px solid var(--ink-2); border-radius: 999px; background: transparent; color: var(--ink);
+  font: inherit; font-size: 26px; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.bdq-resetbtn.is-armed { border-color: var(--bad); background: var(--bad-bg); color: var(--bad); font-weight: 800; }
+.bdq-groups-reset { margin-left: 0; }
+.bdq-groups-open { margin-left: auto; min-height: 68px; font-size: 24px; }
 .bdq-groups-open.is-on { box-shadow: inset 0 0 0 3px var(--accent); }
 .bdq-groups { position: absolute; right: 0; bottom: 88px; z-index: 5; width: 640px; box-sizing: border-box; box-shadow: var(--shadow-2), inset 0 0 0 2px var(--line-strong); }
 .bd-groups { padding: 16px 20px; border-radius: 18px; background: var(--surface); box-shadow: inset 0 0 0 2px var(--line); }
@@ -464,3 +471,61 @@ html[data-surface="board"] .bd-scene .bd-rv.is-hidden > .bd-open:active { backgr
 .bd-end-hwnos { margin: 0 0 8px; font-size: 44px; font-weight: 800; line-height: 1.3; color: var(--accent-ink); }
 .bd-cue-word { color: var(--ink); font-weight: 700; font-size: 30px; }
 .bd-cue-kind { font-size: 24px; color: var(--ink); }
+
+/* 수업 끝: 제목 줄 오른쪽 '오늘 기록 카드' 단추(QR·숙제 줄 자리는 그대로) */
+.bd-end-head { display: flex; align-items: flex-start; }
+.bd-end-head .bd-end-title { flex: 1 1 auto; min-width: 0; }
+.bd-end-log { flex: 0 0 auto; min-height: 72px; margin-left: 20px; padding: 0 28px; border-radius: 20px; font-size: 28px; font-weight: 800; white-space: nowrap; }
+
+/* 키보드로 하기 한 장('더 보기' 안) */
+html[data-surface="board"] .bd-keys-title { margin: 0 0 12px; font-size: 30px; font-weight: 800; }
+html[data-surface="board"] .bd-keys-list { margin: 0; padding: 0; }
+html[data-surface="board"] .bd-keys-row { display: flex; align-items: baseline; padding: 10px 0; border-bottom: 2px solid var(--tb-line); }
+html[data-surface="board"] .bd-keys-row dt { flex: 0 0 250px; margin: 0; font-size: 24px; font-weight: 800; color: var(--tb-ring); }
+html[data-surface="board"] .bd-keys-row dd { flex: 1 1 auto; margin: 0; font-size: 24px; line-height: 1.35; color: var(--tb-ink); }
+html[data-surface="board"] .bd-keys-note { margin: 12px 0 0; font-size: 20px; line-height: 1.45; color: var(--tb-ink-2); }
+html[data-surface="board"] .bd-keys-back { width: 100%; margin-top: 16px; min-height: 72px; }
+html[data-surface="board"] .bd-more-kbd { font-size: 40px; line-height: 1; margin-bottom: 8px; }
+
+/* 키보드로 움직일 때만 보이는 초점 테두리(:focus-visible 은 Chrome 80 에 없어서 html.kbd :focus 로 같은 일을 해요) */
+html.kbd .bd-tool:focus,
+html.kbd .bd-pen:focus,
+html.kbd .bd-more-btn:focus,
+html.kbd .bd-x:focus,
+html.kbd .bd-rail button:focus,
+html.kbd .bd-offbtn:focus,
+html.kbd .bd-prev:focus,
+html.kbd .bd-next:focus,
+html.kbd .bd-exit-stay:focus,
+html.kbd .bd-exit-go:focus { outline: 6px solid var(--tb-ring, #fbbf24); outline-offset: 3px; box-shadow: none; }
+html.kbd .bdq-step:focus,
+html.kbd .bdq-resetbtn:focus,
+html.kbd .bdq-groups-open:focus,
+html.kbd .bdq-tally-step:focus,
+html.kbd .bdq-tally-n:focus,
+html.kbd .bdq-think:focus,
+html.kbd .bd-end-log:focus,
+html.kbd .bd-end-morebtn:focus { outline: 6px solid var(--focus, #1d4ed8); outline-offset: 4px; }
+.bdq-sum .bdq-resetbtn { min-height: 60px; font-size: 24px; padding: 0 22px; }
+
+/* 4지선다 + 열린 상자: 보기(왼쪽)·힌트/정답/풀이(오른쪽)를 나란히 → 보기 4개·득표가 1920x1080 안에 다 보여요 */
+.bdq-mid { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.bdq-mid > .bdq-body { flex: 1 1 0; }
+.bdq-mid.is-split { flex-direction: row; }
+.bdq-mid.is-split > .bdq-body { flex: 1 1 0; min-width: 0; overflow: hidden; }
+.bdq-mid.is-split > .bdq-panel { flex: 0 0 38%; max-height: none; margin: 20px 0 0 20px; padding-right: 4px; box-sizing: border-box; }
+.bdq.is-split .bdq-opts.is-grid, .bdq.is-split .bdq-opts.is-long { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); grid-gap: 10px; }
+.bdq.is-split .bdq-opt { padding: 6px 14px 8px 16px; border-radius: 18px; }
+.bdq.is-split .bdq-opt-main { flex-wrap: nowrap; min-height: 0; }
+.bdq.is-split .bdq-opt-main > * + * { margin-left: 12px; }
+.bdq.is-split .bdq-opts .bdq-opt-txt { flex: 1 1 0; font-size: calc(28px * var(--fs-scale, 1)); line-height: 1.25; }
+.bdq.is-split .bdq-key { font-size: 30px; }
+.bdq.is-split .bdq-mark { padding: 2px 12px; font-size: 22px; }
+.bdq.is-split .bdq-tally button { height: 56px; }
+.bdq.is-split .bdq-tally-step { width: 56px; }
+.bdq.is-split .bdq-tally button.is-plus { width: 64px; height: 64px; font-size: 40px; }
+.bdq.is-split .bdq-tally button.is-minus { width: 44px; height: 44px; font-size: 26px; }
+.bdq.is-split .bdq-tally-n { min-width: 112px; }
+.bdq.is-split .bdq-bar { height: 8px; margin-top: 4px; }
+.bdq.is-split .bdq-answer { font-size: calc(34px * var(--fs-scale, 1)); padding: 8px 18px; }
+.bdq.is-split .bdq-opts.is-ox .bdq-opt-txt { font-size: calc(30px * var(--fs-scale, 1)); }

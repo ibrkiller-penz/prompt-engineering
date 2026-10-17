@@ -19,6 +19,7 @@ import { Stage, type RailItem } from "./Stage.tsx";
 import { ConceptScene, ExampleScene, KIND_LABEL, LinesScene, OpenCtx, PrereqScene, QuestionScene, SceneBody, findQ, type Layout } from "./scenes.tsx";
 import { BoardQuestion } from "./Question.tsx";
 import { EndScene, useFinish } from "./End.tsx";
+import type { LogSource } from "./LessonLogCard.tsx";
 import { useBoardData } from "./data.ts";
 import "./board.css";
 
@@ -73,6 +74,14 @@ function problemLabel(scenes: readonly Scene[], pick: (sc: Scene) => boolean): s
 }
 
 const qidOf = (sc: Scene): string => ((sc.blocks.filter((b) => b.t === "q")[0] as { t: "q"; id: string } | undefined) || { id: "" }).id;
+
+/** 오늘 기록 카드 재료: 켜진 장면 가운데 s번째(포함)까지 한 것으로 쳐요(done 이 없으면 전부) */
+function logSource(lesson: Lesson, scenes: readonly Scene[], p: number, exit: readonly string[], hw: readonly string[], upTo?: number): LogSource {
+  const on = scenes.map((sc, i) => ({ sc, i })).filter((x) => x.sc.on);
+  const boardIds = on.filter((x) => x.sc.kind === "problem").map((x) => qidOf(x.sc)).filter((id) => !!id);
+  const done = upTo === undefined ? on.length : on.filter((x) => x.i <= upTo).length;
+  return { lesson, p, exit, hw, boardIds, scenesDone: done, scenesTotal: on.length };
+}
 
 /** 머리의 '꺼진 장면 N': 누르면 어떤 장면이 꺼져 있는지 목록으로 펼쳐요 */
 function OffList({ scenes }: { scenes: readonly Scene[] }) {
@@ -147,7 +156,8 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
 
   const onLayout = useCallback((l: Layout) => setLayout(l), []);
   const lastPeriod = props.p === 0 || props.p >= props.n;
-  const finish = useFinish(lid, lastPeriod);
+  const logSrc = useMemo(() => logSource(lesson, scenes, p, exit, hw, s), [lesson, scenes, p, exit, hw, s]);
+  const finish = useFinish(lid, lastPeriod, logSrc);
 
   if (!scene) return <Missing what="장면" />;
 
@@ -261,7 +271,7 @@ function Runner(props: { lid: string; lesson: Lesson; scenes: Scene[]; p: number
                 <p className="muted">문제를 찾지 못했어요.</p>
               );
             case "qr":
-              return <EndScene lesson={lesson} exit={exit} hw={hw} periodLabel={periodLabel(lid, lesson, props.p, props.n)} />;
+              return <EndScene lesson={lesson} exit={exit} hw={hw} periodLabel={periodLabel(lid, lesson, props.p, props.n)} log={logSrc} />;
           }
         }}
       </SceneBody>
@@ -361,7 +371,8 @@ function BoardTool({ lid, wid, query }: { lid: string; wid: string; query: Recor
 function BoardEnd({ lid, query }: { lid: string; query: Record<string, string> }) {
   const d = useBoardData(lid, intParam(query.p, 1, 0, 20));
   const lastS = useMemo(() => (d.view ? lastOn(d.view.scenes) : 0), [d.view]);
-  const finish = useFinish(lid, !d.view || d.view.p === 0 || d.view.p >= d.view.periods.length);
+  const logSrc = useMemo(() => (d.lesson && d.view ? logSource(d.lesson, d.view.scenes, d.view.p, d.exit, d.hw) : null), [d.lesson, d.view, d.exit, d.hw]);
+  const finish = useFinish(lid, !d.view || d.view.p === 0 || d.view.p >= d.view.periods.length, logSrc);
   if (d.loading) return <Loading label="수업 끝 화면을 준비하고 있어요…" />;
   if (!d.lesson || !d.view) return <Missing what="레슨" />;
   const view = d.view;
@@ -384,7 +395,7 @@ function BoardEnd({ lid, query }: { lid: string; query: Record<string, string> }
     >
       <div className="bd-scene kind-qr">
         <div className="bd-scene-inner">
-          <EndScene lesson={d.lesson} exit={d.exit} hw={d.hw} periodLabel={periodLabel(lid, d.lesson, view.p, view.periods.length)} summary={summary} />
+          <EndScene lesson={d.lesson} exit={d.exit} hw={d.hw} periodLabel={periodLabel(lid, d.lesson, view.p, view.periods.length)} summary={summary} log={logSrc} />
         </div>
       </div>
     </Stage>

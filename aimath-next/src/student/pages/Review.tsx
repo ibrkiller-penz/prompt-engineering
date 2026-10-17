@@ -68,11 +68,6 @@ export default function ReviewPage({ query }: { query: Record<string, string> })
               showNew={false}
               label={"복습 " + (i + 1)}
               onDone={(ok) => setResults((r) => (id in r ? r : { ...r, [id]: ok }))}
-              after={
-                <button type="button" className="btn btn-primary" onClick={() => go(i + 1)}>
-                  다음
-                </button>
-              }
             />
           </div>
         ) : (

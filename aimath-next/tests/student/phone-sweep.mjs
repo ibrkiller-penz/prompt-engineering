@@ -353,6 +353,48 @@ async function wrongAnswerCheck(page, base) {
       if (t.indexOf(name) < 0) problems.push(lid + " 오답 직후: 단추 글자가 '" + name + "' 이 아니에요 → " + t);
     }
     await page.screenshot({ path: path.join(SHOTS, "sweep-" + lid + "-wrong.png") }).catch(() => {});
+    // 정답 처리 전: 카드 안에 '다음 문제' 단추가 없어야 해요(하단바 것만)
+    if (await page.$(".s-q-after")) problems.push(lid + " 오답 직후: 카드 안 '다음 문제'(.s-q-after)가 남아 있어요");
+    // '이 개념 다시 보기' 다녀와도 고른 답·적은 글이 남아야 해요
+    const cbtn = await page.$(".ui-q-concept");
+    if (cbtn) {
+      await cbtn.click().catch(() => {});
+      await settle(page);
+      await page.goBack().catch(() => {});
+      await settle(page);
+      const kept = await page.evaluate(() => {
+        if (document.querySelector(".opt.is-picked")) return true;
+        const i = document.querySelector("main input[type='text'], main input[inputmode]");
+        return !!(i && i.value);
+      });
+      if (!kept) problems.push(lid + " 개념 다녀온 뒤: 고른 답·적은 글이 사라졌어요");
+      if (await page.$(".ui-q.is-solved")) problems.push(lid + " 개념 다녀온 뒤: 돌아온 문제가 정답 처리돼 있어요");
+      await page.screenshot({ path: path.join(SHOTS, "sweep-" + lid + "-back.png") }).catch(() => {});
+    }
+  }
+}
+
+/* ─────────── 단원 1~5 삽화(머리가 잘리지 않게 위쪽 기준) ─────────── */
+async function unitArtCheck(page, base) {
+  for (let n = 1; n <= 5; n++) {
+    await page.goto(base + "/#/u/" + n, { waitUntil: "load" });
+    await settle(page);
+    await page.waitForSelector("img.s-unit-art", { timeout: 4000 }).catch(() => {});
+    await page.evaluate(() => (document.querySelector("img.s-unit-art") && !document.querySelector("img.s-unit-art").complete ? new Promise((r) => { const i = document.querySelector("img.s-unit-art"); i.onload = i.onerror = r; setTimeout(r, 3000); }) : 0));
+    await check(page, "단원 " + n);
+    const art = await page.evaluate(() => {
+      const im = document.querySelector("img.s-unit-art");
+      if (!im) return null;
+      const r = im.getBoundingClientRect();
+      return { pos: getComputedStyle(im).objectPosition, w: Math.round(r.width), h: Math.round(r.height), top: Math.round(r.top) };
+    });
+    // 단원 2~5 는 지금 콘텐츠에 삽화가 없어요(단원 1 만 있음). 없으면 화면만 찍고 넘어가요
+    if (!art) console.log("단원 " + n + ": 삽화 없음(콘텐츠에 이미지 없음) — 화면만 촬영");
+    else {
+      if (!/ 0%$|top/.test(art.pos) && art.pos.split(" ")[1] !== "0%") problems.push("단원 " + n + ": 삽화 object-position 이 위쪽 기준이 아니에요 → " + art.pos);
+      if (art.w > 376) problems.push("단원 " + n + ": 삽화가 375 폭 밖이에요");
+    }
+    await page.screenshot({ path: path.join(SHOTS, "sweep-unit" + n + ".png") }).catch(() => {});
   }
 }
 
@@ -380,6 +422,7 @@ async function main() {
         console.log(`${lid}: 카드 ${r.cards}장 · 문제 화면 ${r.qs}개`);
       }
       await wrongAnswerCheck(page, base);
+      await unitArtCheck(page, base);
       await ctx.close();
     }
     if (FLOW || ONLY_FLOW) await flow(browser, base);

@@ -29,3 +29,12 @@
   .t-res-acts { flex-direction: row; margin: var(--sp-2) 0 0; }
   .t-res-acts > * + * { margin: 0 0 0 var(--sp-2); }
 }
+
+/* 저장된 수업 기록 카드 목록 */
+.t-res-loglist { margin: var(--sp-3) 0 0; padding: 0; list-style: none; }
+.t-res-logrow { padding: var(--sp-3) 0; border-top: var(--border) solid var(--line); }
+.t-res-logrow:first-child { border-top: 0; }
+.t-res-logname { margin-bottom: var(--sp-2); }
+.t-res-logrow .t-res-acts { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; margin-left: 0; }
+.t-res-logrow .t-res-acts > * { margin: 0 var(--sp-2) var(--sp-1) 0; }
+.t-res-sure { font-weight: 800; }

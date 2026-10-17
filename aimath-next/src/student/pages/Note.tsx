@@ -14,9 +14,9 @@ import { stripNum } from "./Lesson.tsx";
 import { sectionOfQ, useQuestions } from "./useQuestions.ts";
 
 const TABS: { id: NoteState; name: string; desc: string }[] = [
-  { id: "todo", name: "아직", desc: "틀렸거나 풀이만 보고 아직 다시 맞히지 못한 문제예요." },
+  { id: "todo", name: "아직", desc: "틀렸거나 풀이만 보고 아직 다시 맞히지 못한\u00a0문제예요." },
   { id: "reviewing", name: "복습 중", desc: "다시 맞혔어요. 1일·3일·7일 뒤 오늘의 복습에서 또 만나요." },
-  { id: "graduated", name: "졸업", desc: "복습에서 세 번 연속 맞혀 졸업한 문제예요." },
+  { id: "graduated", name: "졸업", desc: "복습에서 세 번 연속 맞혀서 이제 익힌\u00a0문제예요." },
 ];
 
 export default function NotePage({ query }: { query: Record<string, string> }) {
@@ -53,11 +53,21 @@ export default function NotePage({ query }: { query: Record<string, string> }) {
           ))}
         </div>
         <p className="small muted s-note-tabdesc">{TABS.filter((t) => t.id === tab)[0].desc}</p>
-        <p className="tiny muted s-note-tabs-all">아직 = 다시 맞혀야 해요 · 복습 중 = 날짜에 맞춰 다시 풀어요 · 졸업 = 복습에서 세 번 연속 맞히면 돼요</p>
+        <ul className="small s-note-tabs-all">
+          <li>
+            <strong>아직</strong> = 다시 맞혀야 하는&nbsp;문제예요
+          </li>
+          <li>
+            <strong>복습 중</strong> = 날짜에 맞춰 다시 풀어요
+          </li>
+          <li>
+            <strong>졸업</strong> = 복습에서 세 번 연속 맞힌, 익힌 문제예요
+          </li>
+        </ul>
 
         {!items.length ? (
           <div className="empty">
-            <Icon name="note" size="xl" />
+            <Icon name={tab === "todo" ? "check" : "note"} size="xl" />
             <p>{tab === "todo" ? "'아직' 칸이 비어 있어요. 잘하고 있어요!" : tab === "reviewing" ? "복습 중인 문제가 없어요." : "아직 졸업한 문제가 없어요."}</p>
           </div>
         ) : loading && !Object.keys(map).length ? (

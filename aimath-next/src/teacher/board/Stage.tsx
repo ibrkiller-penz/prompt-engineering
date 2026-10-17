@@ -329,6 +329,8 @@ export function Stage(props: StageProps) {
               chalk={prefs.theme === "chalk"}
               onChalk={toggleChalk}
               exitHref={props.exitHref}
+              keyFirst={!!props.onFirst}
+              keyLast={!!props.onLast}
             />
             <div className="bd-bar-nav">
               <button type="button" className="btn bd-prev" onClick={props.onPrev} disabled={!props.canPrev}>

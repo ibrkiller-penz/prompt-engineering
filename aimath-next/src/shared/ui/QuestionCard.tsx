@@ -104,6 +104,12 @@ export interface QuestionCardProps {
   wrongNote?: WrongNote;
   /** 오답 박스 안, 설명 아래에 덧붙일 말(예: '지난번엔 맞혔는데…'). 오답일 때만 보여요 */
   wrongExtra?: ReactNode;
+  /** 다시 들어왔을 때 미리 표시할 고른 답(정답 처리는 하지 않고 '고른 것'만 보여요) */
+  initialPick?: number | boolean | null;
+  /** 다시 들어왔을 때 미리 채울 적은 글 */
+  initialText?: string;
+  /** 고른 답·적은 글이 바뀔 때마다 알려요(쓰는 쪽이 메모리에 보관) */
+  onDraft?: (d: { pick: number | boolean | null; text: string }) => void;
 }
 
 const LEVEL_WORD = ["", "쉬움", "쉬움", "보통", "어려움", "어려움"];
@@ -124,8 +130,19 @@ function Stars({ level }: { level: number }) {
 export function QuestionCard(props: QuestionCardProps) {
   const { q, onResult } = props;
   const sf = useUiSurface(props.surface);
-  const [pick, setPick] = useState<number | boolean | null>(null);
-  const [text, setText] = useState("");
+  const [pick, setPick] = useState<number | boolean | null>(props.initialPick === undefined ? null : props.initialPick);
+  const [text, setText] = useState(props.initialText || "");
+  const draft = (p: number | boolean | null, t: string) => {
+    if (props.onDraft) props.onDraft({ pick: p, text: t });
+  };
+  const changePick = (v: number | boolean) => {
+    setPick(v);
+    draft(v, text);
+  };
+  const changeText = (t: string) => {
+    setText(t);
+    draft(pick, t);
+  };
   const [fb, setFb] = useState<FeedbackKind | null>(null);
   const [solved, setSolved] = useState(false);
   const [level, setLevel] = useState<number>(props.initialLevel || 0);
@@ -244,7 +261,7 @@ export function QuestionCard(props: QuestionCardProps) {
               aria-pressed={picked}
               disabled={locked}
               onClick={() => {
-                setPick(i);
+                changePick(i);
                 if (fb === "bad" || fb === "invalid") setFb(null);
               }}
             >
@@ -282,7 +299,7 @@ export function QuestionCard(props: QuestionCardProps) {
               aria-pressed={picked}
               disabled={locked}
               onClick={() => {
-                setPick(v);
+                changePick(v);
                 if (fb === "bad" || fb === "invalid") setFb(null);
               }}
             >
@@ -316,7 +333,7 @@ export function QuestionCard(props: QuestionCardProps) {
             value={text}
             readOnly={locked}
             onChange={(e) => {
-              setText(e.target.value);
+              changeText(e.target.value);
               if (fb === "invalid" || fb === "bad") setFb(null);
             }}
             onKeyDown={(e) => {
@@ -332,7 +349,7 @@ export function QuestionCard(props: QuestionCardProps) {
             </span>
           ) : null}
         </div>
-        {!locked ? <NumberPad surface={sf} keys={padKeysForQuestion(q)} onKey={(k) => setText((t) => t + k)} onBack={() => setText((t) => t.slice(0, -1))} /> : null}
+        {!locked ? <NumberPad surface={sf} keys={padKeysForQuestion(q)} onKey={(k) => changeText(text + k)} onBack={() => changeText(text.slice(0, -1))} /> : null}
         {solved || props.revealAnswer ? (
           <p className="ui-q-answer">
             정답: <strong><Rich text={answerText(q)} /></strong>
@@ -349,7 +366,7 @@ export function QuestionCard(props: QuestionCardProps) {
             <label className="ui-sr" htmlFor={"ui-q-open-" + q.id}>
               내 답
             </label>
-            <textarea id={"ui-q-open-" + q.id} className="input ui-q-textarea" rows={4} placeholder="생각을 문장으로 적어 봐요. 적은 글은 저장하지 않아요." value={text} onChange={(e) => setText(e.target.value)} />
+            <textarea id={"ui-q-open-" + q.id} className="input ui-q-textarea" rows={4} placeholder="생각을 문장으로 적어 봐요. 적은 글은 저장하지 않아요." value={text} onChange={(e) => changeText(e.target.value)} />
           </>
         ) : null}
         {!selfOpen && !props.revealAnswer ? (
@@ -489,7 +506,7 @@ export function QuestionCard(props: QuestionCardProps) {
             </button>
           ) : null}
           {props.onConcept ? (
-            <button type="button" className="btn btn-ghost ui-q-concept" onClick={() => props.onConcept && props.onConcept(props.conceptNo || 0)}>
+            <button type="button" className="btn btn-soft ui-q-concept" onClick={() => props.onConcept && props.onConcept(props.conceptNo || 0)}>
               이 개념 다시 보기
             </button>
           ) : null}
@@ -511,7 +528,7 @@ export function QuestionCard(props: QuestionCardProps) {
             </button>
           ) : null}
           {props.onConcept ? (
-            <button type="button" className="btn btn-ghost ui-q-concept" onClick={() => props.onConcept && props.onConcept(props.conceptNo || 0)}>
+            <button type="button" className="btn btn-soft ui-q-concept" onClick={() => props.onConcept && props.onConcept(props.conceptNo || 0)}>
               이 개념 다시 보기
             </button>
           ) : null}

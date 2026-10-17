@@ -122,11 +122,6 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
           <QRun
             q={cur}
             label={i + 1 + " / " + list.length}
-            after={
-              <button type="button" className="btn btn-primary" onClick={() => go(i + 1)}>
-                {i < list.length - 1 ? "다음 문제" : "결과 보기"}
-              </button>
-            }
           />
         </div>
       ) : (

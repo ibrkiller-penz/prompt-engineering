@@ -12,10 +12,11 @@ import { lessonPeriods, periodQuestion, recapLines, summaryForPeriod, summarySec
 import { questionSections, sectionCheckIds } from "../../src/teacher/logic/pick.logic.ts";
 import { BODY_H } from "../../src/teacher/logic/measure.logic.ts";
 import { firstOn, lastOn, railInfo, snapOn } from "../../src/teacher/board/board.logic.ts";
+import { cutInfo } from "../../src/teacher/today/cuts.ts";
 import { barSegments } from "../../src/teacher/today/timebar.ts";
 import { loadLessons } from "../shared/_content.ts";
 import { klassNowText, markOf, startLabel, statusLine } from "../../src/teacher/progress/progress.logic.ts";
-import { nextPeriodHeads, storyAdd, storyAddText } from "../../src/teacher/prep/prep.logic.ts";
+import { nextPeriodHeads, storyAdd, storyAddText, timeVerdict } from "../../src/teacher/prep/prep.logic.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PLAN = JSON.parse(readFileSync(join(ROOT, "data", "plan.json"), "utf8")) as Plan;
@@ -338,10 +339,10 @@ test("이야기 장면을 모두 켜면: 늘어나는 분 · 수업 시간 넘�
   assert.equal(a.add, 3.5);
   assert.equal(a.after, 43.5);
   assert.equal(a.over, 0);
-  assert.ok(storyAddText(a, 45).indexOf("안에 들어가요") > 0);
+  assert.ok(storyAddText(a).indexOf("안에 들어가요") > 0);
   const b = storyAdd(sc, 44, 45);
   assert.ok(b && b.over === 2.5);
-  assert.ok(storyAddText(b, 45).indexOf("2.5분 넘어요") > 0);
+  assert.ok(storyAddText(b).indexOf("대략 3분 길어요") > 0);
   assert.equal(storyAdd([{ kind: "story", on: true, estMin: 1 }], 10, 45), null);
   const secs = [{ heading: "가" }, { heading: "나" }, { heading: "" }];
   const pers = [{ p: 1, sections: [0] }, { p: 2, sections: [1, 2] }];
@@ -357,4 +358,30 @@ test("모든 레슨·차시에서 이야기 켜기 안내가 계산돼요(꺼진
     assert.equal(!!a, offStory.length > 0, L.id);
     if (a) assert.ok(a.add > 0 && a.after > c.total, L.id);
   }
+});
+
+test("log 키 등록 + 모든 레슨에서 한 줄 판단이 이야기 안내와 모순되지 않아요", async () => {
+  const { TEACHER_KEYS } = await import("../../src/shared/storage/keys.ts");
+  const { timeVerdict } = await import("../../src/teacher/today/timebar.ts");
+  assert.ok(TEACHER_KEYS.log);
+  for (const L of lessons) {
+    const c = compute(L, 45, 1);
+    const a = storyAdd(c.scenes, c.total, 45);
+    const v = timeVerdict(c.total, 45, a);
+    assert.ok(!(/맞아요/.test(v.text) && a && a.over > 0), L.id + " " + v.text);
+  }
+});
+
+test("줄이기 안내: 넘침이 0.5분 이하면 없고 0.8분(반올림하면 1분)이면 있어요(시간 판단과 같은 기준)", () => {
+  const sc = { id: "s1", kind: "concept", on: true, required: false, estMin: 5, blocks: [] } as unknown as BuiltScene;
+  const mk = (total: number) =>
+    ({ total, scenes: [sc], flow: { suggest: { dropped: ["s1"], total: total - 5, over: 0 }, scenes: [] } }) as never;
+  const a = cutInfo(mk(45.5), 45, null);
+  assert.equal(a.over, 0);
+  assert.equal(a.scenes.length, 0);
+  const b = cutInfo(mk(45.8), 45, null);
+  assert.ok(b.over > 0);
+  assert.equal(b.scenes.length, 1);
+  assert.equal(timeVerdict(45.5, 45, null).state === "over", a.over > 0);
+  assert.equal(timeVerdict(45.8, 45, null).state === "over", b.over > 0);
 });

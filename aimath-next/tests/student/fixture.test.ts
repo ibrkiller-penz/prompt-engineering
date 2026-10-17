@@ -89,7 +89,7 @@ test("결과 카드 문구: 'N문제 중 M문제 맞혔어요', 늘었을 때만
 test("'지난번' 표시: 처음 푸는 문제는 없음 · 제출 전 맞힘 · 제출 뒤 틀리면 '이번엔 달랐어요'", () => {
   assert.equal(prevNote(undefined, false, null), null);
   assert.equal(prevNote({ ok: true, wrong: 0 }, true, null)?.text, "지난번에 맞혔어요");
-  assert.equal(prevNote({ ok: true, wrong: 0 }, true, { correct: false })?.text, "지난번엔 맞혔는데 이번엔 달랐어요");
+  assert.equal(prevNote({ ok: true, wrong: 0 }, true, { correct: false })?.text, "이번에는 다른 답이었어요. 조건을 다시 볼까요?");
   assert.equal(prevNote({ ok: true, wrong: 0 }, true, { correct: true }), null);
   assert.match(prevNote({ ok: false, wrong: 2 }, true, null)?.text || "", /다시 본 횟수 2/);
 });

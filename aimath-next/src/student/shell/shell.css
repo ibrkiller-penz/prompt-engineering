@@ -180,8 +180,6 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 76px; --s-rail-h: 10px
 .s-me-unit > summary > * + * { margin-left: var(--sp-3); }
 .s-me-unit[open] > summary { margin-bottom: var(--sp-2); }
 .s-me-links .list-row { padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); }
-.s-teacher-link { margin-top: var(--sp-6); padding-top: var(--sp-4); border-top: 1px solid var(--line); }
-.s-teacher-link > * + * { margin-top: var(--sp-2); }
 .s-plain-list { margin: 0; padding-left: 1.2em; }
 .s-plain-list > li + li { margin-top: var(--sp-1); }
 

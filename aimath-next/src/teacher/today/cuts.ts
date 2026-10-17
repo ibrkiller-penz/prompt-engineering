@@ -2,8 +2,9 @@
 // 기본은 모든 장면을 켜 두고(자동으로 끄지 않아요), 교사가 '줄이기'를 누르면 제안된 장면만 꺼요.
 import type { Scene } from "../../shared/contracts.ts";
 import { sceneRoot, suggestCuts, type BuiltScene } from "../logic/index.ts";
-import { toggleScene, type FlowState } from "../store/index.ts";
+import { toggleScene, type FlowState } from "../store/logic.ts";
 import type { LessonPlanView } from "../shell/plan.ts";
+import { overMin } from "./timebar.ts";
 
 export const KIND_NAME: Record<Scene["kind"], string> = {
   question: "핵심 질문",
@@ -21,7 +22,7 @@ export const KIND_NAME: Record<Scene["kind"], string> = {
 const r05 = (x: number) => Math.round(x * 2) / 2;
 
 export interface CutInfo {
-  /** 넘친 분(0.5분 단위, 넘치지 않으면 0) */
+  /** 넘친 분(overMin 기준: 0.5분 이하는 0) */
   over: number;
   /** '줄이기'를 누르면 끌 장면(뿌리 id 하나에 한 장면) */
   scenes: BuiltScene[];
@@ -35,8 +36,8 @@ export interface CutInfo {
 
 /** 넘침과 줄이기 제안. 교사가 직접 켠 장면은 제안에서 빼요 */
 export function cutInfo(view: LessonPlanView, minutes: number, flowSt: FlowState | null | undefined): CutInfo {
-  const over = r05(Math.max(0, view.total - minutes));
-  if (over < 0.5) return { over: 0, scenes: [], after: view.total, left: 0, toHw: 0 };
+  const over = overMin(view.total, minutes);
+  if (over === 0) return { over: 0, scenes: [], after: view.total, left: 0, toHw: 0 };
   const sug = flowSt ? suggestCuts(view.scenes, minutes) : view.flow.suggest;
   const pinned = flowSt ? flowSt.on.map(sceneRoot) : [];
   const roots: string[] = [];

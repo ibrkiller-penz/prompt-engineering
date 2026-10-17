@@ -120,6 +120,24 @@ export function splitResultKey(k: string): { lid: string; qid: string } | null {
   return { lid: k.slice(0, i), qid: k.slice(i + 1) };
 }
 
+/** 수업 기록 카드 저장 키: "반|lid:p" */
+export const logKey = (klass: string, lid: string, p: number) => klass + "|" + lid + ":" + p;
+
+/** 기록 카드를 최대 몇 개까지 둘지 */
+export const LOG_MAX = 60;
+
+/** 카드 저장: 같은 반·레슨·차시는 덮어쓰고, 60개를 넘으면 오래된 것부터 버려요(새 맵을 돌려줘요) */
+export function putLog<T extends { klass: string; lid: string; p: number; ts: number }>(map: Readonly<Record<string, T>>, card: T, max: number = LOG_MAX): Record<string, T> {
+  const out: Record<string, T> = { ...map };
+  out[logKey(card.klass, card.lid, card.p)] = card;
+  const keys = Object.keys(out);
+  if (keys.length > max) {
+    keys.sort((a, b) => out[a].ts - out[b].ts);
+    for (let i = 0; i < keys.length - max; i++) delete out[keys[i]];
+  }
+  return out;
+}
+
 /** 손든 수 한 칸 바꾸기(0~99). n 은 보기 수 */
 export function bump(counts: readonly number[] | null | undefined, i: number, d: number, n: number): number[] {
   const out: number[] = [];
