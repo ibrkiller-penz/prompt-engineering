@@ -65,7 +65,7 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
   const overview = "/l/" + lid;
   if (!data) {
     return (
-      <Screen title={SET_NAME[set]} eyebrow={meta.code} noTabs backTo={overview}>
+      <Screen title={SET_NAME[set]} code={meta.code} noTabs backTo={overview}>
         <div className="page">
           <Loading error={error} />
         </div>
@@ -81,7 +81,7 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
 
   if (!list.length) {
     return (
-      <Screen title={SET_NAME[set]} eyebrow={meta.code} noTabs backTo={overview}>
+      <Screen title={SET_NAME[set]} code={meta.code} noTabs backTo={overview}>
         <div className="page empty">
           <p>{set === "hw" || set === "ex" ? "선생님이 고른 문제가 아직 없어요. 수업 끝에 선생님이 보여 주는 QR로 들어오면 여기에 생겨요." : "풀 문제가 없어요."}</p>
           <a className="btn btn-primary" href={href(STUDENT_ROUTES.quiz, { lid })}>
@@ -104,7 +104,7 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
     <CardDeck
       cardKey={set + i}
       title={SET_NAME[set]}
-      eyebrow={meta.code + " " + meta.title}
+      code={meta.code}
       backTo={overview}
       rail={dots}
       pos={cur ? i + 1 + " / " + list.length + "문제" : "결과"}

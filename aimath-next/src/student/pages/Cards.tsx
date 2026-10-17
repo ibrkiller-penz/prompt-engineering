@@ -74,7 +74,7 @@ export default function CardsPage({ lid, step, card }: { lid: string; step: stri
   const overview = "/l/" + lid;
   if (!data || !steps || !pos) {
     return (
-      <Screen title={meta.title} eyebrow={meta.code} noTabs backTo={overview}>
+      <Screen title="레슨" code={meta.code} noTabs backTo={overview}>
         <div className="page">
           <Loading error={error} />
         </div>
@@ -101,8 +101,8 @@ export default function CardsPage({ lid, step, card }: { lid: string; step: stri
   return (
     <CardDeck
       cardKey={st.id + "/" + pos.c}
-      title={<span title={headTitle}>{headTitle}</span>}
-      eyebrow={meta.code + " " + meta.title}
+      title={<span title={headTitle}>{st.label}</span>}
+      code={meta.code}
       backTo={overview}
       rail={rail}
       pos={
@@ -233,12 +233,13 @@ function ThinkCard({ lid, question, n, total }: { lid: string; question: string;
   };
   return (
     <article className="stack">
-      <p className="eyebrow">
-        오늘의 핵심 질문{total ? " · 이야기 " + n + "/" + total : ""}
-      </p>
-      <h2 className="h2 s-core-q">
-        <Rich text={question} />
-      </h2>
+      <p className="eyebrow">{total ? "이야기 " + n + "/" + total : "이야기"}</p>
+      <div className="why-card s-why">
+        <span className="why-label">오늘의 핵심 질문</span>
+        <h2 className="s-core-q">
+          <Rich text={question} />
+        </h2>
+      </div>
       <div className="field">
         <label htmlFor="s-think">내 생각 한 줄</label>
         <input
@@ -377,8 +378,11 @@ function ReflectCard({ lesson, lid }: { lesson: Lesson; lid: string }) {
     <article className="stack">
       <p className="eyebrow">돌아보기</p>
       <h2 className="h2">핵심 질문에 답할 수 있나요?</h2>
-      <div className="card card-hero">
-        <Rich text={lesson.question} />
+      <div className="why-card s-why">
+        <span className="why-label">오늘의 핵심 질문</span>
+        <p className="s-core-q">
+          <Rich text={lesson.question} />
+        </p>
       </div>
       {mine ? (
         <p className="small">

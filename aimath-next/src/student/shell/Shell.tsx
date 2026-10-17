@@ -1,29 +1,31 @@
-// 학생 화면 틀 부품: 사이트 띠(파랑) · 위 띠(TopBar 52) · 아래 탭 5개 · 아래 행동 띠(ActionBar 76) · 진행 레일.
+// 학생 화면 틀 부품: 위 얇은 브랜드 바(TopBar 48: 삼색 표식 + 이름 + 번호 칩 위치) · 아래 번호 탭 5개 · 아래 행동 띠(ActionBar) · 진행 레일 · 쪽 머리(PageHead).
 // 간격은 flex gap 대신 형제 margin(Chrome 80). 모양은 공용 components.css + ./shell.css.
 import { useEffect, type ReactNode } from "react";
 import { STUDENT_ROUTES } from "../../shared/contracts.ts";
 import { back as goBack, href, navigate } from "../../shared/router/index.ts";
-import { Icon, type IconName } from "../../shared/icons/index.ts";
-
-/** 맨 위 파란 띠(학생 사이트 표시) */
-export function SiteBand() {
-  return <div className="site-band s-band" aria-hidden="true" />;
-}
+import { Icon } from "../../shared/icons/index.ts";
 
 export interface TopBarProps {
+  /** 오른쪽 위치 글(예: "개념 1"). 브랜드와 같으면 숨겨요 */
   title: ReactNode;
   /** 뒤로 가기 대신 갈 곳(사이트 밖에서 바로 들어온 경우) */
   backTo?: string;
   /** 뒤로 단추 없이(홈 등) */
   noBack?: boolean;
-  /** 위쪽 작은 이름(예: "Ⅰ-3") */
+  /** 위치 번호 칩(예: "Ⅰ-3"). 없으면 eyebrow 가 칩 대신 쓰여요 */
+  code?: ReactNode;
+  /** 예전 이름(code 와 같은 자리) */
   eyebrow?: ReactNode;
   right?: ReactNode;
   /** 뒤로 단추가 기록을 거슬러 가지 않고 backTo 로 바로 가요(카드 넘기기처럼 주소를 바꿔 쓰는 화면) */
   hardBack?: boolean;
 }
 
-export function TopBar({ title, backTo, noBack, eyebrow, right, hardBack }: TopBarProps) {
+const BRAND = "인공지능 수학";
+
+export function TopBar({ title, backTo, noBack, code, eyebrow, right, hardBack }: TopBarProps) {
+  const chip = code || eyebrow;
+  const showTitle = !!title && title !== BRAND;
   return (
     <header className="topbar s-topbar">
       {noBack ? null : (
@@ -31,10 +33,18 @@ export function TopBar({ title, backTo, noBack, eyebrow, right, hardBack }: TopB
           <Icon name="prev" />
         </button>
       )}
-      <div className="title s-title">
-        {eyebrow ? <span className="s-title-eyebrow">{eyebrow}</span> : null}
-        <span className="s-title-main">{title}</span>
-      </div>
+      <a className="s-brand" href="#/" aria-label="인공지능 수학 홈">
+        <span className="tri is-flag" aria-hidden="true" />
+        <span className="s-brand-name">{BRAND}</span>
+      </a>
+      {showTitle || chip ? (
+        <div className="s-loc">
+          {chip ? <span className="num-chip is-on s-loc-chip">{chip}</span> : null}
+          {showTitle ? <span className="s-loc-t">{title}</span> : null}
+        </div>
+      ) : (
+        <span className="s-loc-fill" />
+      )}
       {right || null}
     </header>
   );
@@ -42,21 +52,23 @@ export function TopBar({ title, backTo, noBack, eyebrow, right, hardBack }: TopB
 
 export type TabId = "home" | "unit" | "note" | "dict" | "me";
 
-const TABS: { id: TabId; label: string; icon: IconName; to: string }[] = [
-  { id: "home", label: "홈", icon: "home", to: href(STUDENT_ROUTES.home) },
-  { id: "unit", label: "단원", icon: "book", to: href(STUDENT_ROUTES.unit, { n: 1 }) },
-  { id: "note", label: "오답노트", icon: "note", to: href(STUDENT_ROUTES.note) },
-  { id: "dict", label: "사전", icon: "dict", to: href(STUDENT_ROUTES.dict) },
-  { id: "me", label: "내 기록", icon: "progress", to: href(STUDENT_ROUTES.me) },
+const TABS: { id: TabId; label: string; to: string }[] = [
+  { id: "home", label: "홈", to: href(STUDENT_ROUTES.home) },
+  { id: "unit", label: "단원", to: href(STUDENT_ROUTES.unit, { n: 1 }) },
+  { id: "note", label: "오답노트", to: href(STUDENT_ROUTES.note) },
+  { id: "dict", label: "사전", to: href(STUDENT_ROUTES.dict) },
+  { id: "me", label: "내 기록", to: href(STUDENT_ROUTES.me) },
 ];
 
-/** 아래 탭 5개(레슨 밖에서만) */
+/** 아래 번호 탭 5개(레슨 밖에서만) */
 export function TabBar({ current, unitHref }: { current: TabId | null; unitHref?: string }) {
   return (
     <nav className="tabbar s-tabbar" aria-label="주 메뉴">
-      {TABS.map((t) => (
+      {TABS.map((t, i) => (
         <a key={t.id} href={t.id === "unit" && unitHref ? unitHref : t.to} aria-current={current === t.id ? "page" : undefined}>
-          <Icon name={t.icon} />
+          <span className="num-chip s-tab-n" aria-hidden="true">
+            {i + 1}
+          </span>
           <span>{t.label}</span>
         </a>
       ))}
@@ -100,6 +112,23 @@ export function ProgressRail({ steps, at, card }: { steps: RailStep[]; at: numbe
         );
       })}
     </div>
+  );
+}
+
+/** 쪽 머리: 적색 작은 이름 + 큰 제목(h1) + 삼색 짧은 막대 + 설명 */
+export function PageHead({ eyebrow, title, sub, chip }: { eyebrow?: ReactNode; title: ReactNode; sub?: ReactNode; chip?: ReactNode }) {
+  return (
+    <header className="s-head">
+      {eyebrow || chip ? (
+        <p className="s-head-eyebrow">
+          {chip ? <span className="num-chip is-on">{chip}</span> : null}
+          {eyebrow ? <span>{eyebrow}</span> : null}
+        </p>
+      ) : null}
+      <h1 className="s-head-title">{title}</h1>
+      <span className="tri s-head-tri" aria-hidden="true" />
+      {sub ? <p className="s-head-sub">{sub}</p> : null}
+    </header>
   );
 }
 
@@ -147,6 +176,8 @@ export function NotFoundBody() {
 
 export interface ScreenProps {
   title: ReactNode;
+  /** 위 바 위치 칩(예: "Ⅰ-3") */
+  code?: ReactNode;
   eyebrow?: ReactNode;
   /** 아래 탭에서 켤 칸. null 이면 탭은 보이되 아무것도 켜지 않아요 */
   tab?: TabId | null;
@@ -162,13 +193,12 @@ export interface ScreenProps {
   children: ReactNode;
 }
 
-/** 일반 화면 틀: 사이트 띠 + 위 띠 + 본문 + (아래 탭 또는 행동 띠) */
+/** 일반 화면 틀: 위 브랜드 바 + 본문 + (아래 번호 탭 또는 행동 띠) */
 export function Screen(props: ScreenProps) {
   const tabs = !props.noTabs && !props.action;
   return (
     <div className={"s-screen" + (props.className ? " " + props.className : "")}>
-      <SiteBand />
-      <TopBar title={props.title} eyebrow={props.eyebrow} noBack={props.noBack} backTo={props.backTo} right={props.right} />
+      <TopBar title={props.title} code={props.code} eyebrow={props.eyebrow} noBack={props.noBack} backTo={props.backTo} right={props.right} />
       <main id="main" className={"s-main" + (tabs ? " has-tabbar" : props.action ? " has-actionbar" : "")}>
         {props.children}
       </main>

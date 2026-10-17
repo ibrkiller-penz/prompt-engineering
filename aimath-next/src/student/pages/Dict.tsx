@@ -6,7 +6,7 @@ import { INDEX, useTerms } from "../../content/index.ts";
 import { Icon } from "../../shared/icons/index.ts";
 import { Rich, SpeakButton } from "../../shared/ui/index.ts";
 import { chosungFilter } from "../../shared/logic/chosung.ts";
-import { Loading, Screen, useDocTitle } from "../shell/Shell.tsx";
+import { Loading, PageHead, Screen, useDocTitle } from "../shell/Shell.tsx";
 
 const MAX = 120;
 
@@ -22,7 +22,8 @@ export default function DictPage({ query }: { query: Record<string, string> }) {
 
   return (
     <Screen title="사전" noBack tab="dict">
-      <div className="page stack">
+      <div className="page s-dictpage">
+        <PageHead eyebrow="낱말 찾기" title="사전" sub="수업에 나온 용어를 모아 놓았어요." />
         <div className="field s-search">
           <label htmlFor="s-dict-q">용어 찾기</label>
           <div className="row nowrap">
@@ -38,7 +39,7 @@ export default function DictPage({ query }: { query: Record<string, string> }) {
               onChange={(e) => setText(e.target.value)}
             />
           </div>
-          <p className="tiny muted">초성만 쳐도 찾아요. 뜻 안의 낱말로도 찾을 수 있어요.</p>
+          <p className="s-hint">초성만 쳐도 찾아요. 뜻 안의 낱말로도 찾을 수 있어요.</p>
         </div>
 
         <div className="row wrap s-unit-filter" role="group" aria-label="단원 거르기">
@@ -56,17 +57,17 @@ export default function DictPage({ query }: { query: Record<string, string> }) {
           <Loading error={error} />
         ) : (
           <>
-            <p className="small muted" role="status">
+            <p className="s-count-line" role="status">
               {text.trim() ? "'" + text.trim() + "' 찾은 용어 " + found.length + "개" : "용어 " + found.length + "개"}
               {found.length > MAX ? " · 앞의 " + MAX + "개만 보여요. 더 좁혀 찾아 봐요." : ""}
             </p>
             {shown.length ? (
-              <dl className="s-dict stack tight">
+              <dl className="s-dict">
                 {shown.map((t, i) => {
                   const m = INDEX.lessons[t.lid];
                   return (
                     <div key={t.term + i} className="card s-dict-item">
-                      <dt className="h3">
+                      <dt className="s-dict-term">
                         <Rich text={t.term} />
                       </dt>
                       <dd className="s-dict-def">

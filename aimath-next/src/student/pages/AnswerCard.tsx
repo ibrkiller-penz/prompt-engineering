@@ -1,7 +1,7 @@
 // 응답 카드(#/card): 수업 중 선생님이 "몇 번이라고 생각해요?" 하고 물으면, 고른 답을 화면 가득 크게 띄워 들어 보여요.
 // 아무것도 저장하지 않고 보내지도 않아요(선생님은 칠판에서 손든 수만 세요).
 import { useState } from "react";
-import { Screen, useDocTitle } from "../shell/Shell.tsx";
+import { PageHead, Screen, useDocTitle } from "../shell/Shell.tsx";
 
 const CHOICES: { v: string; label: string; cls: string }[] = [
   { v: "①", label: "1번", cls: "c1" },
@@ -33,7 +33,8 @@ export default function AnswerCardPage() {
   }
   return (
     <Screen title="응답 카드" tab={null} backTo="/">
-      <div className="page stack">
+      <div className="page s-cardpage">
+        <PageHead eyebrow="수업 중" title="응답 카드" />
         <p>선생님이 물으면 내 답을 골라요. 화면 가득 크게 보이니 휴대폰을 들어 보여 줘요.</p>
         <p className="small muted">고른 답은 저장하지 않고 어디에도 보내지 않아요.</p>
         <div className="s-cardgrid" role="group" aria-label="내 답 고르기">

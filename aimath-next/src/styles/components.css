@@ -372,3 +372,28 @@ html[data-surface="board"] .qr-card { padding: var(--sp-5); }
 /* ── 단원 표지색 점(장식) ── */
 .unit-dot { display: inline-block; width: .8em; height: .8em; border-radius: 50%; background: var(--accent); vertical-align: middle; }
 .unit-bar { border-left: 6px solid var(--accent); padding-left: var(--sp-3); }
+
+/* ── 새 디자인 언어 부품(공용, 추가만): 삼색 막대 · 번호 칩 · '왜 중요한가' 줄 카드 ──
+ * 삼색(남·백·적)은 제목 아래 작은 장식과 브랜드 표식에만 써요. 색은 토큰만 써서 어두운 테마에서도 따라가요. */
+.tri {
+  display: block; width: 56px; height: 5px; border-radius: 3px; flex: 0 0 auto;
+  background: linear-gradient(90deg, var(--site-student) 0, var(--site-student) 33.4%, var(--surface) 33.4%, var(--surface) 66.6%, var(--bad) 66.6%, var(--bad) 100%);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.tri.is-flag { display: inline-block; width: 22px; height: 16px; border-radius: 3px; vertical-align: -3px; }
+.num-chip {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  min-width: 1.75em; height: 1.75em; padding: 0 .4em; border-radius: 7px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  font-size: var(--t-xs); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.num-chip.is-on, .is-on > .num-chip, [aria-current="page"] > .num-chip, [aria-selected="true"] > .num-chip {
+  background: var(--site); border-color: var(--site); color: var(--on-site);
+}
+.why-card {
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-left: 4px solid var(--bad); border-radius: var(--radius-m);
+  padding: var(--sp-3) var(--sp-4);
+}
+.why-card > .why-label { display: block; margin: 0 0 var(--sp-1); font-size: var(--t-sm); font-weight: 800; color: var(--bad); }
+.why-card > * + * { margin-top: var(--sp-1); }

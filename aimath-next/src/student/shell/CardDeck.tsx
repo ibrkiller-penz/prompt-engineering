@@ -5,13 +5,15 @@
 //  - 카드가 바뀌면 맨 위로 올리고 카드 제목에 초점을 옮겨요(화면 읽기 도구가 새 카드를 읽게).
 import { useEffect, useRef, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 import { Icon } from "../../shared/icons/index.ts";
-import { ActionBar, SiteBand, TopBar } from "./Shell.tsx";
+import { ActionBar, TopBar } from "./Shell.tsx";
 import { swipeDir } from "./swipe.logic.ts";
 
 export interface CardDeckProps {
   /** 카드가 바뀌었는지 알아보는 값(주소 등) */
   cardKey: string;
   title: ReactNode;
+  /** 위 바 번호 칩(예: "Ⅰ-3") */
+  code?: ReactNode;
   eyebrow?: ReactNode;
   backTo?: string;
   topRight?: ReactNode;
@@ -109,8 +111,7 @@ export function CardDeck(props: CardDeckProps) {
 
   return (
     <div className="s-deck-wrap">
-      <SiteBand />
-      <TopBar title={props.title} eyebrow={props.eyebrow} backTo={props.backTo} right={props.topRight} hardBack={!!props.backTo} />
+      <TopBar title={props.title} code={props.code} eyebrow={props.eyebrow} backTo={props.backTo} right={props.topRight} hardBack={!!props.backTo} />
       <main id="main" className="s-main has-actionbar">
         <div ref={box} className="s-deck" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => (start.current = null)}>
           <div key={props.cardKey} className="s-card-in">
