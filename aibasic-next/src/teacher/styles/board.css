@@ -426,3 +426,5 @@ html[data-surface="board"] .bdq-passage .ui-code .ui-code-pre { font-size: 24px;
 html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 22px; padding: 2px 16px; }
 /* 정답·풀이 칸이 열리면 제시문은 접어서(안에서 스크롤) 본문이 896px 을 넘지 않게 해요 */
 html[data-surface="board"] .bdq.has-pass.has-panel .bdq-passage .ui-qpassage { max-height: 170px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* 아주 긴 제시문(info() 출력 같은 코드 글)은 높이를 가둬요(안에서 스크롤) */
+html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height: 250px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
