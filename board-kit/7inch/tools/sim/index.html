@@ -255,7 +255,35 @@ function rebuild() {
 
   const VH = H - TOP;
   const view = box(scr, 0, TOP, W, VH, st.view === "set" ? P.C_BG : P.D_BG);
-  if (st.view === "week") buildWeek(view); else if (st.view === "set") buildSet(view); else buildFind(view);
+  if (st.view === "week") buildWeek(view); else if (st.view === "set") buildSet(view); else if (st.view === "pick") buildPick(view); else buildFind(view);
+
+  // ── '볼 시간표' 단추 판 (펌웨어 buildUI 의 s_pickView 와 같은 배치: 6×5, 쪽 넘기기) ──
+  function buildPick(v) {
+    v.style.background = hex(P.C_BG);
+    const HB = small ? 38 : 46;
+    place(label(v, fTitle, P.C_TEXT, "볼 시간표 고르기"), v, "TL", M + 4, M + (HB - 21) / 2);
+    const T = ["김가향","강언화","강은일","고수연","곽선근","김광진","김민수","김서연","김영호","김지훈","나윤정","남궁민","노현우","류지은","문성호","박미란","박상우","박지민","배수진","서동훈","손예진","송민규","신하늘","안재현","양지원","오세훈","유나래","윤성민","이도현","이수정"];
+    const tw = small ? 130 : 170;
+    [["선생님 58", 0], ["학급·특별실 30", 1]].forEach(([t, k], i) => {
+      const on = (st.pickKind || 0) === k;
+      const b = box(v, (small ? 230 : 300) + i * (tw + 8), M, tw, HB, on ? P.C_PRIMARY : P.C_ALT, on ? null : P.C_BORDER, st.soft ? 10 : 0, { cursor: "pointer" });
+      place(label(b, "kr16", on ? 0xffffff : P.C_MUTED, t), b, "MC"); b.onclick = () => { st.pickKind = k; rebuild(); };
+    });
+    const bc = box(v, W - M - (small ? 90 : 110), M, small ? 90 : 110, HB, P.C_ALT, P.C_BORDER, st.soft ? 10 : 0, { cursor: "pointer" });
+    place(label(bc, "kr16", P.C_MUTED, "닫기"), bc, "MC"); bc.onclick = () => { st.view = "set"; rebuild(); };
+    const GY = M + HB + M, FB = HB, GH = VH - GY - FB - 2 * M, GAP = small ? 6 : 8, BW = Math.floor((W - 2 * M - 5 * GAP) / 6), BH = Math.floor((GH - 4 * GAP) / 5);
+    const names = (st.pickKind || 0) ? Array.from({ length: 30 }, (_, i) => i < 24 ? `${Math.floor(i / 8) + 1}학년 ${i % 8 + 1}반` : ["선택1실(309)","선택2실(310)","선택3실(211)","선택4실(210)","멀티미디어실","과학실"][i - 24]) : T;
+    names.forEach((n, i) => {
+      const sel = n === "김가향" && !(st.pickKind || 0);
+      const b = box(v, M + (i % 6) * (BW + GAP), GY + Math.floor(i / 6) * (BH + GAP), BW, BH, sel ? P.C_PRIMARY : P.C_SURF, sel ? null : P.C_BORDER, st.soft ? 10 : 0, { cursor: "pointer" });
+      place(label(b, fCellA, sel ? 0xffffff : P.C_TEXT, n, { w: BW - 8, align: "center" }), b, "MC");
+      b.onclick = () => { st.view = "set"; rebuild(); };
+    });
+    const FY = VH - M - FB, pw = small ? 120 : 150;
+    const bp = box(v, W / 2 - pw - 70, FY, pw, FB, P.C_ALT, P.C_BORDER, st.soft ? 10 : 0); place(label(bp, "kr16", P.C_TEXT, "◀  이전"), bp, "MC");
+    const pg = label(v, fBody, P.C_MUTED, (st.pickKind || 0) ? "1 / 1" : "1 / 2", { w: 120, align: "center" }); pg.style.left = (W / 2 - 60) + "px"; pg.style.top = (FY + (FB - 17) / 2) + "px";
+    const bn = box(v, W / 2 + 70, FY, pw, FB, P.C_ALT, P.C_BORDER, st.soft ? 10 : 0); place(label(bn, "kr16", P.C_TEXT, "다음  ▶"), bn, "MC");
+  }
 
   // ── 주간 시간표 (buildUI · renderWeek) ──
   function buildWeek(v) {
@@ -306,7 +334,8 @@ function rebuild() {
     const scan = box(wbox, WBW - 10 - (small ? 90 : 110), 8, small ? 90 : 110, small ? 34 : 40, P.C_PRIMARY, null, st.soft ? 10 : 0); place(label(scan, "kr16", 0xffffff, "찾기"), scan, "MC");
     const obox = box(v, 2 * M + WBW, M, OBW, BOXH, P.C_SURF, P.C_BORDER, R(10));
     label(obox, fTitle, P.C_TEXT, "볼 시간표").style.cssText += "left:12px;top:10px";
-    const pick = box(obox, 12, small ? 40 : 50, OBW - 24, small ? 34 : 40, P.C_SURF, P.C_BORDER, st.soft ? 10 : 0); place(label(pick, fBody, P.C_TEXT, TT.name + " 선생님"), pick, "ML", 10);
+    const pick = box(obox, 12, small ? 40 : 50, OBW - 24, small ? 34 : 40, P.C_SURF, P.C_BORDER, st.soft ? 10 : 0, { cursor: "pointer" }); place(label(pick, "kr16", P.C_TEXT, TT.name + " 선생님  ▸"), pick, "MC");
+    pick.onclick = () => { st.view = "pick"; rebuild(); };
     const sync = box(obox, 12, small ? 88 : 104, OBW - 24, small ? 34 : 40, P.C_PRIMARY, null, st.soft ? 10 : 0); place(label(sync, "kr16", 0xffffff, "지금 받기"), sync, "MC");
     label(obox, FM, P.C_MUTED, "시간과 시간표를 받았습니다.").style.cssText += `left:12px;top:${small ? 132 : 156}px`;
     const SY = small ? 190 : 226, RH2 = small ? 30 : 34, LBW = small ? 66 : 80, BW2 = Math.floor((OBW - 24 - LBW - 12) / 3);
@@ -335,6 +364,7 @@ function rebuild() {
     if (ampm) { const a = label(left, "kr28", P.D_SUB, ampm); a.style.left = (bigc.offsetLeft - a.offsetWidth - 8) + "px"; a.style.top = (bigc.offsetTop + bigc.offsetHeight - a.offsetHeight - 14) + "px"; }
     const DATE_Y = CLK_Y + CLK_H + S(20);
     const bd = label(left, "kr28", P.D_SUB, "10월 17일 (금)", { w: LW, align: "center" }); bd.style.left = "0px"; bd.style.top = DATE_Y + "px";
+    if (big) place(label(left, FM, P.D_MUTED, "배터리 87%"), left, "TR", -S(14), S(10));
     // 다음 수업 띠: 수업 10분 전부터
     let soonP = -1; PERIOD_START.forEach((s, p) => { const d = toMin(s) - nm; if (soonP < 0 && d > 0 && d <= 10) soonP = p; });
     const noticeOn = soonP >= 0, NOTICE_H = S(40);
@@ -408,8 +438,8 @@ function rebuild() {
       const next = st.soft && !now && p >= 0 && p === nextP;
       if (now) { border = P.NOW_ROW; colA = P.C_TEXT; colB = P.C_MUTED; }
       if (next) border = P.NEXT_BD;
-      const row = box(right, ROW_X, ROW_Y0 + r * ROW_PITCH, ROW_W, ROW_H, now ? P.NOW_ROW : P.D_ROW, null, R(8), { boxShadow: `inset 0 0 0 ${next ? 2 : 1}px ${hex(border)}` });
-      const pb = box(row, S(6) - 1, Math.floor((ROW_H - (ROW_H - 8)) / 2), PW, ROW_H - 8, now ? P.NOW_TAG : P.D_LINE, null, R(6));
+      const row = box(right, ROW_X, ROW_Y0 + r * ROW_PITCH, ROW_W, ROW_H, now ? P.NOW_ROW : P.D_ROW, null, st.soft ? 10 : 0, { boxShadow: `inset 0 0 0 ${next ? 2 : 1}px ${hex(border)}` });
+      const pb = box(row, S(6) - 1, Math.floor((ROW_H - (ROW_H - 8)) / 2), PW, ROW_H - 8, now ? P.NOW_TAG : P.D_LINE, null, st.soft ? 10 : 0);
       const ptxt = p < 0 ? (now ? `점심\n${toMin("13:30") - nm}분 남음` : "점심") : (now ? `${p + 1}교시\n${toMin(PERIOD_START[p]) + 50 - nm}분 남음` : `${p + 1}교시\n${PERIOD_START[p]}`);
       place(label(pb, FM, now ? P.NOW_TX : P.D_SUB, ptxt, { align: "center" }), pb, "MC");
       const a = label(row, "kr16", colA, A); a.style.maxWidth = S(150) + "px"; a.classList.add("dot"); place(a, row, "ML", PW + S(18));
