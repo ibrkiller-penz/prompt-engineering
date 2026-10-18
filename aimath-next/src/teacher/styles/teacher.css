@@ -85,6 +85,8 @@ html[data-surface="prep"] .t-klass .chip[aria-pressed="true"] { border-color: va
 html[data-surface="prep"] .t-klass .chip[aria-pressed="false"] { background: var(--surface); color: var(--ink); }
 html[data-surface="prep"] .t-klass-plus { color: var(--ink-2); }
 html[data-surface="prep"] .t-cls-name { min-width: 4.6em; font-weight: 800; }
+/* 반 이름이 10자여도 글자가 칩 밖으로 나가지 않게: 칩이 줄어들지 않고, 너무 길면 글자가 칩 안에서 줄을 바꿔요 */
+html[data-surface="prep"] .t-cls-row > .t-cls-name { -webkit-box-flex: 0; -ms-flex: none; flex: none; max-width: 45%; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
 html[data-surface="prep"] .t-cls-row { min-height: var(--tap); }
 html[data-surface="prep"] .t-cls-row.is-now { background: var(--accent-soft); border-radius: var(--radius-s); padding-left: var(--sp-2); padding-right: var(--sp-2); }
 
