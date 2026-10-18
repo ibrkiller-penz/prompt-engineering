@@ -151,3 +151,19 @@ html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt { overflow: visible; -
 html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt > span { line-height: 1.1; }
 html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt small { max-width: 274px; overflow: visible; white-space: normal; text-overflow: clip; font-size: 17px; line-height: 1.02; }
 html[data-surface="board"] .bd-stage .bd-strip .bd-head-count { flex: 0 0 340px; width: 340px; text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ════════════════ 판서 켠 아래 도구띠: 글자 겹침·잘림 없이 한 줄에(1920 무대 기준, 1366 은 같은 무대를 줄여요) ════════════════
+ * 되돌리기·모두 지우기는 그림 단추로(이름은 aria-label·title 로 남아요)라서 펜 5종 + 단추 2개가 이전·다음 단추 앞에 다 들어와요.
+ * 왼쪽 도구는 줄어들지 않게 하고, 모자라는 폭은 펜 묶음만 줄여요. */
+html[data-surface="board"] .bd-stage .bd-bar-tools > .bd-tool, html[data-surface="board"] .bd-stage .bd-bar-tools > .bd-bar-sep { flex: 0 0 auto; }
+html[data-surface="board"] .bd-stage .bd-bar-tools > .bd-tool .bd-tool-txt { white-space: nowrap; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens { flex: 0 1 auto; min-width: 0; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen { flex: 0 0 auto; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen.is-act { min-width: 64px; width: 64px; padding: 0; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen.is-act::after { content: none; display: none; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen.is-act + .bd-pen.is-act { margin-left: 4px; }
+
+/* ════════════════ 장면 진행 점: 보이는 점은 그대로, 눌리는 자리만 투명 여백으로 넓혀요 ════════════════
+ * 점 사이 틈(3px)을 양옆 1.5px 씩 나눠 가져서 이웃 점과 겹치지 않고, 위로 14px 늘려요(32 → 46px).
+ * 아래는 이전·다음 단추와 붙어 있어서 늘리지 않아요. */
+html[data-surface="board"] .bd-stage .bd-rail button::after { content: ""; position: absolute; left: -1.5px; right: -1.5px; top: -14px; bottom: 0; background: transparent; }

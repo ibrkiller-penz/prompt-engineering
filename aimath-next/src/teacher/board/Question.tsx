@@ -69,7 +69,7 @@ function Tally({ n, label, onChange }: { n: number; label: string; onChange: (d:
 
 const CONFIRM_MS = 4000;
 /** 오른쪽 풀이 칸 너비 후보(왼쪽은 문제·보기) */
-const PANEL_W = ["38%", "46%", "54%", "62%"];
+const PANEL_W = ["38%", "46%", "54%", "62%", "70%"];
 
 /** 한 번 더 눌러야 지워지는 단추: 첫 번째 누름은 '한 번 더 누르면 지워요'로 바뀌고 약 4초 뒤 되돌아가요 */
 function ConfirmReset({ label, onConfirm, className }: { label: string; onConfirm: () => void; className?: string }) {
@@ -268,7 +268,8 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   const split = panelOpen;
   const nextIdx = r + 1 < stages.length ? r + 1 : -1;
 
-  // 정답·힌트·풀이가 열려 오른쪽 칸이 넘치면 그 칸을 38% → 46% → 54% → 62% 로 넓혀서 안쪽 스크롤 없이 한 화면에 넣어요
+  // 한 화면 맞춤: 안쪽 스크롤 없이 모두 보이도록 ① 보통 → ② 보기 줄 간격 줄이기(is-tight) → ③ 더 줄이기·보기 두 줄로(is-tight2) → ④ 글자 크게 단계에서만 문제·보기·카드 글자를 28px 바닥까지 줄이기(is-tight3), 정답·힌트·풀이 칸이 있으면
+  // 그 칸 너비를 38% → 46% → 54% → 62% → 70% 로 넓혀 가며 가장 먼저 다 들어가는 모양을 골라요(글자 크기는 그대로)
   const midRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const mid = midRef.current;
@@ -277,28 +278,39 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
     const fit = () => {
       if (dead) return;
       const panel = mid.querySelector(".bdq-panel") as HTMLElement | null;
-      if (!split || !panel) {
-        mid.style.removeProperty("--bdq-pw");
-        return;
-      }
-      const parts = [panel, mid.querySelector(".bdq-main"), mid.querySelector(".bdq-body"), mid.querySelector(".bdq-prompt")] as (HTMLElement | null)[];
+      mid.classList.remove("is-tight", "is-tight2", "is-tight3");
+      mid.style.removeProperty("--bdq-pw");
+      // 안쪽에서 따로 스크롤되는 긴 수식(.ui-tex)도 넘침으로 쳐서 칸을 넓혀요
+      const parts = [panel, mid.querySelector(".bdq-main"), mid.querySelector(".bdq-body"), mid.querySelector(".bdq-prompt")].concat(
+        Array.prototype.slice.call(mid.querySelectorAll(".ui-tex")),
+      ) as (HTMLElement | null)[];
       const over = () => {
         let n = 0;
         for (const el of parts) if (el) n += Math.max(0, el.scrollHeight - el.clientHeight - 1) + Math.max(0, el.scrollWidth - el.clientWidth - 1);
         return n;
       };
-      let best = PANEL_W[0];
+      const widths = split && panel ? PANEL_W : [""];
+      let best = { tight: 0, w: "" };
       let bestOver = Infinity;
-      for (const w of PANEL_W) {
-        mid.style.setProperty("--bdq-pw", w);
-        const o = over();
-        if (o < bestOver) {
-          bestOver = o;
-          best = w;
+      const setTight = (t: number) => {
+        mid.classList.toggle("is-tight", t >= 1);
+        mid.classList.toggle("is-tight2", t >= 2);
+        mid.classList.toggle("is-tight3", t >= 3);
+      };
+      for (const tight of [0, 1, 2, 3]) {
+        for (const w of widths) {
+          setTight(tight);
+          if (w) mid.style.setProperty("--bdq-pw", w);
+          const o = over();
+          if (o < bestOver) {
+            bestOver = o;
+            best = { tight, w };
+          }
+          if (o === 0) return;
         }
-        if (o === 0) break;
       }
-      mid.style.setProperty("--bdq-pw", best);
+      setTight(best.tight);
+      if (best.w) mid.style.setProperty("--bdq-pw", best.w);
     };
     fit();
     const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts;

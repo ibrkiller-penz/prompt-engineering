@@ -70,17 +70,21 @@ let steps = 0;
 const browser = await pw.chromium.launch({ executablePath: chromiumPath(), headless: true });
 try {
   const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, locale: "ko-KR", reducedMotion: "reduce" });
+  // 글자 단계(--fs=0..3)는 저장 설정으로 미리 넣어요
+  if (FS) await ctx.addInitScript((v) => { try { localStorage.setItem("aimn:t1:prefs", JSON.stringify({ fs: Number(v) })); } catch { /* 무시 */ } }, FS);
   const page = await ctx.newPage();
   for (const lid of order) {
     const periods = ((plan.lessons[lid] || {}).periods || [{ p: 1 }]).map((x) => x.p);
     for (const p of periods) {
-      await page.goto(base + `/${FS ? "?fs=" + FS : ""}#/board/${lid}?p=${p}&s=0`, { waitUntil: "load" });
+      await page.goto(base + `/#/board/${lid}?p=${p}&s=0`, { waitUntil: "load" });
       await page.waitForSelector(".bd-scene", { timeout: 10000 }).catch(() => {});
       await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
       await page.keyboard.press("Home").catch(() => {});
       const res = await page.evaluate(async () => {
         const raf = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
         const out = { bad: [], steps: 0, qscenes: 0 };
+        const fsNow = document.documentElement.getAttribute("data-fs");
+        out.fs = fsNow;
         const sel = (el) => el.tagName.toLowerCase() + (typeof el.className === "string" && el.className.trim() ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".") : "");
         const measure = (count) => {
           const q = document.querySelector(".bd-scene .bdq");
@@ -91,6 +95,7 @@ try {
             if (cs.display === "none" || cs.visibility === "hidden") continue;
             if (el.closest("svg") && el.tagName.toLowerCase() !== "svg") continue;
             if (el.closest(".sr-only, .katex-mathml, .bdq-groups")) continue; // 화면 읽기용 숨김 글·수식 읽기 글·닫힌 모둠 점수 팝업
+            if (el.closest(".katex") && !el.classList.contains("katex")) continue; // 수식 속 칸(보이지 않는 pstrut 등)은 수식 덩어리(.katex)로 재요
             if (/(auto|scroll|hidden)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1)
               out.bad.push({ count, why: "스크롤 영역 " + sel(el) + " scrollHeight " + el.scrollHeight + " > clientHeight " + el.clientHeight });
             if (/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 1) out.bad.push({ count, why: "가로 스크롤 영역 " + sel(el) });
@@ -99,7 +104,8 @@ try {
             if (r.top < -1 || r.bottom > 1080 + 1 || r.left < -1 || r.right > 1920 + 1)
               out.bad.push({ count, why: "무대 밖 " + sel(el) + " top " + Math.round(r.top) + " bottom " + Math.round(r.bottom) + " right " + Math.round(r.right) });
           }
-          for (const el of q.querySelectorAll(".bdq-card-txt")) {
+          // 글자 28px 이상(칠판 최소). 글자 '작게'(data-fs=0, 0.9배)는 사용자가 일부러 줄인 단계라 재지 않아요
+          for (const el of document.documentElement.getAttribute("data-fs") === "0" ? [] : q.querySelectorAll(".bdq-card-txt")) {
             const f = parseFloat(getComputedStyle(el).fontSize);
             if (f < 28 - 0.01) out.bad.push({ count, why: "카드 글자 " + f + "px < 28" });
           }
@@ -128,6 +134,7 @@ try {
         }
         return out;
       });
+      if (FS && res.fs !== String(FS)) throw new Error("글자 단계가 적용되지 않았어요: data-fs=" + res.fs);
       scenes += res.qscenes;
       steps += res.steps;
       const seen = {};

@@ -337,6 +337,8 @@ export interface BoardToolbarProps {
   onChalk: () => void;
   /** 나가기(준비 화면) 주소 */
   exitHref: string;
+  /** 지금 장면을 가리키는 값: 바뀌면 '더 보기' 묶음을 닫아요 */
+  sceneKey?: string;
   /** 키보드 Home·End 로 첫·마지막 장면에 갈 수 있는지(키보드 안내에 써요) */
   keyFirst?: boolean;
   keyLast?: boolean;
@@ -512,6 +514,11 @@ export function BoardToolbar(props: BoardToolbarProps) {
     if (props.ink) setMore(false);
   }, [props.ink]);
 
+  // 장면이 바뀌면(이전·다음·주소 이동·진행 점) '더 보기'도 닫아요
+  useEffect(() => {
+    setMore(false);
+  }, [props.sceneKey]);
+
   const moreDot = props.pop === "picker" || props.chalk || props.fullOn;
   const cancelAsk = useCallback(() => setAsk(false), []);
 
@@ -530,10 +537,10 @@ export function BoardToolbar(props: BoardToolbarProps) {
               </button>
             );
           })}
-          <button type="button" className="bd-pen" onClick={props.onUndo} disabled={!props.canUndo} aria-label="되돌리기" title="되돌리기">
+          <button type="button" className="bd-pen is-act" onClick={props.onUndo} disabled={!props.canUndo} aria-label="되돌리기" title="되돌리기">
             <TIcon name="undo" size="lg" />
           </button>
-          <button type="button" className="bd-pen" onClick={props.onClear} disabled={!props.canClear} aria-label="모두 지우기" title="모두 지우기">
+          <button type="button" className="bd-pen is-act" onClick={props.onClear} disabled={!props.canClear} aria-label="모두 지우기" title="모두 지우기">
             <TIcon name="trash" size="lg" />
           </button>
         </div>
