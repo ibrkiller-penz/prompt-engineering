@@ -107,7 +107,7 @@ export default function CardsPage({ lid, step, card }: { lid: string; step: stri
       rail={rail}
       pos={
         <span>
-          <strong>{st.label}</strong> {pos.c + 1}/{st.cards.length}
+          <strong>{st.kind === "prereq" ? "먼저 알기" : st.label}</strong> {pos.c + 1}/{st.cards.length}
           <span className="sr-only">
             , 전체 {fi.total}장 중 {fi.i + 1}번째
           </span>

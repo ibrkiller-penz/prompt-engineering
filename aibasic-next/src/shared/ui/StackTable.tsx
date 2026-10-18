@@ -18,10 +18,11 @@ const NUM_RE = /^\s*[-+−]?\d[\d,]*(\.\d+)?\s*%?\s*$/;
 
 function TableView({ head, rows, caption, surface }: StackTableProps & { surface: Surface }) {
   const [ref, over] = useOverflowX<HTMLDivElement>([head.length, rows.length, surface]);
+  const hasCode = rows.some((r) => r.some((c) => c.indexOf("`") >= 0));
   return (
     <div className="ui-table-wrap">
       <div ref={ref} className={"scroll-x ui-table-scroll" + (over ? " is-overflow" : "")} tabIndex={over ? 0 : undefined} role={over ? "region" : undefined} aria-label={over ? "표(옆으로 밀어 볼 수 있어요)" : undefined}>
-        <table className={"tbl ui-table is-" + surface}>
+        <table className={"tbl ui-table is-" + surface + (hasCode ? " has-code" : "")}>
           {caption ? (
             <caption className="ui-caption">
               <Rich text={caption} />

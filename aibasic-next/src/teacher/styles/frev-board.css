@@ -151,3 +151,24 @@ html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt { overflow: visible; -
 html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt > span { line-height: 1.1; }
 html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt small { max-width: 274px; overflow: visible; white-space: normal; text-overflow: clip; font-size: 17px; line-height: 1.02; }
 html[data-surface="board"] .bd-stage .bd-strip .bd-head-count { flex: 0 0 340px; width: 340px; text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ── 장면 진행 점: 보이는 점(8px 높이)·위치는 그대로, 누르는 영역만 투명 여백으로 위 8px · 아래 4px · 좌우 1px 넓혀요(점 사이 간격 3px 안이라 이웃과 안 겹쳐요) ── */
+html[data-surface="board"] .bd-stage .bd-rail button::after { content: ""; position: absolute; left: -1px; right: -1px; top: -8px; bottom: -4px; background: transparent; }
+
+/* ════════════════ 판서 켠 아래 도구띠: 글자 겹침·잘림 없이 한 줄에(1920 무대 기준, 1366 은 같은 무대를 줄여요) ════════════════
+ * 되돌리기·모두 지우기는 그림 단추로(이름은 aria-label·title 로 남아요)라서 펜 5종 + 단추 2개가 이전·다음 단추 앞에 다 들어와요.
+ * 왼쪽 도구는 줄어들지 않게 하고, 모자라는 폭은 펜 묶음만 줄여요. */
+html[data-surface="board"] .bd-stage .bd-bar-tools > .bd-tool, html[data-surface="board"] .bd-stage .bd-bar-tools > .bd-bar-sep { flex: 0 0 auto; }
+html[data-surface="board"] .bd-stage .bd-bar-tools > .bd-tool .bd-tool-txt { white-space: nowrap; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens { flex: 0 1 auto; min-width: 0; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen { flex: 0 0 auto; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen.is-act { min-width: 64px; width: 64px; padding: 0; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen.is-act::after { content: none; display: none; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen.is-act + .bd-pen.is-act { margin-left: 4px; }
+
+/* ════════════════ 이름이 바뀌는 도구 단추(판서·확대·타이머): 폭은 가장 긴 이름 기준으로 늘 같아요 ════════════════
+ * BarTool 이 가능한 이름을 같은 칸에 겹쳐 두고(안 보이는 쪽은 투명) 보이는 이름만 가운데에 놓아요. 켜고 꺼도 옆 단추가 안 밀려요. */
+html[data-surface="board"] .bd-stage .bd-tool-swap { display: inline-block; position: relative; text-align: center; }
+html[data-surface="board"] .bd-stage .bd-tool-swap > span:first-child { position: absolute; left: 0; right: 0; top: 0; white-space: nowrap; }
+html[data-surface="board"] .bd-stage .bd-tool-swap > .bd-tool-ghost { display: block; visibility: hidden; white-space: nowrap; }
+html[data-surface="board"] .bd-stage .bd-tool-swap > .bd-tool-ghost + .bd-tool-ghost { height: 0; overflow: hidden; }

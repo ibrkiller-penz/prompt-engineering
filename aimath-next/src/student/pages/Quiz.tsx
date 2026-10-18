@@ -41,9 +41,9 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
     }
   }
   // 이 세트를 열 때 이미 맞힌 개수(결과에서 '지난번보다'를 말하는 기준 — 새 저장 없이 이 화면에서만 들고 있어요)
-  const before = useRef<{ key: string; ok: number } | null>(null);
+  const before = useRef<{ key: string; ok: number; tried: number } | null>(null);
   const setKey = lid + "|" + set;
-  if (!before.current || before.current.key !== setKey) before.current = { key: setKey, ok: countOf(ids, qm).ok };
+  if (!before.current || before.current.key !== setKey) before.current = { key: setKey, ok: countOf(ids, qm).ok, tried: countOf(ids, qm).tried };
   const total = ids.length + 1; // 마지막 장은 결과
   const i = cardIndex(query.n, total);
   const basePath = "/l/" + lid + "/q" + (more ? "/more" : "");
@@ -130,7 +130,7 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
           <p className="h3 s-result-line">
             <strong>{resultLine(list.length, c.ok)}</strong>
           </p>
-          {gainLine(before.current ? before.current.ok : c.ok, c.ok) ? <p className="verdict ok">{gainLine(before.current ? before.current.ok : c.ok, c.ok)}</p> : null}
+          {before.current && before.current.tried > 0 && gainLine(before.current.ok, c.ok) ? <p className="verdict ok">{gainLine(before.current.ok, c.ok)}</p> : null}
           <p className="small">
             {list.length}문제 중 {c.tried}문제를 풀어 봤어요.
             {c.first ? " 처음에 바로 맞힌 문제는 " + c.first + "개예요." : ""} 오늘 푼 문제는 모두 {solvedToday(qm, Date.now())}개예요.

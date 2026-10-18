@@ -66,8 +66,14 @@ function inputText(q: Question, input: number | boolean | string): string {
 }
 
 /** 틀린 횟수에 따라 달라지는 안내(1회: 조건·단위 → 2회: 힌트 → 3회부터: 풀이) */
-export function wrongTip(n: number, hasHintLeft: boolean, hasSolution: boolean): string {
-  if (n <= 1) return "문제의 조건과 단위를 한 번 더 천천히 읽어 봐요.";
+export function wrongTip(n: number, hasHintLeft: boolean, hasSolution: boolean, type?: Question["type"]): string {
+  if (n <= 1) {
+    if (type === "choice") return "보기를 하나씩 다시 읽어 봐요.";
+    if (type === "ox") return "문장에서 틀린 부분을 찾아 봐요.";
+    if (type === "number") return "조건과 단위를 한 번 더 읽어 봐요.";
+    if (type === "open") return "문제에서 물은 것이 무엇인지 다시 읽어 봐요.";
+    return "문제를 한 번 더 천천히 읽어 봐요.";
+  }
   if (n === 2 && hasHintLeft) return "힌트를 하나 열어 보면 실마리가 보일 거예요.";
   if (hasSolution) return "풀이를 열어 한 줄씩 따라가 봐요. 이해한 뒤 다시 풀면 돼요.";
   return hasHintLeft ? "힌트를 열어 보고 다시 해 봐요." : "개념 카드를 다시 보고 와도 좋아요.";
@@ -490,7 +496,7 @@ export function QuestionCard(props: QuestionCardProps) {
               ) : null}
               {lastNote ? <span style={{ display: "block" }}>{lastNote}</span> : null}
               {!lastNote && q.type === "number" ? <span style={{ display: "block" }}>{NUMBER_DIRECTION_HINT}</span> : null}
-              <span style={{ display: "block" }}>{wrongTip(wrongN, hintLeft, !!solution && level < 3)}</span>
+              <span style={{ display: "block" }}>{wrongTip(wrongN, hintLeft, !!solution && level < 3, q.type)}</span>
               {props.wrongExtra ? <span className="ui-fb-extra" style={{ display: "block" }}>{props.wrongExtra}</span> : null}
             </>
           ) : null}

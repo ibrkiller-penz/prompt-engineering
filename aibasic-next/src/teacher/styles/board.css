@@ -412,23 +412,80 @@ html[data-surface="board"][data-motion="reduce"] .bd-next:active { -webkit-trans
 /* 이어서 안내 줄도 칠판 글자 바닥(28px)을 지켜요 */
 html[data-surface="board"] .bd-cont { font-size: 28px; }
 
-/* 제시문이 있는 문제: 제시문 + 문제 + 보기 다섯 개가 한 화면(896px)에 들도록 간격과 칸을 촘촘하게 해요(글자는 28px 이상) */
+/* 제시문이 있는 문제: 왼쪽 칸(제시문 + 질문) · 오른쪽 칸(보기)으로 가로 2열.
+   힌트·정답·풀이가 열리면 두 칸을 신문처럼 이어 흘려서(제시문 → 질문 → 보기 → 열린 상자) 안쪽 스크롤 없이 한 화면(896px)에 담아요.
+   글자는 28px 이상. Chrome 80: flex gap 없이 margin 으로 간격 */
 html[data-surface="board"] .bdq.has-pass .bdq-head { min-height: 40px; }
-html[data-surface="board"] .bdq.has-pass .bdq-prompt { font-size: 32px; max-height: none; margin-top: 6px; line-height: 1.35; }
-html[data-surface="board"] .bdq.has-pass .bdq-body { margin-top: 10px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opts { grid-gap: 8px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-auto-rows: minmax(60px, 1fr); }
-html[data-surface="board"] .bdq.has-pass .bdq-opt { padding: 2px 16px 4px 20px; border-radius: 16px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opt-main { min-height: 48px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opt-txt, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long .bdq-opt-txt { font-size: 30px; line-height: 1.3; }
-html[data-surface="board"] .bdq.has-pass .bdq-key, html[data-surface="board"] .bdq.has-pass .bdq-ox { font-size: 30px; }
-html[data-surface="board"] .bdq-passage .ui-code .ui-code-pre { font-size: 24px; line-height: 1.3; padding: 6px 16px; }
-html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 22px; padding: 2px 16px; }
-/* 정답·풀이 칸이 열리면 제시문은 접어서(안에서 스크롤) 본문이 896px 을 넘지 않게 해요 */
-html[data-surface="board"] .bdq.has-pass.has-panel .bdq-passage .ui-qpassage { max-height: 170px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-/* 아주 긴 제시문(info() 출력 같은 코드 글)은 높이를 가둬요(안에서 스크롤) */
-html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height: 250px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-auto-rows: minmax(52px, 1fr); }
-html[data-surface="board"] .bdq.has-pass .bdq-opt-main { min-height: 40px; }
-html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height: 230px; }
-html[data-surface="board"] .bdq.has-pass .bdq-prompt { font-size: 30px; line-height: 1.3; max-height: 140px; overflow-y: auto; }
+html[data-surface="board"] .bdq-cols { flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; margin-top: 6px; }
+html[data-surface="board"] .bdq-left { flex: 0 0 47%; width: 47%; min-width: 0; box-sizing: border-box; padding-right: 20px; display: flex; flex-direction: column; }
+html[data-surface="board"] .bdq-cols > .bdq-mid { flex: 1 1 0; min-width: 0; flex-direction: column; }
+html[data-surface="board"] .bdq-left .bdq-passage { flex: 0 0 auto; }
+html[data-surface="board"] .bdq-left .bdq-passage .ui-qpassage { max-height: none; overflow: visible; margin-bottom: 0; }
+html[data-surface="board"] .bdq-left .bdq-prompt { flex: 0 0 auto; max-height: none; overflow: visible; margin-top: 10px; font-size: 32px; line-height: 1.3; }
+html[data-surface="board"] .bdq.has-pass .bdq-body { flex: 0 0 auto; margin-top: 0; overflow: visible; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long,
+html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; grid-gap: 8px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opt { padding: 4px 12px 4px 14px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts .bdq-opt-txt { font-size: 30px; line-height: 1.25; }
+html[data-surface="board"] .bdq.has-pass .bdq-bar { height: 6px; margin-top: 2px; }
+html[data-surface="board"] .bdq.has-pass .bdq-answer-key { font-size: 1.1em; }
+html[data-surface="board"] .bdq.has-pass .bdq-controls { margin-top: 8px; margin-bottom: 0; }
+html[data-surface="board"] .bdq.has-pass .bdq-step, html[data-surface="board"] .bdq.has-pass .bdq-groups-open { min-height: 60px; }
+html[data-surface="board"] .bdq.has-pass .bdq-mark { margin-left: 8px; padding: 0 12px; font-size: 22px; line-height: 1.5; }
+/* 열린 상자가 있을 때: 신문 흐름 2단(안쪽 칸은 모두 블록이라야 단 사이로 나뉘어요) */
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-cols { display: block; -webkit-column-count: 2; column-count: 2; -webkit-column-fill: auto; column-fill: auto; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-left,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-cols > .bdq-mid,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-body,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-opts,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-panel { display: block; width: auto; padding: 0; margin: 0; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-passage,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-prompt,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-opt,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-answer,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-card { -webkit-column-break-inside: avoid; break-inside: avoid; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-opts > .bdq-opt { margin: 0 0 8px; padding: 2px 10px 2px 12px; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-opts .bdq-opt-txt { font-size: 28px; line-height: 1.2; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-bar { height: 4px; margin-top: 2px; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-panel > * { margin: 0 0 8px; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-panel > * + * { margin-top: 0; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-card { display: block; display: flow-root; padding: 8px 16px; font-size: 28px; line-height: 1.3; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-card .bdq-tag { float: left; margin: 2px 12px 0 0; font-size: 22px; line-height: 1.5; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-card-txt { display: block; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-answer { padding: 6px 18px; font-size: 32px; }
+/* 코드 글자는 칠판에서 28px 이상(제시문 코드 블록 · 표 안 인라인 코드) */
+html[data-surface="board"] .bdq-passage .ui-code .ui-code-pre { font-size: 28px; line-height: 1.3; padding: 6px 16px; }
+html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 24px; padding: 2px 16px; }
+html[data-surface="board"] .ui-icode { font-size: 1em; }
+
+/* 수업 끝 QR 카드: 긴 차시 이름도 칸 안에 다 들어가게(세 줄까지, 안 잘려요) */
+html[data-surface="board"] .bd-end-period { font-size: 34px; line-height: 1.25; max-height: none; overflow: visible; }
+
+/* 칠판 개념 표(두 칸짜리): 글자가 넘쳐 글자를 줄이는 단계(is-down)부터 왼쪽 칸을 절반으로 넓히고 칸 글자를 28px 로 맞춰 줄 수를 줄여요
+   → '모두 열기' 뒤에도 제목과 표가 한 장면(896px)에 들어요(표 글자 28px 이상 그대로) */
+html[data-surface="board"] .kind-concept.is-down .ui-table.is-board th,
+html[data-surface="board"] .kind-concept.is-down .ui-table.is-board td { font-size: 28px; padding-top: 6px; padding-bottom: 6px; }
+html[data-surface="board"] .kind-concept.is-down .ui-table.is-board th:first-child:nth-last-child(2),
+html[data-surface="board"] .kind-concept.is-down .ui-table.is-board td:first-child:nth-last-child(2) { width: 50%; }
+
+/* 수업 끝 오른쪽 칸: 긴 정리·숙제가 있어도 안쪽 스크롤 없이 한 화면에 들게 간격을 조여요(칸 높이는 본문 896px 전체) */
+html[data-surface="board"] .bd-end-side { max-height: 896px; }
+html[data-surface="board"] .bd-end-side > * + * { margin-top: 10px; }
+html[data-surface="board"] .bd-end .bd-end-sec { padding-top: 10px; padding-bottom: 10px; }
+html[data-surface="board"] .bd-end .bd-end-hwnos { font-size: 40px; margin-bottom: 6px; }
+html[data-surface="board"] .bd-end .bd-end-morebtn { min-height: 52px; }
+html[data-surface="board"] .bd-end .bd-end-note { margin-top: 8px; }
+html[data-surface="board"] .bd-end .bd-end-list { line-height: 1.38; }
+
+/* ── 칠판 문제 학습지(#/print, set=board) 인쇄: 문제 아래 QR 안내만 다음 쪽에 외톨이로 남지 않게 간격만 줄여요(흑백·A4·글자 크기는 그대로) ──
+ * print.css 와 같은 높이의 선택자라 !important 로 앞서요. */
+@media print {
+  html[data-page="print"] .pr-head { padding-bottom: 2mm !important; }
+  html[data-page="print"] .pr-question { margin-top: 2.5mm !important; padding: 1.2mm 3mm !important; }
+  html[data-page="print"] .pr-qs { margin-top: 2.5mm !important; }
+  html[data-page="print"] .pr-q { padding: 1.4mm 0 1.8mm !important; line-height: 1.4 !important; }
+  html[data-page="print"] .pr-q > * + * { margin-top: 1.2mm !important; }
+  html[data-page="print"] .pr-choices > li + li { margin-top: 0.4mm !important; }
+  html[data-page="print"] .pr-foot { margin-top: 1.5mm !important; padding-top: 1.2mm !important; }
+  html[data-page="print"] .pr-qr-img { width: 17mm !important; height: 17mm !important; margin-right: 3mm !important; }
+}

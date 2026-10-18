@@ -36,7 +36,8 @@ const KIND: Record<Scene["kind"], string> = {
 };
 
 function clip(s: string, n: number): string {
-  const t = (s || "").replace(/\n/g, " ");
+  // 굵게 표시(**)는 글자 수로 자르기 전에 풀어요(잘리면 ** 가 그대로 보여요)
+  const t = (s || "").replace(/\*\*/g, "").replace(/\n/g, " ");
   if (t.length <= n) return t;
   let cut = t.slice(0, n);
   if ((cut.match(/\$/g) || []).length % 2 === 1) cut = cut.slice(0, cut.lastIndexOf("$"));

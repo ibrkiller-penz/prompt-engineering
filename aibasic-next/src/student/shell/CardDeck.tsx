@@ -127,7 +127,7 @@ export function CardDeck(props: CardDeckProps) {
         </div>
       </main>
       <ActionBar rail={props.rail}>
-        <button type="button" className="btn s-prev" aria-label={props.prevLabel || "이전"} disabled={!props.onPrev} onClick={() => props.onPrev && props.onPrev()}>
+        <button type="button" className="btn s-prev" aria-label={props.prevLabel || "이전"} title={props.prevLabel || "이전"} disabled={!props.onPrev} onClick={() => props.onPrev && props.onPrev()}>
           <Icon name="prev" />
           <span>{props.prevLabel || "이전"}</span>
         </button>

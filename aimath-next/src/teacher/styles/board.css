@@ -401,3 +401,16 @@ html[data-surface="board"][data-motion="reduce"] .bd-next:active { -webkit-trans
 @media (prefers-reduced-motion: reduce) {
   html[data-surface="board"] .bd-rv.is-shown[data-rv] { -webkit-animation: none; animation: none; }
 }
+
+/* ── 칠판 문제 학습지(#/print, set=board) 인쇄: 문제 5개 + QR 안내가 A4 한 쪽에 들어가게 간격만 줄여요(흑백·A4·글자 크기는 그대로) ──
+ * 전: 문제 5개는 1쪽, QR 안내만 2쪽에 외톨이. print.css 와 같은 높이의 선택자라 !important 로 앞서요. */
+@media print {
+  html[data-page="print"] .pr-head { padding-bottom: 2mm !important; }
+  html[data-page="print"] .pr-question { margin-top: 2.5mm !important; padding: 1.2mm 3mm !important; }
+  html[data-page="print"] .pr-qs { margin-top: 2.5mm !important; }
+  html[data-page="print"] .pr-q { padding: 1.8mm 0 2.2mm !important; }
+  html[data-page="print"] .pr-q > * + * { margin-top: 1.2mm !important; }
+  html[data-page="print"] .pr-choices > li + li { margin-top: 0.4mm !important; }
+  html[data-page="print"] .pr-foot { margin-top: 2.5mm !important; padding-top: 2mm !important; }
+  html[data-page="print"] .pr-qr-img { width: 20mm !important; height: 20mm !important; margin-right: 3mm !important; }
+}

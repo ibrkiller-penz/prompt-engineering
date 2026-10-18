@@ -352,6 +352,7 @@ export function Stage(props: StageProps) {
               chalk={prefs.theme === "chalk"}
               onChalk={toggleChalk}
               exitHref={props.exitHref}
+              sceneKey={props.inkKey}
               keyFirst={!!props.onFirst}
               keyLast={!!props.onLast}
             />

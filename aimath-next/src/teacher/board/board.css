@@ -510,10 +510,13 @@ html.kbd .bd-end-morebtn:focus { outline: 6px solid var(--focus, #1d4ed8); outli
 
 /* 4지선다 + 열린 상자: 보기(왼쪽)·힌트/정답/풀이(오른쪽)를 나란히 → 보기 4개·득표가 1920x1080 안에 다 보여요 */
 .bdq-mid { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
-.bdq-mid > .bdq-body { flex: 1 1 0; }
+.bdq-main { flex: 1 1 0; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.bdq-main > .bdq-prompt { flex: 0 0 auto; max-height: none; overflow: visible; }
+.bdq-main > .bdq-body { flex: 1 1 0; }
 .bdq-mid.is-split { flex-direction: row; }
-.bdq-mid.is-split > .bdq-body { flex: 1 1 0; min-width: 0; overflow: hidden; }
-.bdq-mid.is-split > .bdq-panel { flex: 0 0 38%; max-height: none; margin: 20px 0 0 20px; padding-right: 4px; box-sizing: border-box; }
+.bdq-mid.is-split > .bdq-main > .bdq-body { overflow: hidden; }
+/* 정답·힌트·풀이 칸은 머리 아래부터 공개 단추 줄 위까지 세로로 다 쓰고, 너비는 넘치면 자동으로 넓어져요(Question.tsx PANEL_W) */
+.bdq-mid.is-split > .bdq-panel { flex: 0 0 var(--bdq-pw, 38%); max-height: none; margin: 12px 0 0 20px; padding-right: 0; box-sizing: border-box; }
 .bdq.is-split .bdq-opts.is-grid, .bdq.is-split .bdq-opts.is-long { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); grid-gap: 10px; }
 .bdq.is-split .bdq-opt { padding: 6px 14px 8px 16px; border-radius: 18px; }
 .bdq.is-split .bdq-opt-main { flex-wrap: nowrap; min-height: 0; }
@@ -529,3 +532,56 @@ html.kbd .bd-end-morebtn:focus { outline: 6px solid var(--focus, #1d4ed8); outli
 .bdq.is-split .bdq-bar { height: 8px; margin-top: 4px; }
 .bdq.is-split .bdq-answer { font-size: calc(34px * var(--fs-scale, 1)); padding: 8px 18px; }
 .bdq.is-split .bdq-opts.is-ox .bdq-opt-txt { font-size: calc(30px * var(--fs-scale, 1)); }
+
+/* 보기가 5개 이상이면 한 줄을 낮춰 한 화면에 모두 들어오게(손든 수 단추는 터치하기 좋은 64px 이상 유지) */
+.bdq-opts.n5, .bdq-opts.n6 { grid-gap: 10px; grid-auto-rows: minmax(0, 1fr); }
+.bdq-opts.n5 .bdq-opt, .bdq-opts.n6 .bdq-opt { padding-top: 4px; padding-bottom: 6px; }
+.bdq-opts.n5 .bdq-opt-main, .bdq-opts.n6 .bdq-opt-main { min-height: 0; }
+.bdq-opts.n5 .bdq-tally button.is-plus, .bdq-opts.n6 .bdq-tally button.is-plus { width: 68px; height: 68px; font-size: 44px; }
+.bdq-opts.n5 .bdq-tally button.is-minus, .bdq-opts.n6 .bdq-tally button.is-minus { width: 44px; height: 44px; }
+.bdq-opts.n5 .bdq-tally-n, .bdq-opts.n6 .bdq-tally-n { height: 56px; }
+.bdq-opts.n5 .bdq-bar, .bdq-opts.n6 .bdq-bar { height: 8px; margin-top: 4px; }
+.bdq-opts.n5 .bdq-opt-txt, .bdq-opts.n6 .bdq-opt-txt { line-height: 1.25; }
+
+/* 보기를 가린 단계: 안내 띠를 조금 낮추고 손든 수 단추를 줄여 4~5개 보기가 한 화면에 들어오게 */
+.bdq-think { margin-bottom: 10px; padding: 8px 20px; font-size: 40px; }
+.bdq-opts.is-covered .bdq-tally button.is-plus { width: 68px; height: 68px; font-size: 44px; }
+.bdq-opts.is-covered .bdq-tally-n { height: 56px; }
+.bdq-opts.is-covered .bdq-bar { height: 8px; margin-top: 4px; }
+.bdq-opts.is-covered .bdq-opt-main, .bdq-body .bdq-opts.is-covered .bdq-opt.is-hidden .bdq-opt-main { min-height: 0; }
+
+/* 한 화면 맞춤(Question.tsx 가 넘칠 때만 is-tight 를 붙여요): 보기 줄 간격·여백만 줄이고 글자는 그대로 */
+.bdq-mid.is-tight .bdq-opts { grid-gap: 8px; grid-auto-rows: minmax(0, 1fr); }
+.bdq-mid.is-tight .bdq-opt { padding-top: 4px; padding-bottom: 6px; }
+.bdq-mid.is-tight .bdq-opt-main, .bdq-mid.is-tight .bdq-opts .bdq-opt.is-hidden .bdq-opt-main { min-height: 0; }
+.bdq-mid.is-tight .bdq-tally button.is-plus { width: 64px; height: 64px; font-size: 40px; }
+.bdq-mid.is-tight .bdq-tally button.is-minus { width: 44px; height: 44px; }
+.bdq-mid.is-tight .bdq-tally-n { height: 56px; }
+.bdq-mid.is-tight .bdq-bar { height: 8px; margin-top: 4px; }
+.bdq-mid.is-tight .bdq-body { margin-top: 12px; }
+/* 더 맞춤(is-tight2): 보기가 한 줄씩이면 2열로(정답 칸이 열려 있으면 단추·여백을 더 줄여요) */
+.bdq-mid.is-tight2:not(.is-split) .bdq-opts.is-long { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-gap: 8px 12px; }
+.bdq-mid.is-tight2:not(.is-split) .bdq-opts .bdq-opt-main { flex-wrap: wrap; }
+.bdq-mid.is-tight2:not(.is-split) .bdq-opts .bdq-opt-txt { flex: 1 1 40%; }
+.bdq-mid.is-tight2:not(.is-split) .bdq-opts .bdq-tally { margin-left: auto; }
+.bdq-mid.is-tight2 .bdq-opt { padding-top: 2px; padding-bottom: 4px; }
+.bdq-mid.is-tight2 .bdq-tally button.is-plus { width: 56px; height: 56px; font-size: 36px; }
+.bdq-mid.is-tight2 .bdq-tally-step { width: 44px; }
+.bdq-mid.is-tight2 .bdq-tally button.is-minus { width: 44px; height: 44px; }
+.bdq-mid.is-tight2 .bdq-tally-n { height: 48px; min-width: 112px; }
+.bdq-mid.is-tight2 .bdq-bar { height: 6px; margin-top: 2px; }
+
+/* 판서가 켜져 있는 동안: '눌러서 열어요' 카드·띠가 판서 층 위에서 클릭을 가로채지 않게 해요(z-index 를 풀어 판서 층이 위로 오고, 카드 열기 단추는 눌려도 반응하지 않아요) */
+html[data-surface="board"] .bd-stage.is-inking .bd-scene .bd-rv.is-hidden > .bd-open { z-index: auto; pointer-events: none; }
+html[data-surface="board"] .bd-stage.is-inking .bd-scene .bd-rv.is-hidden.has-cue > .bd-cue { z-index: auto; }
+html[data-surface="board"] .bd-stage.is-inking .bd-scene .bd-rv.is-hidden::before { z-index: auto; }
+html[data-surface="board"] .bd-stage.is-inking .bd-scene .bd-all { z-index: auto; pointer-events: none; }
+
+/* 쪽 나누기에서 아래에 걸린 다음 블록을 가리는 틀(Scene Body): 높이는 장면과 같아요 */
+.bd-scene-clip { position: relative; width: 100%; height: 100%; }
+/* 마지막 맞춤(is-tight3): '글자 크게'로 키운 단계에서도 한 화면에 들어오게 문제·보기·카드 글자를 28px(칠판 최소) 아래로는 내리지 않고 줄여요 */
+.bdq-mid.is-tight3 .bdq-prompt { font-size: 34px; line-height: 1.3; }
+.bdq-mid.is-tight3 .bdq-opts .bdq-opt-txt { font-size: 28px; line-height: 1.2; }
+.bdq-mid.is-tight3 .bdq-card { font-size: 28px; line-height: 1.3; padding-top: 8px; padding-bottom: 8px; }
+.bdq-mid.is-tight3 .bdq-answer { font-size: 32px; padding-top: 4px; padding-bottom: 4px; }
+.bdq-mid.is-tight3 .bdq-panel > * + * { margin-top: 8px; }

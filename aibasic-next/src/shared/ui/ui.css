@@ -28,6 +28,9 @@ html.kbd .ui-math:focus, html.kbd .ui-table-scroll:focus, html.kbd .ui-code-pre:
 .ui-code-tag { display: block; padding: var(--sp-1) var(--sp-3); font-size: var(--t-xs); font-weight: 800; color: var(--ink-2); background: var(--surface); border-bottom: 1px solid var(--line); }
 .ui-code-pre { margin: 0; padding: var(--sp-3); overflow-x: auto; -webkit-overflow-scrolling: touch; font-family: var(--font-num); font-size: var(--t-sm); line-height: 1.55; white-space: pre; tab-size: 4; text-align: left; }
 .ui-code-pre code { font-family: inherit; }
+/* 줄이 길어 잘릴 때: 오른쪽 끝 그림자(scroll-x)와 위쪽 '옆으로 밀어요' 글자. 안쪽 가로 스크롤이라 카드 넘기기(data-noswipe)와 부딪치지 않아요 */
+.ui-code .ui-code-pre.scroll-x { --cover: var(--surface-2); max-width: none; }
+.ui-code-tag .ui-code-hint { float: right; font-weight: 700; color: var(--ink-2); }
 .ui-code-pre:focus { outline: none; }
 .ui-code-kw { color: var(--aha); font-weight: 700; }
 .ui-code-str { color: var(--ok); }
@@ -40,6 +43,10 @@ html.kbd .ui-math:focus, html.kbd .ui-table-scroll:focus, html.kbd .ui-code-pre:
 /* ── 표 ── */
 .ui-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .ui-table { width: 100%; }
+/* 표 안 코드 칸: 낱말 중간에서 끊지 않아요. 넘치면 표가 안쪽 가로 스크롤(+힌트)로 밀려요 */
+.ui-table td .ui-icode, .ui-table th .ui-icode { white-space: nowrap; word-break: normal; overflow-wrap: normal; }
+.ui-table.has-code td { min-width: 9em; } /* 코드 칸이 안 끊기는 만큼 설명 칸이 한 글자 폭으로 찌그러지지 않게 — 모자라면 표가 안쪽 가로 스크롤 */
+.ui-table.has-code td.num { min-width: 0; }
 .ui-table.is-board { font-size: var(--t-md); }
 .ui-caption { display: block; caption-side: top; text-align: left; font-size: var(--t-sm); font-weight: 700; color: var(--ink-2); padding-bottom: var(--sp-2); }
 caption.ui-caption { display: table-caption; } /* <caption> 을 block 으로 두면 표 안 칸처럼 끼어들어요 */

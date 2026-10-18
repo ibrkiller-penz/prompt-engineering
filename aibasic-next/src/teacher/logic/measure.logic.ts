@@ -169,7 +169,7 @@ export function blockHeight(b: SceneBlock, fs: number): number {
       const rowH = (cells: string[]) => {
         let m = 1;
         for (const c of cells) {
-          const n = lineCount(c, cw, fs);
+          const n = lineCount(c, c.indexOf("`") >= 0 ? cw / 2 : cw, fs); // 코드 칸은 글자가 넓고 끊기지 않아요
           const tall = /\$[^$]*\\(frac|sqrt|sum)/.test(c) ? 1.6 : 1;
           m = Math.max(m, n * tall);
         }

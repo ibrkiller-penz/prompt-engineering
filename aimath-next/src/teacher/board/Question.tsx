@@ -2,7 +2,7 @@
 // 문제와 보기는 무대 폭을 다 쓰고 세로 공간을 채워요(본문 40px, 보기 34px — 길면 36·32px).
 // 보기마다 '손든 수'를 세요: − · + 단추가 따로 있고(키보드로도 돼요), 숫자 칸을 누르면 +1, 길게 누르면 −1(지름길).
 // 막대는 색 + 빗금 + 글자로 보여요(aimn:t1:results 에 숫자만 저장). 모둠 점수(1~6모둠)는 메모리에만 둬요.
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import type { Question } from "../../shared/contracts.ts";
 import { CHOICE_KEYS, Rich, answerText } from "../../shared/ui/index.ts";
 import { useTally, barPcts, sum, correctRate } from "../store/index.ts";
@@ -68,6 +68,8 @@ function Tally({ n, label, onChange }: { n: number; label: string; onChange: (d:
 }
 
 const CONFIRM_MS = 4000;
+/** 오른쪽 풀이 칸 너비 후보(왼쪽은 문제·보기) */
+const PANEL_W = ["38%", "46%", "54%", "62%", "70%"];
 
 /** 한 번 더 눌러야 지워지는 단추: 첫 번째 누름은 '한 번 더 누르면 지워요'로 바뀌고 약 4초 뒤 되돌아가요 */
 function ConfirmReset({ label, onConfirm, className }: { label: string; onConfirm: () => void; className?: string }) {
@@ -263,8 +265,60 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
 
   const panelOpen = showAns || open("hint1") || (!!solution && open("sol"));
   // 4지선다에서 힌트·정답·풀이가 열리면 보기(왼쪽)와 열린 상자(오른쪽)를 나란히 둬서 보기·득표가 가려지지 않게 해요
-  const split = (q.type === "choice" || q.type === "ox") && panelOpen;
+  const split = panelOpen;
   const nextIdx = r + 1 < stages.length ? r + 1 : -1;
+
+  // 한 화면 맞춤: 안쪽 스크롤 없이 모두 보이도록 ① 보통 → ② 보기 줄 간격 줄이기(is-tight) → ③ 더 줄이기·보기 두 줄로(is-tight2) → ④ 글자 크게 단계에서만 문제·보기·카드 글자를 28px 바닥까지 줄이기(is-tight3), 정답·힌트·풀이 칸이 있으면
+  // 그 칸 너비를 38% → 46% → 54% → 62% → 70% 로 넓혀 가며 가장 먼저 다 들어가는 모양을 골라요(글자 크기는 그대로)
+  const midRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const mid = midRef.current;
+    if (!mid) return;
+    let dead = false;
+    const fit = () => {
+      if (dead) return;
+      const panel = mid.querySelector(".bdq-panel") as HTMLElement | null;
+      mid.classList.remove("is-tight", "is-tight2", "is-tight3");
+      mid.style.removeProperty("--bdq-pw");
+      // 안쪽에서 따로 스크롤되는 긴 수식(.ui-tex)도 넘침으로 쳐서 칸을 넓혀요
+      const parts = [panel, mid.querySelector(".bdq-main"), mid.querySelector(".bdq-body"), mid.querySelector(".bdq-prompt")].concat(
+        Array.prototype.slice.call(mid.querySelectorAll(".ui-tex")),
+      ) as (HTMLElement | null)[];
+      const over = () => {
+        let n = 0;
+        for (const el of parts) if (el) n += Math.max(0, el.scrollHeight - el.clientHeight - 1) + Math.max(0, el.scrollWidth - el.clientWidth - 1);
+        return n;
+      };
+      const widths = split && panel ? PANEL_W : [""];
+      let best = { tight: 0, w: "" };
+      let bestOver = Infinity;
+      const setTight = (t: number) => {
+        mid.classList.toggle("is-tight", t >= 1);
+        mid.classList.toggle("is-tight2", t >= 2);
+        mid.classList.toggle("is-tight3", t >= 3);
+      };
+      for (const tight of [0, 1, 2, 3]) {
+        for (const w of widths) {
+          setTight(tight);
+          if (w) mid.style.setProperty("--bdq-pw", w);
+          const o = over();
+          if (o < bestOver) {
+            bestOver = o;
+            best = { tight, w };
+          }
+          if (o === 0) return;
+        }
+      }
+      setTight(best.tight);
+      if (best.w) mid.style.setProperty("--bdq-pw", best.w);
+    };
+    fit();
+    const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts;
+    if (fonts && fonts.ready) fonts.ready.then(fit, () => undefined);
+    return () => {
+      dead = true;
+    };
+  }, [split, panelOpen, r, q.id]);
 
   return (
     <div className={"bdq" + (hidden ? " is-covered" : "") + (panelOpen ? " has-panel" : "") + (split ? " is-split" : "") + (longPrompt ? " is-longq" : "")}>
@@ -291,11 +345,13 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
           </span>
         ) : null}
       </div>
+      <div className={"bdq-mid" + (split ? " is-split" : "")} ref={midRef}>
+      <div className="bdq-main">
       <div className="bdq-prompt">
         <Rich text={q.prompt} />
       </div>
-      <div className={"bdq-mid" + (split ? " is-split" : "")}>
       {body ? <div className="bdq-body">{body}</div> : <div className="bdq-body is-empty" />}
+      </div>
 
       {panelOpen ? (
         <div className="bdq-panel" aria-live="polite">
