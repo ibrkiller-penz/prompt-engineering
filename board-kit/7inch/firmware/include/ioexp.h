@@ -13,6 +13,8 @@ bool ioexp_begin(void);            // I2C 0번(SDA8/SCL9) 설치 → 주소 훑�
 bool ioexp_set(int exio, bool on); // 핀 하나만 바꾼다(나머지는 그대로)
 bool ioexp_backlight(bool on);     // EXIO2
 bool ioexp_ready(void);
+// 배터리 전압(mV). 확장 칩 ADC(레지스터 0x06, 10비트, 3:1 분압, 3.3V 기준 — Waveshare 공식 16_LVGL_UI pwm.c 와 같은 계산). 못 읽으면 -1
+int ioexp_battery_mv(void);
 
 #ifdef __cplusplus
 }

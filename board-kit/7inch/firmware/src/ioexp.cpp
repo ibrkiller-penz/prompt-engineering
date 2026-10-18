@@ -74,9 +74,23 @@ bool ioexp_set(int exio, bool on) {
 bool ioexp_backlight(bool on) { return s_ok && ioexp_set(2, on); }
 bool ioexp_ready(void) { return s_ok; }
 
+int ioexp_battery_mv(void) {
+  if (!s_ok) return -1;
+  uint32_t sum = 0; int n = 0;
+  for (int i = 0; i < 8; i++) {                       // 8번 읽어 평균(공식 예제는 10번)
+    uint8_t reg = 0x06, d[2] = {0, 0};
+    if (i2c_master_write_read_device(PORT, ADDR, &reg, 1, d, 2, pdMS_TO_TICKS(50)) == ESP_OK) { sum += (uint16_t)(d[1] << 8 | d[0]); n++; }
+    delay(5);
+  }
+  if (!n) return -1;
+  const float v = (sum / (float)n) * 3.0f * 3.3f / 1023.0f;   // 10비트 ADC · 3.3V · 3:1 분압
+  return (int)(v * 1000.0f + 0.5f);
+}
+
 #else
 bool ioexp_begin(void) { return false; }
 bool ioexp_set(int, bool) { return false; }
 bool ioexp_backlight(bool) { return false; }
 bool ioexp_ready(void) { return false; }
+int ioexp_battery_mv(void) { return -1; }
 #endif

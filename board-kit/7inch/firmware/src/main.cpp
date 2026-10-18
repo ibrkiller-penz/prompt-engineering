@@ -181,6 +181,15 @@ static void clockText(const struct tm &tm, char *out, size_t n, const char **amp
 }
 static lv_obj_t *s_row[8], *s_rowP[8], *s_rowA[8], *s_rowB[8], *s_rowTag[8];
 static lv_obj_t *s_guide = nullptr;   // 시간표가 없을 때 오른쪽 칸에 띄우는 할 일 안내
+static lv_obj_t *s_bat = nullptr;     // 배터리 남은 양(7B, 시계 화면 왼쪽 칸 오른쪽 위)
+static int s_batPct = -1;             // -1: 배터리 없음·못 읽음
+// 리튬 배터리 전압 → 남은 양(%) 어림값(3.3V 0% ~ 4.2V 100%)
+static int batteryPct(int mv) {
+  static const int V[] = {3300, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200}, P[] = {0, 10, 20, 40, 60, 75, 85, 95, 100};
+  if (mv <= V[0]) return 0;
+  for (int i = 1; i < 9; i++) if (mv <= V[i]) return P[i - 1] + (P[i] - P[i - 1]) * (mv - V[i - 1]) / (V[i] - V[i - 1]);
+  return 100;
+}
 static lv_obj_t *s_wifiList, *s_wifiInfo, *s_pwBox, *s_pwTa, *s_kb, *s_ttPick;
 static String s_pickSsid;
 
@@ -347,6 +356,13 @@ static lv_obj_t *button(lv_obj_t *parent, const char *txt, int w, int h, uint32_
   lv_obj_set_style_radius(b, UI_SOFT ? 10 : R(8), 0);
   lv_obj_set_style_border_width(b, 1, 0);
   lv_obj_set_style_border_color(b, lv_color_hex(D_LINE), 0);
+  // 누를 때 색이 천천히 바뀌는 효과(테마 기본 80ms)를 없앤다 — 딱딱 바로 반응(2026-10-18 사용자 요청)
+  static const lv_style_prop_t NO_PROPS[] = {(lv_style_prop_t)0};
+  static lv_style_transition_dsc_t noTrans;
+  static bool inited = false;
+  if (!inited) { lv_style_transition_dsc_init(&noTrans, NO_PROPS, lv_anim_path_linear, 0, 0, nullptr); inited = true; }
+  lv_obj_set_style_transition(b, &noTrans, 0);
+  lv_obj_set_style_transition(b, &noTrans, LV_STATE_PRESSED);
   lv_obj_t *l = label(b, &kr16, fg, txt);
   lv_obj_center(l);
   return b;
@@ -646,20 +662,61 @@ static bool downloadTT() {
 // 설정의 '볼 시간표'를 채우고, 고른 이름으로 파일(board/t/NNN.json)을 찾는다. 고른 것은 이름으로 저장한다(목록 차례가 바뀌어도 유지).
 static JsonDocument s_index(&s_alloc);
 static String s_pickName = BOARD_DEFAULT_TT;
+// '볼 시간표' 고르기: 펼침 목록(스크롤·애니메이션이 느리고 88개를 위로 밀어 고르기 힘들었다) 대신
+// 단추 판(한 쪽 30개, 6×5)을 쪽으로 넘긴다. 단추는 처음에 한 번만 만들고 글자만 바꾼다(2026-10-18 사용자 요청).
+static lv_obj_t *s_pickView = nullptr, *s_pickBtn[30], *s_pickTab[2], *s_pickPage = nullptr;
+static int s_pickKind = 0, s_pickPg = 0;   // 0: 선생님 · 1: 학급·특별실
+static const char *pickLabel(JsonObject it) {   // 선생님은 이름만(단추가 짧게), 학급은 '1학년 1반'
+  const char *kind = it["kind"] | "teacher", *lb = it["label"] | "";
+  if (!strcmp(kind, "teacher") || !*lb) return it["name"] | "";
+  return lb;
+}
+static void renderPicker() {
+  if (!s_pickView) return;
+  JsonArray items = s_index["items"].as<JsonArray>();
+  int idx[160], n = 0, cnt[2] = {0, 0};
+  int i = 0;
+  for (JsonObject it : items) {
+    const int k = strcmp(it["kind"] | "teacher", "teacher") ? 1 : 0;
+    cnt[k]++;
+    if (k == s_pickKind && n < 160) idx[n++] = i;
+    i++;
+  }
+  const int pages = max(1, (n + 29) / 30);
+  if (s_pickPg >= pages) s_pickPg = pages - 1;
+  for (int t = 0; t < 2; t++) {
+    const bool on = t == s_pickKind;
+    lv_obj_set_style_bg_color(s_pickTab[t], lv_color_hex(on ? C_PRIMARY : C_ALT), 0);
+    lv_obj_t *l = lv_obj_get_child(s_pickTab[t], 0);
+    lv_label_set_text_fmt(l, "%s %d", t ? "학급·특별실" : "선생님", cnt[t]);
+    lv_obj_set_style_text_color(l, lv_color_hex(on ? 0xffffff : C_MUTED), 0);
+  }
+  for (int b = 0; b < 30; b++) {
+    const int k = s_pickPg * 30 + b;
+    lv_obj_t *btn = s_pickBtn[b];
+    if (k >= n) { lv_obj_add_flag(btn, LV_OBJ_FLAG_HIDDEN); continue; }
+    JsonObject it = items[idx[k]];
+    const bool sel = s_pickName == (const char *)(it["name"] | "");
+    lv_obj_clear_flag(btn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_user_data(btn, (void *)(intptr_t)idx[k]);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(sel ? C_PRIMARY : C_SURF), 0);
+    lv_obj_t *l = lv_obj_get_child(btn, 0);
+    lv_label_set_text(l, pickLabel(it));
+    lv_obj_set_style_text_color(l, lv_color_hex(sel ? 0xffffff : C_TEXT), 0);
+  }
+  lv_label_set_text_fmt(s_pickPage, "%d / %d", s_pickPg + 1, pages);
+}
 static void fillPicker() {
   JsonArray items = s_index["items"].as<JsonArray>();
   if (items.isNull() || !s_ttPick) return;
-  String opts; int sel = -1, i = 0;
-  for (JsonObject it : items) {
-    const char *lb = it["label"] | "";
-    if (!*lb) lb = it["name"] | "";
-    if (i) opts += "\n";
-    opts += lb;
-    if (s_pickName == (const char *)(it["name"] | "")) { sel = i; s_ttFile = (const char *)(it["file"] | ""); }
-    i++;
-  }
-  lv_dropdown_set_options(s_ttPick, opts.c_str());
-  if (sel >= 0) lv_dropdown_set_selected(s_ttPick, sel);
+  for (JsonObject it : items)
+    if (s_pickName == (const char *)(it["name"] | "")) {
+      s_ttFile = (const char *)(it["file"] | "");
+      const char *lb = it["label"] | "";
+      lv_label_set_text_fmt(lv_obj_get_child(s_ttPick, 0), "%s  " LV_SYMBOL_RIGHT, *lb ? lb : (const char *)(it["name"] | ""));
+      s_pickKind = strcmp(it["kind"] | "teacher", "teacher") ? 1 : 0;
+    }
+  renderPicker();
 }
 static bool parseIndex(const String &body) {
   JsonDocument d(&s_alloc);
@@ -1013,10 +1070,11 @@ static void refreshWifiLabel() {
   snprintf(info, sizeof info,
            "'%s' 저장됨. 잠깐 연결해 받고 바로 끕니다(수업 중에는 쉬는 시간에 받습니다).\n"
            "와이파이 %s · 시간 %s · 날씨 %s · 급식 %s · 시간표 %s\n"
-           "마지막 받음 %s%s%s",
+           "마지막 받음 %s%s%s%s",
            ssid.c_str(), s_lastOkHM[0] ? "O" : (s_triedOnce ? "실패" : "아직"), timeValid() ? "O" : "아직",
            !HAS_WX ? "설정 없음" : s_wxOk ? "O" : "아직", !HAS_MEAL ? "설정 없음" : s_mealOk ? "O" : "아직", tt,
-           s_lastOkHM[0] ? s_lastOkHM : "-", next[0] ? " · 다음 받기 " : "", next);
+           s_lastOkHM[0] ? s_lastOkHM : "-", next[0] ? " · 다음 받기 " : "", next,
+           s_batPct >= 0 ? (String(" · 배터리 ") + s_batPct + "%").c_str() : "");
   setTextIf(s_wifiInfo, info);
 }
 
@@ -1262,6 +1320,7 @@ static void buildFinder(lv_obj_t *scr, int top) {
   lv_obj_set_size(left, LW, PH); lv_obj_set_pos(left, M, M - 4);
   lv_obj_set_pos(label(left, &kr14, D_MUTED, "선생님을 고르세요"), 16, 12);
   s_findGrid = lv_obj_create(left);
+  lv_obj_clear_flag(s_findGrid, LV_OBJ_FLAG_SCROLL_MOMENTUM | LV_OBJ_FLAG_SCROLL_ELASTIC);
   lv_obj_remove_style_all(s_findGrid);
   lv_obj_set_size(s_findGrid, LW - 20, PH - 44); lv_obj_set_pos(s_findGrid, 10, 36);
   lv_obj_set_flex_flow(s_findGrid, LV_FLEX_FLOW_ROW_WRAP);
@@ -1325,6 +1384,7 @@ static void showView(View v) {
   vis(s_viewSet, v == V_SET);
   vis(s_viewClock, v == V_CLOCK);
   vis(s_viewFind, v == V_FIND);
+  if (s_pickView) vis(s_pickView, false);   // 다른 탭으로 가면 '볼 시간표' 판은 닫는다
   tabStyle(s_tabTT, v == V_WEEK);
   tabStyle(s_tabSet, v == V_SET);
   tabStyle(s_tabClock, v == V_CLOCK);
@@ -1373,16 +1433,23 @@ static void onTabFind(lv_event_t *e) { showView(V_FIND); }
 static void onClockTap(lv_event_t *e) { showView(V_WEEK); }
 static void onPrev(lv_event_t *e) { if (s_week > 0) { s_week--; renderWeek(); } }
 static void onNext(lv_event_t *e) { if (s_ttLoaded && s_week + 1 < (int)s_tt["weeks"].size()) { s_week++; renderWeek(); } }
-static void onThisWeek(lv_event_t *e) { s_week = currentWeek(); renderWeek(); }static void onPickTT(lv_event_t *e) {
-  uint16_t i = lv_dropdown_get_selected(s_ttPick);
+static void onThisWeek(lv_event_t *e) { s_week = currentWeek(); renderWeek(); }static void onPickTT(lv_event_t *e) {   // 단추 판에서 하나를 눌렀다 → 고르고 판을 닫고 바로 받기
+  const int i = (int)(intptr_t)lv_obj_get_user_data(lv_event_get_target(e));
   JsonObject it = s_index["items"][i];
   if (!it.isNull()) {
     s_pickName = (const char *)(it["name"] | "");
     s_ttFile = (const char *)(it["file"] | "");
     s_prefs.putString("ttname", s_pickName);
   }
+  lv_obj_add_flag(s_pickView, LV_OBJ_FLAG_HIDDEN);
+  fillPicker();
   s_syncReq = true;
+  setStatus("고른 시간표를 곧 받습니다…");
 }
+static void onPickOpen(lv_event_t *) { s_pickPg = 0; renderPicker(); lv_obj_clear_flag(s_pickView, LV_OBJ_FLAG_HIDDEN); }
+static void onPickClose(lv_event_t *) { lv_obj_add_flag(s_pickView, LV_OBJ_FLAG_HIDDEN); }
+static void onPickTab(lv_event_t *e) { s_pickKind = (int)(intptr_t)lv_event_get_user_data(e); s_pickPg = 0; renderPicker(); }
+static void onPickPage(lv_event_t *e) { s_pickPg = max(0, s_pickPg + (int)(intptr_t)lv_event_get_user_data(e)); renderPicker(); }
 
 // ── 화면 만들기 ──
 // 배치는 화면 크기(s_W × s_H)에서 계산한다. 이 키트의 7인치 보드는 800×480 이다.
@@ -1541,6 +1608,9 @@ static void buildUI() {
   lv_obj_add_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
   s_bigDate = label(left, &kr28, D_SUB, "");
   lv_obj_set_style_text_align(s_bigDate, LV_TEXT_ALIGN_CENTER, 0);
+  s_bat = label(left, FM(), D_MUTED, "");                             // "배터리 87%" (배터리를 읽을 수 있을 때만)
+  lv_obj_align(s_bat, LV_ALIGN_TOP_RIGHT, -S(14), S(10));
+  lv_obj_add_flag(s_bat, LV_OBJ_FLAG_HIDDEN);
 
   // 날씨 카드(오늘 | 내일, 아래 줄 미세먼지)
   lv_obj_t *wc = s_wxCard = box(left, D_ROW, D_LINE, 14);
@@ -1612,10 +1682,10 @@ static void buildUI() {
   const int ROW_PITCH = (PH - ROW_Y0 - S(12)) / 8, ROW_H = ROW_PITCH - S(6), PW = S(64);
   for (int r = 0; r < 8; r++) {
     int p = periodOfRow(r);
-    s_row[r] = box(right, D_ROW, D_LINE, 8);
+    s_row[r] = box(right, D_ROW, D_LINE, UI_SOFT ? 10 : 8);   // UI_SOFT: 시계 화면 줄도 둥글게(사각이 날카롭다는 의견, 2026-10-18)
     lv_obj_clear_flag(s_row[r], LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(s_row[r], ROW_W, ROW_H); lv_obj_set_pos(s_row[r], ROW_X, ROW_Y0 + r * ROW_PITCH);
-    s_rowP[r] = box(s_row[r], D_LINE, 0, 6);
+    s_rowP[r] = box(s_row[r], D_LINE, 0, UI_SOFT ? 10 : 6);
     lv_obj_set_size(s_rowP[r], PW, ROW_H - 8); lv_obj_align(s_rowP[r], LV_ALIGN_LEFT_MID, S(6) - 1, 0);
     lv_obj_t *pl = label(s_rowP[r], FM(), D_SUB, "");
     if (p < 0) lv_label_set_text(pl, "점심");
@@ -1664,6 +1734,7 @@ static void buildUI() {
   lv_obj_align(bScan, LV_ALIGN_TOP_RIGHT, -10, 8); lv_obj_add_event_cb(bScan, onScan, LV_EVENT_CLICKED, nullptr);
   const int LY = small ? 76 : 90, FH = small ? 30 : 34;
   s_wifiList = lv_list_create(wbox);
+  lv_obj_clear_flag(s_wifiList, LV_OBJ_FLAG_SCROLL_MOMENTUM | LV_OBJ_FLAG_SCROLL_ELASTIC);   // 밀어도 미끄러지지 않게(딱딱)
   lv_obj_set_size(s_wifiList, WBW - 24, BOXH - LY - FH - 16); lv_obj_set_pos(s_wifiList, 12, LY);
   lv_obj_set_style_text_font(s_wifiList, fBody, 0);
   lv_obj_t *bForget = button(wbox, "저장한 와이파이 지우기", small ? 190 : 220, FH, C_ALT, C_MUTED);
@@ -1672,14 +1743,10 @@ static void buildUI() {
   lv_obj_t *obox = box(s_viewSet, C_SURF, C_BORDER, 10);
   lv_obj_set_size(obox, OBW, BOXH); lv_obj_set_pos(obox, 2 * M + WBW, M);
   lv_obj_set_pos(label(obox, fTitle, C_TEXT, "볼 시간표"), 12, 10);
-  s_ttPick = lv_dropdown_create(obox);
-  lv_obj_set_style_text_font(s_ttPick, fBody, 0);
-  lv_obj_set_style_text_font(lv_dropdown_get_list(s_ttPick), fBody, 0);
-  lv_dropdown_set_options(s_ttPick, BOARD_DEFAULT_TT);   // 목록(index.json)을 받으면 fillPicker 가 채운다
-  lv_obj_set_style_max_height(lv_dropdown_get_list(s_ttPick), s_H * 2 / 3, 0);
-  lv_obj_set_width(s_ttPick, OBW - 24); lv_obj_set_pos(s_ttPick, 12, small ? 40 : 50);
-
-  lv_obj_add_event_cb(s_ttPick, onPickTT, LV_EVENT_VALUE_CHANGED, nullptr);
+  s_ttPick = button(obox, BOARD_DEFAULT_TT "  " LV_SYMBOL_RIGHT, OBW - 24, small ? 34 : 40, C_SURF, C_TEXT);   // 누르면 단추 판
+  lv_obj_set_style_border_color(s_ttPick, lv_color_hex(C_BORDER), 0);
+  lv_obj_set_pos(s_ttPick, 12, small ? 40 : 50);
+  lv_obj_add_event_cb(s_ttPick, onPickOpen, LV_EVENT_CLICKED, nullptr);
   lv_obj_t *bSync = button(obox, "지금 받기", OBW - 24, small ? 34 : 40, C_PRIMARY, 0xffffff);
   lv_obj_set_pos(bSync, 12, small ? 88 : 104);
   lv_obj_add_event_cb(bSync, [](lv_event_t *) { s_syncReq = true; setStatus("곧 연결합니다…"); }, LV_EVENT_CLICKED, nullptr);
@@ -1726,6 +1793,49 @@ static void buildUI() {
   buildFinder(scr, TOP);
 
   // 비밀번호 입력 (위쪽 창 + 화면 아래 키보드)
+  // ── '볼 시간표' 단추 판(설정 위에 덮는 화면, 처음엔 숨김) ──
+  {
+    s_pickView = box(scr, C_BG, 0, 0);
+    lv_obj_set_size(s_pickView, s_W, s_H - TOP); lv_obj_set_pos(s_pickView, 0, TOP);
+    lv_obj_add_flag(s_pickView, LV_OBJ_FLAG_HIDDEN);
+    const int HB = small ? 38 : 46;
+    lv_obj_t *t = label(s_pickView, fTitle, C_TEXT, "볼 시간표 고르기");
+    lv_obj_align(t, LV_ALIGN_TOP_LEFT, M + 4, M + (HB - 21) / 2);
+    for (int k = 0; k < 2; k++) {
+      s_pickTab[k] = button(s_pickView, "", small ? 130 : 170, HB, C_ALT, C_MUTED);
+      lv_obj_set_style_border_color(s_pickTab[k], lv_color_hex(C_BORDER), 0);
+      lv_obj_set_pos(s_pickTab[k], (small ? 230 : 300) + k * ((small ? 130 : 170) + 8), M);
+      lv_obj_add_event_cb(s_pickTab[k], onPickTab, LV_EVENT_CLICKED, (void *)(intptr_t)k);
+    }
+    lv_obj_t *bc = button(s_pickView, "닫기", small ? 90 : 110, HB, C_ALT, C_MUTED);
+    lv_obj_set_style_border_color(bc, lv_color_hex(C_BORDER), 0);
+    lv_obj_align(bc, LV_ALIGN_TOP_RIGHT, -M, M);
+    lv_obj_add_event_cb(bc, onPickClose, LV_EVENT_CLICKED, nullptr);
+    // 6×5 단추. 아래 한 줄은 쪽 넘기기
+    const int GY = M + HB + M, FB = HB, GH = s_H - TOP - GY - FB - 2 * M;
+    const int GAP = small ? 6 : 8, BW = (s_W - 2 * M - 5 * GAP) / 6, BH = (GH - 4 * GAP) / 5;
+    for (int b = 0; b < 30; b++) {
+      s_pickBtn[b] = button(s_pickView, "", BW, BH, C_SURF, C_TEXT);
+      lv_obj_set_style_border_color(s_pickBtn[b], lv_color_hex(C_BORDER), 0);
+      lv_obj_set_style_text_font(lv_obj_get_child(s_pickBtn[b], 0), fCellA, 0);
+      lv_obj_set_pos(s_pickBtn[b], M + (b % 6) * (BW + GAP), GY + (b / 6) * (BH + GAP));
+      lv_obj_add_event_cb(s_pickBtn[b], onPickTT, LV_EVENT_CLICKED, nullptr);
+      lv_obj_add_flag(s_pickBtn[b], LV_OBJ_FLAG_HIDDEN);
+    }
+    const int FY = s_H - TOP - M - FB;
+    lv_obj_t *bp = button(s_pickView, LV_SYMBOL_LEFT "  이전", small ? 120 : 150, FB, C_ALT, C_TEXT);
+    lv_obj_set_style_border_color(bp, lv_color_hex(C_BORDER), 0);
+    lv_obj_set_pos(bp, s_W / 2 - (small ? 120 : 150) - 70, FY);
+    lv_obj_add_event_cb(bp, onPickPage, LV_EVENT_CLICKED, (void *)(intptr_t)-1);
+    s_pickPage = label(s_pickView, fBody, C_MUTED, "1 / 1");
+    lv_obj_set_width(s_pickPage, 120); lv_obj_set_style_text_align(s_pickPage, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_pos(s_pickPage, s_W / 2 - 60, FY + (FB - 17) / 2);
+    lv_obj_t *bn = button(s_pickView, "다음  " LV_SYMBOL_RIGHT, small ? 120 : 150, FB, C_ALT, C_TEXT);
+    lv_obj_set_style_border_color(bn, lv_color_hex(C_BORDER), 0);
+    lv_obj_set_pos(bn, s_W / 2 + 70, FY);
+    lv_obj_add_event_cb(bn, onPickPage, LV_EVENT_CLICKED, (void *)(intptr_t)1);
+  }
+
   s_pwBox = box(scr, C_SURF, C_BORDER, 12);
   lv_obj_set_size(s_pwBox, s_W - 160, small ? 110 : 130); lv_obj_align(s_pwBox, LV_ALIGN_TOP_MID, 0, TOP + 6);
   lv_obj_set_style_shadow_width(s_pwBox, 30, 0); lv_obj_set_style_shadow_opa(s_pwBox, LV_OPA_30, 0);
@@ -1840,6 +1950,26 @@ void loop() {
     unlock();
     WiFi.scanDelete();
     if (s_sync == SYNC_IDLE) { wifiOff(); lcdSlow(false); }
+  }
+
+  // 배터리: 켠 뒤 5초, 그 뒤 1분마다 읽는다. 글자는 값이 바뀔 때만 바꾼다(다시 그리기 줄이기). 3.0V 밑이면 배터리 없음으로 보고 숨긴다.
+  static uint32_t lastBat = 0;
+  if (BOARD_7B && ms > 5000 && (lastBat == 0 || ms - lastBat > 60000)) {
+    lastBat = ms;
+    const int mv = ioexp_battery_mv();
+    const int pct = (mv >= 3000 && mv <= 4500) ? batteryPct(mv) : -1;
+    Serial.printf("battery %dmV -> %d%%\n", mv, pct);
+    if (pct != s_batPct && s_bat) {
+      s_batPct = pct;
+      lock();
+      if (pct < 0) lv_obj_add_flag(s_bat, LV_OBJ_FLAG_HIDDEN);
+      else {
+        lv_label_set_text_fmt(s_bat, "배터리 %d%%", pct);
+        lv_obj_set_style_text_color(s_bat, lv_color_hex(pct <= 20 ? 0xfb923c : D_MUTED), 0);
+        lv_obj_clear_flag(s_bat, LV_OBJ_FLAG_HIDDEN);
+      }
+      unlock();
+    }
   }
 
   // 1분마다 화면 박자를 다시 맞춘다(밀려도 1분 안에 제자리로). 받는 중에는 끝날 때 맞춘다.
