@@ -97,7 +97,7 @@ board-kit\
   - **주의: `firmware.factory.bin` 을 0x0 에 굽으면 설정 구역(NVS, 0x9000)까지 덮어써 저장한 와이파이·볼 시간표가 지워진다**(2026-10-18 겪음).
     평소에는 앱만 굽는다: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0x10000 %USERPROFILE%\.pio-build\penedu-board-7inch-src\.pio\build\board7b\firmware.bin`
   - 7B 에서 PSRAM·플래시 120MHz(공식 설정)는 이 Arduino 빌드에서 앱 시작 때 멈춰 재부팅이 반복됐다(2026-10-18). 지금은 PSRAM 80MHz + 화면 28MHz. 120MHz 는 원인을 찾은 뒤 다시 시험한다.
-- **처음 한 번은 25~45분**(약 3GB 받아 7GB 로 풀림). 두 번째부터 1~2분. 첫 빌드는 **끝까지 기다린다**(중간에 끄지 말 것).
+- **처음 한 번은 25~45분**(약 3GB 받아 7GB 로 풀림). 두 번째부터 1~2분(스크립트가 빌드 폴더의 `sdkconfig.*`·`managed_components` 를 지우지 않게 2026-10-18 고침 — 전에는 매번 35분 걸렸다). 첫 빌드는 **끝까지 기다린다**(중간에 끄지 말 것).
 - 플랫폼은 **pioarduino**(Arduino-ESP32 3.x). 공식 espressif32 는 Arduino 2.x 라 화면 드라이버가 안 맞는다.
 - **LVGL 은 8.3.11 고정**(`lib_deps`), ArduinoJson 7.x. 버전을 올리지 말 것.
 - 한글 글꼴(`src\fonts\kr*.c`, `num*.c`)은 만들어 둔 것을 쓴다. 글자(예: 드문 이름 글자)를 더해야 할 때만 `fonts\` 에서 `npm install` → `node build_fonts.cjs`

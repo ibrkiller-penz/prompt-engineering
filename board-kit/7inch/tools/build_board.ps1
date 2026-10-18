@@ -50,7 +50,7 @@ if (-not $NoUpload -and -not $Port) {
 
 New-Item -ItemType Directory -Force $dst | Out-Null
 # .pio(이전 빌드 결과)는 지우지 않고 남겨 두어야 두 번째부터 빠르다
-robocopy $src $dst /MIR /XD .pio /XF build.log build.done /NFL /NDL /NJH /NJS /NP | Out-Null
+robocopy $src $dst /MIR /XD .pio managed_components /XF build.log build.done sdkconfig.* .dummy /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy 실패 ($LASTEXITCODE)" }
 
 $pioArgs = @('-m', 'platformio', 'run', '-d', $dst, '-e', $Env)
