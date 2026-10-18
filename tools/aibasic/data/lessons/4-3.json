@@ -1,0 +1,257 @@
+{
+  "id": "4-3",
+  "unit": 4,
+  "title": "비정형 데이터 인공지능 프로젝트 실제② 산불 이미지 분류하기",
+  "tagline": "빨간 건물을 산불로 착각한 인공지능",
+  "pages": "교과서 p.202–217",
+  "goals": [
+    "이미지 같은 비정형 데이터로 분류 프로젝트를 단계에 따라 수행할 수 있다.",
+    "CNN의 합성곱과 풀링이 하는 일을 설명할 수 있다.",
+    "모델 생성, 컴파일, 학습 코드의 각 줄이 하는 일을 설명할 수 있다.",
+    "데이터 편향성이 무엇이고 어떻게 줄이는지 설명할 수 있다."
+  ],
+  "story": {
+    "title": "불꽃이 아닌데 불이라고요?",
+    "paras": [
+      "아라 쌤이 뉴스 영상을 틀어 주셨다. 2019년 가을 호주에서 큰 산불이 났고, 우리나라 땅 넓이에 맞먹을 만큼 넓은 땅이 탔다고 했다. 화면 속 하늘은 온통 주황색이었다. 나는 먹던 빵을 입에 문 채로 굳어 버렸다. 불길을 피해 달아나는 동물들이 나오자 빵이 목에 걸리는 기분이었다.",
+      "우리나라도 남의 일이 아니라고 하셨다. 2000년 봄에 강원도 동해안에서 큰 산불이 나서 서울 종로구의 열 배쯤 되는 산이 탔다. 지구가 더워지면서 이런 불이 잦아졌다고 한다. 솔직히 말하면 나는 산불을 뉴스 속 장면으로만 생각해 왔다.",
+      "내가 손을 들었다. \"사진을 보고 산불인지 아닌지 바로 알려 주는 인공지능이 있으면 좋겠어요.\" 민준이가 곧바로 받았다. \"쉬운데요? 빨간색이 많으면 불이고, 아니면 아닌 거죠.\" 교실이 웃음으로 가득 찼다. 나도 한편으로는 그럴듯하다고 생각했다.",
+      "쌤은 웃으시며 아주 중요한 가설이라고 하셨다. 다만 우리가 만든 것이 정말 불을 보는지, 빨간색만 보는지는 나중에 따로 시험해 볼 거라고 덧붙이셨다. 그 말이 이상하게 오래 남았다.",
+      "집에 오는 길에 하늘을 올려다보니 노을이 붉게 번져 있었다. 길가 단풍도 빨갛고, 편의점 간판도 빨갛고, 신호등도 빨갛다. 빨간 것이 이렇게 많은데 그 가운데서 진짜 불만 골라내려면 무엇을 봐야 하는 걸까. 나는 걷다가 멈춰 서서 한참 하늘을 쳐다보았다.",
+      "이번에는 숫자 표가 아니라 사진을 다룬다고 한다. 그런데 사진을 컴퓨터가 어떻게 읽는다는 건지 상상이 안 된다. 우리 눈에는 한 장의 그림인데 컴퓨터에게는 어떻게 보일까. 나는 그 점이 제일 궁금했다.",
+      "내일 쌤께 제일 먼저 물어봐야겠다. 사진 속 불을 알아보는 인공지능은 어떻게 만들까. 그리고 그것이 정말 불을 본 것인지, 그냥 빨간색에 속은 것인지는 어떻게 알 수 있을까."
+    ],
+    "question": "사진 속 불을 알아보는 인공지능은 어떻게 만들고, 빨간색만 보고 판단하는 건 아닌지 어떻게 확인할까요?"
+  },
+  "steps": [
+    {
+      "level": "1계단",
+      "title": "문제 정의와 이미지 데이터 수집",
+      "body": "<p>프로젝트는 <b>7단계</b>로 진행해요: 문제 정의 → 데이터 수집 → 데이터 전처리 → 데이터 시각화 및 분석 → 알고리즘 선정 → 모델 학습 → 성능 평가 및 수정.</p>\n<ul>\n<li><b>목표</b>: 13번 ‘기후 변화에 대한 영향 방지와 긴급 조치’</li>\n<li><b>사례</b>: ‘화재 예방을 위한 이미지 분류’</li>\n</ul>\n<div class=\"box def\"><b>📌 문제 정의</b> 화재 예방을 위해 산불 관련 이미지 데이터를 학습하는 인공지능 모델을 만든다. (산불인지 아닌지를 가르는 <b>분류</b> 문제예요.)</div>\n<p>모둠별로 문제를 정의하고 역할(프로젝트 기획자, 데이터 수집가, 데이터 분석가, 모델 개발자, 프로젝트 발표자 등)을 정해요. 앞 레슨과 같이, 모둠 주제와 관련된 데이터가 부족하면 SDGs 영역을 고르고 데이터를 먼저 탐색해 데이터 중심으로 주제를 정할 수도 있어요.</p>\n<p><b>데이터 수집</b>: 학습할 이미지는 직접 모으거나 인터넷에서 수집해요. 산불 이미지는 인터넷에서 검색해 모으고, 산불이 아닌 이미지는 인터넷 검색이나 주변 모습을 촬영해서 모아요.</p>\n<p>모은 이미지는 <b>구글 드라이브</b>에 저장한 뒤 <b>코랩</b>과 연결해요.</p>\n<ol>\n<li>구글 드라이브에 ‘fire’라는 폴더를 만들어요.</li>\n<li>‘fire’ 폴더 안에 ‘non’과 ‘fire’라는 하위 폴더를 만들어요(원하는 이름으로 해도 돼요).</li>\n<li>‘non’ 폴더에는 <b>산불이 아닌</b> 이미지, ‘fire’ 폴더에는 <b>산불</b> 이미지를 넣어요.</li>\n</ol>\n<figure class=\"fig\"><img src=\"img/p204_2.jpg\" alt=\"구글 드라이브의 fire 폴더 안 non과 fire 하위 폴더\" loading=\"lazy\"><figcaption>fire 폴더 안에 non, fire 하위 폴더를 만든 모습이에요. (교과서 204쪽)</figcaption></figure>\n<pre class=\"code\"><code>from google.colab import drive\ndrive.mount('/gdrive', force_remount = True)</code></pre>\n<ul>\n<li>1줄: 코랩에서 구글 드라이브를 다루는 drive를 불러와요.</li>\n<li>2줄: <code>drive.mount()</code>로 내 구글 드라이브를 코랩의 ‘/gdrive’ 경로에 연결해요. <code>force_remount = True</code>는 연결을 강제로 다시 하겠다는 뜻이에요. ‘Mounted at /gdrive’라고 나오면 연결 성공이에요.</li>\n</ul>\n<div class=\"box tip\"><b>💡 알아두기</b> 연결한 뒤에는 이미지 데이터의 경로를 정해 주어야 해요. 생성형 인공지능으로 이미지를 만들어 데이터로 써도 돼요. 인터넷에서 수집한 데이터를 저작권자 동의 없이 사용하는 것은 불법일 수 있으니 주의하세요.</div>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 폴더 이름이 곧 정답(클래스) 이름이 돼요. fire 폴더와 non 폴더를 서로 바꿔 넣으면 모델이 거꾸로 배워요.</div>",
+      "keypoints": [
+        "SDGs 13번과 관련해 산불 이미지를 분류하는 모델을 만든다. 폴더 fire/non이 정답 이름이 돼요.",
+        "drive.mount()로 구글 드라이브를 코랩에 연결해요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "산불이 아닌 이미지는 어느 폴더에 저장해야 할까?",
+        "choices": [
+          "non 폴더",
+          "fire 폴더",
+          "아무 폴더나",
+          "코랩 안에만 둔다"
+        ],
+        "answer": 0,
+        "explain": "산불은 fire, 산불이 아닌 것은 non 폴더에 넣어요. 폴더 이름이 분류 정답(클래스)으로 쓰이므로 구분에 주의해요."
+      }
+    },
+    {
+      "level": "2계단",
+      "title": "데이터 전처리와 시각화: 이미지 불러와 보기",
+      "body": "<p>저장된 이미지가 몇 장인지 확인하고 목록을 만들어요.</p>\n<pre class=\"code\"><code>import os\npath = '/gdrive/MyDrive/fire'\ntrain_fire_dir = path + '/fire'\ntrain_fire_names = os.listdir(train_fire_dir)\nprint(train_fire_names[:2])\nprint(len(train_fire_names))</code></pre>\n<table>\n<tr><th>줄</th><th>설명</th></tr>\n<tr><td>1</td><td>경로와 관련된 os 라이브러리를 불러와요.</td></tr>\n<tr><td>2</td><td>이미지 데이터셋의 기본 경로를 정해요.</td></tr>\n<tr><td>3</td><td>산불 이미지 폴더의 경로를 만들어요.</td></tr>\n<tr><td>4</td><td><code>os.listdir()</code>로 폴더 안의 파일 이름 목록을 가져와요.</td></tr>\n<tr><td>5</td><td>앞의 2개 이름만 출력해요.</td></tr>\n<tr><td>6</td><td><code>len()</code>으로 이미지 개수를 출력해요. 산불 이미지는 <b>162개</b>예요. 같은 방법으로 non 폴더도 확인해요(산불이 아닌 이미지도 162개).</td></tr>\n</table>\n<p>경로까지 포함된 리스트를 얻으려고 glob 라이브러리를 써요.</p>\n<pre class=\"code\"><code>import glob\ntrain_fire = glob.glob(path + '/fire' + '/*')\ntrain_non_fire = glob.glob(path + '/non' + '/*')\ntrain_fire</code></pre>\n<p><code>glob.glob()</code>은 지정한 경로의 파일들을 불러와 리스트로 돌려줘요. <code>/*</code>는 “폴더 안의 모든 파일”이라는 뜻이에요. 결과는 ‘/gdrive/MyDrive/fire//fire/fire.74.png’ 같은 경로 목록이에요.</p>\n<p><b>이미지 색상 변환</b>: 이미지를 시각화하려고 BGR 형식을 RGB 형식으로 바꾸는 read_img() 함수를 정의해요.</p>\n<pre class=\"code\"><code>import cv2\nfrom matplotlib.pyplot import imshow\ndef read_img(file_path):\n  img_arr = cv2.imread(file_path)\n  return cv2.cvtColor(img_arr, cv2.COLOR_BGR2RGB)</code></pre>\n<ul>\n<li><code>cv2</code>(OpenCV): 이미지 색상 변경 등 컴퓨터 비전 작업을 해요.</li>\n<li><code>cv2.imread()</code>: 괄호 안 이미지를 읽어 와요. 읽은 이미지는 숫자 배열이 돼요.</li>\n<li><code>cv2.cvtColor()</code>: 이미지의 색상 공간을 바꿔요. <code>COLOR_BGR2RGB</code>는 파랑-초록-빨강(BGR) 순서를 빨강-초록-파랑(RGB) 순서로 바꾸라는 뜻이에요. (교과서 주석에는 ‘흑백’이라고 적혀 있지만 이 코드는 RGB 컬러로 바꾸는 코드예요.)</li>\n</ul>\n<p>이제 <b>시각화</b>로 이미지를 직접 봐요. 데이터를 직접 불러와 눈으로 확인하는 것은 시각화·분석 단계에서 중요한 일이에요.</p>\n<pre class=\"code\"><code>import matplotlib.pyplot as plt\nfire_img = read_img(train_fire[7])\nplt.title('Fire Image')\nplt.xlabel(fire_img.shape)\nplt.imshow(fire_img, aspect = 'auto')</code></pre>\n<ul>\n<li>2줄: 산불 이미지 162개 중 8번째(번호 7) 이미지를 읽어 fire_img에 저장해요.</li>\n<li>3줄: 그림 제목을 달아요. 4줄: x축 이름 자리에 이미지의 크기(shape)를 표시해요.</li>\n<li>5줄: <code>imshow()</code>로 이미지를 화면에 보여 줘요. <code>aspect = 'auto'</code>는 가로세로 비율을 자동으로 맞춰 왜곡을 막아요.</li>\n</ul>\n<p>번호 7 대신 다른 숫자를 넣으면 다른 이미지를 볼 수 있어요. 랜덤으로 고르려면 <code>import random</code> 후 <code>random.choice()</code>를 쓸 수 있어요. 산불이 아닌 이미지도 똑같이 합니다.</p>\n<pre class=\"code\"><code>non_fire_img = read_img(train_non_fire[7])\nplt.title('Non Fire Image')\nplt.xlabel(non_fire_img.shape)\nplt.imshow(non_fire_img, aspect = 'auto')</code></pre>\n<p>이렇게 두 종류의 이미지가 모두 정상적으로 시각화되는 것을 확인해요.</p>\n<figure class=\"fig\"><img src=\"img/p206_1.jpg\" alt=\"imshow로 불러온 산불 이미지와 크기 400,400,3\" loading=\"lazy\"><figcaption>산불 이미지를 imshow로 보여 준 결과예요. 크기 (400, 400, 3)은 컬러 3채널이라는 뜻이에요. (교과서 206쪽)</figcaption></figure><figure class=\"fig\"><img src=\"img/p207_1.jpg\" alt=\"imshow로 불러온 산불 아닌 숲 호수 이미지\" loading=\"lazy\"><figcaption>산불이 아닌 이미지도 같은 방법으로 확인해요. (교과서 207쪽)</figcaption></figure>",
+      "keypoints": [
+        "os.listdir·glob으로 이미지 목록을, cv2.imread·cvtColor로 읽기와 색 변환을 해요.",
+        "imshow()로 직접 보면서 데이터가 제대로 들어왔는지 확인해요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "cv2.cvtColor(img_arr, cv2.COLOR_BGR2RGB) 의 역할은?",
+        "choices": [
+          "이미지의 색 채널 순서를 BGR에서 RGB로 바꾼다",
+          "이미지를 삭제한다",
+          "이미지 크기를 400×400으로 바꾼다",
+          "이미지를 저장한다"
+        ],
+        "answer": 0,
+        "explain": "cvtColor는 색상 공간을 변환하는 함수이고, COLOR_BGR2RGB는 BGR 순서를 RGB로 바꾸라는 설정이에요."
+      }
+    },
+    {
+      "level": "3계단",
+      "title": "알고리즘 선정: 이미지에는 CNN",
+      "body": "<p>산불 사진 같은 <b>비정형 데이터</b>를 분류하려고 <b>합성곱 신경망(CNN: Convolution Neural Networks)</b> 딥러닝 모델을 써요. CNN은 이미지나 영상을 다룰 때 쓰는 딥러닝 모델로, 이름처럼 <b>합성곱(convolution)</b>이라는 데이터 처리 작업이 들어가요.</p>\n<p>CNN의 주요 구성 요소는 <b>합성곱</b>과 <b>풀링</b>이고, 이미지 처리와 패턴 인식을 위한 특징을 뽑는 핵심 역할을 해요.</p>\n<div class=\"box tip\"><b>💡 알아두기</b> CNN은 이미지 전체를 한꺼번에 보기보다 <b>부분을 보는 것</b>, 그리고 이미지의 한 픽셀과 <b>주변 픽셀들의 연관성</b>을 살리는 것이 중요해요.</div>\n<p><b>1. 합성곱(합성곱)</b>: 입력 데이터와 <b>필터(커널)</b> 사이의 합성곱 연산으로 출력 데이터를 만들어요. 필터는 입력에 적용되어 특정 패턴이나 특징을 뽑아내는 역할을 해요. 교과서의 예는 5×5 행렬로 표현된 2차원 이미지 입력값을 3×3 필터(커널)로 연산해요. 연산 방법은 <b>같은 크기의 두 행렬을 포개어 같은 위치의 값끼리 곱한 뒤 모두 더하는 것</b>이에요.</p>\n<div class=\"box ex\"><b>🔎 계산 예</b> 0×0 + 0×1 + 1×0 + 0×1 + 0×0 + 1×1 + 1×0 + 1×1 + 1×0 = 0+0+0+0+0+1+0+1+0 = <b>2</b>. 필터를 한 칸씩 옮겨 가며 이 계산을 반복하면 출력 데이터가 만들어져요.</div>\n<p><b>2. 풀링(pooling)</b>: 합성곱을 하면 결과의 크기가 너무 커질 수 있어서, <b>크기를 줄이는 작업</b>을 해요. 대표적으로 두 가지가 있어요.</p>\n<ul>\n<li><b>최대 풀링(max pooling)</b>: 지정한 크기 안에서 <b>최댓값</b>만 가져와 정리해요.</li>\n<li><b>평균 풀링(average pooling)</b>: 지정한 크기 안 값들의 <b>평균값</b>만 가져와 정리해요.</li>\n</ul>\n<p>교과서의 예에서는 4×4 영역에 2×2 풀링 크기를 적용해 2×2 크기의 결과를 만들어요.</p>\n<figure class=\"fig\"><img src=\"img/p208_1.jpg\" alt=\"최대 풀링과 평균 풀링 계산 예\" loading=\"lazy\"><figcaption>같은 4×4 값에 최대 풀링은 최댓값, 평균 풀링은 평균값만 남겨 2×2로 줄여요. (교과서 208쪽)</figcaption></figure>\n<div class=\"box ex\"><b>🔎 간단한 예 (이해를 돕는 예시)</b> 2×2 칸에 1, 3, 2, 4가 있다고 하면, 최대 풀링은 4, 평균 풀링은 (1+3+2+4)/4 = 2.5가 돼요. 칸 4개가 숫자 1개로 줄어들어요.</div>\n<div class=\"analogy\"><b>🍳 비유로 이해하기</b> 큰 그림을 돋보기(필터)로 조금씩 옮겨 가며 특징(선, 모서리, 색 변화)만 메모하는 것이 합성곱이고, 메모가 너무 많으니 구역마다 가장 눈에 띄는 것만 남겨 요약하는 것이 풀링이에요.</div>",
+      "keypoints": [
+        "CNN은 이미지 분류에 쓰는 딥러닝으로, 합성곱(특징 추출)과 풀링(크기 줄이기)이 핵심이에요.",
+        "합성곱은 필터와 같은 위치 값을 곱해 더하고, 풀링은 최댓값(최대 풀링) 또는 평균값(평균 풀링)만 남겨요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "풀링(pooling)의 목적으로 알맞은 것은?",
+        "choices": [
+          "합성곱 결과의 크기를 줄이면서 중요한 정보를 남기는 것",
+          "이미지를 더 크게 만드는 것",
+          "이미지를 삭제하는 것",
+          "정답을 알려 주는 것"
+        ],
+        "answer": 0,
+        "explain": "풀링은 합성곱으로 얻은 결과가 너무 크므로 공간 크기를 줄이되 중요한 정보를 보존하는 작업이에요."
+      }
+    },
+    {
+      "level": "4계단",
+      "title": "모델 학습 ① CNN 모델 만들기와 컴파일",
+      "body": "<p>텐서플로(TensorFlow) 라이브러리로 CNN 모델을 만들어요. <b>Sequential</b> 모델은 층을 차례로 쌓는 모델이에요.</p>\n<pre class=\"code\"><code>import tensorflow as tf\nmodel = tf.keras.models.Sequential([\n     tf.keras.layers.Conv2D(16, (3, 3), activation = 'relu', input_shape = (400, 400, 3)),\n     tf.keras.layers.MaxPool2D(2, 2),\n     tf.keras.layers.Conv2D(32, (3, 3), activation = 'relu'),\n     tf.keras.layers.MaxPool2D(2, 2),\n     tf.keras.layers.Conv2D(64, (3, 3), activation = 'relu'),\n     tf.keras.layers.MaxPool2D(2, 2),\n     tf.keras.layers.Flatten(),\n     tf.keras.layers.Dense(128, activation = 'relu'),\n     tf.keras.layers.Dense(1, activation = 'sigmoid')\n])\nmodel.summary()</code></pre>\n<table>\n<tr><th>코드</th><th>설명</th></tr>\n<tr><td>Sequential([ ... ])</td><td>층을 위에서 아래 순서대로 쌓아 모델을 만들어요. 연속적인 입력에서 연속적인 출력을 만드는 모델이에요.</td></tr>\n<tr><td>Conv2D(16, (3, 3), activation='relu', input_shape=(400, 400, 3))</td><td>첫 번째 <b>합성곱층</b>. 3×3 필터 16개로 특징을 뽑아요. 입력은 400×400 크기의 컬러(3개 채널) 이미지예요.</td></tr>\n<tr><td>MaxPool2D(2, 2)</td><td><b>풀링층</b>. 2×2 영역에서 최댓값만 남겨 크기를 줄여요.</td></tr>\n<tr><td>Conv2D(32, (3, 3)) + MaxPool2D</td><td>두 번째 합성곱·풀링. 필터를 32개로 늘려 더 복잡한 특징을 찾아요.</td></tr>\n<tr><td>Conv2D(64, (3, 3)) + MaxPool2D</td><td>세 번째 합성곱·풀링. 필터를 64개로 더 늘려요.</td></tr>\n<tr><td>Flatten()</td><td>3차원 데이터를 <b>1차원 배열</b>로 펼쳐요(완전 연결층에 넣기 위해).</td></tr>\n<tr><td>Dense(128, activation='relu')</td><td>뉴런 128개의 딥러닝 층(은닉층).</td></tr>\n<tr><td>Dense(1, activation='sigmoid')</td><td>출력층. 결과를 <b>0과 1 사이 확률값</b> 하나로 내놓아요.</td></tr>\n<tr><td>model.summary()</td><td>모델 구성(층별 출력 형태와 매개변수 수)을 보여 줘요.</td></tr>\n</table>\n<p>합성곱층과 풀링층이 각각 3개이고, Flatten 뒤에 딥러닝 층 2개가 와요. 교과서의 실행 결과에서는 각 층의 Output Shape(출력값의 형태)를 알 수 있고, Flatten 층에서 3차원이던 데이터(48×48×64)가 <b>147,456개의 1차원</b> 형태로 바뀌었어요. total params의 param은 parameter(매개변수)의 줄임말로, 알고리즘이 학습하면서 스스로 바꿀 수 있는 값이에요. 이 모델에서는 총 <b>18,898,209개</b>의 매개변수가 생겨요.</p>\n<figure class=\"fig\"><img src=\"img/p209_1.jpg\" alt=\"model.summary() 실행 결과 표\" loading=\"lazy\"><figcaption>model.summary()가 층별 출력 형태와 매개변수 수를 보여 줘요. (교과서 209쪽)</figcaption></figure>\n<p><b>컴파일</b>: 모델이 어떻게 학습할지 규칙을 정해 줘요.</p>\n<pre class=\"code\"><code>model.compile(loss = 'binary_crossentropy', optimizer = 'adam', metrics=['accuracy'])</code></pre>\n<ul>\n<li><code>loss = 'binary_crossentropy'</code>: 손실함수예요. 이진 분류(산불/아님, 두 가지) 문제에 쓰는 <b>이진 분류기</b>용 손실함수예요. 예측값이 0~1 확률로 나오고, 0에 가까울수록 한 클래스, 1에 가까울수록 다른 클래스에 가깝다는 뜻이에요.</li>\n<li><code>optimizer = 'adam'</code>: 가중치를 고치는 <b>최적화 방법</b>. Adam은 주로 신경망 훈련에 쓰고, 학습률을 자동으로 조절해 학습을 안정시켜요.</li>\n<li><code>metrics = ['accuracy']</code>: 평가 지표로 <b>정확도</b>를 써요.</li>\n</ul>",
+      "keypoints": [
+        "CNN = (Conv2D + MaxPool2D)×3 → Flatten → Dense(128) → Dense(1, sigmoid)",
+        "compile: 손실함수 binary_crossentropy, 최적화 Adam, 평가 지표 accuracy"
+      ],
+      "check": {
+        "type": "choice",
+        "q": "모델의 Flatten() 층이 하는 일은?",
+        "choices": [
+          "3차원 데이터를 1차원 배열로 펼친다",
+          "이미지를 흑백으로 바꾼다",
+          "정확도를 계산한다",
+          "이미지를 삭제한다"
+        ],
+        "answer": 0,
+        "explain": "합성곱·풀링 층의 출력은 3차원이에요. Flatten은 이것을 1차원으로 펼쳐 뒤의 Dense(딥러닝) 층에 넣을 수 있게 해요."
+      }
+    },
+    {
+      "level": "5계단",
+      "title": "모델 학습 ② 데이터 준비, 학습, 성능 평가",
+      "body": "<p>학습 전에 <code>ImageDataGenerator</code>로 훈련 데이터를 설정해요. 먼저 <code>rescale</code>로 RGB 값(0~255)을 255로 나누어 0~1 사이로 <b>정규화</b>해요.</p>\n<pre class=\"code\"><code>from tensorflow.keras.preprocessing.image import ImageDataGenerator\ntrain_datagen = ImageDataGenerator(rescale = 1/255)\ntrain_generator = train_datagen.flow_from_directory(\n                  path, target_size = (400,400),\n                  batch_size = 9, class_mode = 'binary',\n                  seed = 3\n)</code></pre>\n<ul>\n<li><code>rescale = 1/255</code>: 픽셀 값을 0~1로 정규화해요.</li>\n<li><code>flow_from_directory()</code>: 폴더에서 이미지를 읽어요. 폴더 이름(fire, non)이 곧 클래스예요.</li>\n<li><code>target_size = (400,400)</code>: 모든 이미지를 400×400으로 맞춰요(모델 입력 크기와 같아야 해요).</li>\n<li><code>batch_size = 9</code>: 한 번에 몇 개의 샘플로 가중치를 갱신할지 정해요. 이미지가 총 324개이므로 324의 약수 중 하나인 9로 정했어요.</li>\n<li><code>class_mode = 'binary'</code>: 산불인지 아닌지 두 가지로 이진 분류하므로 binary로 해요.</li>\n</ul>\n<p>실행하면 ‘Found 324 images belonging to 2 classes.’, 즉 이미지 324장, 클래스 2개를 찾았다고 나와요.</p>\n<p><b>모델 학습</b>은 <code>fit()</code>으로 해요.</p>\n<pre class=\"code\"><code>history = model.fit(train_generator, steps_per_epoch = 36, epochs = 8, verbose = 1)</code></pre>\n<ul>\n<li><code>steps_per_epoch = 36</code>: 한 번 학습(epoch)에 36번 갱신해요. 324장 ÷ 배치 9 = 36이에요.</li>\n<li><code>epochs = 8</code>: 학습 횟수(epoch)가 8번이에요. 횟수를 바꿔 가며 학습해 보고 <b>최적의 횟수</b>로 정하는 것이 좋아요.</li>\n<li><code>verbose = 1</code>: 학습 과정을 화면에 보여 줘요. 0이면 안 보이고 2면 몇 번째 epoch인지만 나와요.</li>\n</ul>\n<p><b>학습 후 오차와 정확도 확인</b>: 결과를 보면 에포크이 진행될수록 오차(loss)는 줄고 정확도(accuracy)는 늘어요.</p>\n<table>\n<tr><th>Epoch</th><th>loss</th><th>accuracy</th></tr>\n<tr><td>1/8</td><td>0.9772</td><td>0.6944</td></tr>\n<tr><td>2/8</td><td>0.3092</td><td>0.8395</td></tr>\n<tr><td>3/8</td><td>0.2273</td><td>0.9043</td></tr>\n<tr><td>7/8</td><td>0.0447</td><td>0.9907</td></tr>\n<tr><td>8/8</td><td>0.0564</td><td>0.9815</td></tr>\n</table>\n<p>이 결과를 그래프로 그려 보면 더 잘 보여요.</p>\n<pre class=\"code\"><code>import matplotlib.pyplot as plt\nplt.plot(history.history['loss'], 'r--', label = 'loss' )\nplt.plot(history.history['accuracy'], 'b-', label = 'accuracy')\nplt.xlabel('epoch')\nplt.legend()\nplt.show()</code></pre>\n<p>x축은 학습 횟수(epoch), y축은 오차와 정확도예요. 빨간 점선이 loss, 파란 실선이 accuracy예요. 교과서는 학습 정확도가 가장 높았던 것은 <b>마지막 학습</b>이라고 해석하지만, 표를 보면 7번째에 0.9907로 8번째(0.9815)보다 높아 보이니 직접 실행한 값을 보고 확인하세요.</p>\n<figure class=\"fig\"><img src=\"img/p211_1.jpg\" alt=\"epoch에 따른 loss와 accuracy 그래프\" loading=\"lazy\"><figcaption>학습할수록 빨간 점선(loss)은 내려가고 파란 실선(accuracy)은 올라가요. (교과서 211쪽)</figcaption></figure>\n<div class=\"box tip\"><b>💡 알아두기</b> CNN 모델을 수정해 성능을 높이려면 ① 더 정확한 데이터를 추가하거나 ② CNN의 매개변수와 은닉층 수를 고치거나 ③ 학습 횟수를 바꾸는 방법이 있어요.</div>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 위 정확도는 <b>훈련 데이터</b>에서 잰 값이에요. 진짜 실력은 처음 보는 이미지로 확인해야 해서 다음 계단에서 새 이미지를 테스트해요.</div>",
+      "keypoints": [
+        "rescale로 0~1 정규화, target_size로 크기 통일, class_mode=binary로 이진 분류 설정",
+        "fit()으로 epoch를 돌리며 학습하고 loss와 accuracy 변화를 그래프로 확인해요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "이미지가 324장이고 batch_size가 9일 때 한 epoch의 steps_per_epoch는?",
+        "choices": [
+          "36",
+          "9",
+          "324",
+          "3"
+        ],
+        "answer": 0,
+        "explain": "한 epoch에서 이미지를 모두 한 번씩 보려면 324 ÷ 9 = 36번 갱신하면 돼요."
+      }
+    },
+    {
+      "level": "6계단",
+      "title": "새 이미지로 시험하기, 그리고 데이터 편향성",
+      "body": "<p>우리가 만든 모델이 잘 작동하는지 <b>학습시키지 않은 새 이미지</b>로 시험해요. 웹 사이트 bing에서 생성형 인공지능으로 산불 이미지를 만들어 내려받고 코랩에 올려요.</p>\n<pre class=\"code\"><code>from google.colab import files\nuploaded1 = files.upload()\n\nfrom PIL import Image\nimg1 = Image.open('/content/test1.jpg')\nimg1</code></pre>\n<p>PIL의 <code>Image.open()</code>으로 올린 새 이미지를 열어 확인해요(PIL은 이미지 열기·조작·저장 등을 하는 라이브러리). 인터넷에서 모은 이미지는 불완전해서 성능을 떨어뜨릴 수 있으니 <b>전처리</b>가 필요해요.</p>\n<pre class=\"code\"><code>from tensorflow.keras.preprocessing import image\nimport numpy as np\nimg_resize1 = img1.resize((400,400))\ntest_img1 = image.img_to_array(img_resize1)\ntest_img1 = np.expand_dims(test_img1, axis = 0)\nimages1 = np.vstack([test_img1])</code></pre>\n<ul>\n<li><code>resize((400,400))</code>: 모델 입력 크기에 맞게 400×400으로 바꿔요.</li>\n<li><code>img_to_array()</code>: 이미지를 숫자 배열로 바꿔요.</li>\n<li><code>expand_dims(axis=0)</code>: 테스트 결과를 담을 공간(이미지 개수 차원)을 하나 만들어요.</li>\n<li><code>vstack()</code>: 테스트에 알맞게 배열을 쌓아 변환해요.</li>\n</ul>\n<pre class=\"code\"><code>classes1 = model.predict(images1, batch_size = 10)\nprint(classes1[0])\nif classes1[0]==0:\n  print('Fire Image')\nelse:\n  print('Non Fire Image')</code></pre>\n<p><code>predict()</code>에 테스트 이미지와 batch_size를 넣으면 결과가 나와요. 저장된 결과가 <b>0이면 산불 이미지, 1이면 산불이 아닌 이미지</b>예요(폴더 이름 순서로 fire가 0, non이 1). 출력층이 sigmoid라 실제 출력은 0~1 사이의 값인데, 충분히 학습된 모델은 거의 0이나 1에 가까운 값을 내요(0.5보다 작으면 산불 쪽, 크면 산불 아닌 쪽으로 읽어요). 교과서 실행 결과는 [0.] → ‘Fire Image’였어요. 결과가 잘못 나오는 경우가 있는지, 그 이유가 무엇인지 찾아보는 것도 좋은 활동이에요.</p>\n<p><b>[심화] 데이터 편향성</b> — 빅데이터·기계학습·인공지능이 생활을 윤택하게 하지만, 요즘 중요한 이슈가 <b>편향성(bias)</b> 문제예요.</p>\n<div class=\"box ex\"><b>🔎 자율주행 자동차 사고</b> 2016년 5월 미국에서 자율주행 기능을 켠 자동차의 첫 사망 사고가 났어요. 좌회전하는 하얀색 트럭을 ‘밝게 빛나는 하늘’로 인식해서 그대로 충돌한 거예요. 학습 데이터가 특정 조건에 한정되면 모델은 그 조건에서의 운전만 배운 것과 같아져요. 이렇게 수집 과정에서 특정 그룹이나 성향의 데이터가 다른 쪽보다 <b>과도하게 포함된 상황</b>을 <b>데이터 편향성</b>이라 하고, 모델 성능을 왜곡하고 예측의 신뢰성을 떨어뜨려요.</div>\n<p><b>우리 모델은 편향되어 있지 않을까?</b> 산불 사진에는 불을 상징하는 빨간색이 많아서, 모델이 불이 아니라 ‘빨간색의 정도’만 본 것은 아닌지 의심할 수 있어요(민준의 가설!). 그래서 <b>빨간색 건물</b> 이미지를 같은 방법(업로드 → resize → 배열 변환 → predict)으로 테스트해요. 결과는 단순한 빨간 건물인데도 <b>산불 이미지로 판별</b>했어요. 즉 학습 데이터에 편향성이 있었던 거예요.</p>\n<figure class=\"fig\"><img src=\"img/p214_2.jpg\" alt=\"빨간 벽돌 건물 사진\" loading=\"lazy\"><figcaption>모델이 산불로 잘못 판단한 빨간색 건물 이미지예요. (교과서 214쪽)</figcaption></figure>\n<p><b>편향 줄이기</b>: 이미지 전처리에서 색을 모두 <b>회색조</b>로 바꿔요. 205쪽의 read_img() 함수를 이렇게 고쳐요.</p>\n<pre class=\"code\"><code>def read_img(file_path):\n  img_arr = cv2.imread(file_path)\n  return cv2.cvtColor(img_arr, cv2.COLOR_BGR2GRAY)</code></pre>\n<p>BGR2RGB 대신 <code>COLOR_BGR2GRAY</code>를 쓰면, 세 가지 색상 채널을 쓰는 컬러 대신 색 없이 <b>밝기 정보만</b> 남아 데이터가 단순해져요. 그러면 색에 기댄 판단이 줄어 편향성이 감소하고, 모델의 학습 속도도 빨라져요. 헷갈리지 않게 모델 변수 이름도 <code>model</code> 대신 <code>gray_model</code>처럼 따로 쓰면 좋아요. 이후 과정을 똑같이 진행하면 이미지가 전과 다른 형식이 돼요.</p>\n<figure class=\"fig\"><img src=\"img/p215_1.jpg\" alt=\"회색조로 바꾼 산불과 산불 아닌 이미지\" loading=\"lazy\"><figcaption>회색조로 바꾸면 색 없이 밝기 정보만 남아요. (교과서 215쪽)</figcaption></figure>\n<p>색 특징이 없어졌으니 학습 횟수를 늘려요.</p>\n<pre class=\"code\"><code>history = gray_model.fit(train_generator, steps_per_epoch = 36, epochs = 15, verbose = 1)</code></pre>\n<p>epochs를 8에서 <b>15</b>로 늘려 충분히 학습한 뒤 빨간 건물을 다시 테스트하면 <b>산불이 아닌 이미지(Non_Fire, [1.])</b>로 인식해요. 데이터 편향성은 모델의 공정성과 사용자 신뢰에 영향을 주므로 최소화하는 것이 매우 중요해요. 데이터 편향은 인공지능 시스템의 문제이기도 하지만 사회의 불공정한 편향과 차별도 문제이며, 이를 예방하려고 사회 전반이 변화하고 있어서 이런 편향은 점점 줄어들 것이라고 교과서는 말해요.</p>\n<p><b>프로젝트 정리</b>: 과정별(문제 정의, 데이터 수집·전처리, 알고리즘 선정, 모델 학습, 성능 평가·수정)로 내가 한 일과 쓴 모듈·라이브러리·명령어를 정리하고, 평가 기준(여러 알고리즘을 비교해 최적을 골랐는가, 평가 지표로 평가하고 개선 방법을 썼는가 등)으로 나와 모둠을 평가해요. 기대 효과를 이야기하고, 지속가능발전목표 17개를 다시 탐색하며 프로젝트 수행 과정을 확인해 봐요. 모둠원과 협력적으로 활동한 경험을 바탕으로 앞으로도 인공지능에 관심을 가져 보아요.</p>\n<div class=\"box tip\"><b>💡 해 보기</b> 일상생활 속 데이터 편향성 사례를 찾아보고, BGR2GRAY가 편향을 줄인 이유를 스스로 정리해 보세요.</div>",
+      "keypoints": [
+        "새 이미지는 resize(400×400) → 배열 변환 → predict로 시험하고, 0이면 산불, 1이면 산불 아님이에요.",
+        "빨간 건물을 산불로 오판한 것은 데이터 편향성 때문이며, 회색조(BGR2GRAY) 변환과 학습 횟수 증가로 줄였어요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "빨간색 건물 이미지를 산불로 분류한 산불 분류 모델의 문제는 무엇일까?",
+        "choices": [
+          "학습 데이터가 빨간색에 편향되어 색에 의존해 판단한 것",
+          "이미지 파일이 너무 작아서",
+          "파이썬 문법 오류",
+          "모델이 너무 단순해서 층이 하나뿐이라서"
+        ],
+        "answer": 0,
+        "explain": "산불 이미지에 빨간색이 많아 모델이 불 대신 빨간색 정도로 판단하도록 배운 것이므로 데이터 편향성 문제예요. 회색조로 바꾸면 색 의존이 줄어요."
+      }
+    }
+  ],
+  "recap": [
+    "문제 정의: SDGs 13번과 관련해 산불 이미지와 산불이 아닌 이미지를 분류(이진 분류)하는 모델을 만든다.",
+    "이미지는 구글 드라이브(fire/non 폴더)에 저장하고 drive.mount()로 코랩에 연결한다. 각 162장, 총 324장이다.",
+    "전처리·시각화: os.listdir, glob, cv2.imread/cvtColor로 읽고 imshow로 직접 확인한다.",
+    "CNN은 합성곱(필터로 특징 추출)과 풀링(크기 줄이기)으로 이미지를 분류하는 딥러닝 모델이다.",
+    "모델은 Conv2D·MaxPool2D 세 쌍 → Flatten → Dense로 만들고, binary_crossentropy·adam·accuracy로 컴파일해 epochs=8로 학습한다.",
+    "새 이미지는 400×400으로 바꿔 predict하며 0은 산불, 1은 산불 아님이다.",
+    "빨간 건물을 산불로 오판한 데이터 편향성은 회색조 변환과 학습 횟수 증가(15)로 줄인다."
+  ],
+  "terms": [
+    {
+      "t": "비정형 데이터",
+      "d": "표처럼 정리되지 않은 이미지·영상·소리 같은 데이터."
+    },
+    {
+      "t": "CNN(합성곱 신경망)",
+      "d": "이미지에서 특징을 뽑아 분류하는 딥러닝 모델."
+    },
+    {
+      "t": "합성곱",
+      "d": "필터(커널)를 옮기며 같은 위치 값을 곱해 더해 특징을 뽑는 연산."
+    },
+    {
+      "t": "풀링",
+      "d": "결과의 크기를 줄이는 작업. 최대 풀링과 평균 풀링이 있어요."
+    },
+    {
+      "t": "epoch",
+      "d": "전체 학습 데이터를 한 번 학습하는 횟수 단위."
+    },
+    {
+      "t": "batch_size",
+      "d": "한 번에 몇 개의 샘플로 가중치를 갱신할지 정하는 값."
+    },
+    {
+      "t": "정규화(rescale)",
+      "d": "픽셀 값 0~255를 255로 나눠 0~1 사이로 맞추는 것."
+    },
+    {
+      "t": "이진 분류",
+      "d": "두 가지 중 하나로 분류하는 것. 출력은 0~1 사이 값."
+    },
+    {
+      "t": "데이터 편향성",
+      "d": "특정 그룹·성향의 데이터가 과도하게 많아 모델 판단이 한쪽으로 쏠리는 것."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "choice",
+      "q": "산불 이미지처럼 사진 데이터를 분류하는 데 가장 알맞은 알고리즘은?",
+      "choices": [
+        "CNN(합성곱 신경망)",
+        "선형 회귀",
+        "엑셀 표 계산",
+        "무작위 추측"
+      ],
+      "answer": 0,
+      "explain": "CNN은 이미지나 영상 데이터를 처리하는 딥러닝 모델로, 합성곱과 풀링으로 특징을 뽑아요."
+    },
+    {
+      "type": "choice",
+      "q": "ImageDataGenerator(rescale = 1/255) 를 쓰는 이유는?",
+      "choices": [
+        "픽셀 값(0~255)을 0~1 사이로 정규화하려고",
+        "이미지를 400×400으로 줄이려고",
+        "정답 폴더를 만들려고",
+        "학습 횟수를 늘리려고"
+      ],
+      "answer": 0,
+      "explain": "RGB 값은 0~255이므로 255로 나누어 0~1 범위로 맞추면 학습이 안정돼요."
+    },
+    {
+      "type": "ox",
+      "q": "class_mode가 binary인 이유는 산불인지 아닌지 두 가지로 분류하기 때문이다.",
+      "answer": true,
+      "explain": "두 가지 클래스를 가르는 이진 분류이므로 binary로 설정하고, 출력층도 sigmoid 1개를 써요."
+    },
+    {
+      "type": "choice",
+      "q": "모델이 빨간 건물을 산불로 판별한 까닭과 그 해결책으로 알맞은 것은?",
+      "choices": [
+        "색에 편향된 학습 → 이미지를 회색조로 바꾸고 학습 횟수를 늘림",
+        "건물이 너무 높아서 → 건물 사진을 지움",
+        "컴퓨터가 고장 → 재부팅",
+        "정확도가 너무 낮아서 → 아무 처리도 안 함"
+      ],
+      "answer": 0,
+      "explain": "산불 데이터에 빨간색이 많아 색 중심으로 판단한 편향이에요. BGR2GRAY로 밝기만 남기고 epochs를 15로 늘려 줄였어요."
+    },
+    {
+      "type": "choice",
+      "q": "최대 풀링(max pooling)은 지정한 영역에서 무엇을 남길까?",
+      "choices": [
+        "가장 큰 값",
+        "평균값",
+        "가장 작은 값",
+        "모든 값"
+      ],
+      "answer": 0,
+      "explain": "최대 풀링은 최댓값, 평균 풀링은 평균값만 남겨 크기를 줄여요."
+    }
+  ]
+}

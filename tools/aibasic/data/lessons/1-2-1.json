@@ -1,0 +1,265 @@
+{
+  "id": "1-2-1",
+  "unit": 1,
+  "title": "탐색을 활용한 문제 해결",
+  "tagline": "내비게이션은 수많은 길 중에서 어떻게 딱 한 길을 고를까?",
+  "pages": "교과서 p.28–41",
+  "goals": [
+    "탐색 문제를 그래프와 탐색 트리로 나타낼 수 있다.",
+    "맹목적 탐색(깊이 우선, 너비 우선)과 정보 이용 탐색(언덕 등반, 최상 우선, A*)의 차이를 설명할 수 있다.",
+    "탐색 순서를 직접 따라가며 간단한 문제를 풀 수 있다.",
+    "미니맥스 알고리즘으로 상대가 있는 게임의 최선 수를 고를 수 있다."
+  ],
+  "story": {
+    "title": "계산대 줄을 고르는 법",
+    "paras": [
+      "토요일 오후에 아라 쌤이 젖은 우산을 흔들며 동아리방에 들어오셨다. 낯선 동네에서 약속이 있었는데 길 안내 덕분에 한 번에 찾으셨다고 하셨다. 쌤 얼굴이 신나 보였다. 나는 우산에서 떨어지는 물방울을 보다가 이상한 생각이 하나 들었다.",
+      "길은 갈림길이 계속 이어진다. 그 수많은 길 가운데 어떻게 하나를 딱 고른 걸까. 민준이는 컴퓨터가 빠르니까 전부 다 따져 보는 거라고 했다. 쌤은 그럴듯한 생각이라면서도 고개를 갸웃하셨다. 한 번 갈라질 때마다 갈래가 두 배가 되면 금세 천 갈래가 넘는다고 하셨다.",
+      "나는 농담으로 지도책을 엄청 빨리 넘기는 거냐고 물었다. 쌤은 웃으시면서 “비슷한 구석은 있지”라고 하셨다. 정확히 맞다는 뜻은 아닌 것 같았다.",
+      "그날 저녁 엄마와 마트에 갔다. 계산대 앞에서 엄마는 줄을 하나하나 세지 않았다. 카트가 적은 쪽, 계산원이 빠른 쪽을 슬쩍 보더니 곧장 한 줄에 섰다. 나는 그 줄이 맞는지 틀린지도 모른 채 따라 섰다. 그 줄이 제일 빨랐는지는 아직도 모른다.",
+      "생각해 보니 엄마는 모든 줄을 다 따져 본 게 아니었다. 그렇다고 아무 줄이나 고른 것도 아니었다. 그 중간쯤 어딘가에서 길을 고른 것이다.",
+      "집에 와서 지도 앱을 열었다. 화면에는 파란 선 하나가 반듯하게 그어져 있었다. 그 선 뒤에는 고르지 않은 수많은 길이 있을 것이다. 컴퓨터도 엄마처럼 슬쩍 보고 고르는 걸까, 아니면 정말 하나하나 다 세어 보는 걸까. 둘은 결과가 같을까. 잠들기 전까지 파란 선이 머릿속에서 지워지지 않았다."
+    ],
+    "question": "모든 길을 다 따져 보는 방법과, 경험을 바탕으로 쓸 만한 길부터 살펴보는 방법은 무엇이 다를까요?"
+  },
+  "steps": [
+    {
+      "level": "1계단",
+      "title": "문제를 점과 선으로 바꾸기: 그래프와 탐색 트리",
+      "body": "<p>인공지능에서 <b>탐색</b>은 문제를 “경우의 수”로 바꾸고, 그 경우들을 점과 선으로 그려서 <b>시작 지점에서 출발해 목표 지점을 찾는 것</b>이에요. 집으로 가는 가장 빠른 길을 찾는 것도, 가계도에서 조상을 찾는 것도 모두 이렇게 표현할 수 있어요.</p>\n<div class=\"box def\"><b>📌 핵심 정의</b> <b>그래프(graph)</b>와 <b>트리(tree)</b>는 데이터를 나타내는 <b>노드(node)</b>와 데이터 사이의 관계를 나타내는 <b>링크(link)</b>로 이루어져요. 트리는 그래프의 한 종류로, 계층 구조를 나타낼 때 써요.</div>\n<ul>\n<li><b>노드</b>: 어떤 정보를 가진 점이에요. 수학에서는 정점(vertex)이라고 불러요.</li>\n<li><b>링크</b>: 노드와 노드를 잇는 선이에요. 화살표가 있으면 한 방향, 화살표 없이 그리면 양방향을 뜻해요.</li>\n<li>지하철 노선도는 <b>그래프</b>의 예, 가계도는 <b>트리</b>의 예예요.</li>\n</ul>\n<figure class=\"fig\"><img src=\"img/p29_2.jpg\" alt=\"지하철 노선도\" loading=\"lazy\"><figcaption>지하철 노선도는 노드와 링크로 이루어진 그래프의 예 (교과서 29쪽)</figcaption></figure>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 트리는 그래프의 일종이지만 <b>방향성이 있고 빙글빙글 도는 순환 구조를 갖지 않아요.</b> 반면 그래프는 노드 사이에 순환(cycle)이 있을 수도 있어요. 지하철 노선도의 순환선처럼요.</div>\n<p><b>탐색 트리</b>는 “앞으로 살펴볼 상태들”을 트리 모양으로 나타낸 거예요. 처음부터 모든 노드가 그려져 있는 게 아니라, 현재 상태에서 한 수를 두어 <b>상태가 바뀔 때마다 새로운 노드가 생겨 나며</b> 트리가 자라요.</p>\n<div class=\"box ex\"><b>🔎 예시: 4-queen 게임</b> 4×4 체스판에 퀸 4개를 놓는데, 퀸은 상하·좌우·대각선으로 움직이는 말이라서 서로 공격하지 않게 놓아야 해요. 풀이 순서는 이래요.\n<ol>\n<li>행이나 열에는 퀸이 하나씩만 있어야 하니, 1행에 퀸을 먼저 놓아요.</li>\n<li>2행에는 앞의 퀸이 공격하지 못하는 칸에 퀸을 놓아요.</li>\n<li>3행, 4행도 이전 퀸들을 공격하지 않는지 확인하며 놓아요.</li>\n<li>가능한 모든 경우를 트리로 그려 목표 상태에 도달하는 경로를 확인해요.</li>\n</ol>\n해답은 두 가지가 나올 수 있는데, 교과서는 그중 왼쪽 상태를 목표 상태로 정했어요. 도중에 서로 공격하게 되는 상태는 더 이어 가지 않고 가지를 접어요.</div>\n<p>이렇게 가능한 모든 상태를 그린 지도를 <b>상태 공간</b>이라고 해요. 컴퓨터가 풀려면 이 트리를 사람처럼 한눈에 보는 게 아니라 <b>정해진 순서로 한 노드씩</b> 살펴봐야 해요. 그 순서가 이번 레슨의 주인공이에요.</p>\n<div class=\"box tip\"><b>💡 스스로 해보기</b> 5-queen의 탐색 트리를 직접 그려 보고, 「The 8 Queens Problem」 사이트에서 5-queen 문제를 풀어 본 뒤 친구와 트리를 비교해 보세요.</div>",
+      "keypoints": [
+        "탐색은 문제를 노드(점)와 링크(선)로 표현하고 시작에서 목표를 찾는 일이다.",
+        "트리는 계층 구조를 가진 그래프로, 방향성이 있고 순환하지 않는다.",
+        "탐색 트리의 노드는 미리 있는 게 아니라 상태가 바뀔 때마다 생겨난다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "그래프와 트리에 대한 설명으로 옳은 것은?",
+        "choices": [
+          "트리는 노드 사이에 순환 구조가 자주 생기는 자료 구조이다.",
+          "트리는 그래프의 일종이며 계층 구조를 표현할 때 쓴다.",
+          "링크는 데이터 자체를 담는 점이다.",
+          "탐색 트리의 모든 노드는 탐색 전에 미리 만들어져 있어야 한다."
+        ],
+        "answer": 1,
+        "explain": "트리는 그래프의 한 종류로 계층 구조를 나타내고 순환하지 않아요. 데이터를 담는 점은 노드이고, 탐색 트리의 노드는 상태가 바뀔 때마다 새로 생겨요."
+      }
+    },
+    {
+      "level": "2계단",
+      "title": "탐색의 종류와 깊이 우선 탐색",
+      "body": "<p>탐색은 “무엇을 원하느냐”와 “어떤 정보를 쓰느냐”에 따라 여러 선택이 있어요. 목적으로 보면, 어떤 길이든 <b>빨리 목표에 닿는 것</b>이 목적일 때도, <b>최적의 경로</b>를 찾는 것이 목적일 때도 있어요. 내비게이션은 보통 최적의 경로를 찾는 게 목적이에요.</p>\n<p>정보 사용으로 보면 크게 두 갈래예요.</p>\n<table>\n<tr><th>구분</th><th>맹목적 탐색 (무정보 탐색)</th><th>정보 이용 탐색 (휴리스틱·경험적 탐색)</th></tr>\n<tr><td>핵심</td><td>상태 공간 정보 없이 모든 상태를 규칙대로 탐색</td><td>상태 공간 정보를 활용해 일부만 지능적으로 탐색</td></tr>\n<tr><td>분기점에서</td><td>미리 정한 순서대로 방향 결정</td><td>평가 기준이 좋은 쪽을 선택</td></tr>\n<tr><td>종류</td><td>깊이 우선 탐색, 너비 우선 탐색</td><td>언덕 등반 탐색, 최상 우선 탐색, A* 알고리즘</td></tr>\n</table>\n<div class=\"analogy\"><b>🍳 비유로 이해하기</b> 맹목적 탐색은 불 꺼진 미로를 손으로 더듬어 정해진 순서대로 가 보는 것이고, 정보 이용 탐색은 “출구 쪽에서 바람이 불어오네” 같은 단서를 활용하는 거예요.</div>\n<p>이제 맹목적 탐색의 첫 번째, <b>깊이 우선 탐색(DFS: Depth First Search)</b>이에요. 갈 수 있는 길이 있는 한 <b>앞으로 계속 전진</b>하다가, 막다른 길이 되면 <b>다른 길이 남은 가장 가까운 분기점까지 되돌아와서</b> 다시 내려가요. 분기점에서 어느 쪽부터 갈지는 미리 정해 둬야 해요.</p>\n<p><b>그림: 방문 순서(파란 숫자)</b></p><svg viewBox=\"0 0 440 262\" style=\"max-width:440px;width:100%\" role=\"img\" aria-label=\"깊이 우선 탐색 방문 순서\"><line x1=\"220\" y1=\"26\" x2=\"110\" y2=\"90\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"220\" y1=\"26\" x2=\"220\" y2=\"90\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"220\" y1=\"26\" x2=\"330\" y2=\"90\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"110\" y1=\"90\" x2=\"90\" y2=\"160\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"220\" y1=\"90\" x2=\"200\" y2=\"160\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"330\" y1=\"90\" x2=\"290\" y2=\"160\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"330\" y1=\"90\" x2=\"370\" y2=\"160\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"90\" y1=\"160\" x2=\"50\" y2=\"230\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"90\" y1=\"160\" x2=\"130\" y2=\"230\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"370\" y1=\"160\" x2=\"370\" y2=\"230\" stroke=\"var(--line)\" stroke-width=\"2\"/><circle cx=\"220\" cy=\"26\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"220\" y=\"31\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">A</text><text x=\"238\" y=\"16\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">1</text><circle cx=\"110\" cy=\"90\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"110\" y=\"95\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">B</text><text x=\"128\" y=\"80\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">2</text><circle cx=\"90\" cy=\"160\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"90\" y=\"165\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">E</text><text x=\"108\" y=\"150\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">3</text><circle cx=\"50\" cy=\"230\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"50\" y=\"235\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">I</text><text x=\"68\" y=\"220\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">4</text><circle cx=\"130\" cy=\"230\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"130\" y=\"235\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">J</text><text x=\"148\" y=\"220\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">5</text><circle cx=\"220\" cy=\"90\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"220\" y=\"95\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">C</text><text x=\"238\" y=\"80\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">6</text><circle cx=\"200\" cy=\"160\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"200\" y=\"165\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">F</text><text x=\"218\" y=\"150\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">7</text><circle cx=\"330\" cy=\"90\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"330\" y=\"95\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">D</text><text x=\"348\" y=\"80\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">8</text><circle cx=\"290\" cy=\"160\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"290\" y=\"165\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">G</text><text x=\"308\" y=\"150\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">9</text><circle cx=\"370\" cy=\"160\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"370\" y=\"165\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">H</text><text x=\"388\" y=\"150\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">10</text><circle cx=\"370\" cy=\"230\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"370\" y=\"235\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">K</text><text x=\"388\" y=\"220\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">11</text></svg>\n<p>트리 A(자식 B, C, D) 에서 위 규칙대로 가 보면 순서가 이렇게 나와요.</p>\n<ol>\n<li>루트 A에서 시작해 자식 B, C, D를 확인해요.</li>\n<li>그중 하나, B를 골라 더 깊이 들어가요.</li>\n<li>B의 자식 E로 내려가고, 거기서 I까지 가면 더 갈 곳이 없어요.</li>\n<li>E로 되돌아와 J를 탐색해요.</li>\n<li>이런 식으로 끝까지 깊게 들어가며 탐색해요.</li>\n</ol>\n<div class=\"box def\"><b>📌 탐색 경로</b> A → B → E → I → J → C → F → D → G → H → K</div>\n<div class=\"box tip\"><b>💡 알아두기</b> 인공지능의 탐색은 보통 그래프 모양의 데이터를 탐색하지만, 여기서는 상태 공간이 트리 모양이라고 가정해요. 깊이 우선 탐색은 <b>미로 탐색</b>에 쓸 수 있어요. 미로가 갈라질 때마다 한쪽을 골라 깊숙이 들어가는 방식이라 입구에서 출구를 찾기 쉬워요.</div>\n<p><b>강 건너기 문제</b>에도 적용해 봐요. 농부가 양, 늑대, 양배추를 배에 실어 강을 건너야 해요. 규칙은 세 가지예요.</p>\n<ul>\n<li>배에는 농부 외에 <b>한 가지만</b> 태울 수 있어요.</li>\n<li>농부 없이 양과 늑대만 남으면 늑대가 양을 잡아먹어요. (금지 상태)</li>\n<li>농부 없이 양과 양배추만 남으면 양이 양배추를 먹어요. (금지 상태)</li>\n</ul>\n<p>교과서의 깊이 우선 탐색 순서는 <b>초기 상태 → 1 → 2 → 3 → 5 → 6 → 8 → 9 → 12 → 13 → 16 → 17 → 목표 상태</b>예요. 그림 속 번호는 각 이동에 붙은 번호이고, <b>금지 상태</b>가 나오면 그 가지는 막다른 길로 보고 되돌아가요. 분기점(6, 7)에서는 왼쪽(6)부터 탐색하기로 정했어요.</p>\n<table>\n<tr><th>건너기 순서</th><th>이동</th><th>이후 상태 (왼쪽 | 오른쪽)</th></tr>\n<tr><td>①</td><td>농부가 양을 데리고 건넘</td><td>양배추·늑대 | 농부·양</td></tr>\n<tr><td>②</td><td>농부만 되돌아옴</td><td>농부·양배추·늑대 | 양</td></tr>\n<tr><td>③</td><td>농부가 양배추(또는 늑대)를 데리고 건넘</td><td>늑대 | 농부·양·양배추</td></tr>\n<tr><td>④</td><td>농부가 양을 데리고 되돌아옴</td><td>농부·양·늑대 | 양배추</td></tr>\n<tr><td>⑤</td><td>농부가 늑대(또는 양배추)를 데리고 건넘</td><td>양 | 농부·늑대·양배추</td></tr>\n<tr><td>⑥</td><td>농부만 되돌아옴</td><td>농부·양 | 늑대·양배추</td></tr>\n<tr><td>⑦</td><td>농부가 양을 데리고 건넘</td><td>없음 | 모두 도착!</td></tr>\n</table>\n<div class=\"box warn\"><b>⚠️ 깊이 우선 탐색의 약점</b> 깊이가 깊은 곳에 해답이 있는 구조에 알맞지만, <b>해답이 없는 깊은 경로</b>를 탐색하게 되면 거기서 빠져나오지 못할 수 있어요.</div>",
+      "keypoints": [
+        "맹목적 탐색은 정보 없이 규칙대로, 정보 이용 탐색은 상태 공간 정보를 활용해 탐색한다.",
+        "깊이 우선 탐색(DFS)은 갈 수 있는 한 앞으로 계속 전진하고, 막히면 가장 가까운 분기점으로 되돌아온다.",
+        "위 트리의 DFS 탐색 경로는 A→B→E→I→J→C→F→D→G→H→K이다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "깊이 우선 탐색에 대한 설명으로 옳지 않은 것은?",
+        "choices": [
+          "갈 수 있는 길이 있는 한 앞으로 계속 전진한다.",
+          "막다른 길이면 다른 경로가 남은 분기점까지 되돌아간다.",
+          "분기점에서 어느 쪽으로 갈지 미리 정해 둘 필요가 없다.",
+          "미로의 입구에서 출구를 찾는 문제에 적용할 수 있다."
+        ],
+        "answer": 2,
+        "explain": "분기점에서 어느 방향으로 갈지는 미리 정해 두어야 해요. 그래야 같은 트리에서 늘 같은 순서로 탐색할 수 있어요."
+      }
+    },
+    {
+      "level": "3계단",
+      "title": "넓고 얇게 훑는 너비 우선 탐색",
+      "body": "<p><b>너비 우선 탐색(BFS: Breadth First Search)</b>은 탐색 트리를 <b>넓고 얇게</b> 훑는 방법이에요. 분기점에 도착하면 그 분기점과 연결된 <b>같은 깊이의 상태</b>를 모두 살펴본 뒤에 다음 단계로 내려가요. 이미 방문한 분기점은 다시 방문하지 않아요.</p>\n<div class=\"analogy\"><b>🍳 비유로 이해하기</b> 바둑이나 장기에서 “첫 번째 수로 둘 수 있는 걸 전부 확인하고, 그다음 두 번째 수로 둘 수 있는 걸 전부 확인하는” 식이에요. 날개를 펼치듯 한 층을 다 본 뒤에야 한 층 내려가니 천천히 깊어져요.</div>\n<p><b>그림: 방문 순서(파란 숫자)</b></p><svg viewBox=\"0 0 440 262\" style=\"max-width:440px;width:100%\" role=\"img\" aria-label=\"너비 우선 탐색 방문 순서\"><line x1=\"220\" y1=\"26\" x2=\"110\" y2=\"90\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"220\" y1=\"26\" x2=\"220\" y2=\"90\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"220\" y1=\"26\" x2=\"330\" y2=\"90\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"110\" y1=\"90\" x2=\"90\" y2=\"160\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"220\" y1=\"90\" x2=\"200\" y2=\"160\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"330\" y1=\"90\" x2=\"290\" y2=\"160\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"330\" y1=\"90\" x2=\"370\" y2=\"160\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"90\" y1=\"160\" x2=\"50\" y2=\"230\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"90\" y1=\"160\" x2=\"130\" y2=\"230\" stroke=\"var(--line)\" stroke-width=\"2\"/><line x1=\"370\" y1=\"160\" x2=\"370\" y2=\"230\" stroke=\"var(--line)\" stroke-width=\"2\"/><circle cx=\"220\" cy=\"26\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"220\" y=\"31\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">A</text><text x=\"238\" y=\"16\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">1</text><circle cx=\"110\" cy=\"90\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"110\" y=\"95\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">B</text><text x=\"128\" y=\"80\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">2</text><circle cx=\"220\" cy=\"90\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"220\" y=\"95\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">C</text><text x=\"238\" y=\"80\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">3</text><circle cx=\"330\" cy=\"90\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"330\" y=\"95\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">D</text><text x=\"348\" y=\"80\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">4</text><circle cx=\"90\" cy=\"160\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"90\" y=\"165\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">E</text><text x=\"108\" y=\"150\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">5</text><circle cx=\"200\" cy=\"160\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"200\" y=\"165\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">F</text><text x=\"218\" y=\"150\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">6</text><circle cx=\"290\" cy=\"160\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"290\" y=\"165\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">G</text><text x=\"308\" y=\"150\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">7</text><circle cx=\"370\" cy=\"160\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"370\" y=\"165\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">H</text><text x=\"388\" y=\"150\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">8</text><circle cx=\"50\" cy=\"230\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"50\" y=\"235\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">I</text><text x=\"68\" y=\"220\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">9</text><circle cx=\"130\" cy=\"230\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"130\" y=\"235\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">J</text><text x=\"148\" y=\"220\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">10</text><circle cx=\"370\" cy=\"230\" r=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"370\" y=\"235\" text-anchor=\"middle\" font-size=\"14\" fill=\"currentColor\">K</text><text x=\"388\" y=\"220\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">11</text></svg>\n<ol>\n<li>루트 A의 자식 B, C, D를 차례로 탐색해요.</li>\n<li>같은 층에서 더 갈 곳이 없으면 새로운 층의 E를 탐색하고, E 다음에 F, G, H를 탐색해요.</li>\n<li>다음 층에서 E의 자식 I, J, 그리고 H의 자식 K까지 탐색해요.</li>\n</ol>\n<div class=\"box def\"><b>📌 탐색 경로</b> A → B → C → D → E → F → G → H → I → J → K</div>\n<table>\n<tr><th>구분</th><th>깊이 우선(DFS)</th><th>너비 우선(BFS)</th></tr>\n<tr><td>방향</td><td>한 갈래를 끝까지 깊게</td><td>같은 층을 다 훑고 한 층씩 아래로</td></tr>\n<tr><td>방문 순서(위 트리)</td><td>A B E I J C F D G H K</td><td>A B C D E F G H I J K</td></tr>\n<tr><td>돌아오는 때</td><td>막다른 길에서 분기점으로</td><td>한 층을 다 본 뒤 다음 층으로</td></tr>\n</table>\n<div class=\"box tip\"><b>💡 DFS와 BFS의 차이</b> 트리 탐색에서는 큰 차이가 없어요. 하지만 <b>그래프</b>에서 목표에 도달하는 경로가 여러 가지일 때, 깊이 우선 탐색은 더 간단한 경로를 놓치고 복잡한 경로를 내놓을 수도 있어요.</div>\n<div class=\"box ex\"><b>🔎 활용: 웹 크롤러</b> 너비 우선 탐색은 웹 크롤러가 웹 페이지를 탐색하는 데 쓰여요. 어떤 페이지에 접속해 그 페이지의 모든 링크를 확인하고, 다시 첫 링크의 사이트로 가서 그 페이지의 링크를 검색하는 식이에요.</div>\n<p><b>강 건너기 문제를 너비 우선으로</b> 풀면 DFS와 어떻게 달라질까요? DFS는 6번에서 곧바로 8번으로 깊게 내려갔어요. BFS는 <b>6번에서 7번으로 같은 층 노드끼리</b> 먼저 탐색하고 다음 층으로 가요. 교과서의 BFS 탐색 경로는 <b>초기 상태 → 1 → 2 → 3 → … → 16 → 17 → 목표 상태</b>로, 층별로 번호 순서대로 모두 살펴보는 거예요.</p>\n<div class=\"box ex\"><b>🔎 스스로 풀어 보기: 물통 문제</b> 5L와 3L 빈 물통으로 4L를 만들어요. 상태를 (5L통, 3L통)의 물의 양으로 쓰면 시작은 (0,0)이에요. 첫 층의 자식은 (5,0)과 (0,3)이에요. BFS는 이 둘을 모두 본 뒤에 다음 층으로 내려가고, DFS는 한쪽을 끝까지 파고들어요. 실제로 5L를 채워 3L에 붓기 → 3L 비우기 → 5L의 나머지(2L)를 3L에 옮기기 → 5L 채우기 → 5L에서 3L를 가득 채울 때까지 붓기 순서로 하면 5L통에 4L가 남아요.</div>",
+      "keypoints": [
+        "너비 우선 탐색(BFS)은 같은 깊이의 노드를 모두 방문한 뒤 다음 깊이로 내려간다.",
+        "위 트리의 BFS 경로는 A→B→C→D→E→F→G→H→I→J→K이다.",
+        "BFS는 웹 크롤러가 링크를 따라 웹 페이지를 탐색할 때 활용된다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "위 트리에서 너비 우선 탐색을 할 때 E를 방문한 직후 방문하는 노드는?",
+        "choices": [
+          "I",
+          "F",
+          "J",
+          "K"
+        ],
+        "answer": 1,
+        "explain": "너비 우선 탐색은 같은 층을 모두 본 뒤 내려가요. E와 같은 층인 F, G, H를 먼저 방문하고 그다음에야 I, J, K가 나와요."
+      }
+    },
+    {
+      "level": "4계단",
+      "title": "정보 이용 탐색 1: 언덕 등반 탐색",
+      "body": "<p>지금까지는 “정보 없이” 순서대로 훑는 방법이었어요. 이번엔 <b>이전 경험이나 지식을 바탕으로 어떤 기준을 정해 판단하며 탐색</b>해요. 그 기준이 되는 경험 기반 정보를 <b>휴리스틱 정보</b>라고 해서, 이 방법을 <b>휴리스틱 탐색</b>이라고도 불러요. 탐색 시간을 줄일 수 있어 많이 쓰여요.</p>\n<div class=\"box tip\"><b>💡 정보 이용 탐색이 유용한 경우</b>\n<ul>\n<li>탐색 공간이 너무 넓어 모두 방문할 수 없을 때</li>\n<li>해가 정확하게 존재하지 않을 때(모호할 때), 또는 정해진 시간 안에 탐색을 끝내야 할 때</li>\n</ul>\n다만 얻은 답이 <b>최적의 해라고 장담할 수는 없어요.</b> 대신 현실적인 범위에서 만족할 만한 <b>근삿값</b>을 빨리 찾아 줘요.</div>\n<p><b>언덕 등반 탐색(HCS: Hill Climbing Search)</b>은 산을 오르는 것과 같아요. 현재 지점에서 <b>평가 함숫값이 가장 좋은 주변 지점 하나를 골라</b> 계속 올라가요. 눈앞에서 가장 좋아 보이는 쪽만 고른다고 해서 그리디(greedy, 탐욕) 알고리즘이라고도 불러요. 정상으로 가려면 현재 위치에서 위쪽으로 가야 하는 것처럼요.</p>\n<div class=\"box def\"><b>📌 언덕 등반 탐색 알고리즘</b>\n<ol>\n<li>초기 상태와 목표 상태를 확인한다.</li>\n<li>목표 상태에 도달하거나 현재 상태가 더 이상 변하지 않을 때까지 반복한다.\n<ul><li>현재 상태의 자식 노드를 구하고 각각에 평가 함숫값을 준다.</li>\n<li>자식 중 평가 함숫값이 현재 상태보다 높은 곳으로 이동한다.</li></ul></li>\n</ol></div>\n<p><b>평가 함수(evaluation function)</b>는 어떤 노드에서 출발해 목표 상태에 도달할 가능성을 계산해 주는 함수예요. 아래 <b>8개의 숫자 조각 문제</b>는 9칸에 숫자 조각 8개를 상하좌우로 밀어서 맞추는 문제인데, 평가 함숫값을 <b>“제자리에 놓인 조각 수”</b>로 정해요.</p>\n<table>\n<tr><th colspan=\"3\">초기 상태 (4점)</th><th></th><th colspan=\"3\">목표 상태 (8점)</th></tr>\n<tr><td>1</td><td>2</td><td>3</td><td></td><td>1</td><td>2</td><td>3</td></tr>\n<tr><td>7</td><td>4</td><td>5</td><td></td><td>4</td><td>5</td><td>6</td></tr>\n<tr><td> </td><td>8</td><td>6</td><td></td><td>7</td><td>8</td><td> </td></tr>\n</table>\n<p>초기 상태에서 1, 2, 3, 8이 제자리라서 평가 함숫값 f(n)=4예요. 이제 한 수씩 둬 볼게요.</p>\n<ol>\n<li><b>초기 상태(4점)</b>: 선택지는 둘이에요. 7을 아래로 내리면 <b>5점</b>(➊), 8을 왼쪽으로 옮기면 <b>3점</b>(➋). 더 높은 ➊을 선택하고 ➋는 더 이상 고려하지 않아요.</li>\n<li><b>➊(5점)</b>: 4를 왼쪽으로 옮기면 <b>6점</b>(➌), 1을 내리면 4점. ➌ 선택.</li>\n<li><b>➌(6점)</b>: 2를 아래로 내리면 5점, 5를 왼쪽으로 옮기면 <b>7점</b>, 8을 위로 올리면 5점. 7점짜리를 선택(➏).</li>\n<li><b>➏(7점)</b>: 다음 수들은 6점과 <b>8점</b>. 8점짜리(➒)를 선택하면 <b>목표 상태</b>에 도착해요.</li>\n</ol>\n<div class=\"box def\"><b>📌 점수의 흐름</b> 4점 → 5점 → 6점 → 7점 → 8점(목표)</div>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 언덕 등반 탐색은 “한번 간 길은 다시 고려하지 않고”, 같은 층의 다른 노드도 한 번 선택하면 되돌아보지 않아요. 그래서 <b>현재보다 평가 함숫값이 큰 노드가 더는 안 나타나면 멈추는데, 그곳이 목표 상태가 아닐 수도 있어요.</b> 작은 언덕 꼭대기에서 멈추는 셈이에요. 이 방법은 지역에서 최적이면서 전체에서도 최적인 문제에 알맞아요.</div>",
+      "keypoints": [
+        "정보 이용 탐색은 경험·지식(휴리스틱 정보)을 이용해 탐색 시간을 줄이며, 최적해를 장담하지는 못한다.",
+        "언덕 등반 탐색은 평가 함숫값이 더 좋은 주변 노드 하나를 골라 올라가는 그리디 방식이다.",
+        "평가 함숫값이 더 큰 노드가 없으면 목표가 아니어도 멈출 수 있다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "8개의 숫자 조각 문제에서 평가 함숫값 4점인 초기 상태의 자식 상태가 5점과 3점일 때, 언덕 등반 탐색이 선택하는 것은?",
+        "choices": [
+          "3점 상태: 점수가 낮아야 목표에 가까우므로",
+          "5점 상태: 현재(4점)보다 평가 함숫값이 높은 곳으로 이동하므로",
+          "둘 다 선택해 동시에 확장한다.",
+          "아무것도 선택하지 않고 처음부터 다시 한다."
+        ],
+        "answer": 1,
+        "explain": "여기서는 제자리에 놓인 조각이 많을수록 좋은 점수라서, 현재(4점)보다 높은 5점 상태로 이동해요. 3점 상태는 더 이상 고려하지 않아요."
+      }
+    },
+    {
+      "level": "5계단",
+      "title": "정보 이용 탐색 2: 최상 우선 탐색과 A* 알고리즘",
+      "body": "<p><b>최상 우선 탐색(BFS: Best First Search)</b>은 언덕 등반 탐색을 개선한 방법이에요. (이름 약자가 너비 우선 탐색 BFS와 같으니 헷갈리지 마세요!) 평가 함수와 <b>open 리스트</b>, <b>close 리스트</b>를 써서 리스트 안에서 가장 유리한 것을 골라요.</p>\n<ul>\n<li><b>open 리스트</b>: 입력되었지만 아직 탐색하지 않은 상태들</li>\n<li><b>close 리스트</b>: 탐색이 끝난 상태들</li>\n</ul>\n<div class=\"box def\"><b>📌 최상 우선 탐색 (의사 코드의 흐름)</b>\n<ol>\n<li>close는 빈 리스트로, open에는 시작 노드를 넣는다.</li>\n<li>open이 빌 때까지 반복: open에서 <b>평가 함숫값이 가장 좋은 노드 X</b>를 꺼낸다.</li>\n<li>X가 목표 상태면 성공하고 끝낸다.</li>\n<li>아니면 X의 자식을 확인하고 X를 close에 넣는다. 자식이 open·close에 없으면 평가 함숫값을 계산해 open에 추가한다.</li>\n</ol></div>\n<div class=\"box warn\"><b>⚠️ 언덕 등반과의 차이</b> 언덕 등반은 한 번 선택하면 같은 층의 다른 노드를 고려하지 않지만, 최상 우선 탐색은 <b>선택되지 않았던 노드도 open 리스트에 남아 있어 다시 고려</b>해요. 앞서 갔던 길로 되돌아가기도 해요.</div>\n<p>예를 들어 루트 A에서 평가 함숫값이 큰 B로 갔는데 B의 자식 D, E가 B보다 작으면 뒤로 돌아가 B의 형제 C로 가고, C의 자식 F, G를 탐색해요.</p>\n<div class=\"box ex\"><b>🔎 부산에서 서울 가기 (최상 우선 탐색)</b> 도시 옆 숫자는 그 도시에서 서울까지 걸리는 <b>예측 시간</b> f(C)예요. 값이 <b>작을수록 좋아요</b>.\n<table>\n<tr><th>단계</th><th>open 리스트 (평가 함숫값)</th><th>close 리스트</th><th>선택</th></tr>\n<tr><td>Step 1</td><td>대구 240, 상주 200, 울산 340</td><td>부산</td><td>상주(200)</td></tr>\n<tr><td>Step 2</td><td>대구 240, 울산 340, 음성 100</td><td>부산, 상주</td><td>음성(100)</td></tr>\n<tr><td>Step 3</td><td>대구 240, 울산 340, 서울(목표)</td><td>부산, 상주, 음성</td><td>서울 → 종료</td></tr>\n</table>\n<b>탐색 과정: 부산 → 상주 → 음성 → 서울</b></div>\n<figure class=\"fig\"><img src=\"img/p39_1.jpg\" alt=\"도시 사이 이동 시간과 서울까지 예측 시간을 적은 지도\" loading=\"lazy\"><figcaption>도시 사이 이동 시간과 서울까지의 예측 시간 (교과서 39쪽)</figcaption></figure>\n<p>최상 우선 탐색은 언덕 등반의 단점을 어느 정도 개선하지만, <b>평가 함숫값에 크게 의존</b>하므로 어떤 평가 함수를 쓰느냐에 따라 성능이 많이 달라져요.</p>\n<p>그런데 최상 우선 탐색은 “목표까지 남은 거리”만 보고, 지금까지 얼마나 많은 비용을 들여 왔는지는 신경 쓰지 않아요. 일상의 문제에서는 <b>그 상태까지 오는 데 든 비용</b>도 중요하지요. 그래서 나온 것이 <b>A*(에이스타) 알고리즘</b>이에요. 기본은 최상 우선 탐색과 같고, <b>평가 함수만</b> 달라요.</p>\n<div class=\"box def\"><b>📌 A* 평가 함수</b>\ng(n) = 초기 상태에서 현재 위치까지 이동에 든 비용(시간)<br>\nh(n) = 현재 위치에서 목표 상태까지의 예측 비용(시간)<br>\n<b>f(n) = g(n) + h(n)</b></div>\n<table>\n<tr><th>단계</th><th>계산</th><th>close 리스트</th><th>선택</th></tr>\n<tr><td>Step 1</td><td>f(대구)=60+240=300, f(상주)=110+200=310, f(울산)=40+340=380</td><td>부산</td><td>대구</td></tr>\n<tr><td>Step 2</td><td>f(대전)=(60+90)+150=300 (g는 부산→대구→대전까지 더한 값), f(상주)=310, f(울산)=380</td><td>부산, 대구</td><td>대전</td></tr>\n<tr><td>Step 3</td><td>f(천안)=(60+90+50)+100=300, f(상주)=310, f(울산)=380</td><td>부산, 대구, 대전</td><td>천안</td></tr>\n<tr><td>Step 4</td><td>천안의 자식 서울이 open에 추가됨 (목표 상태)</td><td>부산, 대구, 대전, 천안</td><td>종료</td></tr>\n</table>\n<p>A*의 경로는 <b>부산 → 대구 → 대전 → 천안 → 서울</b>로, 최상 우선 탐색(부산 → 상주 → 음성 → 서울)과 다른 길이에요. 위의 시간들은 예상치라서 실제와 다를 수 있으니 <b>평가 함수를 잘 정하는 것</b>이 성능에 큰 영향을 줘요. A*는 가장 효율적으로 목표 상태를 찾는 것이 목적이에요.</p>\n<div class=\"box tip\"><b>💡 알아두기</b> A*를 쓰는 내비게이션은 평가 함수가 <b>거리만</b> 고려하는지, <b>실시간 혼잡도</b> 등도 고려하는지에 따라 출발지와 목적지가 같아도 다른 경로를 안내해요.</div>\n<div class=\"box ex\"><b>🔎 시뮬레이터로 비교하기</b> Pathfinding Visualizer에서 [Mazes &amp; patterns] → [Basic Random Maze]를 고르고, [Algorithms]에서 A* Search와 Depth-first Search를 각각 [Visualize] 해 보세요. 두 알고리즘이 찾은 경로가 왜 다른지 모둠에서 이야기해 보면 좋아요.</div>",
+      "keypoints": [
+        "최상 우선 탐색은 open 리스트에서 평가 함숫값이 가장 좋은 노드를 골라 확장하며, 지나간 노드도 다시 고려한다.",
+        "A*는 f(n)=g(n)+h(n) 으로 지금까지의 비용과 남은 예측 비용을 함께 본다.",
+        "평가 함수를 어떻게 정하느냐에 따라 두 알고리즘 모두 성능이 크게 달라진다."
+      ],
+      "check": {
+        "type": "ox",
+        "q": "A* 알고리즘은 최상 우선 탐색과 달리 목표까지의 예측 비용뿐 아니라 현재 상태까지 든 비용도 평가 함수에 포함한다.",
+        "answer": true,
+        "explain": "A*의 평가 함수는 f(n)=g(n)+h(n)으로, g(n)은 지금까지 든 비용이고 h(n)은 목표까지의 예측 비용이에요. 최상 우선 탐색은 남은 예측 비용만 봐요."
+      }
+    },
+    {
+      "level": "6계단",
+      "title": "상대가 있는 게임에서의 탐색: 게임 트리와 미니맥스",
+      "body": "<p>탐색 트리는 많은 문제에 쓰이지만, 바둑이나 틱택토처럼 <b>상대가 있는 게임</b>에는 그대로 쓰기 어려워요. 내가 어느 길로 가든 <b>상대가 어떤 선택을 하느냐</b>가 결과를 크게 바꾸기 때문이에요. 이런 경우에는 <b>게임 트리</b>를 이용하고, 게임 트리의 목표 상태는 <b>게임에서 승리하는 것</b>이에요.</p>\n<p>가장 안전한 방법은 <b>상대가 항상 최선의 선택을 한다고 가정</b>하는 거예요. (물론 실제로는 상대가 실수할 수도 있어요.) 이 생각으로 만든 것이 <b>미니맥스(minimax) 알고리즘</b>이에요.</p>\n<div class=\"box def\"><b>📌 교과서의 약속</b>\n<ol>\n<li>처음 두는 쪽이 <b>MAX</b>, 다음에 두는 쪽이 <b>MIN</b>이다.</li>\n<li>각자 차례에서 선택지는 2개뿐이고, 한 수씩 두면 게임이 끝난다.</li>\n<li>끝(단말 노드)의 평가 함숫값은 3~9 사이라고 가정한다.</li>\n<li>평가 함숫값이 <b>클수록 MAX가 승리</b>, <b>작을수록 MIN이 승리</b>한다.</li>\n<li>트리가 만들어지면 단말에서부터 거꾸로 올라간다. MIN은 작을수록 좋으니 MIN 차례의 값은 둘 중 작은 값(4, 3)이 된다.</li>\n<li>처음 MAX는 큰 값을 선택한다.</li>\n</ol></div>\n<svg viewBox=\"0 0 400 230\" style=\"max-width:400px;width:100%\" role=\"img\" aria-label=\"미니맥스 게임 트리\"><g stroke=\"var(--line)\" stroke-width=\"2\"><line x1=\"200\" y1=\"30\" x2=\"110\" y2=\"100\"/><line x1=\"200\" y1=\"30\" x2=\"290\" y2=\"100\"/><line x1=\"110\" y1=\"100\" x2=\"60\" y2=\"180\"/><line x1=\"110\" y1=\"100\" x2=\"160\" y2=\"180\"/><line x1=\"290\" y1=\"100\" x2=\"240\" y2=\"180\"/><line x1=\"290\" y1=\"100\" x2=\"340\" y2=\"180\"/></g>\n<rect x=\"175\" y=\"10\" width=\"50\" height=\"40\" rx=\"8\" fill=\"none\" stroke=\"var(--brand)\" stroke-width=\"2\"/><text x=\"200\" y=\"35\" text-anchor=\"middle\" font-size=\"13\" fill=\"currentColor\">MAX 4</text>\n<circle cx=\"110\" cy=\"100\" r=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"110\" y=\"97\" text-anchor=\"middle\" font-size=\"11\" fill=\"currentColor\">MIN</text><text x=\"110\" y=\"111\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">4</text>\n<circle cx=\"290\" cy=\"100\" r=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"290\" y=\"97\" text-anchor=\"middle\" font-size=\"11\" fill=\"currentColor\">MIN</text><text x=\"290\" y=\"111\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--brand)\">3</text>\n<text x=\"140\" y=\"58\" font-size=\"12\" fill=\"currentColor\">a1</text><text x=\"250\" y=\"58\" font-size=\"12\" fill=\"currentColor\">a2</text>\n<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"42\" y=\"180\" width=\"36\" height=\"30\" rx=\"4\"/><rect x=\"142\" y=\"180\" width=\"36\" height=\"30\" rx=\"4\"/><rect x=\"222\" y=\"180\" width=\"36\" height=\"30\" rx=\"4\"/><rect x=\"322\" y=\"180\" width=\"36\" height=\"30\" rx=\"4\"/></g>\n<g font-size=\"15\" text-anchor=\"middle\" fill=\"currentColor\"><text x=\"60\" y=\"201\">4</text><text x=\"160\" y=\"201\">7</text><text x=\"240\" y=\"201\">3</text><text x=\"340\" y=\"201\">9</text></g></svg>\n<p>교과서 그림의 단말 값 4, 3, 7, 9를 위처럼 묶어 보면(묶음은 이해를 돕기 위한 예시예요) 이렇게 올라와요.</p>\n<ol>\n<li><b>맨 아래(단말)</b>: 값이 주어져 있어요.</li>\n<li><b>MIN 차례</b>: 각 MIN 노드는 자식 중 <b>작은 값</b>을 골라요. 그 결과 4와 3.</li>\n<li><b>맨 위(MAX 차례)</b>: 4와 3 중 <b>큰 값 4</b>를 고르는 쪽(a1)을 선택해요.</li>\n</ol>\n<div class=\"box tip\"><b>💡 알아두기</b> 우리는 항상 MIN이 최선의 선택을 한다고 가정했어요. 하지만 MIN이 최선이 아닌 선택을 해도 MAX가 최선의 선택을 한다면 승리할 수 있어요. 예를 들어 MIN이 4 대신 더 큰 값을 골라 주면 MAX는 오히려 더 좋은 결과를 얻을 수 있어요. 위 그림에서도 a1 쪽 MIN이 최선인 4 대신 7을 고르면, MAX는 처음 계산한 4보다 좋은 7을 얻게 돼요.</div>\n<div class=\"box ex\"><b>🔎 틱택토에 적용해 보기</b> 짝과 틱택토를 여러 번 해 보며 내가 이길 수 있는 전략을 찾을 때 미니맥스를 써 보세요. 한 사람이 O, 다른 사람이 X를 번갈아 놓아 먼저 3개를 직선으로 잇는 사람이 이겨요. “내가 여기 두면 상대는 어디에 둘 때 내게 가장 불리할까?”를 따져 보는 게 바로 MIN의 선택을 가정하는 거예요.</div>\n<div class=\"analogy\"><b>🍳 비유로 이해하기</b> 가위바위보 대신 “두 칸 중 어디로 갈까” 고르는 게임에서, 내가 어느 칸을 골라도 상대가 나에게 가장 나쁜 칸으로 따라온다고 가정하고, 그중 제일 덜 나쁜 칸을 고르는 거예요.</div>",
+      "keypoints": [
+        "상대가 있는 게임은 게임 트리로 탐색하며, 목표 상태는 게임에서 승리하는 것이다.",
+        "미니맥스는 상대(MIN)가 항상 최선을 선택한다고 가정하고, MAX는 큰 값을, MIN은 작은 값을 고르며 단말에서 거꾸로 올라간다.",
+        "상대가 최선이 아니어도 MAX가 최선을 택하면 승리할 수 있다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "MIN 노드의 두 자식 값이 4와 7일 때, 이 MIN 노드가 갖는 값은?",
+        "choices": [
+          "7",
+          "11",
+          "4",
+          "5.5"
+        ],
+        "answer": 2,
+        "explain": "MIN은 평가 함숫값이 작을수록 유리하므로 자식 중 작은 값인 4를 골라요. MAX 차례였다면 7을 골랐을 거예요."
+      }
+    }
+  ],
+  "recap": [
+    "탐색은 문제를 노드와 링크로 나타내고 시작에서 목표까지 찾는 일이다. 탐색 트리의 노드는 상태가 바뀔 때마다 생긴다.",
+    "맹목적 탐색은 정보 없이 규칙대로 탐색하며, 깊이 우선(깊게)과 너비 우선(층별로)이 있다.",
+    "정보 이용 탐색은 경험(휴리스틱 정보)을 활용해 일부만 효과적으로 탐색하고 근삿값을 빨리 찾지만 최적해는 장담하지 못한다.",
+    "언덕 등반 탐색은 평가 함숫값이 더 높은 곳으로만 이동해 도중에 멈출 수 있고, 최상 우선 탐색은 open/close 리스트로 이를 개선한다.",
+    "A*는 f(n)=g(n)+h(n)으로 지나온 비용과 남은 예측 비용을 함께 고려하며 평가 함수 선택이 중요하다.",
+    "상대가 있는 게임은 게임 트리와 미니맥스(MAX는 큰 값, MIN은 작은 값)로 탐색한다."
+  ],
+  "terms": [
+    {
+      "t": "탐색",
+      "d": "문제를 경우의 수로 표현하고 시작에서 목표를 찾아가는 과정"
+    },
+    {
+      "t": "노드·링크",
+      "d": "노드는 정보를 가진 점, 링크는 노드를 잇는 선"
+    },
+    {
+      "t": "탐색 트리",
+      "d": "탐색할 상태들을 트리 모양으로 나타낸 것"
+    },
+    {
+      "t": "맹목적 탐색",
+      "d": "상태 공간 정보 없이 규칙대로 모든 상태를 탐색(무정보 탐색)"
+    },
+    {
+      "t": "깊이 우선 탐색(DFS)",
+      "d": "갈 수 있는 한 깊게 들어가고 막히면 되돌아오는 탐색"
+    },
+    {
+      "t": "너비 우선 탐색(BFS)",
+      "d": "같은 깊이의 노드를 모두 본 뒤 다음 깊이로 내려가는 탐색"
+    },
+    {
+      "t": "정보 이용 탐색",
+      "d": "휴리스틱 정보로 일부만 효과적으로 탐색하는 방법(휴리스틱·경험적 탐색)"
+    },
+    {
+      "t": "평가 함수",
+      "d": "노드에서 목표 상태에 도달할 가능성을 계산해 주는 함수"
+    },
+    {
+      "t": "언덕 등반 탐색",
+      "d": "평가 함숫값이 가장 좋은 주변 지점으로 올라가는 그리디 탐색"
+    },
+    {
+      "t": "A* 알고리즘",
+      "d": "f(n)=g(n)+h(n)으로 지나온 비용과 남은 예측 비용을 함께 보는 탐색"
+    }
+  ],
+  "quiz": [
+    {
+      "type": "choice",
+      "q": "깊이 우선 탐색과 너비 우선 탐색은 어떤 탐색에 속할까?",
+      "choices": [
+        "정보 이용 탐색",
+        "맹목적 탐색",
+        "휴리스틱 탐색",
+        "게임 트리 탐색"
+      ],
+      "answer": 1,
+      "explain": "두 방법은 상태 공간에 관한 정보 없이 규칙에 따라 탐색하는 맹목적 탐색이에요. 언덕 등반, 최상 우선, A*가 정보 이용 탐색이에요."
+    },
+    {
+      "type": "ox",
+      "q": "너비 우선 탐색은 한 갈래를 끝까지 깊게 내려간 뒤 되돌아와서 다음 갈래를 탐색한다.",
+      "answer": false,
+      "explain": "그건 깊이 우선 탐색이에요. 너비 우선 탐색은 같은 층의 노드를 모두 본 뒤에 다음 층으로 내려가요."
+    },
+    {
+      "type": "choice",
+      "q": "8개의 숫자 조각 문제에서 평가 함숫값으로 쓴 것은?",
+      "choices": [
+        "움직인 횟수",
+        "제자리에 놓인 조각의 수",
+        "빈칸의 위치",
+        "조각 번호의 합"
+      ],
+      "answer": 1,
+      "explain": "교과서는 목표 상태와 비교해 제자리에 놓여 있는 조각의 수를 평가 함숫값으로 정했어요."
+    },
+    {
+      "type": "choice",
+      "q": "최상 우선 탐색이 언덕 등반 탐색보다 나은 점은?",
+      "choices": [
+        "평가 함수를 전혀 쓰지 않는다.",
+        "선택되지 않은 노드도 open 리스트에 남겨 두어 다시 고려할 수 있다.",
+        "항상 최적의 해를 보장한다.",
+        "막다른 길이 없는 문제만 푼다."
+      ],
+      "answer": 1,
+      "explain": "최상 우선 탐색은 open 리스트에서 가장 좋은 노드를 고르므로 앞서 선택하지 않은 노드도 나중에 다시 선택될 수 있어요. 최적해를 보장하지는 않아요."
+    },
+    {
+      "type": "choice",
+      "q": "A*에서 f(대구)=g+h 이고 g(대구)=60, h(대구)=240일 때 f(대구)는?",
+      "choices": [
+        "180",
+        "240",
+        "300",
+        "400"
+      ],
+      "answer": 2,
+      "explain": "f(n)=g(n)+h(n) 이므로 60+240=300이에요."
+    },
+    {
+      "type": "ox",
+      "q": "미니맥스 알고리즘에서 MIN은 자식 노드 중 큰 값을 선택한다.",
+      "answer": false,
+      "explain": "MIN은 값이 작을수록 유리하므로 작은 값을 선택해요. 큰 값을 고르는 쪽은 MAX예요."
+    }
+  ]
+}

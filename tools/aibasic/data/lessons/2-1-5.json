@@ -1,0 +1,247 @@
+{
+  "id": "2-1-5",
+  "unit": 2,
+  "title": "모델 학습과 성능 평가",
+  "tagline": "시험 문제를 미리 보고 공부했다면 점수가 믿을 만할까?",
+  "pages": "교과서 p.76–81, 85–89",
+  "goals": [
+    "전체 데이터를 훈련 데이터와 테스트 데이터로 나누는 이유를 설명할 수 있다.",
+    "사이킷런으로 모델을 만들고 학습·평가·예측하는 코드를 읽고 설명할 수 있다.",
+    "정확도, 혼동행렬, 정밀도, 재현율, F1-점수의 의미를 설명할 수 있다.",
+    "회귀 모델(선형 회귀)과 군집 모델(k-평균)의 실습 흐름을 설명할 수 있다."
+  ],
+  "story": {
+    "title": "백 점이 너무 쉬울 때",
+    "paras": [
+      "화면에 학습이 끝났다는 글자가 떴다. 민준이는 콧노래를 부르며 내게 눈짓을 했다. 전처리를 마친 붓꽃 데이터가 드디어 준비된 날이었다. 민준이는 전체 데이터로 학습시키더니 같은 데이터로 바로 점수를 매기려 했다.",
+      "“같은 걸로 확인하면 백 점이죠? 완벽한 모델이에요!” 자신만만한 목소리였다. 아라 쌤이 물으셨다. “시험 전에 정답지를 통째로 외운 학생이 같은 시험지로 백 점을 받았어요. 실력이 있다고 할 수 있을까요?”",
+      "민준이가 머리를 긁적였다. “음… 새 문제는 못 풀 수도 있겠네요.” 나는 속으로 뜨끔했다. 시험 전날 답만 외웠다가 숫자 하나 바뀐 문제에서 막힌 적이 있었다. 그때 얼마나 억울했는지.",
+      "그래서 조심스럽게 물었다. 공부할 문제와 시험 볼 문제를 따로 떼어 놓는 건가요. 시험 문제는 한 번도 안 본 것이어야 할 것 같았다. 쌤이 정확하다며 웃으셨다.",
+      "쌤은 한마디를 더 보태셨다. 점수 하나로는 어디서 틀리는지 알 수 없다고. 병이 있는데 없다고 하는 실수와 멀쩡한데 있다고 하는 실수는 무게가 다르다고. 듣고 보니 그랬다. 같은 틀림이어도 같은 틀림이 아니었다.",
+      "채점한 시험지를 떠올렸다. 점수만큼 중요한 건 엑스 표시가 어디에 몰려 있느냐였다. 나는 노트에 ‘틀린 모양’이라고 적었다.",
+      "진짜 실력은 어떻게 확인하는 걸까. 틀린 모양은 또 어떻게 들여다볼까. 궁금한 채로 노트를 덮었다. 교실에는 어느새 노을빛이 번져 있었다."
+    ],
+    "question": "모델의 진짜 실력은 어떻게 확인하고, 틀린 모양까지 어떻게 살펴볼 수 있을까요?"
+  },
+  "steps": [
+    {
+      "level": "1계단",
+      "title": "데이터 나누기와 모델 학습",
+      "body": "<p>데이터 수집과 전처리가 끝나면 기계학습을 해요. 먼저 전처리한 데이터를 <b>독립 변수(X)</b>와 <b>종속 변수(y)</b>로 나눠요. 붓꽃은 X에 핵심 속성인 ‘꽃잎 길이’, ‘꽃잎 너비’를, y에 ‘종류’를 넣어요.</p>\n<pre class=\"code\"><code>X = df3[['꽃잎 길이', '꽃잎 너비']] # 독립 변수(핵심 속성)\ny = df3['종류']  # 종속 변수</code></pre>\n<p>데이터프레임에서 여러 열을 고를 때는 대괄호를 겹쳐서([[ ]]) 써요. (df3은 71쪽에서 이상치를 제거한 데이터, 핵심 속성은 72쪽에서 찾은 것이에요.)</p>\n<p>그다음 X와 y를 <b>훈련 데이터</b>와 <b>테스트 데이터</b>로 중복 없이 나눠요.</p>\n<table>\n<tr><th>구분</th><th>쓰임</th></tr>\n<tr><td>훈련 데이터</td><td>모델을 학습시켜 만드는 데 사용해요.</td></tr>\n<tr><td>테스트 데이터</td><td>학습이 끝난 모델의 성능을 평가하는 데 사용해요. 모델이 이전에 본 적이 없는 데이터에 대한 성능을 재요.</td></tr>\n</table>\n<p>보통 훈련 데이터는 60~80%, 테스트 데이터는 20~40%로 하지만, 데이터 수나 정확도를 높이려고 비율을 조정하기도 해요.</p>\n<pre class=\"code\"><code>from sklearn.model_selection import train_test_split\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2,\nrandom_state = 7)</code></pre>\n<table>\n<tr><th>코드</th><th>쉬운 설명</th></tr>\n<tr><td><code>from sklearn.model_selection import train_test_split</code></td><td>사이킷런에서 데이터를 나누는 도구를 가져와요.</td></tr>\n<tr><td><code>train_test_split(X, y, ...)</code></td><td>X, y를 훈련용과 테스트용으로 무작위로 나눠요.</td></tr>\n<tr><td><code>test_size = 0.2</code></td><td>테스트 데이터를 20%로 해요. 즉 훈련 80%, 테스트 20%(8:2).</td></tr>\n<tr><td><code>random_state = 7</code></td><td>무작위로 섞는 방식을 7번으로 고정해, 다시 실행해도 같은 결과가 나오게 해요.</td></tr>\n<tr><td><code>X_train, X_test, y_train, y_test</code></td><td>훈련용 입력·테스트용 입력·훈련용 정답·테스트용 정답이 차례로 저장돼요.</td></tr>\n</table>\n<div class=\"box tip\"><b>💡 알아두기: 사이킷런(scikit-learn)</b> 다양한 기계학습 알고리즘을 구현한 파이썬 라이브러리예요. 온라인 문서와 예제가 풍부하고, 쉽고 효율적인 개발 도구를 제공하며, 많은 사람이 여러 환경에서 써서 검증되었어요.</div>\n<p>기계학습 알고리즘은 종류가 다양하고 학습 방식도 조금씩 달라서, 푸는 문제에 맞는 모델을 고르고 필요한 라이브러리를 가져와야 해요. 붓꽃 종류 분류(61쪽 (나) 문제)에는 k-최근접 이웃을 쓰기로 했으니 <code>KNeighborsClassifier()</code>로 모델을 만들어 model에 저장해요.</p>\n<pre class=\"code\"><code>from sklearn.neighbors import KNeighborsClassifier\nmodel = KNeighborsClassifier( )  # k-최근접 이웃 모델 생성</code></pre>\n<p>이 모델은 사람에 비유하면 <b>아직 아무것도 배우지 않은 뇌</b>예요. 이제 <code>fit()</code>에 훈련 데이터를 넣어 학습시켜요. 형식은 <code>모델 객체.fit(훈련 데이터, 훈련 데이터의 정답)</code>이에요.</p>\n<pre class=\"code\"><code>model.fit(X_train, y_train)</code></pre>\n<table>\n<tr><th>코드</th><th>쉬운 설명</th></tr>\n<tr><td><code>KNeighborsClassifier()</code></td><td>k-NN 분류 모델(빈 뇌)을 만들어요.</td></tr>\n<tr><td><code>model.fit(X_train, y_train)</code></td><td>훈련용 입력 X_train(예: [4.2, 1.2], [1.3, 0.3], ...)과 정답 y_train(예: '버시컬러', '세토사', ...)을 보여 주며 학습시켜요.</td></tr>\n</table>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 학습할 때는 <b>훈련용으로 나눈</b> 데이터와 훈련 데이터 정답(X_train, y_train)만 써요. 테스트용(X_test, y_test)은 학습에 쓰지 않아요.</div>\n<div class=\"box def\"><b>📌 과적합과 과소적합 (AI와 함께 지식 키우기)</b>\n<ul>\n<li><b>과적합(overfitting)</b>: 모델이 훈련 데이터에 너무 맞춰져, 새로운 데이터나 실제 상황에서는 성능이 나빠지는 현상이에요. (과도하게 분류한 경우)</li>\n<li><b>과소적합(underfitting)</b>: 모델이 훈련 데이터의 패턴을 충분히 학습하지 못해, 훈련 데이터와 실제 데이터 모두에서 성능이 낮은 현상이에요. (너무 단순하게 분류한 경우)</li>\n<li>가장 좋은 것은 최적의 선으로 알맞게 분류하는 <b>적절한 분류</b>예요.</li>\n</ul>\n<b>파라미터</b>는 모델이 학습하는 동안 업데이트되는 변수로, 훈련 데이터에 적응하며 최적의 값을 찾아요.</div>",
+      "keypoints": [
+        "독립 변수 X와 종속 변수 y로 나누고 훈련/테스트 데이터로 중복 없이 나눈다(test_size=0.2는 훈련 80%).",
+        "KNeighborsClassifier()로 모델을 만들고 fit(X_train, y_train)으로 학습시킨다.",
+        "과적합은 훈련 데이터에만 지나치게 맞춰진 것, 과소적합은 패턴을 덜 배운 것이다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "훈련 데이터에서는 점수가 매우 높은데 새로운 데이터에서는 점수가 크게 떨어지는 현상은?",
+        "choices": [
+          "과소적합",
+          "과적합",
+          "결측치",
+          "군집"
+        ],
+        "answer": 1,
+        "explain": "훈련 데이터에 지나치게 맞춰져 새 데이터에서 성능이 나빠지는 것이 과적합이에요. 과소적합은 훈련 데이터도 제대로 못 배운 경우예요."
+      }
+    },
+    {
+      "level": "2계단",
+      "title": "정확도와 혼동행렬로 성능 보기",
+      "body": "<p>학습한 모델이 붓꽃을 잘 분류하는지 보려고 <b>정확도(accuracy)</b>를 써요. 정확도는 모델이 올바르게 예측한 비율, 즉 예측 결과가 실제 정답과 얼마나 일치하는지를 나타내요. 사이킷런 분류 모델의 <code>score()</code> 함수로 재는데, 이때 쓰는 데이터는 학습에 쓰지 않은 <b>테스트 데이터</b>예요.</p>\n<pre class=\"code\"><code>acc = model.score(X_test, y_test) # 모델의 정확도를 계산하여 저장\nprint('테스트 데이터 점수: {:.3f}'.format(acc)) # 정확도(소수점 셋째 자리까지 출력)</code></pre>\n<p>실행하면 <code>테스트 데이터 점수: 0.967</code>이 나와요. <code>{:.3f}</code>는 소수점 셋째 자리까지 보여 달라는 서식이에요.</p>\n<p>정확도는 직관적이지만 <b>무엇을 어떻게 잘못 추정하는지</b>는 알기 어려워요. 이때 <b>혼동행렬(confusion matrix)</b>을 쓰면 어디서 오류가 나는지 명확해져요. 실제 결과와 예측 결과가 참인지 거짓인지에 따라 네 칸으로 나눠요.</p>\n<table>\n<tr><th></th><th>예측: 참</th><th>예측: 거짓</th></tr>\n<tr><th>실제: 참</th><td><b>TP</b> 참 긍정(True Positive)</td><td><b>FN</b> 거짓 부정(False Negative)</td></tr>\n<tr><th>실제: 거짓</th><td><b>FP</b> 거짓 긍정(False Positive)</td><td><b>TN</b> 참 부정(True Negative)</td></tr>\n</table>\n<p>실제 참을 거짓으로 예측(FN), 실제 거짓을 참으로 예측(FP)한 두 칸이 <b>오류</b>예요.</p>\n<table>\n<tr><th>용어</th><th>질병 분류</th><th>스팸 메일 분류</th></tr>\n<tr><td>TP</td><td>“병이 있을 것이다.”라고 예측했는데 실제로 병이 있을 때</td><td>스팸으로 예측했는데 실제 스팸일 때</td></tr>\n<tr><td>TN</td><td>“병이 없을 것이다.”라고 예측했는데 실제로 병이 없을 때</td><td>스팸이 아니라고 예측했는데 실제 스팸이 아닐 때</td></tr>\n<tr><td>FP</td><td>“병이 있을 것이다.”라고 예측했는데 실제로는 병이 없을 때</td><td>스팸으로 예측했는데 실제로는 스팸이 아닐 때</td></tr>\n<tr><td>FN</td><td>“병이 없을 것이다.”라고 예측했는데 실제로는 병이 있을 때</td><td>스팸이 아니라고 예측했는데 실제로는 스팸일 때</td></tr>\n</table>\n<div class=\"analogy\"><b>🍳 비유로 이해하기</b> 이름의 첫 글자로 외우면 쉬워요. 앞 글자(True/False)는 <b>예측이 맞았는지</b>, 뒤 글자(Positive/Negative)는 <b>모델이 뭐라고 예측했는지</b>예요. 그래서 FP는 “틀렸는데(False), 긍정이라고 예측(Positive)”한 거예요.</div>",
+      "keypoints": [
+        "정확도는 올바르게 예측한 비율이며 score(X_test, y_test)로 잰다.",
+        "혼동행렬은 TP, TN, FP, FN으로 어디서 틀렸는지 알려 준다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "스팸이 아닌 메일을 스팸이라고 예측한 경우는 혼동행렬에서 무엇일까요?",
+        "choices": [
+          "TP",
+          "TN",
+          "FP",
+          "FN"
+        ],
+        "answer": 2,
+        "explain": "긍정(스팸)이라고 예측했는데 실제로는 거짓(스팸 아님)이므로 거짓 긍정, FP예요."
+      }
+    },
+    {
+      "level": "3계단",
+      "title": "정확도만 믿으면 안 되는 이유",
+      "body": "<p>질병 예측 모델과 스팸 메일 분류 모델의 혼동행렬이 똑같다고 해 볼게요.</p>\n<table>\n<tr><th></th><th>예측: 참(질병/스팸 O)</th><th>예측: 거짓(질병/스팸 X)</th></tr>\n<tr><th>실제 O</th><td>9</td><td>1</td></tr>\n<tr><th>실제 X</th><td>30</td><td>60</td></tr>\n</table>\n<p>정확도는 전체에서 정확히 예측한 건수의 비율이에요.</p>\n<div class=\"box def\"><b>📌 핵심 정의</b> 정확도 = (TP + TN) / (TP + TN + FP + FN)<br>위 표: (9 + 60) / (9 + 60 + 30 + 1) = 69 / 100 = <b>0.69</b></div>\n<p>두 모델의 정확도는 0.69로 같지만, 문제에 따라 <b>잘못 분류한 FP, FN</b>이 얼마나 중요한지가 달라요.</p>\n<ul>\n<li><b>질병 예측 모델</b>: 실제 병이 있는데 없다고 예측하는 것(FN)은 사람의 생명과 직접 관련되므로 정확도뿐 아니라 FN을 꼭 살펴야 해요.</li>\n<li><b>스팸 메일 분류 모델</b>: 스팸이 아닌데 스팸이라고 분류해 중요한 메일을 못 보면 곤란하므로 FP가 중요해요.</li>\n</ul>\n<p>그래서 문제에 알맞은 평가 지표를 골라야 해요.</p>\n<table>\n<tr><th>지표</th><th>뜻</th><th>식</th><th>위 표의 값</th></tr>\n<tr><td><b>정밀도</b>(precision)</td><td>긍정으로 예측한 것 중 실제로 긍정인 비율. 스팸 분류에서 중요해요.</td><td>TP / (TP + FP)</td><td>9/(9+30) = 9/39</td></tr>\n<tr><td><b>재현율</b>(recall)</td><td>실제 긍정 중 모델이 긍정으로 맞힌 비율. 질병 예측에서 중요해요.</td><td>TP / (TP + FN)</td><td>9/(9+1) = 9/10</td></tr>\n<tr><td><b>F1-점수</b></td><td>정밀도와 재현율의 조화평균(둘 중 하나만 낮아도 낮게 나오는 평균). 둘은 서로 상충하므로 균형을 찾을 때 써요.</td><td>2 × (정밀도 × 재현율) / (정밀도 + 재현율)</td><td>약 0.37</td></tr>\n</table>\n<div class=\"box tip\"><b>💡 알아두기</b> 여기서 정밀도가 약 0.23, 재현율이 0.9라서 FN은 거의 없지만(재현율이 높지만) FP가 많아 정밀도가 낮아요. 그 둘의 균형이 F1-점수 약 0.37이에요. 같은 정확도 0.69 뒤에도 이렇게 다른 모습이 숨어 있어요.</div>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 정밀도는 분모가 ‘<b>예측</b>이 긍정인 것’(TP+FP), 재현율은 분모가 ‘<b>실제</b>가 긍정인 것’(TP+FN)이에요.</div>",
+      "keypoints": [
+        "정확도 = (TP+TN)/(전체). 같은 정확도라도 FP·FN의 중요도는 문제마다 다르다.",
+        "정밀도 = TP/(TP+FP), 재현율 = TP/(TP+FN), F1은 둘의 조화평균이다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "실제 병이 있는 환자를 놓치지 않는 것이 가장 중요한 질병 예측 모델에서 특히 살펴볼 지표는?",
+        "choices": [
+          "정밀도",
+          "재현율",
+          "결측치 개수",
+          "이웃의 수"
+        ],
+        "answer": 1,
+        "explain": "재현율은 실제 긍정(병이 있는 사람) 중 모델이 맞힌 비율이라서, 병이 있는데 없다고 예측하는 FN을 줄이는 데 중요해요."
+      }
+    },
+    {
+      "level": "4계단",
+      "title": "붓꽃 분류 모델 평가, 개선, 활용",
+      "body": "<p><b>혼동행렬 그리기</b> — 테스트 데이터 X_test를 모델이 어떻게 예측하는지 보고 y_test와 비교해 혼동행렬을 그려요.</p>\n<pre class=\"code\"><code>from sklearn.metrics import confusion_matrix, classification_report\npredicted = model.predict(X_test) # 테스트 데이터에 대한 예측값\nclassNames = pd.unique(df3['종류'])\ncm = confusion_matrix(y_test, predicted, labels=classNames) # 혼동행렬\ndf_cm = pd.DataFrame(cm, index = [i for i in classNames],\n                     columns = [i for i in classNames])\nsns.heatmap(data = df_cm, annot = True, fmt = '0.2f', cmap = 'YlGnBu')\nplt.xlabel('예측값')\nplt.ylabel('실젯값')\nplt.show( )</code></pre>\n<table>\n<tr><th>코드</th><th>쉬운 설명</th></tr>\n<tr><td><code>model.predict(X_test)</code></td><td>테스트용 입력으로 모델이 예측한 종류를 구해요.</td></tr>\n<tr><td><code>pd.unique(df3['종류'])</code></td><td>종류 열에서 중복 없는 이름(세 종류)을 뽑아요.</td></tr>\n<tr><td><code>confusion_matrix(y_test, predicted, labels=...)</code></td><td>실제 정답과 예측값을 비교해 혼동행렬(숫자 표)을 만들어요.</td></tr>\n<tr><td><code>pd.DataFrame(cm, index=..., columns=...)</code></td><td>숫자 표에 행·열 이름을 붙인 표를 만들어요.</td></tr>\n<tr><td><code>sns.heatmap(..., annot=True, fmt='0.2f', cmap='YlGnBu')</code></td><td>표를 색으로 그리고 칸마다 숫자를 써요(70쪽에서 불러온 seaborn의 sns 사용).</td></tr>\n<tr><td><code>plt.xlabel / ylabel / show</code></td><td>가로·세로축 이름을 쓰고 그래프를 보여 줘요.</td></tr>\n</table>\n<p>결과를 보면 실제로 버지니카인데 버시컬러로 잘못 분류한 경우가 <b>1건</b> 있어요.</p>\n<figure class=\"fig\"><img src=\"img/p80_1.jpg\" alt=\"붓꽃 분류 결과 혼동행렬 히트맵\" loading=\"lazy\"><figcaption>혼동행렬: 빨간 상자가 버지니카를 버시컬러로 잘못 분류한 1건 (교과서 80쪽)</figcaption></figure>\n<p><b>모델 개선하기</b> — <b>하이퍼파라미터</b>를 조절해요. 하이퍼파라미터는 학습 전에 사용자가 직접 정해 주는 값으로 학습 중에는 바뀌지 않고, 성능과 학습 속도에 큰 영향을 줘요(학습률, k-NN의 k 등). k-NN은 참고할 이웃의 수 k를 바꿔 가며 정확도가 가장 높은 값을 찾아요.</p>\n<pre class=\"code\"><code>import numpy as np\nacc = [ ]\nk_range = range(1, 20) # 이웃의 수\nfor k in k_range: # 이웃의 수(k)를 1~19까지 변화시키기 위한 반복문\n  model = KNeighborsClassifier(n_neighbors = k) # 이웃의 수를 k로 지정\n  model.fit(X_train, y_train)  # 훈련 데이터를 이용하여 학습\n  acc.append(model.score(X_test, y_test)) # 테스트 데이터를 이용한 정확도\nplt.scatter(k_range, acc) # k_range와 acc의 관계 산점도\nplt.xlabel('이웃의 수') # x축 라벨\nplt.ylabel('정확도') # y축 라벨\nplt.show( )</code></pre>\n<table>\n<tr><th>코드</th><th>쉬운 설명</th></tr>\n<tr><td><code>acc = [ ]</code></td><td>정확도를 담을 빈 목록을 만들어요.</td></tr>\n<tr><td><code>k_range = range(1, 20)</code></td><td>1부터 19까지 숫자를 만들어요.</td></tr>\n<tr><td><code>for k in k_range:</code></td><td>k를 1, 2, ..., 19로 바꿔 가며 아래 줄들을 반복해요.</td></tr>\n<tr><td><code>KNeighborsClassifier(n_neighbors = k)</code></td><td>이웃 수를 k로 정한 새 모델을 만들어요.</td></tr>\n<tr><td><code>model.fit(...)</code>, <code>acc.append(...)</code></td><td>훈련 데이터로 학습한 뒤, 테스트 데이터 정확도를 목록에 추가해요.</td></tr>\n<tr><td><code>plt.scatter(k_range, acc)</code></td><td>k와 정확도의 관계를 점으로 찍어요.</td></tr>\n</table>\n<p>그래프를 보면 k값이 바뀌어도 정확도가 0.96 이상으로 비슷하게 높아요.</p>\n<figure class=\"fig\"><img src=\"img/p80_2.jpg\" alt=\"이웃의 수 k에 따른 정확도 산점도\" loading=\"lazy\"><figcaption>k를 바꿔도 정확도는 0.96 이상으로 비슷해요 (교과서 80쪽)</figcaption></figure>\n<p><b>모델 활용하기</b> — 최적의 모델로 새 데이터를 분류해요. 꽃잎 길이 1.0, 꽃잎 너비 1.5인 붓꽃의 품종은?</p>\n<pre class=\"code\"><code>new = [[1.0, 1.5]]\nprint(model.predict(new))</code></pre>\n<p>결과는 <code>['세토사']</code>예요. 이렇게 문제가 기계학습으로 풀 수 있다면 데이터를 전처리해 학습시키고, 성능을 평가해 모델을 최적화한 뒤 다른 문제에도 활용할 수 있어요.</p>\n<div class=\"box ex\"><b>🔎 스스로 해결하기</b> 80쪽의 3×3 혼동행렬을 ‘버시컬러인가 아닌가’의 2×2로 바꿔 보면 실제·예측이 모두 버시컬러인 칸이 TP, 버시컬러가 아닌 것을 아니라고 맞힌 칸들의 합이 TN, 나머지가 FP와 FN이 돼요. 그 뒤 정확도, 정밀도, 재현율, F1-점수를 이 레슨의 식으로 계산해 볼 수 있어요.</div>",
+      "keypoints": [
+        "predict()로 예측하고 confusion_matrix로 혼동행렬을 그려 어디서 틀리는지 본다.",
+        "하이퍼파라미터(k)는 사용자가 정하며, 값을 바꿔 가며 가장 좋은 모델을 찾는다.",
+        "최종 모델은 predict()로 새로운 데이터를 분류하는 데 쓴다."
+      ],
+      "check": {
+        "type": "ox",
+        "q": "k-NN의 이웃 수 k는 학습 중에 모델이 스스로 바꾸는 파라미터이다.",
+        "answer": false,
+        "explain": "k는 학습 전에 사용자가 직접 정해 주는 하이퍼파라미터예요. 학습 중 업데이트되는 것은 파라미터라고 해요."
+      }
+    },
+    {
+      "level": "5계단",
+      "title": "한눈에 보는 코드와 회귀 실습",
+      "body": "<p><b>주요 코드 정리</b> — 기계학습 모델을 만들고 평가할 때 쓰는 대표 코드를 순서대로 모아 봤어요(문제에 따라 바꿔 쓸 수 있어요).</p>\n<pre class=\"code\"><code>import pandas as pd # 판다스 라이브러리 불러오기\ndf = pd.read_csv('Iris.csv') # CSV 파일을 데이터프레임으로 불러오기\nX = df.iloc[:, :-1].values; y = df.iloc[:, -1].values\nfrom sklearn.preprocessing import MinMaxScaler # 정규화에 필요한 모듈 불러오기\nscaler = MinMaxScaler # 정규화 객체 생성하기\nX_scaled = scaler.fit_transform(X) # 정규화하기\nfrom sklearn.model_selection import train_test_split # 데이터 분할 모듈 불러오기\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.2, random_state = 42) # 데이터 분할\nfrom sklearn.linear_model import LogisticRegression # 로지스틱 회귀\nmodel = LogisticRegression() # 모델 생성\nmodel.fit(X_train, y_train) # 모델 학습\nfrom sklearn.metrics import accuracy_score, confusion_matrix # 평가 지표 모듈 불러오기\ny_pred = model.predict(X_test) # 예측값\naccuracy = accuracy_score(y_test, y_pred) # 정확도\nmatrix = confusion_matrix(y_test, y_pred) # 혼동행렬</code></pre>\n<table>\n<tr><th>단계</th><th>하는 일</th></tr>\n<tr><td>데이터 수집(불러오기)</td><td>read_csv로 CSV를 표로 불러오고, iloc으로 마지막 열 앞쪽은 X, 마지막 열은 y로 나눠요.</td></tr>\n<tr><td>데이터 전처리하기</td><td>MinMaxScaler로 <b>정규화</b>(스케일링)해요. 값의 단위를 맞춰 주는 작업이에요.</td></tr>\n<tr><td>데이터 분할</td><td>train_test_split으로 훈련/테스트로 나눠요.</td></tr>\n<tr><td>모델 생성과 학습하기</td><td>LogisticRegression()으로 모델을 만들고 fit으로 학습해요.</td></tr>\n<tr><td>성능 평가하기</td><td>predict로 예측하고 accuracy_score(정확도), confusion_matrix(혼동행렬)로 평가해요.</td></tr>\n</table>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 위 코드는 교과서에 실린 그대로예요. 실제로 실행할 때는 <code>scaler = MinMaxScaler()</code>처럼 <b>괄호를 붙여야</b> 정규화 객체가 만들어져요. 또 예시 코드는 정규화한 X_scaled를 만든 뒤에도 분할에는 X를 쓰고 있으니, 정규화 결과를 학습에 쓰려면 X_scaled로 나누도록 바꿔야 해요.</div>\n<hr>\n<p><b>선형 회귀 실습 (61쪽 (다) 문제)</b> — 일련번호 151번 붓꽃은 꽃받침 길이를 몰라요. 꽃받침 너비, 꽃잎 길이, 꽃잎 너비, 종류를 독립 변수 X로, 꽃받침 길이를 종속 변수 y로 하는 <b>회귀 모델</b>을 만들어 예측해요.</p>\n<p><b>① 데이터 분리</b> — X, y를 정하고 훈련·테스트를 8:2로 나눠요.</p>\n<pre class=\"code\"><code>X = df1[['꽃받침 너비', '꽃잎 길이', '꽃잎 너비', '종류']]  # 독립 변수\ny = df1['꽃받침 길이']  # 종속 변수\nfrom sklearn.model_selection import train_test_split\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2,\n                         shuffle = True, random_state = 7) # shuffle = True: 데이터를 무작위로 섞음.</code></pre>\n<p><b>② 모델 생성과 학습</b></p>\n<pre class=\"code\"><code>from sklearn.linear_model import LinearRegression\nmodel = LinearRegression() # 선형 회귀 모델 생성\nmodel.fit(X_train, y_train) # 선형 회귀 모델 학습</code></pre>\n<p>이대로 실행하면 <code>ValueError: could not convert string to float: '버지니카'</code> 오류가 나요. LinearRegression의 독립 변수에는 <b>범주형 데이터를 쓸 수 없기</b> 때문이에요. 그래서 ‘종류’를 수치형으로 바꾸는 <b>원-핫 인코딩</b>을 해요. 종류가 세토사·버시컬러·버지니카일 때, 열이 범주 개수만큼(종류_버시컬러, 종류_버지니카, 종류_세토사) 늘고 해당 칸만 1, 나머지는 0이 돼요. 예: 세토사 → (0, 0, 1), 버시컬러 → (1, 0, 0), 버지니카 → (0, 1, 0).</p>\n<p><b>③ 훈련/테스트 분리 전에 범주형을 수치형으로 변환</b>하고, 변환된 열로 X를 다시 정해요.</p>\n<pre class=\"code\"><code>import pandas as pd\ndf1 = pd.get_dummies(df1, columns = ['종류'])\nX = df1[['꽃받침 너비', '꽃잎 길이', '꽃잎 너비', '종류_버시컬러', '종류_버지니카', '종류_세토사']]\ny = df1['꽃받침 길이']\nprint(X)</code></pre>\n<p>(교과서 안내: 이 코드를 실행한 뒤 앞의 ① 분리 코드와 ② 학습 코드를 다시 실행해야 해요.)</p>\n<p><b>④ 기울기와 절편 확인</b></p>\n<pre class=\"code\"><code>print('선형 회귀 가중치: {}'.format(model.coef_)) # coef_: 가중치(기울기)\nprint('선형 회귀 편향: {}'.format(model.intercept_)) # intercept_: 편향(절편)</code></pre>\n<p>가중치는 [0.585, 0.789, -0.313, -0.073, -0.365, 0.438], 편향(절편)은 1.494로 나와요.</p>\n<p><b>성능 평가</b> — 회귀 모델은 <b>평균제곱오차(MSE)</b>(실젯값과 예측값의 오차를 제곱해 평균, 0에 가까울수록 우수)나 <b>R²(결정 계수)</b>(독립 변수가 종속 변수를 얼마나 설명하는지의 비율, 1에 가까울수록 우수)로 평가해요. 여기서는 R²를 써요.</p>\n<pre class=\"code\"><code>from sklearn.metrics import r2_score  # 회귀 모델 성능 지표 모듈\ny_pred = model.predict(X_test) # 테스트 데이터에 대한 예측값\nr2 = r2_score(y_test, y_pred)  # 결정 계수\nprint('결정 계수 R2: ', r2 )</code></pre>\n<p>결과는 R² = 1.0이에요.</p>\n<p><b>꽃받침 길이 예측</b> — 꽃받침 너비 3.1, 꽃잎 길이 1.5, 꽃잎 너비 0.2, 종류가 세토사인 붓꽃의 새 데이터를 만들어 <b>y = w₁x₁ + w₂x₂ + … + wₙxₙ + b</b> 형태의 학습 모델로 예측해요.</p>\n<pre class=\"code\"><code>new_X = [[3.1, 1.5, 0.2, 0, 0, 1]]\npredict = model.predict(new_X); print(predict)</code></pre>\n<p>결과는 약 <b>4.867</b>이에요. 세토사는 (0, 0, 1)이므로 마지막 값만 1로 넣었어요.</p>\n<div class=\"box tip\"><b>💡 알아두기</b> 가중치(기울기) w는 각 속성이 결과에 미치는 정도, 편향(절편) b는 기본 값이에요. 회귀선은 실제 값과의 오차가 가장 작은 직선(y = ax + b)이에요.</div>",
+      "keypoints": [
+        "정규화(MinMaxScaler), 분할, 모델 생성·학습, 평가(accuracy_score, confusion_matrix)가 기본 흐름이다.",
+        "선형 회귀는 범주형 독립 변수를 쓸 수 없어 get_dummies()로 원-핫 인코딩한다.",
+        "회귀 평가는 MSE(0에 가까울수록)와 R²(1에 가까울수록)를 쓴다."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "선형 회귀 모델에 ‘종류’ 열을 그대로 넣었더니 오류가 났다. 해결 방법은?",
+        "choices": [
+          "테스트 비율을 줄인다.",
+          "원-핫 인코딩으로 수치형으로 바꾼다.",
+          "모델을 두 번 만든다.",
+          "결측치를 늘린다."
+        ],
+        "answer": 1,
+        "explain": "LinearRegression의 독립 변수에는 범주형 데이터를 쓸 수 없어요. get_dummies()로 0과 1의 수치형 열로 바꾸면 해결돼요."
+      }
+    },
+    {
+      "level": "6계단",
+      "title": "「기계학습」 정리: 군집으로 (가) 문제 풀기",
+      "body": "<p>이제 61쪽 (가) 문제(“꽃잎 길이·너비, 꽃받침 길이·너비를 알면 서로 다른 꽃을 구분할 수 있을까?”)를 풀어 봐요. 정답 종류 없이 구분하는 문제이니 <b>군집</b>이고, 알고리즘은 <b>k-평균(KMeans)</b>이에요.</p>\n<p><b>내 실력 점검하기</b> — 교과서는 지식·이해(다양한 알고리즘과 특성 이해), 과정·기능(문제 특성에 맞는 알고리즘 선정·해결), 가치·태도(문제 해결 과정을 알고 적극적으로 임했는지)를 스스로 점검하게 해요.</p>\n<p><b>① 학습 알고리즘 모듈 불러오기</b> — 빈칸 <code>from □ import □</code>를 채우면 이래요.</p>\n<pre class=\"code\"><code>from sklearn.cluster import KMeans\nmodel = KMeans(n_clusters = 3)</code></pre>\n<p>표의 사이킷런 클래스 칸에서 본 대로 k-평균은 <code>sklearn.cluster</code>의 <code>KMeans</code>예요. <code>n_clusters = 3</code>은 3개의 군집(그룹)으로 묶으라는 뜻의 k값이에요.</p>\n<p><b>② 학습에 쓸 데이터 확인</b> — 핵심 속성인 꽃잎 길이와 꽃잎 너비만 가져와요.</p>\n<pre class=\"code\"><code>df4 = df3.loc[:, ['꽃잎 길이', '꽃잎 너비']]; df4</code></pre>\n<p><code>loc[:, [...]]</code>는 모든 행(:)에서 해당 열만 골라요.</p>\n<p><b>③ 학습 후 결과 확인</b></p>\n<pre class=\"code\"><code>model.fit(df4)\ndf4['predicted'] = model.predict(df4)\nidx0 = df4.loc[df4['predicted'] == 0]; print(idx0)</code></pre>\n<table>\n<tr><th>코드</th><th>쉬운 설명</th></tr>\n<tr><td><code>model.fit(df4)</code></td><td>정답(y) 없이 데이터만 넣어 학습해요. 비지도학습이라 정답이 필요 없어요.</td></tr>\n<tr><td><code>df4['predicted'] = model.predict(df4)</code></td><td>각 데이터가 몇 번 군집(0, 1, 2)인지 predicted 열에 저장해요.</td></tr>\n<tr><td><code>df4.loc[df4['predicted'] == 0]</code></td><td>0번 군집에 속한 행만 골라 보여 줘요. 1, 2번도 같은 방법으로 출력해 보세요.</td></tr>\n</table>\n<figure class=\"fig\"><img src=\"img/p89_1.jpg\" alt=\"꽃잎 길이와 너비로 그린 붓꽃 군집 결과 산점도\" loading=\"lazy\"><figcaption>k-평균 군집 결과: 세 그룹으로 나뉘고 별표가 각 중심점이에요 (교과서 89쪽)</figcaption></figure>\n<p>그리고 교과서는 군집의 개수 3이 가장 알맞은지, 기계학습을 활용해 가장 알맞은 그룹 수를 찾아 보게 하고 문제를 해결한 과정을 적어 보게 해요.</p>\n<p><b>핵심 질문</b>: “지도학습과 비지도학습의 차이와 공통점을 설명해 보자.”</p>\n<table>\n<tr><th>구분</th><th>지도학습</th><th>비지도학습</th></tr>\n<tr><td>차이점</td><td>레이블(정답)이 있는 데이터로 학습. 분류·회귀. 정답과 비교해 성능을 평가하기 쉬움.</td><td>레이블이 없는 데이터로 학습. 군집 등. 성능 평가가 어려움.</td></tr>\n<tr><td>공통점</td><td colspan=\"2\">둘 다 데이터에서 규칙·패턴을 찾는 기계학습이며, 데이터의 종류와 특성에 맞춰 알고리즘을 고르고 학습시킨다.</td></tr>\n</table>\n<p><b>학습 계획 점검하기 (심화)</b> — 88쪽의 군집 결과를 산점도로 그리는 코드를 완성해 봐요. 힌트는 <code>cluster_centers_</code> 속성과 seaborn의 <code>scatterplot()</code>이에요.</p>\n<pre class=\"code\"><code>centers = model.cluster_centers_ # 중심값, 좌푯값\nsns.scatterplot(x = '꽃잎 길이', y = '꽃잎 너비',\n                hue ='predicted', data = df4)</code></pre>\n<table>\n<tr><th>코드</th><th>쉬운 설명</th></tr>\n<tr><td><code>model.cluster_centers_</code></td><td>학습 후 각 군집의 중심점 좌표를 알려 줘요.</td></tr>\n<tr><td><code>sns.scatterplot(x=..., y=..., hue='predicted', data=df4)</code></td><td>꽃잎 길이를 가로, 꽃잎 너비를 세로로 점을 찍고 군집(predicted)별로 색을 달리해요.</td></tr>\n</table>\n<div class=\"box tip\"><b>💡 선택 활동</b> 교과서는 ‘보충’(기본 개념을 다시 보는 활동)과 ‘심화’(위 산점도 코드를 완성하는 활동) 중 나에게 맞는 것을 고르게 해요. 데이터의 종류와 특성에 따른 문제 해결 방법을 생각해 보는 것이 중요해요.</div>",
+      "keypoints": [
+        "(가) 문제는 정답 없이 구분하는 군집이므로 KMeans(n_clusters = 3)를 쓴다.",
+        "fit(df4)로 정답 없이 학습하고 predict로 군집 번호를 얻으며 cluster_centers_로 중심점을 본다."
+      ],
+      "check": {
+        "type": "ox",
+        "q": "k-평균(KMeans)을 학습시킬 때는 정답(y)을 함께 넣어야 한다.",
+        "answer": false,
+        "explain": "k-평균은 비지도학습이므로 정답 없이 데이터만 넣어(model.fit(df4)) 군집을 만들어요."
+      }
+    }
+  ],
+  "recap": [
+    "데이터는 독립 변수 X와 종속 변수 y로 나눈 뒤 훈련 데이터와 테스트 데이터로 나누며, 보통 80:20 정도로 한다.",
+    "모델을 만들고 fit()으로 훈련 데이터를 학습시키며, 과적합과 과소적합에 유의한다.",
+    "테스트 데이터로 정확도를 재고, 혼동행렬(TP·TN·FP·FN)로 어떤 오류인지 살펴본다.",
+    "정밀도는 TP/(TP+FP), 재현율은 TP/(TP+FN), F1-점수는 둘의 조화평균이며 문제에 맞는 지표를 고른다.",
+    "k-NN의 k 같은 하이퍼파라미터를 바꿔 가며 성능이 좋은 모델로 개선하고, predict()로 새 데이터를 예측한다.",
+    "회귀는 범주형 데이터를 원-핫 인코딩한 뒤 R² 등으로 평가하고, 군집은 KMeans로 정답 없이 묶는다."
+  ],
+  "terms": [
+    {
+      "t": "훈련 데이터",
+      "d": "모델을 학습시키는 데 사용하는 데이터"
+    },
+    {
+      "t": "테스트 데이터",
+      "d": "학습된 모델의 성능을 평가하는 데 쓰는, 모델이 본 적 없는 데이터"
+    },
+    {
+      "t": "정확도",
+      "d": "전체 중 올바르게 예측한 비율 (TP+TN)/(전체)"
+    },
+    {
+      "t": "혼동행렬",
+      "d": "실젯값과 예측값을 TP, TN, FP, FN으로 나누어 보여 주는 표"
+    },
+    {
+      "t": "정밀도·재현율·F1",
+      "d": "긍정 예측의 정확성 / 실제 긍정을 찾아낸 비율 / 둘의 조화평균"
+    },
+    {
+      "t": "과적합·과소적합",
+      "d": "훈련 데이터에만 지나치게 맞춘 현상 / 패턴을 충분히 못 배운 현상"
+    },
+    {
+      "t": "하이퍼파라미터",
+      "d": "학습 전에 사용자가 직접 정하는 값(k-NN의 k, 학습률 등)"
+    },
+    {
+      "t": "파라미터",
+      "d": "학습 중 업데이트되어 최적값을 찾아가는 변수"
+    },
+    {
+      "t": "결정 계수 R²",
+      "d": "독립 변수가 종속 변수를 설명하는 비율. 1에 가까울수록 우수"
+    }
+  ],
+  "quiz": [
+    {
+      "type": "choice",
+      "q": "모델을 학습시킬 때 사용하는 코드 형식으로 알맞은 것은?",
+      "choices": [
+        "model.score(X_train)",
+        "model.fit(X_train, y_train)",
+        "model.predict(y_train)",
+        "model.fit(X_test, y_test)"
+      ],
+      "answer": 1,
+      "explain": "학습은 fit에 훈련 데이터(X_train)와 그 정답(y_train)을 넣어서 해요. 테스트 데이터는 평가에 써요."
+    },
+    {
+      "type": "choice",
+      "q": "TP=9, FN=1, FP=30, TN=60일 때 정확도는?",
+      "choices": [
+        "0.37",
+        "0.69",
+        "0.90",
+        "0.23"
+      ],
+      "answer": 1,
+      "explain": "(TP+TN)/(전체) = (9+60)/(9+60+30+1) = 69/100 = 0.69예요."
+    },
+    {
+      "type": "ox",
+      "q": "정밀도는 긍정으로 예측한 것 중 실제로 긍정인 비율이며, 스팸 메일 분류에서 중요하다.",
+      "answer": true,
+      "explain": "중요한 메일을 스팸으로 잘못 거르는(FP) 일을 줄이려면 TP/(TP+FP)인 정밀도를 살펴야 해요."
+    },
+    {
+      "type": "choice",
+      "q": "훈련 데이터에는 아주 잘 맞지만 새로운 데이터에서 성능이 떨어지는 문제를 줄이려고 가장 먼저 해 볼 일은?",
+      "choices": [
+        "테스트 데이터를 학습에 사용한다.",
+        "테스트 데이터로 평가하며 모델과 하이퍼파라미터를 개선한다.",
+        "정답을 지운다.",
+        "결측치를 만든다."
+      ],
+      "answer": 1,
+      "explain": "테스트 데이터는 새 데이터에 대한 실력을 보여 주므로, 이 평가를 보며 모델과 하이퍼파라미터를 조정해 개선해요. 테스트 데이터를 학습에 쓰면 평가가 의미 없어져요."
+    },
+    {
+      "type": "choice",
+      "q": "정답이 없는 붓꽃 데이터를 3개 그룹으로 묶으려고 할 때 알맞은 코드는?",
+      "choices": [
+        "LinearRegression()",
+        "KMeans(n_clusters = 3)",
+        "LogisticRegression()",
+        "KNeighborsClassifier(n_neighbors = 3)"
+      ],
+      "answer": 1,
+      "explain": "정답 없이 비슷한 것끼리 묶는 군집은 k-평균이고, 사이킷런에서는 KMeans의 n_clusters로 그룹 수를 정해요."
+    }
+  ]
+}

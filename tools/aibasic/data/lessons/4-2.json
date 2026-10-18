@@ -1,0 +1,246 @@
+{
+  "id": "4-2",
+  "unit": 4,
+  "title": "정형 데이터 인공지능 프로젝트 실제① 기대 수명 예측하기",
+  "tagline": "나라마다 사는 햇수가 왜 다를까?",
+  "pages": "교과서 p.190–201",
+  "goals": [
+    "정형 데이터로 사회 문제를 푸는 회귀(예측) 프로젝트를 단계에 따라 수행할 수 있다.",
+    "결측치 처리, 범주형 데이터의 숫자 변환, 시각화로 데이터를 탐색할 수 있다.",
+    "선형 회귀 모델을 만들고 결정 계수(R²)로 성능을 평가할 수 있다.",
+    "협력적인 자세로 프로젝트를 수행하는 방법을 안다."
+  ],
+  "story": {
+    "title": "기대 수명 84.4세와 54.3세",
+    "paras": [
+      "아라 쌤이 화면에 숫자 몇 개를 띄우셨다. 2000년 세계의 기대 수명은 66.5세, 2020년은 73.2세였다. 20년 사이에 육 년 넘게 늘었다. 우리나라는 84.4세로 세계 열두 번째라고 했다. 그 순간 시골에 계신 할머니 얼굴이 떠올랐다. 지난 명절에 할머니가 내 손등을 쓰다듬던 감촉도 함께였다.",
+      "쌤은 기대 수명이 지금 태어난 아이가 평균 몇 살까지 살지를 헤아린 숫자라고 간단히 말씀하셨다. 그러고는 표의 맨 위와 맨 아래를 보여 주셨다. 가장 높은 나라는 85.4세, 가장 낮은 나라는 54.3세. 서른한 해나 차이가 났다. 나는 속으로 숫자를 두 번 세어 보았다.",
+      "같은 지구에 사는데 왜 이렇게 다를까. 그때 나는 그저 먼 나라 이야기처럼 들었다. 그런데 54.3이라는 숫자를 보고 있자니 내가 누리는 것들이 새삼스러워졌다. 따뜻한 밥, 가까운 병원, 학교 같은 것들 말이다.",
+      "민준이가 투덜거렸다. \"그걸 어떻게 숫자로 맞혀요? 점쟁이도 아니고.\" 쌤은 점쟁이 말고 표를 보자고 하셨다. 나라마다 건강 상태, 살림살이, 교육, 병원 사정이 한 줄씩 적혀 있는 표였다. 그 줄들을 읽다 보면 어딘가에 규칙이 숨어 있을지도 모른다는 이야기였다.",
+      "나는 일기예보를 떠올렸다. 구름의 양과 바람의 방향, 어제의 기온을 모아서 내일 비가 올지 말해 주는 일이다. 틀릴 때도 있지만 대체로 우산을 챙기게 해 준다. 사람의 수명도 그렇게 짐작할 수 있다면 조금 무서우면서도 대단한 일이다.",
+      "표를 가만히 보던 민준이가 또 손을 들었다. \"근데 쌤, 칸이 비어 있는데요?\" 정말 군데군데 비어 있었다. 쌤은 빙그레 웃기만 하셨다. 나는 빈칸이 있는 표로도 뭔가를 알아맞힐 수 있는 건지, 아니면 빈칸부터 어떻게든 해야 하는 건지 알 수 없었다.",
+      "수업이 끝나고도 나는 한참 자리에서 일어나지 못했다. 집에 가는 길 내내 54.3이라는 숫자가 따라왔다. 여러 가지 정보를 모으면 한 나라의 수명을 미리 알아맞힐 수 있을까. 그건 어떤 순서로 해야 하는 일일까."
+    ],
+    "question": "여러 속성 데이터로 나라의 기대 수명을 예측하려면 어떤 과정이 필요할까요?"
+  },
+  "steps": [
+    {
+      "level": "1계단",
+      "title": "문제 정의: 어떤 SDGs, 어떤 질문?",
+      "body": "<p>프로젝트는 <b>8단계</b>로 진행해요: 문제 정의 → 데이터 수집 → 데이터 전처리 → 데이터 시각화 및 분석 → 기계학습 유형과 알고리즘 선정 → 모델 학습 → 성능 평가 → 수정 및 성능 개선. 2단원의 여섯 걸음에서 ‘시각화 및 분석’을 따로 떼고, ‘성능 평가 및 수정’을 둘로 나눈 것뿐이에요. 이 레슨에서는 이 과정을 계단으로 묶어 따라가요.</p>\n<p>먼저 SDGs 17개 목표에서 하나를 골라 사례를 찾아요.</p>\n<ul>\n<li><b>목표</b>: 3번 ‘모든 연령층을 위한 건강한 삶 보장과 복지 증진’</li>\n<li><b>사례</b>: 이 목표와 관련한 ‘인간의 기대 수명 예측’</li>\n</ul>\n<div class=\"box def\"><b>📌 문제 정의</b> 수명과 관련된 데이터를 전처리해, SDGs 3번을 위한 측정 지표인 <b>기대 수명</b>을 예측하는 인공지능 모델을 만든다.</div>\n<p>기대 수명이 나라마다 다른 까닭은 건강과 경제 수준, 문화·지리적 특성, 의료 시스템, 교육 수준 등이 다르기 때문이에요. 그래서 국가 간 격차를 줄이려면 다양한 분야에 대한 투자와 지원이 필요하고, 삶의 질과 건강을 개선하려는 노력이 지속되어야 해요.</p>\n<p>모둠별로 문제를 정의하고 모둠원의 역할(프로젝트 기획자, 데이터 수집가, 데이터 분석가, 모델 개발자, 프로젝트 발표자 등)을 정해요.</p>\n<div class=\"box tip\"><b>💡 알아두기 (프로젝트 주제 선정)</b> 주제 선정은 매우 중요하지만, 모둠이 정한 주제와 관련된 데이터가 없거나 부족한 경우가 많아요. 그럴 때는 SDGs 영역을 고르고 관련 데이터를 먼저 탐색한 뒤, <b>데이터를 중심으로 주제를 정할 수</b> 있어요.</div>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 이번 문제는 “나이 몇 세인지” 같은 <b>연속적인 숫자</b>를 맞히므로 <b>예측(회귀)</b> 문제예요. 앞 레슨 펭귄처럼 종류를 맞히는 분류와 달라요.</div>",
+      "keypoints": [
+        "SDGs 3번과 관련해 기대 수명을 예측하는 모델을 만드는 것이 문제예요.",
+        "관련 데이터가 부족하면 데이터를 먼저 찾고 주제를 정할 수도 있어요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "기대 수명(몇 세인지)을 예측하는 문제는 어떤 유형일까?",
+        "choices": [
+          "회귀(연속값 예측)",
+          "분류(범주 예측)",
+          "군집",
+          "강화학습"
+        ],
+        "answer": 0,
+        "explain": "기대 수명은 73.2, 84.4처럼 연속적인 숫자예요. 연속값을 예측하는 지도학습의 예측(회귀)에 해당해요."
+      }
+    },
+    {
+      "level": "2계단",
+      "title": "데이터 수집: 어떤 표를 불러올까?",
+      "body": "<p>WHO가 제공하는 기대 수명 데이터셋을 캐글(kaggle.com)에서 ‘Life Expectancy’로 검색해 내려받고, 코랩에 ‘Life Expectancy Data.csv’ 파일을 드래그 앤 드롭으로 올려요.</p>\n<pre class=\"code\"><code>import numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt\ndf = pd.read_csv('Life Expectancy Data.csv')</code></pre>\n<table>\n<tr><th>줄</th><th>설명</th></tr>\n<tr><td>1</td><td>수학 계산을 위한 numpy를 np라는 이름으로 불러와요.</td></tr>\n<tr><td>2</td><td>데이터를 다루는 pandas를 pd로 불러와요.</td></tr>\n<tr><td>3</td><td>그래프를 그리는 matplotlib.pyplot을 plt로 불러와요.</td></tr>\n<tr><td>4</td><td>csv 파일을 읽어 데이터프레임으로 만들어 df에 저장해요.</td></tr>\n</table>\n<p>이제 데이터 정보를 확인해요.</p>\n<pre class=\"code\"><code>df.info()    # 데이터셋의 속성명, 속성별 데이터 개수, 자료형(Type) 확인\ndf.head()    # 원하는 개수만큼 앞의 5개 데이터 출력</code></pre>\n<ul>\n<li><code>info()</code>: 속성(열) 이름, 비어 있지 않은 값의 개수(Non-Null Count), 자료형(Dtype)이 나와요.</li>\n<li><code>head()</code>: 표의 맨 앞 5행을 보여 줘요. 괄호 안에 숫자를 쓰면 원하는 개수만큼 볼 수 있어요.</li>\n</ul>\n<p>결과를 보면 전체는 <b>2938개 행</b>이에요. 그중 Life expectancy(기대 수명)와 Adult Mortality는 2928개처럼 일부 열은 개수가 모자라요. 즉 결측치가 있다는 뜻이에요. 자료형은 float64가 16개, int64가 4개, object가 2개예요. 속성명에 빈칸이 들어간 것(예: Life expectancy)도 확인해 두어야 해요. 코드에서 ‘Life expectancy’처럼 이름을 문자열로 정확히 써야 하기 때문이에요.</p>\n<div class=\"box tip\"><b>💡 알아두기 (속성 안내)</b><ul>\n<li>Country: 국가 이름 / Year: 연도 / Status: 개발도상국인지 선진국인지</li>\n<li>Life expectancy: 기대 수명(우리가 맞힐 값)</li>\n<li>Adult Mortality: 성인 사망률 / Infant deaths: 유아 사망 수 / Alcohol: 1인당 알코올 소비량</li>\n<li>Percentage Expenditure: 건강에 대한 지출 / Total expenditure: 정부 보건 관련 지출</li>\n<li>Measles: 홍역 환자 수 / Polio: 소아마비 예방 접종률</li>\n<li>GDP: 1인당 국내 총생산 / Population: 국가 총 인구수</li>\n<li>Income composition of resources: 자원 소득에 대한 국가 개발 정도 / Schooling: 국가 교육 기간</li>\n</ul></div>",
+      "keypoints": [
+        "WHO 기대 수명 데이터셋은 2938행 22열이고, read_csv()로 df에 불러와요.",
+        "info()로 속성별 개수와 자료형을 보고 결측치가 있는지 가늠해요."
+      ],
+      "check": {
+        "type": "ox",
+        "q": "df.info() 결과에서 어떤 열의 Non-Null Count가 전체 행 수보다 작다면 그 열에 결측치가 있다는 뜻이다.",
+        "answer": true,
+        "explain": "Non-Null은 비어 있지 않은 값의 개수예요. 전체 행 수(2938)보다 작으면 그만큼 빈칸(결측치)이 있다는 뜻이에요."
+      }
+    },
+    {
+      "level": "3계단",
+      "title": "데이터 전처리: 빈칸을 없애고 숫자로 바꾸기",
+      "body": "<p>수집한 데이터를 목적에 맞게 가공해요. 먼저 데이터의 크기와 결측치를 확인해요.</p>\n<pre class=\"code\"><code>df.shape\ndf.isna().sum()</code></pre>\n<ul>\n<li><code>shape</code>: (행 개수, 열 개수)를 보여 줘요. 결과는 (2938, 22)예요.</li>\n<li><code>isna().sum()</code>: 열별 결측치 개수예요. 결과에는 Life expectancy 10, Adult Mortality 10, Alcohol 194, Hepatitis B 553, BMI 34, Polio 19, Total expenditure 226, Diphtheria 19, GDP 448, Population 652, thinness 34, Income composition of resources 167, Schooling 163처럼 결측치가 곳곳에 있어요. 반면 Country, Year, Status 등은 0이에요.</li>\n</ul>\n<p><b>결측치 제거하기</b>와 <b>문자를 숫자로 바꾸기</b>를 해요.</p>\n<pre class=\"code\"><code>df = df.dropna()    # 결측치 데이터 삭제\ndf.isna().sum()\ndf['Status'] = df['Status'].astype(object)\ndf = df.replace({'Developing': 0, 'Developed': 1})</code></pre>\n<table>\n<tr><th>줄</th><th>설명</th></tr>\n<tr><td>1</td><td><code>dropna()</code>: 결측치가 하나라도 있는 행을 지워요.</td></tr>\n<tr><td>2</td><td>다시 <code>isna().sum()</code>으로 열별 결측치가 모두 사라졌는지 확인해요(제거 전과 후를 비교해 보세요).</td></tr>\n<tr><td>3</td><td><code>astype()</code>: Status를 범주형(object) 데이터로 바꿔요. 이미 object이므로 이 줄은 생략해도 돼요.</td></tr>\n<tr><td>4</td><td><code>replace()</code>: 문자를 학습할 수 없으니 개발도상국(Developing)을 0, 선진국(Developed)을 1로 바꿔요.</td></tr>\n</table>\n<div class=\"analogy\"><b>🍳 비유로 이해하기</b> 시험지에 빈칸이 있는 학생의 답안은 채점이 어렵죠. 그래서 빈칸이 있는 행은 빼고, “개발도상국/선진국” 같은 글자 답은 컴퓨터가 읽을 수 있는 0과 1로 바꿔서 제출하는 거예요.</div>\n<div class=\"box warn\"><b>⚠️ 헷갈리지 마세요</b> 결측치를 지우면 데이터 행이 줄어요. 2938개에서 줄어든 뒤 국가별 데이터 수가 달라질 수 있으니, 평가할 때는 줄어든 데이터 기준이라는 점을 기억해요. 교과서는 이 데이터를 193개국의 자료로 소개하는데, 결측치를 지우면 행 수(그리고 나라 수)가 줄어들 수 있어요.</div>",
+      "keypoints": [
+        "shape는 (행, 열) 수, isna().sum()은 열별 결측치 개수를 알려 줘요.",
+        "dropna()로 빈 행을 지우고, replace()로 Developing→0, Developed→1로 바꿔요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "df.replace({'Developing': 0, 'Developed': 1}) 를 하는 이유는?",
+        "choices": [
+          "문자로 된 데이터는 학습할 수 없어서 숫자로 바꾸기 위해",
+          "결측치를 채우기 위해",
+          "그래프 색을 바꾸기 위해",
+          "행을 삭제하기 위해"
+        ],
+        "answer": 0,
+        "explain": "기계학습은 숫자 데이터를 다뤄요. 문자로 된 Status 값을 0과 1로 바꿔 학습에 쓸 수 있게 해요."
+      }
+    },
+    {
+      "level": "4계단",
+      "title": "데이터 시각화 및 분석: 무엇이 수명에 영향을 줄까?",
+      "body": "<p>기대 수명에 영향을 미치는 속성을 찾으려고 전처리한 데이터를 여러 그래프로 그려 봐요.</p>\n<p><b>① 기대 수명 히스토그램</b></p>\n<pre class=\"code\"><code>df['Life expectancy'].hist()    # 종속 변수에 대한 히스토그램</code></pre>\n<p>히스토그램은 값이 어느 구간에 몇 개 있는지 막대로 보여 줘요. 해석: 약 70세까지는 같은 비율로 나라 수가 늘고, 기대 수명이 약 75세인 나라 수가 가장 많아요. 약 70~75세까지는 급격히 늘고 약 75세 이후에는 급격히 줄어요.</p>\n<figure class=\"fig\"><img src=\"img/p194_1.jpg\" alt=\"기대 수명 히스토그램\" loading=\"lazy\"><figcaption>기대 수명 히스토그램으로, 75세 부근 나라가 가장 많아요. (교과서 194쪽)</figcaption></figure>\n<p><b>② 소아마비 예방 접종률(Polio) 분포</b></p>\n<pre class=\"code\"><code>import seaborn as sns    # 밀도 추정 곡선과 히스토그램 보여주기\nsns.displot(x = df['Polio'], kde = 'True')</code></pre>\n<p>displot()은 히스토그램과 밀도 추정 곡선을 함께 그려 분포를 확인해요. 해석: 접종률이 낮은(20% 미만) 나라도 존재하지만, 접종률이 높은(90% 이상) 나라가 다수예요. (Polio 열은 소아마비 ‘예방 접종률’이라는 점을 기억하세요.)</p>\n<p><b>③ 히트맵으로 속성 간 상관관계</b></p>\n<pre class=\"code\"><code>plt.figure(figsize = (15, 12))\nsns.heatmap(df.corr(numeric_only = True), linewidth = 0.1, vmax = 1,\n            cmap = plt.cm.YlOrRd, linecolor = 'white', annot = True)</code></pre>\n<ul>\n<li><code>plt.figure(figsize=(15, 12))</code>: 그래프 크기를 (가로, 세로)로 정해요.</li>\n<li><code>df.corr(numeric_only=True)</code>: 숫자형 열끼리의 상관계수 표예요.</li>\n<li><code>linewidth</code>: 칸 간격, <code>vmax</code>: 관계 정도의 최댓값, <code>cmap</code>: 색상, <code>annot</code>: 칸에 값을 쓸지 여부예요.</li>\n</ul>\n<p>해석: <b>교육(Schooling)과 소득(Income composition of resources)은 기대 수명과 상관관계가 높아요.</b> 반면 국가 총 인구수와 정부 보건 관련 지출은 기대 수명과 상관관계가 낮아요.</p>\n<p><b>④ 산점도 행렬(pairplot)</b></p>\n<pre class=\"code\"><code>sns.pairplot(data = df[['Measles', 'GDP', 'Status', 'Life expectancy']],\n             hue = 'Status', palette = 'bright');</code></pre>\n<p>보고 싶은 속성만 골라 data에 넣고, 기준이 되는 속성을 hue로 정해 색을 나눠요. 해석: 선진국(1)이 GDP가 높고 기대 수명도 높아요. 홍역은 GDP가 낮은 국가, 주로 개발도상국(0)에서 나타나고 그 나라들은 기대 수명도 선진국보다 낮아요.</p>\n<p><b>⑤ 바이올린 그래프</b></p>\n<pre class=\"code\"><code>import plotly.express as px\nfig = px.violin(df, x = 'Status', y = 'Life expectancy', color = 'Status', box = True)\nfig.show()</code></pre>\n<p>바이올린 그래프는 데이터의 분포와 밀도를 보여 주고, 바이올린 모양의 너비가 밀도를 나타내요. x는 Status, y는 Life expectancy로 정해요. 해석: 선진국(1)의 평균 기대 수명이 개발도상국(0)보다 높고, 기대 수명이 65세 미만인 선진국은 없어요. (Plotly는 색상·레이블·주석을 세밀하게 조정할 수 있는 고급 시각화 라이브러리예요.)</p>\n<figure class=\"fig\"><img src=\"img/p196_1.jpg\" alt=\"Status별 기대 수명 바이올린 그래프\" loading=\"lazy\"><figcaption>선진국(1)이 개발도상국(0)보다 기대 수명이 높고 분포도 좁아요. (교과서 196쪽)</figcaption></figure>\n<div class=\"box tip\"><b>💡 알아두기</b> 시각화로 확인한 결과를 정리하면, 기대 수명에는 교육, 소득, 선진국 여부(Status) 등이 크게 연관돼요. 시각화 방법에 대해 더 알고 싶으면 앞 단원(2단원)의 시각화 내용을 살펴보세요.</div>",
+      "keypoints": [
+        "히스토그램·displot은 분포, 히트맵·pairplot은 상관관계, 바이올린은 분포와 밀도를 보여 줘요.",
+        "교육·소득은 기대 수명과 상관이 높고, 선진국이 GDP·기대 수명 모두 높아요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "히트맵 결과에서 기대 수명과 상관관계가 높게 나타난 속성은?",
+        "choices": [
+          "교육 수준(Schooling)과 소득(Income composition of resources)",
+          "국가 총 인구수",
+          "정부 보건 관련 지출",
+          "국가 이름"
+        ],
+        "answer": 0,
+        "explain": "교과서의 해석에서 교육과 소득은 기대 수명과 상관관계가 높고, 총 인구수와 정부 보건 관련 지출은 낮다고 했어요."
+      }
+    },
+    {
+      "level": "5계단",
+      "title": "알고리즘 선정과 모델 학습",
+      "body": "<p>기대 수명이 몇 세인지를 출력하는 인공지능이므로 지도학습의 <b>예측(회귀)</b>에 해당해요. 지도학습 예측의 대표 알고리즘은 <b>선형 회귀</b>예요.</p>\n<p><b>훈련 데이터와 테스트 데이터 나누기</b></p>\n<pre class=\"code\"><code>X = df.drop(['Life expectancy', 'Country'], axis=1)\ny = df.loc[:, 'Life expectancy']\n\nfrom sklearn.model_selection import train_test_split\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2,\nrandom_state = 96)\n\nX_train.head()\nX_train.shape, y_train.shape, X_test.shape, y_test.shape</code></pre>\n<table>\n<tr><th>줄</th><th>설명</th></tr>\n<tr><td>1</td><td>맞힐 값인 Life expectancy와 국가 이름(Country)을 뺀 나머지 속성이 입력 X예요. 국가 이름은 예측에 쓸 숫자 정보가 아니라서 빼요.</td></tr>\n<tr><td>2</td><td>y는 정답인 Life expectancy 열이에요.</td></tr>\n<tr><td>4~6</td><td>8:2로 나눠 80%로 학습하고 20%로 테스트해요. random_state로 나누는 방식을 고정해요.</td></tr>\n<tr><td>8~9</td><td>head()와 shape로 잘 나뉘었는지 확인해요.</td></tr>\n</table>\n<div class=\"box tip\"><b>💡 알아두기</b> 훈련·테스트 분리는 기계학습 유형과 알고리즘을 정하기 전에 해도 돼요. 훈련 데이터는 공부용 문제집, 테스트 데이터는 실전 시험이에요.</div>\n<p><b>모델 생성과 학습</b></p>\n<pre class=\"code\"><code>from sklearn.linear_model import LinearRegression\nlinear_reg = LinearRegression()\n\nlin_results = linear_reg.fit(X_train, y_train)</code></pre>\n<p>첫 두 줄은 선형 회귀 알고리즘을 불러와 linear_reg에 저장하는 것(모델 생성), 마지막 줄은 훈련 데이터 X_train, y_train으로 학습시키는 것이에요.</p>\n<p><b>가중치와 편향 확인하기</b></p>\n<pre class=\"code\"><code>w = lin_results.coef_\nb = lin_results.intercept_\nprint(w)\nprint(b)</code></pre>\n<ul>\n<li><code>coef_</code>: 속성마다의 <b>가중치(기울기)</b>. 속성이 하나 늘 때 기대 수명이 얼마나 변하는지를 나타내요.</li>\n<li><code>intercept_</code>: <b>편향(절편)</b>. 이 모델에서는 약 315.68이 출력돼요.</li>\n</ul>\n<p>가중치 20개 정도가 출력되는데, 속성마다 곱해지는 값이에요. 이 값들로 “기대 수명 = (속성×가중치)의 합 + 편향”이라는 선형 회귀식이 만들어져요.</p>",
+      "keypoints": [
+        "기대 수명은 연속값이므로 지도학습 예측, 대표 알고리즘은 선형 회귀예요.",
+        "X는 Life expectancy와 Country를 뺀 속성, y는 Life expectancy이고 8:2로 나눠요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "lin_results.coef_ 와 intercept_ 는 각각 무엇일까?",
+        "choices": [
+          "가중치(기울기), 편향(절편)",
+          "편향, 가중치",
+          "정확도, 오차",
+          "훈련 데이터, 테스트 데이터"
+        ],
+        "answer": 0,
+        "explain": "coef_는 속성마다 곱하는 가중치(기울기), intercept_는 더해지는 편향(절편)이에요."
+      }
+    },
+    {
+      "level": "6계단",
+      "title": "성능 평가, 개선, 그리고 프로젝트 정리",
+      "body": "<p>학습한 모델을 <b>테스트 데이터</b>로 평가해요. 회귀 모델은 <b>결정 계수(R²)</b>로 성능을 재요.</p>\n<pre class=\"code\"><code>from sklearn.metrics import r2_score\ny_pred = lin_results.predict(X_test)\nprint('결정 계수(R^2) = ', r2_score(y_test, y_pred))</code></pre>\n<p><code>predict(X_test)</code>로 테스트 데이터의 예측 기대 수명을 얻고, <code>r2_score(실제값, 예측값)</code>으로 결정 계수를 계산해요. 결과는 약 <b>0.7935</b>, 즉 약 79%예요.</p>\n<p><b>실제값과 예측값 비교</b>는 6개 나라만 출력해 봐요.</p>\n<pre class=\"code\"><code>Y_prediction = y_pred.flatten()\nfor i in range(6):\n    label = y_test.values[i]\n    prediction = Y_prediction[i]\n    print('실제 기대 수명: {:.3f}, 학습후 예측 기대 수명: {:.3f}, 차이: {:.3f}'\n          .format(label, prediction, label-prediction))</code></pre>\n<p>(for문 안쪽은 들여쓰기해야 해요. flatten()은 예측값을 1차원으로 펴 주고, range(6)은 앞의 6개만 반복해요.) 6개 국가의 실제 기대 수명과 예측 기대 수명은 69.2→73.7, 61.1→64.0, 74.1→77.6, 64.6→66.2, 76.8→74.5, 74.1→77.3으로 <b>2~5년 내외의 오차</b>를 보였어요.</p>\n<div class=\"box ex\"><b>🔎 해석</b> 선형 회귀 모델로 193개국의 다양한 속성 데이터를 학습해 기대 수명을 예측했고, 결정 계수는 약 79%, 오차는 2~5년 내외였어요. 정확도를 확인하는 데서 더 나아가, 일상 속 다양한 데이터를 학습해 특정 수치를 예측할 수 있다는 가능성을 보여 줘요. 데이터 속성과 학습 알고리즘을 잘 고려하면 일상의 다양한 문제를 푸는 인공지능을 만들 수 있어요.</div>\n<p><b>수정 및 성능 개선: 회귀선 그려 보기</b> — 교육 수준(Schooling) 하나만으로 선형 회귀를 학습하고 회귀선을 그려, 모델이 데이터의 경향을 얼마나 잘 배웠는지 눈으로 확인해요.</p>\n<pre class=\"code\"><code>lin1 = LinearRegression()\nlin1.fit(X_train['Schooling'].values.reshape(-1,1), y_train.values.reshape(-1,1))\n\nx_array = np.arange(min(X_train['Schooling']), max(X_train['Schooling'])).\\\n           reshape(-1, 1)\ny_head = lin1.predict(x_array)\n\nplt.scatter(X_train['Schooling'], y_train)\nplt.plot(x_array, y_head, color = 'red')\nplt.xlabel('Schooling')\nplt.ylabel('Life expectancy')\nplt.show()</code></pre>\n<ul>\n<li>1~2줄: 새 선형 회귀 모델을 만들어 Schooling 열 하나로 학습해요. <code>reshape(-1,1)</code>은 배열을 열이 1개인 2차원으로 바꿔요(행 수는 자동).</li>\n<li>4~6줄: <code>np.arange()</code>로 교육 수준의 최솟값부터 최댓값까지 값을 만들고, 학습한 모델로 예측값(y_head)을 구해요.</li>\n<li>8~9줄: <code>scatter()</code>로 실제 데이터를 점으로, <code>plot()</code>으로 회귀선을 빨간색으로 그려요.</li>\n</ul>\n<p>해석: <b>교육 수준이 올라갈수록 기대 수명이 증가</b>하는 회귀선이 나타나요. 속성이 기대 수명에 어떤 영향을 주는지 직관적으로 파악할 수 있고, 모델이 얼마나 일반화되었는지도 가늠해 볼 수 있어요. 독립 변수(x)의 값이 이상치처럼 아주 커지면 예측이 정확하지 않을 수 있다는 점도 기억해요.</p>\n<figure class=\"fig\"><img src=\"img/p200_1.jpg\" alt=\"교육 수준과 기대 수명의 산점도와 빨간 회귀선\" loading=\"lazy\"><figcaption>점들 사이를 지나는 빨간 회귀선이 오른쪽 위로 올라가요. (교과서 200쪽)</figcaption></figure>\n<p><b>프로젝트 정리</b>: 모둠별로 수행한 뒤 단계별 과정을 평가하고 나를 되돌아봐요. 단계(문제 정의, 데이터 수집·전처리, 알고리즘 선정, 모델 학습, 성능 평가·수정)별로 내가 한 일, 사용한 모듈·라이브러리·명령어를 정리하고, 평가 기준(SDGs와 관련된 주제를 명확히 정의했는가, 데이터를 전처리했는가, 선정한 알고리즘의 사용법을 알고 있는가, 훈련·테스트 데이터로 모델을 만들었는가, 지표로 평가하고 개선 방법을 이해했는가)으로 나와 모둠을 평가해요. 마지막으로 프로젝트의 기대 효과를 모둠원과 이야기해 봐요.</p>",
+      "keypoints": [
+        "회귀 모델은 r2_score(결정 계수)로 평가하고, 이 프로젝트는 약 0.79(79%)가 나왔어요.",
+        "회귀선을 그리면 교육 수준이 높을수록 기대 수명이 높은 경향을 눈으로 확인할 수 있어요."
+      ],
+      "check": {
+        "type": "choice",
+        "q": "이 프로젝트의 선형 회귀 모델 평가 결과로 알맞은 것은?",
+        "choices": [
+          "결정 계수 약 0.79, 예측 오차 2~5년 내외",
+          "정확도 100%, 오차 0년",
+          "결정 계수 약 0.1, 오차 30년",
+          "혼동행렬로만 평가했다"
+        ],
+        "answer": 0,
+        "explain": "결정 계수(R²)는 약 0.7935였고, 6개 나라를 비교했을 때 실제와 예측이 2~5년 내외로 차이 났어요."
+      }
+    }
+  ],
+  "recap": [
+    "문제 정의: SDGs 3번과 관련해 기대 수명을 예측하는 회귀(예측) 모델을 만든다.",
+    "데이터 수집: WHO 기대 수명 데이터셋(캐글), 2938행 22열을 read_csv로 불러온다.",
+    "전처리: dropna()로 결측치를 지우고, replace()로 Developing→0, Developed→1로 바꾼다.",
+    "시각화: 교육·소득은 기대 수명과 상관이 높고, 선진국이 GDP와 기대 수명이 모두 높다.",
+    "모델: 선형 회귀(LinearRegression), 8:2 분리, 가중치 coef_와 편향 intercept_.",
+    "평가: 결정 계수 약 0.79, 오차 2~5년 내외. 회귀선으로 경향을 확인하고 개선을 고민한다."
+  ],
+  "terms": [
+    {
+      "t": "정형 데이터",
+      "d": "표처럼 행과 열로 정리된 데이터."
+    },
+    {
+      "t": "기대 수명",
+      "d": "태어난 아기가 평균적으로 살 것으로 기대되는 햇수. SDGs 3번의 측정 지표."
+    },
+    {
+      "t": "히트맵",
+      "d": "속성끼리의 상관관계를 색으로 보여 주는 그래프."
+    },
+    {
+      "t": "선형 회귀",
+      "d": "속성과 예측값 사이의 관계를 직선(식)으로 나타내는 예측 알고리즘."
+    },
+    {
+      "t": "가중치와 편향",
+      "d": "선형 회귀식의 기울기(coef_)와 절편(intercept_)."
+    },
+    {
+      "t": "결정 계수(R²)",
+      "d": "회귀 모델이 데이터를 얼마나 잘 설명하는지 나타내는 성능 지표."
+    },
+    {
+      "t": "회귀선",
+      "d": "모델이 학습한 데이터의 경향을 나타내는 선."
+    },
+    {
+      "t": "바이올린 그래프",
+      "d": "분포와 밀도를 보여 주는 그래프. 너비가 밀도를 뜻해요."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "choice",
+      "q": "기대 수명 데이터에서 dropna()를 쓴 목적은?",
+      "choices": [
+        "결측치가 있는 행을 삭제하기 위해",
+        "속성 이름을 바꾸기 위해",
+        "그래프를 그리기 위해",
+        "데이터를 8:2로 나누기 위해"
+      ],
+      "answer": 0,
+      "explain": "dropna()는 값이 비어 있는 행을 지워요."
+    },
+    {
+      "type": "choice",
+      "q": "X = df.drop(['Life expectancy', 'Country'], axis=1) 에서 Life expectancy를 X에서 뺀 이유는?",
+      "choices": [
+        "그 값이 모델이 맞혀야 할 정답(y)이기 때문",
+        "쓸모없는 열이라서",
+        "결측치가 많아서",
+        "숫자가 아니라서"
+      ],
+      "answer": 0,
+      "explain": "Life expectancy는 예측 대상이라 y에 넣어요. 입력 X에 남아 있으면 답을 보여 주는 셈이 돼요."
+    },
+    {
+      "type": "ox",
+      "q": "선형 회귀 같은 회귀 모델은 성능 지표로 정확도 대신 결정 계수(R²) 등을 쓴다.",
+      "answer": true,
+      "explain": "회귀는 연속값을 예측하므로 맞았다/틀렸다보다 얼마나 가까운지를 보는 결정 계수, 평균제곱오차 등을 써요."
+    },
+    {
+      "type": "choice",
+      "q": "교육 수준(Schooling)만으로 학습한 회귀선의 해석으로 알맞은 것은?",
+      "choices": [
+        "교육 수준이 높아질수록 기대 수명이 증가한다.",
+        "교육 수준과 기대 수명은 관련이 없다.",
+        "교육 수준이 높을수록 기대 수명이 줄어든다.",
+        "회귀선은 항상 수평이다."
+      ],
+      "answer": 0,
+      "explain": "교과서의 그래프에서 회귀선은 오른쪽 위로 올라가는 모양이에요. 교육 수준이 올라가면 기대 수명이 증가하는 경향이에요."
+    },
+    {
+      "type": "choice",
+      "q": "히트맵에서 기대 수명과 상관관계가 낮게 나타난 속성은?",
+      "choices": [
+        "국가 총 인구수",
+        "교육 수준",
+        "소득",
+        "선진국 여부"
+      ],
+      "answer": 0,
+      "explain": "국가 총 인구수와 정부 보건 관련 지출은 기대 수명과 상관관계가 낮았어요."
+    }
+  ]
+}
