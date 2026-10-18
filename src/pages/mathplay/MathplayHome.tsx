@@ -152,7 +152,7 @@ export default function MathplayHome() {
           <div className="flex min-w-0 items-center gap-3">
             <SectionIcon path="/mathplay" size={40} />
             <div className="min-w-0">
-              <h1 className="font-game text-3xl leading-tight drop-shadow-[0_2px_0_rgba(0,0,0,0.15)] sm:text-4xl">수학 놀이터</h1>
+              <h1 className="font-game text-3xl leading-tight drop-shadow-[0_2px_0_rgba(0,0,0,0.15)] sm:text-4xl">온라인 수학 체험</h1>
               <p className="text-sm font-semibold opacity-95">생각 없이 놀다 보면 어느새 수학이 쏙쏙!</p>
             </div>
           </div>
