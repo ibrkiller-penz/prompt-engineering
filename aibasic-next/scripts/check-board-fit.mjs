@@ -137,6 +137,33 @@ function measure() {
   return { bad: bad, opts: cnt.opts, tally: cnt.tally, pass: !!q.querySelector(".bdq-passage .ui-qpassage") };
 }
 
+/** 수업 끝 장면 측정: 차시 이름 칸 넘침 · 안쪽 스크롤 · 무대 밖 */
+function measureEnd() {
+  const e = document.querySelector(".bd-end");
+  if (!e) return null;
+  const stage = document.querySelector(".bd-stage");
+  const sr = stage.getBoundingClientRect();
+  const k = sr.width / 1920 || 1;
+  const bad = [];
+  for (const el of [e].concat(Array.prototype.slice.call(e.querySelectorAll("*")))) {
+    if (el.classList.contains("sr-only") || !el.clientHeight) continue;
+    const cs = getComputedStyle(el);
+    if (el.scrollHeight > el.clientHeight + 1 && cs.overflowY !== "visible") bad.push("수업 끝 넘침/스크롤 " + el.className.toString().slice(0, 30) + " " + el.scrollHeight + ">" + el.clientHeight);
+  }
+  for (const el of e.querySelectorAll(".bd-end-side > *")) {
+    const r = el.getBoundingClientRect();
+    if (r.height && (r.bottom - sr.top) / k > 968.5) bad.push("수업 끝 오른쪽 칸 " + el.className.toString().slice(0, 24) + " 아래 " + Math.round((r.bottom - sr.top) / k) + ">968");
+  }
+  const per = e.querySelector(".bd-end-period");
+  const qr = e.querySelector(".bd-end-qr");
+  if (qr) {
+    const r = qr.getBoundingClientRect();
+    if ((r.bottom - sr.top) / k > 968.5) bad.push("QR 카드 아래 " + Math.round((r.bottom - sr.top) / k) + ">968");
+    if (per) { const pr = per.getBoundingClientRect(); if (pr.bottom > r.bottom + 1) bad.push("차시 이름이 QR 카드 밖"); }
+  }
+  return { bad: bad };
+}
+
 const pw = loadPlaywright();
 if (!pw) { console.error("playwright 를 찾지 못했어요"); process.exit(2); }
 if (!fs.existsSync(path.join(DIST, "index.html"))) { console.error("dist-t 가 없어요. 먼저 npx vite build --mode teacher"); process.exit(2); }
@@ -147,7 +174,7 @@ const browser = await pw.chromium.launch({ executablePath: chromiumPath(), args:
 const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, locale: "ko-KR", reducedMotion: "reduce" });
 const page = await ctx.newPage();
 const base = "http://127.0.0.1:" + PORT;
-let lessons = 0, periodsN = 0, qScenes = 0, states = 0, withPass = 0, optsSeen = 0, tallySeen = 0;
+let endScenes = 0, lessons = 0, periodsN = 0, qScenes = 0, states = 0, withPass = 0, optsSeen = 0, tallySeen = 0;
 const viol = [];
 try {
   for (const lid of order) {
@@ -181,13 +208,21 @@ try {
         if (same > 3) { viol.push(lid + " p" + p + " [" + meta.count + "] 다음이 안 넘어가요"); break; }
         await page.click(".bd-next");
       }
+      // 수업 끝 장면
+      await page.goto(base + "/#/board/" + lid + "/end?p=" + p, { waitUntil: "load" });
+      await page.waitForSelector(".bd-end", { timeout: 15000 }).catch(() => {});
+      await page.waitForTimeout(200);
+      const er = await page.evaluate(`(${measureEnd.toString()})()`);
+      endScenes++;
+      if (!er) viol.push(lid + " p" + p + " [수업 끝] 장면이 안 열려요");
+      else for (const b of er.bad) viol.push(lid + " p" + p + " [수업 끝] " + b);
     }
   }
 } finally {
   await browser.close();
   srv.close();
 }
-console.log("check-board-fit: 레슨 " + lessons + "개, 차시 " + periodsN + "개, 문제 장면 " + qScenes + "개(제시문 있는 것 " + withPass + "개), 측정한 공개 상태 " + states + "번, 보기 " + optsSeen + "개·손들기 단추 " + tallySeen + "개를 쟀어요");
+console.log("check-board-fit: 레슨 " + lessons + "개, 차시 " + periodsN + "개, 문제 장면 " + qScenes + "개(제시문 있는 것 " + withPass + "개), 측정한 공개 상태 " + states + "번, 보기 " + optsSeen + "개·손들기 단추 " + tallySeen + "개를 쟀어요, 수업 끝 장면 " + endScenes + "개");
 const byKind = {};
 for (const v of viol) { const k = v.replace(/^.*\) /, "").replace(/\d+/g, "N").slice(0, 40); byKind[k] = (byKind[k] || 0) + 1; }
 if (VERBOSE || viol.length < 60) for (const v of viol) console.log("  ! " + v);

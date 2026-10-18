@@ -80,60 +80,52 @@ try {
       await page.keyboard.press("Home").catch(() => {});
       const res = await page.evaluate(async () => {
         const raf = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
-        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-        const out = { bad: [], scenes: {}, steps: 0, qscenes: 0 };
-        const seenQ = {};
-        let guard = 0;
-        let lastSig = "";
-        let same = 0;
+        const out = { bad: [], steps: 0, qscenes: 0 };
         const sel = (el) => el.tagName.toLowerCase() + (typeof el.className === "string" && el.className.trim() ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".") : "");
-        while (guard++ < 800) {
-          await raf();
-          await wait(30);
-          await raf();
-          const count = (document.querySelector(".bd-head-count") || {}).textContent || "";
-          const nextBtn = document.querySelector(".bd-next");
-          const label = nextBtn ? nextBtn.getAttribute("aria-label") || "" : "";
-          out.steps++;
-          out.scenes[count] = 1;
+        const measure = (count) => {
           const q = document.querySelector(".bd-scene .bdq");
-          if (q) {
-            seenQ[count] = 1;
-            const stage = document.querySelector(".bd-stage");
-            const sr = stage.getBoundingClientRect();
-            const k = sr.width / (stage.offsetWidth || 1) || 1;
-            const nodes = [q].concat(Array.prototype.slice.call(q.querySelectorAll("*")));
-            for (const el of nodes) {
-              const cs = getComputedStyle(el);
-              if (cs.display === "none" || cs.visibility === "hidden") continue;
-              if (el.closest("svg") && el.tagName.toLowerCase() !== "svg") continue;
-              if (el.closest(".bdq-groups")) continue; // 모둠 점수 팝업은 닫혀 있어요
-              if (/(auto|scroll|hidden)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1)
-                out.bad.push({ count, why: "스크롤 영역 " + sel(el) + " scrollHeight " + el.scrollHeight + " > clientHeight " + el.clientHeight });
-              if (/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 1) out.bad.push({ count, why: "가로 스크롤 영역 " + sel(el) });
-              const r = el.getBoundingClientRect();
-              if (!r.width && !r.height) continue;
-              // 가림(overflow:hidden) 안에서 잘려 보이지 않는 .katex 내부 같은 것은 부모 검사로 충분
-              if (r.top < -1 || r.bottom > 1080 + 1 || r.left < -1 || r.right > 1920 + 1) out.bad.push({ count, why: "무대 밖 " + sel(el) + " top " + Math.round(r.top) + " bottom " + Math.round(r.bottom) + " right " + Math.round(r.right) });
-            }
-            // 글자 28px 이상(풀이·힌트 카드 글)
-            const tx = q.querySelectorAll(".bdq-card-txt, .bdq-card-txt p");
-            for (const el of tx) {
-              const f = parseFloat(getComputedStyle(el).fontSize);
-              if (f < 28 - 0.01) out.bad.push({ count, why: "카드 글자 " + f + "px < 28" });
-            }
+          if (!q) return;
+          const nodes = [q].concat(Array.prototype.slice.call(q.querySelectorAll("*")));
+          for (const el of nodes) {
+            const cs = getComputedStyle(el);
+            if (cs.display === "none" || cs.visibility === "hidden") continue;
+            if (el.closest("svg") && el.tagName.toLowerCase() !== "svg") continue;
+            if (el.closest(".sr-only, .katex-mathml, .bdq-groups")) continue; // 화면 읽기용 숨김 글·수식 읽기 글·닫힌 모둠 점수 팝업
+            if (/(auto|scroll|hidden)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1)
+              out.bad.push({ count, why: "스크롤 영역 " + sel(el) + " scrollHeight " + el.scrollHeight + " > clientHeight " + el.clientHeight });
+            if (/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 1) out.bad.push({ count, why: "가로 스크롤 영역 " + sel(el) });
+            const r = el.getBoundingClientRect();
+            if (!r.width && !r.height) continue;
+            if (r.top < -1 || r.bottom > 1080 + 1 || r.left < -1 || r.right > 1920 + 1)
+              out.bad.push({ count, why: "무대 밖 " + sel(el) + " top " + Math.round(r.top) + " bottom " + Math.round(r.bottom) + " right " + Math.round(r.right) });
           }
-          if (/마지막 장면/.test(label) || !nextBtn) break;
-          const sig = count + "|" + label + "|" + (document.querySelector(".bd-next-txt") || {}).textContent;
-          same = sig === lastSig ? same + 1 : 0;
-          lastSig = sig;
-          if (same > 3) {
-            out.bad.push({ count, why: "'다음'이 넘어가지 않아요" });
-            break;
+          for (const el of q.querySelectorAll(".bdq-card-txt")) {
+            const f = parseFloat(getComputedStyle(el).fontSize);
+            if (f < 28 - 0.01) out.bad.push({ count, why: "카드 글자 " + f + "px < 28" });
           }
-          nextBtn.click();
+        };
+        const rails = Array.prototype.slice.call(document.querySelectorAll(".bd-rail button")).filter((b) => /번 장면: 문제/.test(b.getAttribute("aria-label") || ""));
+        for (const btn of rails) {
+          btn.click();
+          await raf();
+          const count = (btn.getAttribute("aria-label") || "").replace(/: .*/, "");
+          if (!document.querySelector(".bd-scene .bdq")) {
+            await raf();
+          }
+          if (!document.querySelector(".bd-scene .bdq")) continue;
+          out.qscenes++;
+          let guard = 0;
+          for (;;) {
+            await raf();
+            out.steps++;
+            measure(count + " 단계 " + guard);
+            const nb = document.querySelector(".bd-next");
+            const label = nb ? nb.getAttribute("aria-label") || "" : "";
+            // 문제 안에서 열 단계가 남아 있으면 '… · n / m' 힌트가 붙어요
+            if (!nb || !/ · \d+ \/ \d+$/.test(label) || guard++ > 12) break;
+            nb.click();
+          }
         }
-        out.qscenes = Object.keys(seenQ).length;
         return out;
       });
       scenes += res.qscenes;

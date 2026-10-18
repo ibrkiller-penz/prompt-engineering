@@ -513,19 +513,35 @@ html.kbd .bd-end-morebtn:focus { outline: 6px solid var(--focus, #1d4ed8); outli
 .bdq-mid > .bdq-body { flex: 1 1 0; }
 .bdq-mid.is-split { flex-direction: row; }
 .bdq-mid.is-split > .bdq-body { flex: 1 1 0; min-width: 0; overflow: hidden; }
-.bdq-mid.is-split > .bdq-panel { flex: 0 0 50%; max-height: none; margin: 20px 0 0 20px; padding-right: 4px; box-sizing: border-box; }
-.bdq.is-split .bdq-opts.is-grid, .bdq.is-split .bdq-opts.is-long { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); grid-gap: 10px; }
+.bdq-mid.is-split > .bdq-panel { flex: 0 0 54%; max-height: none; margin: 20px 0 0 20px; padding-right: 4px; box-sizing: border-box; }
+.bdq.is-split .bdq-opts.is-grid, .bdq.is-split .bdq-opts.is-long { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; grid-gap: 10px; }
 .bdq.is-split .bdq-opt, .bdq.has-pass .bdq-opt { padding: 6px 14px 8px 16px; border-radius: 18px; }
 .bdq.is-split .bdq-opt-main, .bdq.has-pass .bdq-opt-main { flex-wrap: nowrap; min-height: 0; }
 .bdq.is-split .bdq-opt-main > * + *, .bdq.has-pass .bdq-opt-main > * + * { margin-left: 12px; }
 .bdq.is-split .bdq-opts .bdq-opt-txt, .bdq.has-pass .bdq-opts .bdq-opt-txt { flex: 1 1 0; font-size: calc(28px * var(--fs-scale, 1)); line-height: 1.25; }
 .bdq.is-split .bdq-key, .bdq.has-pass .bdq-key { font-size: 30px; }
 .bdq.is-split .bdq-mark, .bdq.has-pass .bdq-mark { padding: 2px 12px; font-size: 22px; }
-.bdq.is-split .bdq-tally button, .bdq.has-pass .bdq-tally button { height: 56px; }
-.bdq.is-split .bdq-tally-step, .bdq.has-pass .bdq-tally-step { width: 56px; }
-.bdq.is-split .bdq-tally button.is-plus, .bdq.has-pass .bdq-tally button.is-plus { width: 64px; height: 64px; font-size: 40px; }
-.bdq.is-split .bdq-tally button.is-minus, .bdq.has-pass .bdq-tally button.is-minus { width: 44px; height: 44px; font-size: 26px; }
-.bdq.is-split .bdq-tally-n, .bdq.has-pass .bdq-tally-n { min-width: 112px; }
+.bdq.is-split .bdq-tally button, .bdq.has-pass .bdq-tally button { height: 52px; }
+.bdq.is-split .bdq-tally-step, .bdq.has-pass .bdq-tally-step { width: 52px; }
+.bdq.is-split .bdq-tally button.is-plus, .bdq.has-pass .bdq-tally button.is-plus { width: 56px; height: 56px; font-size: 36px; }
+.bdq.is-split .bdq-tally button.is-minus, .bdq.has-pass .bdq-tally button.is-minus { width: 40px; height: 40px; font-size: 24px; }
+.bdq.is-split .bdq-tally-n, .bdq.has-pass .bdq-tally-n { min-width: 92px; }
+.bdq.is-split .bdq-tally-hand, .bdq.has-pass .bdq-tally-hand { font-size: 20px; }
+.bdq.is-split .bdq-tally-unit, .bdq.has-pass .bdq-tally-unit { font-size: 20px; }
+.bdq.is-split .bdq-tally > * + *, .bdq.has-pass .bdq-tally > * + * { margin-left: 4px; }
 .bdq.is-split .bdq-bar, .bdq.has-pass .bdq-bar { height: 8px; margin-top: 4px; }
 .bdq.is-split .bdq-answer, .bdq.has-pass .bdq-answer { font-size: calc(34px * var(--fs-scale, 1)); padding: 8px 18px; }
 .bdq.is-split .bdq-opts.is-ox .bdq-opt-txt, .bdq.has-pass .bdq-opts.is-ox .bdq-opt-txt { font-size: calc(30px * var(--fs-scale, 1)); }
+
+/* 보기가 네 개 이상이고 가려진 상태: 손들기 단추를 작게 해서 다섯 칸이 한 화면에 들어요 */
+.bdq-opts.is-covered:not(.n2):not(.n3) .bdq-tally button { height: 52px; }
+.bdq-opts.is-covered:not(.n2):not(.n3) .bdq-tally-step { width: 52px; }
+.bdq-opts.is-covered:not(.n2):not(.n3) .bdq-tally button.is-plus { width: 56px; height: 56px; font-size: 36px; }
+.bdq-opts.is-covered:not(.n2):not(.n3) .bdq-tally button.is-minus { width: 40px; height: 40px; font-size: 24px; }
+.bdq-opts.is-covered:not(.n2):not(.n3) .bdq-tally-n { min-width: 92px; }
+.bdq-opts.is-covered:not(.n2):not(.n3) .bdq-opt { padding-top: 4px; padding-bottom: 4px; }
+.bdq-opts.is-covered:not(.n2):not(.n3) .bdq-bar { height: 6px; margin-top: 2px; }
+/* 보기 옆 열린 상자: 꼬리표를 글 옆에 띄워 글이 가로로 넓게 퍼져요 */
+.bdq.is-split .bdq-card { display: block; display: flow-root; padding: 8px 16px; font-size: calc(28px * var(--fs-scale, 1)); line-height: 1.35; }
+.bdq.is-split .bdq-card .bdq-tag { float: left; margin: 3px 12px 0 0; font-size: 22px; line-height: 1.5; }
+.bdq.is-split .bdq-card-txt { display: block; }
