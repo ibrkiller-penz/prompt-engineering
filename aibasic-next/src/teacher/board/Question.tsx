@@ -265,10 +265,54 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   const panelOpen = showAns || open("hint1") || (!!solution && open("sol"));
   // 4지선다에서 힌트·정답·풀이가 열리면 보기(왼쪽)와 열린 상자(오른쪽)를 나란히 둬서 보기·득표가 가려지지 않게 해요
   const split = (q.type === "choice" || q.type === "ox") && panelOpen;
+  const pass = !!(q.passage && q.passage.length);
+  const leftEls = (
+    <>
+        <div className="bdq-passage">
+          <Passage blocks={q.passage} surface="board" />
+        </div>
+        <div className="bdq-prompt">
+          <Rich text={q.prompt} />
+        </div>
+    </>
+  );
+  const midEl = (
+        <div className={"bdq-mid" + (split ? " is-split" : "")}>
+        {body ? <div className="bdq-body">{body}</div> : <div className="bdq-body is-empty" />}
+
+        {panelOpen ? (
+          <div className="bdq-panel" aria-live="polite">
+            {showAns ? (
+              <p className="bdq-answer">
+                <span className="bdq-answer-tag">정답:</span> <Rich text={answerText(q)} />
+              </p>
+            ) : null}
+            {hints.map((h, i) =>
+              open(i === 0 ? "hint1" : "hint2") ? (
+                <div key={i} className="bdq-card is-hint">
+                  <span className="bdq-tag">힌트 {i + 1}</span>
+                  <div className="bdq-card-txt">
+                    <Rich text={h} />
+                  </div>
+                </div>
+              ) : null,
+            )}
+            {solution && open("sol") ? (
+              <div className="bdq-card is-sol">
+                <span className="bdq-tag">풀이</span>
+                <div className="bdq-card-txt">
+                  <Rich text={solution} />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        </div>
+  );
   const nextIdx = r + 1 < stages.length ? r + 1 : -1;
 
   return (
-    <div className={"bdq" + (hidden ? " is-covered" : "") + (panelOpen ? " has-panel" : "") + (split ? " is-split" : "") + (longPrompt ? " is-longq" : "") + (q.passage && q.passage.length ? " has-pass" : "")}>
+    <div className={"bdq" + (hidden ? " is-covered" : "") + (panelOpen ? " has-panel" : "") + (split ? " is-split" : "") + (longPrompt ? " is-longq" : "") + (pass ? " has-pass" : "")}>
       <div className="bdq-head">
         {label ? <span className="chip is-accent">{label}</span> : null}
         <span className="chip">{q.group.split(" · ")[0]}</span>
@@ -292,43 +336,17 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
           </span>
         ) : null}
       </div>
-      <div className="bdq-passage">
-        <Passage blocks={q.passage} surface="board" />
-      </div>
-      <div className="bdq-prompt">
-        <Rich text={q.prompt} />
-      </div>
-      <div className={"bdq-mid" + (split ? " is-split" : "")}>
-      {body ? <div className="bdq-body">{body}</div> : <div className="bdq-body is-empty" />}
-
-      {panelOpen ? (
-        <div className="bdq-panel" aria-live="polite">
-          {showAns ? (
-            <p className="bdq-answer">
-              <span className="bdq-answer-tag">정답:</span> <Rich text={answerText(q)} />
-            </p>
-          ) : null}
-          {hints.map((h, i) =>
-            open(i === 0 ? "hint1" : "hint2") ? (
-              <div key={i} className="bdq-card is-hint">
-                <span className="bdq-tag">힌트 {i + 1}</span>
-                <div className="bdq-card-txt">
-                  <Rich text={h} />
-                </div>
-              </div>
-            ) : null,
-          )}
-          {solution && open("sol") ? (
-            <div className="bdq-card is-sol">
-              <span className="bdq-tag">풀이</span>
-              <div className="bdq-card-txt">
-                <Rich text={solution} />
-              </div>
-            </div>
-          ) : null}
+      {pass ? (
+        <div className="bdq-cols">
+          <div className="bdq-left">{leftEls}</div>
+          {midEl}
         </div>
-      ) : null}
-      </div>
+      ) : (
+        <>
+          {leftEls}
+          {midEl}
+        </>
+      )}
 
       <div className="bdq-controls bd-noswipe">
         <div className="bdq-steps" role="group" aria-label="단계 바로 열기">

@@ -14,10 +14,10 @@ import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const DIST = path.join(ROOT, "dist-t");
-const require = createRequire(import.meta.url);
 const args = process.argv.slice(2);
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const DIST = path.resolve(ROOT, (args.find((x) => x.indexOf("--dist=") === 0) || "--dist=dist-t").slice(7));
+const require = createRequire(import.meta.url);
 const opt = (n) => {
   const a = args.find((x) => x.indexOf("--" + n + "=") === 0);
   return a ? a.slice(n.length + 3) : "";
@@ -115,7 +115,7 @@ function measure() {
     if (a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1) bad.push("보기 겹침 " + (i + 1) + "," + (j + 1));
   }
   // 3) 글자 28px
-  const tx = q.querySelectorAll(".bdq-passage p, .bdq-passage li, .bdq-passage td, .bdq-passage th, .bdq-passage pre, .bdq-passage code, .bdq-passage .ui-code-pre, .bdq-opt-txt, .bdq-opt-txt *, .bdq-card-txt, .bdq-card-txt *, .bdq-answer, .bdq-prompt");
+  const tx = q.querySelectorAll(".bdq-passage *, .bdq-opt-txt, .bdq-opt-txt *, .bdq-card-txt, .bdq-card-txt *, .bdq-answer, .bdq-prompt");
   let minFs = 999, minTxt = "";
   for (const el of tx) {
     if (el.closest("svg, .wg-host, [aria-hidden='true'], .bdq-cover, .katex-html, .ui-code-tag")) continue;

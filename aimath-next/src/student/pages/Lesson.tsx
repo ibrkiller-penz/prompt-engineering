@@ -57,7 +57,7 @@ export default function LessonPage({ lid, query }: { lid: string; query: Record<
   const posLabel = pos && steps ? posText(steps, pos.step, pos.card) : "";
 
   const stages = [
-    { key: "story", name: "이야기", icon: "story" as const, to: href(STUDENT_ROUTES.card, { lid, step: hasStory ? "story" : firstConcept, card: 1 }), note: hasStory ? "등장인물과 함께 오늘 물음을 만나요" : "이야기가 없는 레슨이에요", done: hasStory ? !!(pos && pos.step !== "story") || readL.length > 0 : true },
+    { key: "story", name: "이야기", icon: "story" as const, to: href(STUDENT_ROUTES.card, { lid, step: hasStory ? "story" : firstConcept, card: 1 }), note: !steps ? "불러오는 중이에요…" : hasStory ? "등장인물과 함께 오늘 물음을 만나요" : "이야기가 없는 레슨이에요", done: hasStory ? !!(pos && pos.step !== "story") || readL.length > 0 : true },
     { key: "concept", name: "개념", icon: "book" as const, to: href(STUDENT_ROUTES.card, { lid, step: firstConcept, card: 1 }), note: "읽음 " + readL.length + "/" + meta.sections.length + " (지나감 " + seenL.length + ")", done: !!(st && st.allRead) },
     { key: "quiz", name: "문제", icon: "question" as const, to: href(STUDENT_ROUTES.quiz, { lid }), note: "계단 문제 " + coreTried + "/" + core.length + " · 기본 문제 " + (st ? st.basic.tried : 0) + "/" + meta.basicIds.length, done: !!(st && st.allTried && st.passed) },
     { key: "wrap", name: "정리", icon: "flag" as const, to: href(STUDENT_ROUTES.card, { lid, step: "wrap", card: 1 }), note: "정리 · 돌아보기 · 다음으로", done: !!(st && st.complete) },

@@ -51,6 +51,21 @@ html[data-surface="prep"] .t-prog-card .small { font-variant-numeric: tabular-nu
     align-items: start;
   }
   html[data-surface="prep"] .t-baskets { width: auto; -webkit-box-flex: 0; -ms-flex: none; flex: none; margin-left: 0; }
+
+  /* 수업 흐름 합계 카드: 1920x1080 에서 '문제 고르기 / 오늘 수업으로' 줄까지 화면에 들게 촘촘하게.
+     그래도 넘치면(경고 글이 길 때) 카드 안에서 스크롤해요 */
+  html[data-surface="prep"] .t-flow-sum { padding: var(--sp-3) var(--sp-4); max-height: calc(100vh - var(--sp-3) * 2); overflow-y: auto; }
+  html[data-surface="prep"] .t-flow-sum > * + * { margin-top: var(--sp-2); }
+  html[data-surface="prep"] .t-flow-sum .t-tb-bar { height: 40px; }
+  html[data-surface="prep"] .t-flow-sum .t-flow-legend { grid-template-columns: repeat(3, auto); justify-content: start; grid-column-gap: var(--sp-4); }
+  html[data-surface="prep"] .t-flow-sum .t-flow-acts { margin-top: 0; margin-bottom: 0; }
+  /* 수업 시간 · 차시: 이름과 칩을 한 줄에(세로로 쌓으면 카드가 길어져요) */
+  html[data-surface="prep"] .t-flow-sum .stack.tight { display: -webkit-box; display: -ms-flexbox; display: flex; -ms-flex-wrap: wrap; flex-wrap: wrap; -webkit-box-align: center; -ms-flex-align: center; align-items: center; }
+  html[data-surface="prep"] .t-flow-sum .stack.tight > * { margin-top: 0; }
+  html[data-surface="prep"] .t-flow-sum .stack.tight > .t-set-label { margin-right: var(--sp-3); min-width: 4.2em; }
+  html[data-surface="prep"] .t-flow-sum .stack.tight > .t-chips { margin: 0; }
+  html[data-surface="prep"] .t-flow-sum .stack.tight .t-chips > .t-dur { margin-bottom: 0; }
+  html[data-surface="prep"] .t-flow-sum .stack.tight > .small { -ms-flex-preferred-size: 100%; flex-basis: 100%; margin-top: var(--sp-2); }
 }
 
 /* ════════════════ 반 고르기 칩 ════════════════ */

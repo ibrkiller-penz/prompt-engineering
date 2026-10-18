@@ -412,23 +412,23 @@ html[data-surface="board"][data-motion="reduce"] .bd-next:active { -webkit-trans
 /* 이어서 안내 줄도 칠판 글자 바닥(28px)을 지켜요 */
 html[data-surface="board"] .bd-cont { font-size: 28px; }
 
-/* 제시문이 있는 문제: 제시문 + 문제 + 보기 다섯 개가 한 화면(896px)에 들도록 간격과 칸을 촘촘하게 해요(글자는 28px 이상) */
-html[data-surface="board"] .bdq.has-pass .bdq-head { min-height: 40px; }
-html[data-surface="board"] .bdq.has-pass .bdq-prompt { font-size: 32px; max-height: none; margin-top: 6px; line-height: 1.35; }
-html[data-surface="board"] .bdq.has-pass .bdq-body { margin-top: 10px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opts { grid-gap: 8px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-auto-rows: minmax(60px, 1fr); }
-html[data-surface="board"] .bdq.has-pass .bdq-opt { padding: 2px 16px 4px 20px; border-radius: 16px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opt-main { min-height: 48px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opt-txt, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long .bdq-opt-txt { font-size: 30px; line-height: 1.3; }
-html[data-surface="board"] .bdq.has-pass .bdq-key, html[data-surface="board"] .bdq.has-pass .bdq-ox { font-size: 30px; }
-html[data-surface="board"] .bdq-passage .ui-code .ui-code-pre { font-size: 24px; line-height: 1.3; padding: 6px 16px; }
-html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 22px; padding: 2px 16px; }
-/* 정답·풀이 칸이 열리면 제시문은 접어서(안에서 스크롤) 본문이 896px 을 넘지 않게 해요 */
-html[data-surface="board"] .bdq.has-pass.has-panel .bdq-passage .ui-qpassage { max-height: 170px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-/* 아주 긴 제시문(info() 출력 같은 코드 글)은 높이를 가둬요(안에서 스크롤) */
-html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height: 250px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-auto-rows: minmax(52px, 1fr); }
-html[data-surface="board"] .bdq.has-pass .bdq-opt-main { min-height: 40px; }
-html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height: 230px; }
-html[data-surface="board"] .bdq.has-pass .bdq-prompt { font-size: 30px; line-height: 1.3; max-height: 140px; overflow-y: auto; }
+/* 제시문이 있는 문제: 왼쪽 칸(제시문 + 질문) · 오른쪽 칸(보기 + 열린 힌트/정답/풀이)으로 가로 2열.
+   안쪽 스크롤 없이 한 화면(896px)에 들게 하고, 글자는 28px 이상을 지켜요(Chrome 80: flex gap 없이 margin 으로 간격) */
+html[data-surface="board"] .bdq.has-pass .bdq-head { min-height: 44px; }
+html[data-surface="board"] .bdq-cols { flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; margin-top: 8px; }
+html[data-surface="board"] .bdq-left { flex: 0 0 47%; width: 47%; min-width: 0; box-sizing: border-box; padding-right: 20px; display: flex; flex-direction: column; }
+html[data-surface="board"] .bdq-cols > .bdq-mid { flex: 1 1 0; min-width: 0; flex-direction: column; }
+html[data-surface="board"] .bdq-left .bdq-passage { flex: 0 0 auto; }
+html[data-surface="board"] .bdq-left .bdq-passage .ui-qpassage { max-height: none; overflow: visible; margin-bottom: 0; }
+html[data-surface="board"] .bdq-left .bdq-prompt { flex: 0 0 auto; max-height: none; overflow: visible; margin-top: 12px; font-size: 32px; line-height: 1.35; }
+html[data-surface="board"] .bdq.has-pass .bdq-body { margin-top: 0; overflow: visible; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long,
+html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(auto, 1fr); grid-gap: 8px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts .bdq-opt-txt { font-size: 30px; line-height: 1.3; }
+html[data-surface="board"] .bdq.has-pass .bdq-mid.is-split { flex-direction: column; }
+html[data-surface="board"] .bdq.has-pass .bdq-mid.is-split > .bdq-body { overflow: visible; }
+html[data-surface="board"] .bdq.has-pass .bdq-mid.is-split > .bdq-panel { flex: 0 0 auto; margin: 12px 0 0; padding-right: 0; }
+/* 코드 글자는 칠판에서 28px 이상(제시문 코드 블록 · 표 안 인라인 코드) */
+html[data-surface="board"] .bdq-passage .ui-code .ui-code-pre { font-size: 28px; line-height: 1.3; padding: 6px 16px; }
+html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 24px; padding: 2px 16px; }
+html[data-surface="board"] .ui-icode { font-size: 1em; }
