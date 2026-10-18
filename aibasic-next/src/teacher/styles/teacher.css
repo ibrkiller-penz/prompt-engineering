@@ -289,3 +289,7 @@ html[data-surface="prep"] .t-head .t-klass-label { min-width: 1.02em; }
   /* 휴대폰: 이름표·설정 단추가 한 줄에 들도록 이름 사이를 조금 좁혀요(글꼴과 상관없이 같은 줄 수) */
   html[data-surface="prep"] .t-head .t-brand > * + * { margin-left: var(--sp-2); }
 }
+
+/* 준비 중 대신 보여 주는 안내 화면: 단추를 가운데에 */
+html[data-surface="prep"] .t-soon { max-width: 640px; margin-left: auto; margin-right: auto; }
+html[data-surface="prep"] .t-soon .t-soon-acts { -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center; }
