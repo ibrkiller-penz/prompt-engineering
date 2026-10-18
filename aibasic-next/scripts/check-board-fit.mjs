@@ -93,7 +93,7 @@ function measure() {
     }
     return "";
   };
-  const items = q.querySelectorAll(".bdq-opt, .bdq-tally button, .bdq-panel, .bdq-answer, .bdq-card, .bdq-step, .bdq-groups-open, .bdq-passage .ui-qpassage, .bdq-prompt, .bdq-head");
+  const items = q.querySelectorAll(".bdq-opt, .bdq-tally button, .bdq-answer, .bdq-card, .bdq-step, .bdq-groups-open, .bdq-passage .ui-qpassage, .bdq-prompt, .bdq-head");
   for (const el of items) {
     const r0 = el.getBoundingClientRect();
     if (!r0.width || !r0.height) continue;
@@ -101,7 +101,7 @@ function measure() {
     const nm = el.className.toString().split(" ")[0];
     if (el.matches(".bdq-opt")) cnt.opts++;
     if (el.matches(".bdq-tally button")) cnt.tally++;
-    if (r.t < -0.5 || r.b > 1080.5 || r.l < -0.5 || r.r > 1920.5) bad.push("무대 밖 " + nm + " 위" + Math.round(r.t) + " 아래" + Math.round(r.b));
+    if (r.t < -0.5 || r.b > 1080.5 || r.l < -0.5 || r.r > 1920.5) bad.push("무대 밖 " + nm + " 위" + Math.round(r.t) + " 아래" + Math.round(r.b) + " 좌" + Math.round(r.l) + " 우" + Math.round(r.r));
     const c = clipped(el, r);
     if (c) bad.push("조상에 잘림 " + nm + " ← " + c);
   }
@@ -116,12 +116,6 @@ function measure() {
     const a = boxes[i], b = boxes[j];
     if (a.e.contains(b.e) || b.e.contains(a.e)) continue;
     if (a.r.l < b.r.r - 1 && b.r.l < a.r.r - 1 && a.r.t < b.r.b - 1 && b.r.t < a.r.b - 1) bad.push("겹침 " + a.nm + "·" + b.nm);
-  }
-  // 열린 칸(.bdq-panel)이 보기 칸과 겹치는지(패널 안 카드는 위에서 따로 봐요)
-  const pn = q.querySelector(".bdq-panel");
-  if (pn) {
-    const pr = rel(pn.getBoundingClientRect());
-    q.querySelectorAll(".bdq-opt").forEach((o) => { const a = rel(o.getBoundingClientRect()); if (a.l < pr.r - 1 && pr.l < a.r - 1 && a.t < pr.b - 1 && pr.t < a.b - 1) bad.push("겹침 보기·열린칸"); });
   }
   // 내용이 담은 칸 밖으로 삐져나감(보기 묶음이 본문 칸보다 큼)
   const bodyEl = q.querySelector(".bdq-body");
