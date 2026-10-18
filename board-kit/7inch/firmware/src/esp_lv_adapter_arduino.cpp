@@ -88,7 +88,7 @@ static void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t 
         if (lv_disp_flush_is_last(disp_drv)) {
             lcd->switchFrameBufferTo(color_map);
             ulTaskNotifyValueClear(nullptr, ULONG_MAX);
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));   // VSYNC 를 기다린다(오지 않아도 멈추지 않게 100ms)
         }
         lv_disp_flush_ready(disp_drv);
         return;
@@ -144,9 +144,14 @@ uint8_t esp_lv_adapter_get_required_frame_buffer_count(
 {
     LV_UNUSED(tear_avoid_mode);
     LV_UNUSED(rotation);
+#if 0   // (보류: PSRAM 120MHz 가 안 돼서 1장으로) 7B(1024x600): Waveshare 공식 7B 예제처럼 프레임 버퍼 2장(찢어짐 방지). PSRAM 120MHz 라 감당한다.
+    // 다 그린 화면을 VSYNC 에 한 번에 바꾸므로 메뉴를 바꿀 때 쓸어내림이 없고, 내부 RAM 그림판도 필요 없다(HTTPS 몫).
+    return 2;
+#else
     // 프레임 버퍼 1장. 2장을 통째로 그림판으로 쓰면(전체 다시 그리기) PSRAM 이 붐벼 화면이 밀렸다
-    // (waveshareteam/ESP32-S3-Touch-LCD-5 issue #1 에서 같은 보드로 확인된 해결책).
+    // (waveshareteam/ESP32-S3-Touch-LCD-5 issue #1 에서 같은 보드로 확인된 해결책). 800 보드는 PSRAM 80MHz.
     return 1;
+#endif
 }
 
 esp_err_t esp_lv_adapter_init(const esp_lv_adapter_config_t *config)
@@ -191,7 +196,12 @@ lv_display_t *esp_lv_adapter_register_display(const esp_lv_adapter_display_confi
     const uint32_t height = config->ver_res;
     const auto bus_type = s_ctx.lcd->getBus()->getBasicAttributes().type;
     // 그림판은 내부 RAM 10줄 한 장(16KB @800). 바뀐 곳만 그려 프레임 버퍼에 옮긴다.
+#if defined(BOARD_7B) && BOARD_7B
+    // 1024 폭은 10줄이면 20KB 라 HTTPS 에 쓸 내부 RAM 이 모자랐다 → 6줄(12KB)
+    uint32_t buffer_bytes = width * 6 * sizeof(lv_color_t);
+#else
     uint32_t buffer_bytes = width * 10 * sizeof(lv_color_t);
+#endif
 
     // 프레임 버퍼가 2장일 때만 그것을 그림판으로 쓴다(전체 다시 그리기). 지금은 1장이라 아래 내부 RAM 그림판을 쓴다.
     if (bus_type == ESP_PANEL_BUS_TYPE_RGB && esp_lv_adapter_get_required_frame_buffer_count(ESP_LV_ADAPTER_TEAR_AVOID_MODE_DEFAULT_RGB, ESP_LV_ADAPTER_ROTATE_0) >= 2) {

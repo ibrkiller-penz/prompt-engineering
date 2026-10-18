@@ -94,6 +94,9 @@ board-kit\
   - `-NoUpload`: 빌드만 · `-Port COM번호`(또는 환경변수 `PIO_PORT`): 업로드 포트 · 둘 다 없으면 USB 시리얼 칩을 자동으로 찾는다.
   - `-Env board`(기본, 800×480) / `-Env board7b`(1024×600, **-Port 필수**). 환경을 바꾸면 ESP-IDF 를 다시 컴파일해 **35분 안팎** 걸린다.
   - 7B 를 빌드만 하고 굽기: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0x0 %USERPROFILE%\.pio-build\penedu-board-7inch-src\.pio\build\board7b\firmware.factory.bin` (칩이 다르면 esptool 이 거부한다)
+  - **주의: `firmware.factory.bin` 을 0x0 에 굽으면 설정 구역(NVS, 0x9000)까지 덮어써 저장한 와이파이·볼 시간표가 지워진다**(2026-10-18 겪음).
+    평소에는 앱만 굽는다: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0x10000 %USERPROFILE%\.pio-build\penedu-board-7inch-src\.pio\build\board7b\firmware.bin`
+  - 7B 에서 PSRAM·플래시 120MHz(공식 설정)는 이 Arduino 빌드에서 앱 시작 때 멈춰 재부팅이 반복됐다(2026-10-18). 지금은 PSRAM 80MHz + 화면 21MHz. 120MHz 는 원인을 찾은 뒤 다시 시험한다.
 - **처음 한 번은 25~45분**(약 3GB 받아 7GB 로 풀림). 두 번째부터 1~2분. 첫 빌드는 **끝까지 기다린다**(중간에 끄지 말 것).
 - 플랫폼은 **pioarduino**(Arduino-ESP32 3.x). 공식 espressif32 는 Arduino 2.x 라 화면 드라이버가 안 맞는다.
 - **LVGL 은 8.3.11 고정**(`lib_deps`), ArduinoJson 7.x. 버전을 올리지 말 것.

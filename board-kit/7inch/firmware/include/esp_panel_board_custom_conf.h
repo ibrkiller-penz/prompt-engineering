@@ -104,8 +104,8 @@
     /* For refresh panel (RGB) */
 #if BOARD_7B
     // 7B 박자: Waveshare 공식 예제(examples/Arduino/08_TOUCH/rgb_lcd_port.cpp) 값. 공식 예제는 PSRAM 120MHz + 30MHz 지만
-    // 우리는 PSRAM 80MHz(5장 설정 유지)라 18MHz 로 시작한다(초당 약 19.6장). 깜빡임이 보이면 21MHz 까지(22MHz 를 넘기지 않는다).
-    #define ESP_PANEL_BOARD_LCD_RGB_CLK_HZ            (18 * 1000 * 1000)
+    // 2026-10-18: 18MHz(초당 약 20장)는 떨려 보여 21MHz(약 23장)로. 공식 30MHz + PSRAM 120MHz 는 이 빌드에서 부팅이 멈춰 보류.
+    #define ESP_PANEL_BOARD_LCD_RGB_CLK_HZ            (21 * 1000 * 1000)   // 2026-10-18 18→21MHz(떨림 줄이기). 30MHz(공식)는 PSRAM 120MHz 가 필요한데 보류
     #define ESP_PANEL_BOARD_LCD_RGB_HPW               (162)
     #define ESP_PANEL_BOARD_LCD_RGB_HBP               (152)
     #define ESP_PANEL_BOARD_LCD_RGB_HFP               (48)

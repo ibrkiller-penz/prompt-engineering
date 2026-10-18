@@ -190,9 +190,9 @@ static String s_pickSsid;
 // · 그래도 밀릴 수 있으니 1분마다 한 번 다시 맞춘다(loop) — 밀려도 1분 안에 제자리.
 // (CONFIG_LCD_RGB_RESTART_IN_VSYNC 는 platformio.ini 에서 =n 으로 명시해 끈다 — 기본값이 y 다. esp-idf#19070)
 static LCD *s_lcd = nullptr;
-#if BOARD_7B   // 1024x600: 박자는 esp_panel_board_custom_conf.h 와 같게(18MHz). 받는 동안 12MHz(6MHz 면 초당 6장이라 깜빡임이 심하다)
-static const uint32_t PCLK_HZ = 18 * 1000 * 1000, PCLK_SLOW_HZ = 12 * 1000 * 1000;
-static const uint32_t FRAME_SLOW_MS = 86, FRAME_FAST_MS = 61;   // 한 장 그리는 시간 + 10ms ((1024+362)x(600+61)/pclk)
+#if BOARD_7B   // 1024x600: 박자는 esp_panel_board_custom_conf.h 와 같게(21MHz, 초당 약 23장). 받는 동안 12MHz
+static const uint32_t PCLK_HZ = 21 * 1000 * 1000, PCLK_SLOW_HZ = 12 * 1000 * 1000;   // PSRAM 80MHz 에서 22MHz 를 넘기지 않는다
+static const uint32_t FRAME_SLOW_MS = 86, FRAME_FAST_MS = 54;   // 한 장 그리는 시간 + 10ms ((1024+362)x(600+61)/pclk)
 #else
 static const uint32_t PCLK_HZ = 16 * 1000 * 1000, PCLK_SLOW_HZ = 6 * 1000 * 1000;
 static const uint32_t FRAME_SLOW_MS = 40, FRAME_FAST_MS = 25;
