@@ -34,7 +34,7 @@ export function TopBar({ title, backTo, noBack, code, eyebrow, right, hardBack }
         </button>
       )}
       <a className="s-brand" href="#/" aria-label="인공지능 수학 홈">
-        <span className="tri is-flag" aria-hidden="true" />
+        <img className="s-brand-mark" src="/favicon-s.svg?v=2" alt="" width={24} height={24} aria-hidden="true" />
         <span className="s-brand-name">{BRAND}</span>
       </a>
       {showTitle || chip ? (

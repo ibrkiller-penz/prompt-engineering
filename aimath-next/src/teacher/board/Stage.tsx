@@ -252,11 +252,7 @@ export function Stage(props: StageProps) {
           <header className="bd-head">
             <div className="bd-head-row">
               <span className="bd-brand" aria-hidden="true">
-                <span className="bd-flag">
-                  <i />
-                  <i />
-                  <i />
-                </span>
+                <img className="bd-flag" src="/favicon-t.svg?v=2" alt="" width={40} height={40} />
               </span>
               <span className="bd-head-lesson">{props.lessonLabel}</span>
               <span className="bd-head-title">{props.title}</span>
