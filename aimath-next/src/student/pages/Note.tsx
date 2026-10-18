@@ -1,4 +1,4 @@
-// 오답노트(#/note?tab=todo|reviewing|graduated): 아직 / 복습 중 / 졸업.
+// 오답노트(#/note?tab=todo|reviewing|graduated): 아직 / 복습 중 / 익힘.
 // 틀리거나 풀이를 본 문제가 들어와요. '다시 풀기'는 그 자리에서 풀고, '개념 다시 보기'는 문제가 나온 소제목 카드로 가요.
 import { useState } from "react";
 import { STUDENT_ROUTES } from "../../shared/contracts.ts";
@@ -16,7 +16,7 @@ import { sectionOfQ, useQuestions } from "./useQuestions.ts";
 const TABS: { id: NoteState; name: string; desc: string }[] = [
   { id: "todo", name: "아직", desc: "틀렸거나 풀이만 보고 아직 다시 맞히지 못한\u00a0문제예요." },
   { id: "reviewing", name: "복습 중", desc: "다시 맞혔어요. 1일·3일·7일 뒤 오늘의 복습에서 또 만나요." },
-  { id: "graduated", name: "졸업", desc: "복습에서 세 번 연속 맞혀서 이제 익힌\u00a0문제예요." },
+  { id: "graduated", name: "익힘", desc: "복습에서 세 번 연속 맞혀서 이제 익힌\u00a0문제예요." },
 ];
 
 export default function NotePage({ query }: { query: Record<string, string> }) {
@@ -68,14 +68,14 @@ export default function NotePage({ query }: { query: Record<string, string> }) {
             <strong>복습 중</strong> = 날짜에 맞춰 다시 풀어요
           </li>
           <li>
-            <strong>졸업</strong> = 복습에서 세 번 연속 맞힌, 익힌 문제예요
+            <strong>익힘</strong> = 복습에서 세 번 연속 맞힌 문제예요
           </li>
         </ul>
 
         {!items.length ? (
           <div className="empty">
             <Icon name={tab === "todo" ? "check" : "note"} size="xl" />
-            <p>{tab === "todo" ? "'아직' 칸이 비어 있어요. 잘하고 있어요!" : tab === "reviewing" ? "복습 중인 문제가 없어요." : "아직 졸업한 문제가 없어요."}</p>
+            <p>{tab === "todo" ? "'아직' 칸이 비어 있어요. 잘하고 있어요!" : tab === "reviewing" ? "복습 중인 문제가 없어요." : "아직 익힌 문제가 없어요."}</p>
           </div>
         ) : loading && !Object.keys(map).length ? (
           <Loading />
