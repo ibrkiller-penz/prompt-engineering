@@ -44,8 +44,9 @@ export function normalizePrefs(raw: unknown, site: SiteMode): PrefsX {
 }
 
 /** 실제로 쓸 테마 */
-export function resolveTheme(pref: ThemePref, site: SiteMode, prefersDark: boolean): Theme {
-  if (pref === "auto") return prefersDark ? "dark" : "light";
+export function resolveTheme(pref: ThemePref, site: SiteMode, _prefersDark?: boolean): Theme {
+  // 기본은 종이색 밝은 화면이에요. 어두운 화면은 읽기 설정에서 직접 고를 때만 써요(기기 설정은 따르지 않아요)
+  if (pref === "auto") return "light";
   if (pref === "chalk" && site !== "teacher") return "dark";
   return pref;
 }
