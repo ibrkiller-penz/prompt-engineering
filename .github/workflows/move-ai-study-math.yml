@@ -15,20 +15,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: 루트에 허브 화면을 두고, 앱 화면은 app.html 로 옮긴다
+      - name: 루트(/)는 aiworld 허브로 넘기고, 앱 화면은 app.html 로 옮긴다
         run: |
           mv dist/index.html dist/app.html
-          cp ai-study-hub/index.html dist/index.html
-          cat > firebase.ai-study.json <<'JSON'
-          {
-            "hosting": {
-              "site": "ai-study-math",
-              "public": "dist",
-              "ignore": ["firebase.json", "firebase.ai-study.json", "**/.*", "**/node_modules/**"],
-              "rewrites": [{ "source": "**", "destination": "/app.html" }]
-            }
-          }
-          JSON
+          cp ai-study-hub/firebase.ai-study-math.json firebase.ai-study.json
       - name: Deploy to ai-study-math
         env:
           FIREBASE_TOKEN: ${{ secrets.AI_STUDY_MATH_TOKEN }}
