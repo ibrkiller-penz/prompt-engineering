@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // 학생 사이트 휴대폰(375×812) 훑어보기 — node --test 대상이 아니에요(브라우저가 필요해서 따로 돌려요).
 //   먼저 학생 빌드(npm run build:s)를 해 두어야 해요.
-//   node tests/student/phone-sweep.mjs [--lessons=u1-1,u2-3] [--flow]
+//   node tests/student/phone-sweep.mjs [--lessons=u1_1_1,u2_1_3] [--flow]
 //
-//  1) 20레슨: 레슨 개요 → 카드를 '다음'으로 끝까지 넘기며 카드마다 가로 넘침 검사
+//  1) 26레슨: 레슨 개요 → 카드를 '다음'으로 끝까지 넘기며 카드마다 가로 넘침 검사
 //             → 계단 문제·더 풀기에서 문제마다 힌트·풀이를 다 열고 가로 넘침 검사
 //  2) --flow: 가짜 기록(tools/fixtures/student.json)으로 이어서 하기·완료 판정·복습·백업 왕복을 화면에서 확인
 //  3) 오답 직후(항상): 문제를 일부러 틀려서 '풀이 확인하기'·'이 개념 다시 보기' 단추가 보이고 375 폭 안에 드는지 확인
@@ -13,9 +13,10 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { CONTENT_DIR } from "../../tools/content-index.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const CONTENT = path.resolve(ROOT, "..", "content", "aimath");
+const CONTENT = CONTENT_DIR;
 const require = createRequire(import.meta.url);
 const args = process.argv.slice(2);
 const opt = (n) => {
@@ -208,7 +209,7 @@ async function flow(browser, base) {
   });
   if (!cont) problems.push("홈: '이어서 공부하기' 링크가 없어요");
   // 카드 하나를 지나간 뒤 홈의 이어서 하기가 그 위치를 가리키는지
-  await page.goto(base + "/#/l/u2-1/s/c1/2", { waitUntil: "load" });
+  await page.goto(base + "/#/l/u2_1_1/s/c1/2", { waitUntil: "load" });
   await settle(page);
   await page.goto(base + "/#/", { waitUntil: "load" });
   await settle(page);
@@ -216,7 +217,7 @@ async function flow(browser, base) {
     const a = document.querySelector("main a[href*='#/l/']");
     return a ? a.getAttribute("href") + " | " + (a.textContent || "").slice(0, 80) : "";
   });
-  if (cont2.indexOf("u2-1") < 0) problems.push("이어서 하기: 마지막으로 본 u2-1 을 가리키지 않아요 → " + cont2);
+  if (cont2.indexOf("u2_1_1") < 0) problems.push("이어서 하기: 마지막으로 본 u2_1_1 을 가리키지 않아요 → " + cont2);
   await page.screenshot({ path: path.join(SHOTS, "sweep-flow-home.png") });
 
   // 완료 판정: 기록에 완료 레슨이 있으면 단원 화면에 완료 표시
@@ -300,7 +301,7 @@ async function flow(browser, base) {
 
 /* ─────────── 오답 직후 단추 ─────────── */
 async function wrongAnswerCheck(page, base) {
-  for (const lid of ["u1-1", "u2-3"]) {
+  for (const lid of ["u1_1_1", "u2_1_3"]) {
     if (FILTER && FILTER.indexOf(lid) < 0 && lessons.indexOf(lid) < 0) continue;
     await page.goto(base + "/#/l/" + lid + "/q", { waitUntil: "load" });
     await settle(page);
@@ -374,9 +375,9 @@ async function wrongAnswerCheck(page, base) {
   }
 }
 
-/* ─────────── 단원 1~5 삽화(머리가 잘리지 않게 위쪽 기준) ─────────── */
+/* ─────────── 단원 1~4 삽화(머리가 잘리지 않게 위쪽 기준) ─────────── */
 async function unitArtCheck(page, base) {
-  for (let n = 1; n <= 5; n++) {
+  for (let n = 1; n <= 4; n++) {
     await page.goto(base + "/#/u/" + n, { waitUntil: "load" });
     await settle(page);
     await page.waitForSelector("img.s-unit-art", { timeout: 4000 }).catch(() => {});

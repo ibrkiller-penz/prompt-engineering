@@ -35,9 +35,9 @@ test("해독기 자체 확인: 알려진 글자(영숫자·숫자·바이트·�
   for (const [text, ecc] of [
     ["HELLO WORLD", "Q"],
     ["0123456789012", "M"],
-    ["https://aibasics.web.app/#/l/u1-1", "M"],
+    ["https://aibasics.web.app/#/l/u1_1_1", "M"],
     ["수업 끝 확인", "H"],
-    ["https://aibasics.web.app/#/l/u4-3?hw=q11,q12,q21,q33,q40&ex=q02,q14,q19", "L"],
+    ["https://aibasics.web.app/#/l/u4_3?hw=q11,q12,q21,q33,q40&ex=q2,q14,q19", "L"],
   ] as const) {
     const m = makeQr(text, ecc);
     const d = decodeQr(m.modules);
@@ -48,7 +48,7 @@ test("해독기 자체 확인: 알려진 글자(영숫자·숫자·바이트·�
 });
 
 test("해독기는 망가진 QR 을 그냥 넘기지 않아요(한 칸 뒤집으면 실패)", () => {
-  const m = makeQr("https://aibasics.web.app/#/l/u2-1", "M");
+  const m = makeQr("https://aibasics.web.app/#/l/u2_1_1", "M");
   const bad = m.modules.map((r) => r.slice());
   // 데이터 영역(오른쪽 아래) 한 칸
   bad[m.size - 1][m.size - 1] = !bad[m.size - 1][m.size - 1];
@@ -63,7 +63,7 @@ test("교사 빌드의 학생 주소는 https://aibasics.web.app 이고, 끝 장
   assert.doesNotMatch(end, /TEACHER_URL/);
 });
 
-test("수업 끝 QR(칠판에 그리는 SVG path)을 해독하면 20레슨 모든 차시에서 학생 주소 + 그 레슨 + 고른 문제예요", () => {
+test("수업 끝 QR(칠판에 그리는 SVG path)을 해독하면 26레슨 모든 차시에서 학생 주소 + 그 레슨 + 고른 문제예요", () => {
   const base = teacherBuildStudentUrl();
   let n = 0;
   for (const L of lessons) {

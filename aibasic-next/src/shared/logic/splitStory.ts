@@ -21,12 +21,12 @@ export interface SplitStoryOptions {
   names?: string[];
   /** 다른 이름 → 대표 이름(예: '선생님' → '유 선생님') */
   aliases?: Record<string, string>;
-  /** 이름 없이 '화면·말풍선' 에서 나온 말을 한 사람(기본 '비트'). 빈 글자면 쓰지 않아요 */
+  /** 이름 없이 '화면·말풍선' 에서 나온 말을 한 사람(기본: 없음). 빈 글자면 쓰지 않아요 */
   screenSpeaker?: string;
 }
 
-export const DEFAULT_NAMES = ["유 선생님", "선생님", "하은", "지후", "도윤", "서하", "비트"];
-export const DEFAULT_ALIASES: Record<string, string> = { 선생님: "유 선생님" };
+export const DEFAULT_NAMES = ["아라 쌤", "아라 선생님", "선생님", "쌤", "지우", "도윤", "민준"];
+export const DEFAULT_ALIASES: Record<string, string> = { 선생님: "아라 쌤", 쌤: "아라 쌤", "아라 선생님": "아라 쌤" };
 
 const OPEN_CLOSE: Record<string, string> = { "“": "”", '"': '"' };
 
@@ -65,7 +65,7 @@ interface NameHit {
 
 function makeFinder(names: string[]) {
   const sorted = names.slice().sort((a, b) => b.length - a.length);
-  // 앞에 한글·숫자·영문이 붙지 않고, 뒤에 조사·공백·문장부호·끝이 오는 경우만 이름으로 봐요('8비트', '비트맵' 제외).
+  // 앞에 한글·숫자·영문이 붙지 않고, 뒤에 조사·공백·문장부호·끝이 오는 경우만 이름으로 봐요.
   const re = new RegExp(
     "(^|[^가-힣0-9A-Za-z])(" + sorted.map(escapeRe).join("|") + ")(?=[이가은는도의와과랑에께한]|\\s|[.,!?…·’'”\"*]|$)",
     "g",
@@ -108,7 +108,7 @@ export function splitStoryParagraph(p: string, idx = 0, opts: SplitStoryOptions 
   if (!parts) return fail;
   if (!parts.some((x) => x.say)) return { idx, ok: true, segs: [{ k: "narr", raw: p, text: p.trim() }] };
 
-  const screen = opts.screenSpeaker === undefined ? "비트" : opts.screenSpeaker;
+  const screen = opts.screenSpeaker === undefined ? "" : opts.screenSpeaker;
   const segs: StorySeg[] = [];
   let prevWho: string | null = null;
   for (let n = 0; n < parts.length; n++) {

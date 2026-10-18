@@ -401,3 +401,24 @@ html[data-surface="board"][data-motion="reduce"] .bd-next:active { -webkit-trans
 @media (prefers-reduced-motion: reduce) {
   html[data-surface="board"] .bd-rv.is-shown[data-rv] { -webkit-animation: none; animation: none; }
 }
+
+/* 문제 제시문(passage): 칠판에서는 글자를 조금 줄여 문제·보기와 한 화면에 담아요 */
+.bdq-passage:empty { display: none; }
+.bdq-passage .ui-qpassage { font-size: 28px; line-height: 1.4; padding: 10px 20px; margin-bottom: 10px; }
+.bdq-passage .ui-qpassage .ui-p, .bdq-passage .ui-qpassage .ui-table, .bdq-passage .ui-qpassage .ui-code-pre, .bdq-passage .ui-qpassage .ui-code-tag { font-size: 28px; }
+.bdq-passage .ui-qpassage .ui-image.is-board img { max-height: 240px; }
+.bdq-passage .ui-table { font-size: inherit; }
+
+/* 이어서 안내 줄도 칠판 글자 바닥(28px)을 지켜요 */
+html[data-surface="board"] .bd-cont { font-size: 28px; }
+
+/* 제시문이 있는 문제: 제시문 + 문제 + 보기 다섯 개가 한 화면(896px)에 들도록 간격과 칸을 촘촘하게 해요(글자는 28px 이상) */
+html[data-surface="board"] .bdq.has-pass .bdq-head { min-height: 40px; }
+html[data-surface="board"] .bdq.has-pass .bdq-prompt { font-size: 32px; max-height: none; margin-top: 6px; line-height: 1.35; }
+html[data-surface="board"] .bdq.has-pass .bdq-body { margin-top: 10px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts { grid-gap: 8px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-auto-rows: minmax(60px, 1fr); }
+html[data-surface="board"] .bdq.has-pass .bdq-opt { padding: 2px 16px 4px 20px; border-radius: 16px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opt-main { min-height: 48px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opt-txt, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long .bdq-opt-txt { font-size: 30px; line-height: 1.3; }
+html[data-surface="board"] .bdq.has-pass .bdq-key, html[data-surface="board"] .bdq.has-pass .bdq-ox { font-size: 30px; }

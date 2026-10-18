@@ -26,13 +26,13 @@ const read = S["aibn:s1:read"] as Record<string, number[]>;
 test("가짜 기록: 문제 id 는 모두 실제 콘텐츠에 있어요", () => {
   const all = new Set<string>();
   for (const l of Object.values(idx.lessons)) for (const id of l.qids) all.add(id);
-  const missing = Object.keys(q).filter((id) => !all.has(id) && !/^u\d-test/.test(id));
+  const missing = Object.keys(q).filter((id) => !all.has(id) && !/^u\d+-t\d+$/.test(id));
   assert.deepEqual(missing, []);
 });
 
 test("이어서 하기: 마지막 위치가 실제 레슨·단계를 가리켜요", () => {
   const last = S["aibn:s1:last"] as { path: string; title: string };
-  const m = /^\/l\/(u\d-\d)\/s\/(story|prereq|c\d+|wrap)\/(\d+)$/.exec(last.path);
+  const m = /^\/l\/(u\d+_\w+)\/s\/(story|prereq|c\d+|wrap)\/(\d+)$/.exec(last.path);
   assert.ok(m, "주소 모양 " + last.path);
   const l = idx.lessons[m![1]];
   assert.ok(l, "있는 레슨");
@@ -41,16 +41,16 @@ test("이어서 하기: 마지막 위치가 실제 레슨·단계를 가리켜�
   assert.equal(pos[m![1]].step, m![2]);
 });
 
-test("완료 판정: Ⅰ-1 은 완료, Ⅰ-2 는 배우는 중, 손대지 않은 레슨은 시작 전", () => {
-  const st1 = lessonStatus(idx.lessons["u1-1"], q, read);
+test("완료 판정: Ⅰ-1-1 은 완료, Ⅰ-1-2 는 배우는 중, 손대지 않은 레슨은 시작 전", () => {
+  const st1 = lessonStatus(idx.lessons["u1_1_1"], q, read);
   assert.equal(st1.allRead, true);
   assert.equal(st1.allTried, true);
   assert.equal(st1.complete, true);
-  assert.ok(lessonMastery(idx.lessons["u1-1"], q, read) >= 2);
-  const st2 = lessonStatus(idx.lessons["u1-2"], q, read);
+  assert.ok(lessonMastery(idx.lessons["u1_1_1"], q, read) >= 2);
+  const st2 = lessonStatus(idx.lessons["u1_1_2"], q, read);
   assert.equal(st2.complete, false);
-  assert.equal(lessonMastery(idx.lessons["u1-2"], q, read), 1);
-  assert.equal(lessonMastery(idx.lessons["u5-1"] || Object.values(idx.lessons)[19], q, read), 0);
+  assert.equal(lessonMastery(idx.lessons["u1_1_2"], q, read), 1);
+  assert.equal(lessonMastery(idx.lessons["u3_1_1"], q, read), 0);
 });
 
 test("복습: 기준 시각에 예정된 문제가 있고 하루 5문제를 넘지 않아요, 오답노트에도 나와요", () => {

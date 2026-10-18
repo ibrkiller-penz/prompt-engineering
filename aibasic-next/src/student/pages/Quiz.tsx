@@ -1,6 +1,6 @@
 // 계단 문제(#/l/:lid/q · #/l/:lid/q/more). 1장 = 1문제, 힌트 1 → 힌트 2 → 풀이를 차례로 열어요.
 //   기본: data/plan.json 의 corePath(기본 길)
-//   more: 기본 길 밖의 나머지 문제(실력·도전 포함)
+//   more: 기본 길 밖의 나머지 문제. 문제가 많아서(레슨당 36~50개) 먼저 '계단별' 고르기 화면을 보여 주고, ?g=번호 로 그 계단 문제만 풀어요
 //   ?set=hw  선생님이 고른 복습(QR 로 받은 숙제) · ?set=ex  수업 끝 확인
 //   ?n=3     몇 번째 문제(1부터)
 import { useEffect, useRef } from "react";
@@ -19,11 +19,24 @@ type QSet = "core" | "more" | "hw" | "ex";
 
 const SET_NAME: Record<QSet, string> = { core: "계단 문제", more: "더 풀기", hw: "선생님이 고른 복습", ex: "수업 끝 확인" };
 
+/** 문제를 group 이름(계단 확인 1계단 … 마무리 퀴즈)으로 묶어요(나온 순서) */
+function groupsOf(qs: readonly Question[]): { name: string; ids: string[] }[] {
+  const out: { name: string; ids: string[] }[] = [];
+  for (const q of qs) {
+    const name = (q.group || "문제").split(" · ")[0];
+    let g = out.filter((x) => x.name === name)[0];
+    if (!g) out.push((g = { name, ids: [] }));
+    g.ids.push(q.id);
+  }
+  return out;
+}
+
 export default function QuizPage({ lid, more, query }: { lid: string; more: boolean; query: Record<string, string> }) {
   const meta = lessonMeta(lid);
   const { data, error } = useLesson(meta ? lid : null);
   const qm = useQ();
   const assigned = useAssigned();
+  const gNo = more && /^\d+$/.test(query.g || "") ? parseInt(query.g, 10) : 0;
   const set: QSet = more ? "more" : query.set === "hw" || query.set === "ex" ? query.set : "core";
   useDocTitle(meta ? meta.code + " " + SET_NAME[set] : "문제");
 
@@ -35,6 +48,11 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
     } else if (set === "more") {
       const core = corePath(lid);
       ids = meta.qids.filter((id) => core.indexOf(id) < 0);
+      if (data && gNo > 0) {
+        const gs = groupsOf(data.practice);
+        const g = gs[gNo - 1];
+        ids = g ? ids.filter((id) => g.ids.indexOf(id) >= 0) : [];
+      }
     } else {
       const a = assigned[lid];
       ids = a ? a[set].slice() : [];
@@ -47,11 +65,11 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
   const total = ids.length + 1; // 마지막 장은 결과
   const i = cardIndex(query.n, total);
   const basePath = "/l/" + lid + "/q" + (more ? "/more" : "");
-  const extra = set === "hw" || set === "ex" ? { set } : {};
+  const extra: Record<string, string | number> = set === "hw" || set === "ex" ? { set } : gNo > 0 ? { g: gNo } : {};
   const go = (k: number) => navigate(basePath, { ...extra, n: k + 1 }, { replace: true });
 
   useEffect(() => {
-    if (meta && i < ids.length) setLast(basePath + "?" + (set === "hw" || set === "ex" ? "set=" + set + "&" : "") + "n=" + (i + 1), meta.code + " " + meta.title + " · " + SET_NAME[set]);
+    if (meta && i < ids.length) setLast(basePath + "?" + (set === "hw" || set === "ex" ? "set=" + set + "&" : gNo > 0 ? "g=" + gNo + "&" : "") + "n=" + (i + 1), meta.code + " " + meta.title + " · " + SET_NAME[set]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lid, set, i, ids.length]);
 
@@ -78,6 +96,43 @@ export default function QuizPage({ lid, more, query }: { lid: string; more: bool
   const cur = i < list.length ? list[i] : null;
   const c = countOf(ids, qm);
   const st = statusOf(lid, qm);
+
+  // 더 풀기: 계단별 고르기
+  if (set === "more" && gNo === 0) {
+    const core = corePath(lid);
+    const gs = groupsOf(data.practice);
+    return (
+      <Screen title="더 풀기" code={meta.code} noTabs backTo={"/l/" + lid + "/q"}>
+        <div className="page stack">
+          <h2 className="h2">계단별로 골라 풀어요</h2>
+          <p className="small muted">한 번에 한 계단씩 풀어요. 기본 길에서 푼 문제는 빼고 보여 줘요.</p>
+          <ul className="list card">
+            {gs.map((g, k) => {
+              const rest = g.ids.filter((id) => core.indexOf(id) < 0);
+              const ok = rest.filter((id) => isOk(qm[id])).length;
+              return (
+                <li key={g.name}>
+                  {rest.length ? (
+                    <a className="list-row" href={href(STUDENT_ROUTES.quizMore, { lid }, { g: k + 1 })}>
+                      <span className="grow">{g.name}</span>
+                      <span className="chip">
+                        {ok}/{rest.length} 맞힘
+                      </span>
+                    </a>
+                  ) : (
+                    <span className="list-row muted">
+                      <span className="grow">{g.name}</span>
+                      <span className="chip">기본 길에서 다 풀어요</span>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </Screen>
+    );
+  }
 
   if (!list.length) {
     return (

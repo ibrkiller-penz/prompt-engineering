@@ -18,6 +18,7 @@ import type { Question, Surface, WrongNote } from "../contracts.ts";
 import { NUMBER_DIRECTION_HINT, pickWrongNote } from "../contracts.ts";
 import { checkAnswer } from "../logic/answer.ts";
 import { Rich } from "./tex.tsx";
+import { Passage, passageText } from "./Passage.tsx";
 import { Feedback, type FeedbackKind } from "./Feedback.tsx";
 import { HintLadder } from "./HintLadder.tsx";
 import { NumberPad } from "./NumberPad.tsx";
@@ -451,10 +452,11 @@ export function QuestionCard(props: QuestionCardProps) {
           <span className="ui-q-new-tag">새로 더해진 것</span> <Rich text={q.new} />
         </p>
       ) : null}
+      <Passage blocks={q.passage} surface={sf} />
       <div className="ui-q-prompt">
         <Rich text={q.prompt} />
       </div>
-      <SpeakButton text={q.prompt + (q.type === "choice" ? ". " + q.choices.map((c, i) => i + 1 + "번, " + c).join(". ") : "")} />
+      <SpeakButton text={(q.passage ? passageText(q.passage) + " " : "") + q.prompt + (q.type === "choice" ? ". " + q.choices.map((c, i) => i + 1 + "번, " + c).join(". ") : "")} />
       {body}
       {q.type !== "open" && !props.readOnly ? (
         <div className="ui-q-actions">

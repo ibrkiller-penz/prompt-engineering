@@ -90,12 +90,22 @@ test("checkAnswer: 고르기·OX·서술형", () => {
   assert.equal(st(op, "아무거나"), "self");
 });
 
-test("checkAnswer: 콘텐츠의 모든 숫자 문제는 정답을 그대로 치면 맞아요(단위·전각·x= 붙여도)", () => {
+test("콘텐츠 문제는 선택형·OX 뿐이고, 정답 번호가 보기 안에 있어요 · 숫자 문제가 있으면 정답을 그대로 치면 맞아요", () => {
   const qs: any[] = [];
   for (const { lesson } of loadLessons()) qs.push(...lesson.practice);
   for (const { unit } of loadUnits()) qs.push(...unit.test);
   const nums = qs.filter((q) => q.type === "number");
-  assert.ok(nums.length > 300, "숫자 문제 수: " + nums.length);
+  assert.ok(qs.length > 1100, "문제 수: " + qs.length);
+  for (const q of qs) {
+    assert.ok(q.type === "choice" || q.type === "ox" || q.type === "number", q.id + " 종류 " + q.type);
+    if (q.type === "choice") {
+      assert.ok(Array.isArray(q.choices) && q.choices.length >= 2 && q.choices.length <= 5, q.id + " 보기 수");
+      assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.choices.length, q.id + " 정답 번호");
+    }
+    if (q.type === "ox") assert.equal(typeof q.answer, "boolean", q.id);
+    assert.ok(Array.isArray(q.hints) && q.hints.length === 2 && q.hints.every((h: unknown) => typeof h === "string" && h.trim()), q.id + " 힌트 2개");
+    assert.ok(typeof q.solution === "string" && q.solution.trim(), q.id + " 풀이");
+  }
   const toWide = (s: string) => s.replace(/[0-9.\-]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
   for (const q of nums) {
     const a = String(q.answer);

@@ -276,7 +276,7 @@ export default function Find({ query }: TeacherPageProps) {
           </button>
           {INDEX.units.map((x) => (
             <button key={x.id} type="button" className={"btn t-dur t-unit-chip t-u" + x.id} aria-pressed={unitOk === x.id} onClick={() => setUnit(x.id)}>
-              {x.roman} {x.short || x.title}
+              {x.roman} {x.title}
             </button>
           ))}
         </div>

@@ -7,10 +7,10 @@ import { overMin } from "../../src/teacher/today/timebar.ts";
 import { storyAdd, storyAddText, timeVerdict } from "../../src/teacher/prep/prep.logic.ts";
 import { TEACHER_KEYS } from "../../src/shared/storage/keys.ts";
 
-const base = { klass: "2-3", lid: "u1-1", p: 1, date: "2026-10-17", scenesDone: 8, scenesTotal: 10, hw: ["u1-1-q06", "u1-1-q07"], exitIds: [] as string[] };
+const base = { klass: "2-3", lid: "u1_1_1", p: 1, date: "2026-10-17", scenesDone: 8, scenesTotal: 10, hw: ["u1_1_1-q6", "u1_1_1-q7"], exitIds: [] as string[] };
 
 test("득표가 없으면 정답률은 null 이고 글에 NaN·0% 가 없어요", () => {
-  const c = buildLessonLog({ ...base, votes: [{ id: "u1-1-q01", answer: 1, counts: null }, { id: "u1-1-q02", answer: 0, counts: [0, 0, 0] }] });
+  const c = buildLessonLog({ ...base, votes: [{ id: "u1_1_1-q1", answer: 1, counts: null }, { id: "u1_1_1-q2", answer: 0, counts: [0, 0, 0] }] });
   assert.equal(c.qs[0].rate, null);
   assert.equal(c.qs[1].rate, null);
   assert.deepEqual(weakQuestions(c, 2), []);
@@ -20,13 +20,13 @@ test("득표가 없으면 정답률은 null 이고 글에 NaN·0% 가 없어요"
 });
 
 test("일부 문항만 득표가 있어도 계산해요", () => {
-  const c = buildLessonLog({ ...base, exitIds: ["u1-1-q02"], votes: [{ id: "u1-1-q01", answer: 1, counts: [2, 6, 2] }, { id: "u1-1-q02", answer: 0, counts: [3, 7, 0] }, { id: "u1-1-q03", answer: 0 }] });
+  const c = buildLessonLog({ ...base, exitIds: ["u1_1_1-q2"], votes: [{ id: "u1_1_1-q1", answer: 1, counts: [2, 6, 2] }, { id: "u1_1_1-q2", answer: 0, counts: [3, 7, 0] }, { id: "u1_1_1-q3", answer: 0 }] });
   assert.equal(c.qs[0].rate, 60);
   assert.equal(c.qs[1].rate, 30);
   assert.equal(c.qs[2].rate, null);
   assert.equal(c.qs[1].exit, true);
   assert.equal(c.exitDone, true);
-  assert.deepEqual(weakQuestions(c, 2).map((q) => q.id), ["u1-1-q02", "u1-1-q01"]);
+  assert.deepEqual(weakQuestions(c, 2).map((q) => q.id), ["u1_1_1-q2", "u1_1_1-q1"]);
   assert.equal(weakQuestions(c, 1).length, 1);
 });
 
@@ -38,23 +38,23 @@ test("정답률은 반올림하고 모두 맞으면 약한 문항이 없어요",
 });
 
 test("복사 글에는 이름·번호 표식이 없어요", () => {
-  const c = buildLessonLog({ ...base, votes: [{ id: "u1-1-q01", answer: 1, counts: [2, 6, 2] }] });
+  const c = buildLessonLog({ ...base, votes: [{ id: "u1_1_1-q1", answer: 1, counts: [2, 6, 2] }] });
   const t = lessonLogText(c);
-  assert.ok(t.includes("2-3") && t.includes("q06"));
+  assert.ok(t.includes("2-3") && t.includes("q6"));
   assert.ok(!/이름|번호:|학번|세특|우수|부족/.test(t), t);
   assert.deepEqual(Object.keys(c).sort(), ["date", "exitDone", "hw", "klass", "lid", "p", "qs", "scenesDone", "scenesTotal", "ts"]);
 });
 
 test("저장: 같은 반·레슨·차시는 덮어쓰고 60개를 넘으면 오래된 것부터 버려요", () => {
-  assert.equal(logKey("2-3", "u1-1", 2), "2-3|u1-1:2");
+  assert.equal(logKey("2-3", "u1_1_1", 2), "2-3|u1_1_1:2");
   let m: Record<string, ReturnType<typeof buildLessonLog>> = {};
   for (let i = 0; i < 70; i++) m = putLog(m, buildLessonLog({ ...base, klass: "k" + i, votes: [], ts: 1000 + i }));
   assert.equal(Object.keys(m).length, LOG_MAX);
-  assert.ok(!m[logKey("k0", "u1-1", 1)]);
-  assert.ok(m[logKey("k69", "u1-1", 1)]);
+  assert.ok(!m[logKey("k0", "u1_1_1", 1)]);
+  assert.ok(m[logKey("k69", "u1_1_1", 1)]);
   const again = putLog(m, buildLessonLog({ ...base, klass: "k69", scenesDone: 1, votes: [], ts: 5000 }));
   assert.equal(Object.keys(again).length, LOG_MAX);
-  assert.equal(again[logKey("k69", "u1-1", 1)].scenesDone, 1);
+  assert.equal(again[logKey("k69", "u1_1_1", 1)].scenesDone, 1);
 });
 
 test("timeVerdict: '맞아요'와 '넘어요'를 한 줄에 같이 내지 않아요", () => {
@@ -86,12 +86,12 @@ test("log 키가 등록돼 있어요", () => {
 });
 
 test("복사 글: 연습 순서 번호를 주면 '6번' 형식, 안 주면 예전 그대로", () => {
-  const c = buildLessonLog({ ...base, votes: [{ id: "u1-1-q06", answer: 1, counts: [6, 2, 2] }] });
-  const order = ["u1-1-q01", "u1-1-q02", "u1-1-q03", "u1-1-q04", "u1-1-q05", "u1-1-q06", "u1-1-q07"];
+  const c = buildLessonLog({ ...base, votes: [{ id: "u1_1_1-q6", answer: 1, counts: [6, 2, 2] }] });
+  const order = ["u1_1_1-q1", "u1_1_1-q2", "u1_1_1-q3", "u1_1_1-q4", "u1_1_1-q5", "u1_1_1-q6", "u1_1_1-q7"];
   const t = lessonLogText(c, order);
   assert.ok(t.includes("숙제: 6번, 7번") && t.includes("- 6번 정답률") && t.includes("6번 20%"), t);
   assert.ok(!/q0\d/.test(t), t);
-  assert.ok(lessonLogText(c).includes("q06"));
+  assert.ok(lessonLogText(c).includes("q6"));
 });
 
 test("shouldSaveLog: 반이 비면 저장하지 않아요", () => {

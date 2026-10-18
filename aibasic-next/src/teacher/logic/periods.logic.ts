@@ -1,7 +1,7 @@
 // 레슨을 차시(period)로 나누는 순수 로직(DOM 없음).
 // plan.json 에 차시가 있으면 그것을 쓰고, 없으면 레슨 분량(원본 minutes)과 수업 시간으로 자동으로 나눠요.
 import type { Lesson, PlanLesson, PlanPeriod } from "../../shared/contracts.ts";
-import { blockWeight } from "./measure.logic.ts";
+import { blockWeight, isAside } from "./measure.logic.ts";
 
 export interface PeriodInfo {
   /** 차시 번호(1부터) */
@@ -20,7 +20,8 @@ export interface PeriodInfo {
 
 /** 소제목별 무게(개념 장면 예산과 같은 잣대) */
 export function sectionWeights(lesson: Pick<Lesson, "sections">): number[] {
-  return lesson.sections.map((s) => s.blocks.reduce((a, b) => a + blockWeight(b), 0));
+  // 읽을거리 상자(스토리 보기)는 칠판에서 기본으로 꺼 두니 차시 분량에는 조금만 셈해요
+  return lesson.sections.map((s) => s.blocks.reduce((a, b) => a + (isAside(b) ? 4 : blockWeight(b)), 0));
 }
 
 /** 수업 시간(분)에 맞춰 몇 차시로 나눌지. 원본 분량이 수업 시간 + 10분 안이면 1차시 */
@@ -66,7 +67,9 @@ export function splitSections(weights: number[], n: number): number[][] {
  */
 export function lessonPeriods(lesson: Pick<Lesson, "sections" | "minutes">, plan: PlanLesson | null | undefined, minutes: number): PeriodInfo[] {
   const S = lesson.sections.length;
-  const fitsOne = autoPeriodCount(lesson.minutes, minutes) === 1;
+  // plan 이 있으면 plan 의 차시 분 합이 기준이에요(원본 minutes 는 추정값이라 쓰지 않아요)
+  const planMin = plan && plan.periods && plan.periods.length ? plan.periods.reduce((a, pp) => a + (pp.minutes > 0 ? pp.minutes : 0), 0) : 0;
+  const fitsOne = autoPeriodCount(planMin > 0 ? planMin : lesson.minutes, minutes) === 1;
   let groups: { sections: number[]; plan?: PlanPeriod }[] | null = null;
 
   if (plan && plan.periods && plan.periods.length && !fitsOne) {

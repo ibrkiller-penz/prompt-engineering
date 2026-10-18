@@ -7,6 +7,7 @@ import { TEACHER_ROUTES, type Question } from "../../shared/contracts.ts";
 import { href, intParam, navigate } from "../../shared/router/index.ts";
 import { lessonMeta, unitOf, useLesson } from "../../content/index.ts";
 import { Rich, answerText, CHOICE_KEYS } from "../../shared/ui/index.ts";
+import { Passage } from "../../shared/ui/Passage.tsx";
 import { STUDENT_URL } from "../../site.ts";
 import type { TeacherPageProps } from "../shell/pages.tsx";
 import { Loading, NotFound } from "../shell/Fallbacks.tsx";
@@ -148,6 +149,7 @@ export default function PrintPage(m: TeacherPageProps) {
               </span>
             </div>
             <div className="pr-q-prompt">
+              <Passage blocks={q.passage} surface="prep" />
               <Rich text={q.prompt} />
             </div>
             {key ? <KeyArea q={q} /> : <AnswerArea q={q} />}
@@ -182,7 +184,7 @@ export default function PrintPage(m: TeacherPageProps) {
         <header className="pr-head">
           <div className="pr-title">
             <p className="pr-eyebrow">
-              인공지능 기초 · {unit ? unit.roman + ". " + unit.short : ""}
+              인공지능 기초 · {unit ? unit.roman + ". " + unit.title : ""}
               {st.view.periods.length > 1 ? " · " + p + "차시" : ""}
             </p>
             <h1 id="pr-h">

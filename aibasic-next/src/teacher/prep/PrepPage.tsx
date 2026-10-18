@@ -243,7 +243,7 @@ export default function PrepPage(m: TeacherPageProps) {
     <section className={"page pp t-u" + meta.unit} aria-labelledby="pp-h">
       <header className="pp-head">
         <p className="eyebrow">
-          준비 한 장 · {unit ? unit.roman + ". " + unit.short : ""}
+          준비 한 장 · {unit ? unit.roman + ". " + unit.title : ""}
         </p>
         <h1 className="h1" id="pp-h">
           {meta.code} {meta.title}

@@ -49,31 +49,29 @@ test("초성 검색", () => {
   assert.equal(chosungFilter(items, " ", (x) => [x.term]).length, 3);
 });
 
-test("inlineMath: 글자·수식·굵게·줄바꿈", () => {
-  assert.deepEqual(parseInline("가 $x^2$ 나"), [
-    { t: "text", v: "가 " },
-    { t: "math", v: "x^2" },
-    { t: "text", v: " 나" },
-  ]);
-  assert.deepEqual(parseInline("**$x$ 의 값**은"), [
-    { t: "bold", c: [{ t: "math", v: "x" }, { t: "text", v: " 의 값" }] },
+test("inlineMath: 글자·굵게·코드·줄바꿈 ($ 는 늘 글자)", () => {
+  assert.deepEqual(parseInline("가 $x^2$ 나"), [{ t: "text", v: "가 $x^2$ 나" }]);
+  assert.deepEqual(parseInline("**굵게 `코드` 안**은"), [
+    { t: "bold", c: [{ t: "text", v: "굵게 " }, { t: "code", v: "코드" }, { t: "text", v: " 안" }] },
     { t: "text", v: "은" },
   ]);
-  assert.deepEqual(parseInline("$a*b$와 **굵게**"), [
-    { t: "math", v: "a*b" },
-    { t: "text", v: "와 " },
+  assert.deepEqual(parseInline("`a**b**c` 와 **굵게**"), [
+    { t: "code", v: "a**b**c" },
+    { t: "text", v: " 와 " },
     { t: "bold", c: [{ t: "text", v: "굵게" }] },
   ]);
   assert.deepEqual(parseInline("한 줄\n두 줄"), [{ t: "text", v: "한 줄" }, { t: "br" }, { t: "text", v: "두 줄" }]);
   assert.deepEqual(parseInline("값은 \\$5 이고 $ 하나"), [{ t: "text", v: "값은 $5 이고 $ 하나" }]);
+  assert.deepEqual(parseInline("짝 없는 ` 백틱"), [{ t: "text", v: "짝 없는 ` 백틱" }]);
+  assert.deepEqual(parseInline("<보기> & 글자"), [{ t: "text", v: "<보기> & 글자" }], "HTML 로 해석하지 않아요");
   assert.deepEqual(parseInline("**짝 없음"), [{ t: "text", v: "**짝 없음" }]);
   assert.deepEqual(parseInline("****"), [{ t: "text", v: "****" }]);
   assert.deepEqual(parseInline(""), []);
-  assert.equal(plainText("**$x=1$** 이에요"), "x=1 이에요");
+  assert.equal(plainText("**굵게** `df.isna()` 예요"), "굵게 df.isna() 예요");
 });
 
-test("inlineMath: 20레슨 본문을 분해해도 글자를 잃지 않아요", () => {
-  const strip = (s: string) => s.replace(/\*\*/g, "").replace(/\$/g, "");
+test("inlineMath: 26레슨 본문을 분해해도 글자를 잃지 않아요", () => {
+  const strip = (s: string) => s.replace(/\*\*/g, "").replace(/`/g, "").replace(/\\\$/g, "$");
   const flat = (ts: InlineToken[]): string =>
     ts.map((t) => (t.t === "text" || t.t === "math" || t.t === "code" ? t.v : t.t === "br" ? "\n" : flat(t.c))).join("");
   let n = 0;
@@ -85,10 +83,10 @@ test("inlineMath: 20레슨 본문을 분해해도 글자를 잃지 않아요", (
   const walk = (v: unknown): void => {
     if (typeof v === "string") visit(v);
     else if (Array.isArray(v)) v.forEach(walk);
-    else if (v && typeof v === "object") for (const k of Object.keys(v)) if (k !== "tex" && k !== "id") walk((v as any)[k]);
+    else if (v && typeof v === "object") for (const k of Object.keys(v)) if (k !== "tex" && k !== "id" && k !== "src" && k !== "code") walk((v as any)[k]);
   };
   for (const { lesson } of loadLessons()) walk(lesson);
-  assert.ok(n > 2000);
+  assert.ok(n > 5000);
 });
 
 import { padSymbolsFor, pickWrongNote, type Question } from "../../src/shared/contracts.ts";

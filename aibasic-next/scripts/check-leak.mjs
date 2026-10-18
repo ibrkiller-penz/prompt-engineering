@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // 학생 번들 누출 검사. dist-s 의 모든 파일(js·css·html·txt)에 교사 전용 표식·문구·자료가 0건인지 봐요.
 //   표식: __AIBN_TEACHER_ONLY__, 교사 저장 접두사 aibn:t1, 교사 화면 이름(정답 일괄 · 문제 고르기 · 수업 진행 · 교사 준비 · 모둠 점수 · 보기 가리기 · 차시 찾기 · 이어서 수업)
-//   자료: data/teacher/prep/u1..u5.json 의 발문·오개념 문장(레슨마다 몇 줄씩 표본)
+//   자료: data/teacher/prep/u1..u4.json 의 발문·막히는 곳·오개념·준비물 문장(레슨마다 몇 줄씩 표본, 원본 콘텐츠에 있는 문장은 빼요)
 // 거꾸로 dist-t 에는 표식이 있어야 해요(표식이 사라져 검사가 헛도는 것을 막아요).
 // 사용: node scripts/check-leak.mjs
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CONTENT_DIR } from "../tools/content-index.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MARK = "__AIBN_TEACHER_ONLY__";
@@ -36,7 +37,7 @@ function prepSamples() {
     if (!f.endsWith(".json")) continue;
     const d = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
     for (const x of Object.values(d.lessons || {})) {
-      for (const k of ["asks", "stuck", "misconceptions"]) {
+      for (const k of ["asks", "stuck", "misconceptions", "materials"]) {
         const arr = Array.isArray(x[k]) ? x[k] : [];
         for (const v of arr.slice(0, 2)) {
           const s = pick(v).trim();
@@ -65,7 +66,7 @@ if (!teacherFiles.length) {
 // 교사 자료가 원본 콘텐츠 문장을 그대로 인용한 경우(예: 오개념 = 문제 지문)는 학생 번들에 있어도 누출이 아니에요
 const contentText = (() => {
   try {
-    const dir = path.resolve(ROOT, "../content/aimath");
+    const dir = CONTENT_DIR;
     return files(dir).map((f) => fs.readFileSync(f, "utf8")).join("\n");
   } catch {
     return "";

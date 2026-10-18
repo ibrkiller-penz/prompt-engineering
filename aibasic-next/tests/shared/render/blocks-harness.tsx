@@ -1,7 +1,7 @@
 // 블록 그리기 시험용 화면(blocks-render.test.ts 가 vite 개발 서버로 띄워요). 앱 번들에는 들어가지 않아요.
-// 20레슨의 모든 소제목 블록(+ 먼저 알고 가요 · 정리)을 실제 부품(BlockView)으로 그리고,
+// 26레슨의 모든 소제목 블록(+ 정리 · 문제 제시문)을 실제 부품(BlockView)으로 그리고,
 // 블록마다 KaTeX 오류 · 빈 그림 · 가로 넘침 · (칠판) 무대 높이 초과를 재서 window.__BLOCKS__ 에 남겨요.
-//   ?surface=phone|board  &fs=0..3  &theme=light|dark|chalk  &only=u1-1
+//   ?surface=phone|board  &fs=0..3  &theme=light|dark|chalk  &only=u1_1_1
 import { createRoot } from "react-dom/client";
 import type { Block, Lesson, Surface } from "../../../src/shared/contracts.ts";
 import { BlockView } from "../../../src/shared/ui/BlockView.tsx";
@@ -11,7 +11,7 @@ import.meta.glob("../../../src/styles/*.css", { eager: true });
 import.meta.glob("../../../src/teacher/board/board.css", { eager: true });
 import.meta.glob("../../../src/student/styles/student.css", { eager: true });
 
-const LESSONS = import.meta.glob<Lesson>("../../../../content/aimath/*/lesson-*.json", { eager: true, import: "default" });
+const LESSONS = import.meta.glob<Lesson>("@content/*/lesson-*.json", { eager: true, import: "default" });
 
 /** 휴대폰 카드 안쪽 폭: 375 - 여백 16×2 - 카드 안쪽 16×2 */
 export const PHONE_W = 311;
@@ -49,6 +49,7 @@ function collect(only: string | null): Item[] {
     if (only && L.id !== only) continue;
     L.sections.forEach((s, si) => s.blocks.forEach((b, bi) => out.push({ lid: L.id, path: "sections." + si + ".blocks." + bi, b })));
     if (L.summary && L.summary.length) out.push({ lid: L.id, path: "summary", b: { t: "list", items: L.summary } as Block });
+    L.practice.forEach((q, qi) => (q.passage || []).forEach((b, bi) => out.push({ lid: L.id, path: "practice." + qi + ".passage." + bi, b })));
     if (L.prereq) {
       L.prereq.items.forEach((it, i) => out.push({ lid: L.id, path: "prereq.items." + i, b: { t: "term", term: it.term, def: it.text } as Block }));
     }
@@ -145,8 +146,8 @@ function report(): BlockResult[] {
       over: m.over,
       culprit: m.culprit,
       scrolls: box.querySelectorAll(".is-overflow").length,
-      katexErr: box.querySelectorAll(".katex-error, .ui-tex-raw").length,
-      empty: txt.length === 0 && !box.querySelector("svg, canvas, input, button"),
+      katexErr: box.querySelectorAll(".katex-error, .ui-tex-raw").length, // 수식(KaTeX)은 쓰지 않아서 늘 0 이에요
+      empty: txt.length === 0 && !box.querySelector("svg, canvas, input, button, img"),
     });
   });
   return res;

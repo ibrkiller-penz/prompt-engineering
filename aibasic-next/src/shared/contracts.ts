@@ -162,7 +162,7 @@ export type Characters = Record<string, Character>;
 
 /** data/overrides/tone.json — 화면에 보일 때만 덧씌워요(원본은 그대로) */
 export interface ToneRule {
-  where: string; // 레슨 id "u2-1" 또는 단원 "u2"
+  where: string; // 레슨 id "u2_1_1" 또는 단원 "u2"
   path?: string; // "sections.0.blocks.2.text" 처럼 점으로 이은 경로. 없으면 그 문서 전체
   from: string; // 정확히 이 문장이 들어 있을 때만
   to: string;
@@ -215,7 +215,7 @@ export type SceneBlock =
   | { t: "lines"; items: Text[] }; // 이야기·정리 문단 여러 줄
 
 export interface Scene {
-  id: string; // 레슨 안에서 유일·안정(예 "c2-1", "ex2-0", "q:u1-1-q06")
+  id: string; // 레슨 안에서 유일·안정(예 "c2-1", "ex2-0", "q:u1_1_1-q6")
   stage: SceneStage;
   kind: SceneKind;
   title?: Text;

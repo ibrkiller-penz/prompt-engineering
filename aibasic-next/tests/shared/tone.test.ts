@@ -1,6 +1,6 @@
 // 문제 본문 해요체 규칙(src/content/tone.ts)의 시험.
 // - 예시 변환(어미별), 수식·따옴표·코드 보호, 받침에 따른 이에요/예요
-// - 20레슨·5단원 모든 문제: 덧씌운 뒤 해라체 0건, 수식 토큰·숫자·정답·보기 개수 그대로
+// - 26레슨·4단원 모든 문제: 덧씌운 뒤 해라체 0건, 수식 토큰·숫자·정답·보기 개수 그대로
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -140,74 +140,16 @@ test("문제 하나: 정답·종류·id·보기 개수는 그대로, 원본은 �
 });
 
 /* ───── 실제 콘텐츠 전체 ───── */
-type AnyQ = Record<string, any>;
-const MATH = /\$\$[\s\S]*?\$\$|\$[^$]*\$/g;
-const mathTokens = (s: unknown): string[] => (typeof s === "string" ? s.match(MATH) || [] : []);
-const numbers = (s: unknown): string[] => (typeof s === "string" ? s.replace(MATH, " ").match(/\d+(?:[.,]\d+)*/g) || [] : []);
-const fieldTexts = (q: AnyQ): [string, unknown][] => {
-  const out: [string, unknown][] = [["prompt", q.prompt], ["solution", q.solution]];
-  (q.choices || []).forEach((c: unknown, i: number) => out.push(["choices." + i, c]));
-  (q.hints || []).forEach((c: unknown, i: number) => out.push(["hints." + i, c]));
-  return out;
-};
 
-function allDocs(): { where: string; key: "practice" | "test"; raw: AnyQ; out: AnyQ; toned: AnyQ }[] {
-  const res: { where: string; key: "practice" | "test"; raw: AnyQ; out: AnyQ; toned: AnyQ }[] = [];
+test("26레슨·4단원: tone.json 이 비어 있어서 덧씌우기는 같은 문서를 그대로 돌려줘요", () => {
+  let n = 0;
   for (const lid of built.index.order) {
     const raw = built.lessons[lid];
-    const toned = applyTone(raw, lid, TONE);
-    res.push({ where: lid, key: "practice", raw, toned, out: haeyoDoc(toned) });
+    assert.equal(applyTone(raw, lid, TONE), raw, lid);
+    n += raw.practice.length;
   }
-  for (const u of built.index.units) {
-    const raw = built.unitDocs[u.id];
-    const toned = applyTone(raw, u.slug, TONE);
-    res.push({ where: u.slug, key: "test", raw, toned, out: haeyoDoc(toned) });
-  }
-  return res;
-}
-
-test("20레슨·5단원: 덧씌운 뒤 문제 본문에 해라체('한다.' '는가?' '인가?' '이다.' '하시오')가 0건", () => {
-  const left: string[] = [];
-  let n = 0;
-  for (const d of allDocs()) {
-    for (const q of d.out[d.key] as AnyQ[]) {
-      n++;
-      for (const [f, v] of fieldTexts(q)) for (const hit of haeraLeft(v as string)) left.push(q.id + " " + f + ": " + hit);
-    }
-  }
-  assert.equal(built.index.order.length, 20);
-  assert.ok(n > 800, "문제 수 " + n);
-  assert.deepEqual(left, []);
-});
-
-test("20레슨·5단원: 규칙 변환 전후 수식 토큰·숫자·정답·보기 개수가 그대로", () => {
-  let changed = 0;
-  for (const d of allDocs()) {
-    const before = d.toned[d.key] as AnyQ[];
-    const after = d.out[d.key] as AnyQ[];
-    assert.equal(after.length, before.length, d.where);
-    before.forEach((q, i) => {
-      const o = after[i];
-      assert.equal(o.id, q.id);
-      assert.equal(o.type, q.type, q.id);
-      assert.deepEqual(o.answer, q.answer, q.id + " 정답");
-      assert.equal(o.tolerance, q.tolerance, q.id);
-      assert.equal(o.unit, q.unit, q.id);
-      assert.equal(o.level, q.level, q.id);
-      assert.equal(o.group, q.group, q.id);
-      if (Array.isArray(q.choices)) assert.equal(o.choices.length, q.choices.length, q.id + " 보기 개수");
-      if (Array.isArray(q.hints)) assert.equal(o.hints.length, q.hints.length, q.id + " 힌트 개수");
-      const fb = fieldTexts(q);
-      const fa = fieldTexts(o);
-      fb.forEach(([f, v], k) => {
-        const w = fa[k][1];
-        assert.deepEqual(mathTokens(w), mathTokens(v), q.id + " " + f + " 수식");
-        assert.deepEqual(numbers(w), numbers(v), q.id + " " + f + " 숫자");
-        if (w !== v) changed++;
-      });
-    });
-  }
-  assert.ok(changed > 300, "바뀐 글 수 " + changed);
+  assert.equal(built.index.order.length, 26);
+  assert.ok(n > 1000, "문제 수 " + n);
 });
 
 test("원본 콘텐츠는 바뀌지 않아요(덧씌우기는 새 객체)", () => {
@@ -218,12 +160,7 @@ test("원본 콘텐츠는 바뀌지 않아요(덧씌우기는 새 객체)", () =
   assert.equal(JSON.stringify(raw), snap);
 });
 
-test("tone.json: '11명이 속았다' 는 '…11명을 속였어요' 로 덮어써요", () => {
-  const raw = built.lessons["u1-1"];
-  const out = haeyoDoc(applyTone(raw, "u1-1", TONE)) as AnyQ;
-  const q8 = (out.practice as AnyQ[]).find((q) => q.id === "u1-1-q08");
-  const q7 = (out.practice as AnyQ[]).find((q) => q.id === "u1-1-q07");
-  assert.ok(q8 && q8.prompt.indexOf("어떤 프로그램이 심판 30명 중 11명을 속였어요.") === 0, q8 && q8.prompt);
-  assert.ok(q7 && q7.prompt.indexOf("어떤 프로그램이 심판 30명 중 6명을 속였어요.") === 0, q7 && q7.prompt);
-  assert.ok(q7 && /몇 %일까요\?$/.test(q7.prompt));
+test("tone.json: 인공지능 기초는 덧씌울 문장이 없어요(원본이 해요체)", () => {
+  assert.deepEqual(TONE.replace || [], []);
+  assert.deepEqual(TONE.chips || [], []);
 });

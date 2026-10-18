@@ -1,56 +1,38 @@
 {
-  "서하": {
-    "name": "서하",
-    "line": "AI랩 부장이에요. 무엇이든 '왜?'부터 묻는 질문 대장이에요.",
-    "initial": "서",
+  "지우": {
+    "name": "지우",
+    "line": "AI랩에 막 들어온 1학년이에요. 궁금한 건 일단 직접 해 보는 이야기의 주인공이에요.",
+    "initial": "지",
     "shape": "circle",
-    "color": "#be185d",
+    "color": "#4338ca",
     "ink": "#ffffff",
-    "dark": { "color": "#f9a8d4", "ink": "#0e1218" }
+    "dark": { "color": "#a5b4fc", "ink": "#0e1218" }
   },
   "도윤": {
     "name": "도윤",
-    "line": "코딩 담당이에요. 말수는 적지만 꼭 필요한 한마디를 해요.",
+    "line": "AI랩 친구예요. 코드를 먼저 돌려 보고 결과로 이야기하는 편이에요.",
     "initial": "도",
     "shape": "circle",
     "color": "#0e7490",
     "ink": "#ffffff",
     "dark": { "color": "#67e8f9", "ink": "#0e1218" }
   },
-  "하은": {
-    "name": "하은",
-    "line": "미술·디자인 담당이에요. 글과 그림에 담긴 느낌을 잘 알아차려요.",
-    "initial": "하",
-    "shape": "circle",
-    "color": "#7e22ce",
-    "ink": "#ffffff",
-    "dark": { "color": "#d8b4fe", "ink": "#0e1218" }
-  },
-  "지후": {
-    "name": "지후",
-    "line": "농구부도 함께 하는 데이터 덕후예요. 기록하고 숫자로 따져 보기를 좋아해요.",
-    "initial": "지",
+  "민준": {
+    "name": "민준",
+    "line": "지우 옆자리 친구예요. 번뜩이는 질문을 소곤소곤 던져요.",
+    "initial": "민",
     "shape": "circle",
     "color": "#15803d",
     "ink": "#ffffff",
     "dark": { "color": "#86efac", "ink": "#0e1218" }
   },
-  "유 선생님": {
-    "name": "유 선생님",
-    "line": "수학 선생님이자 AI랩 지도 선생님이에요. 답을 바로 주기보다 되물어서 길을 열어 줘요.",
-    "initial": "유",
+  "아라 쌤": {
+    "name": "아라 쌤",
+    "line": "AI랩 지도 선생님이에요. 답을 바로 주기보다 질문으로 길을 열어 줘요.",
+    "initial": "아",
     "shape": "circle",
     "color": "#92400e",
     "ink": "#ffffff",
     "dark": { "color": "#fcd34d", "ink": "#0e1218" }
-  },
-  "비트": {
-    "name": "비트",
-    "line": "동아리 컴퓨터에 사는 AI 도우미예요. 친절하고 장난스럽지만 가끔 틀려요.",
-    "initial": "비",
-    "shape": "square",
-    "color": "#374151",
-    "ink": "#ffffff",
-    "dark": { "color": "#cbd5e1", "ink": "#0e1218" }
   }
 }

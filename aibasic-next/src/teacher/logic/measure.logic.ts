@@ -4,6 +4,11 @@
 // 글자를 한 단계 줄이면(fsDown) 28px 로 봐요.
 import type { Block, SceneBlock } from "../../shared/contracts.ts";
 
+/** 읽을거리 상자('📖 스토리 보기'처럼 이야기로 풀어 쓴 긴 callout): 칠판에서는 따로 장면을 만들고 기본은 꺼 둬요 */
+export function isAside(b: { t: string; title?: string; text?: string }): boolean {
+  return b.t === "callout" && !!b.title && b.title.indexOf("📖") === 0;
+}
+
 /** 장면 본문 높이(px) */
 export const BODY_H = 896;
 /** 장면 본문 폭(px). 무대 1920 - 좌우 여백 80*2 */
@@ -69,8 +74,8 @@ export function blockWeight(b: Block): number {
 
 /** 칠판에서 그림 한 장의 최대 높이(px, 글자 32 기준) */
 export const IMG_H = 460;
-/** 칠판 코드 글자는 본문의 0.8배 */
-export const CODE_FS = 0.8;
+/** 칠판 코드 글자는 본문의 0.875배(32px → 28px) */
+export const CODE_FS = 0.875;
 /** 코드 한 줄이 칠판에서 차지하는 글자 수(가로 1760 - 안쪽 여백 64, 고정폭 0.6em) */
 export function codeCols(fs: number): number {
   return Math.max(20, Math.floor((BODY_W - 64) / (fs * CODE_FS * 0.6)));
@@ -173,7 +178,7 @@ export function blockHeight(b: SceneBlock, fs: number): number {
       let h = rowH(b.head);
       for (const r of b.rows) h += rowH(r);
       if (b.caption) h += lines(b.caption) * 0.85 + 8 * k;
-      return h;
+      return h * 1.1; // 긴 칸 글이 많은 표는 어림이 모자라서 10% 더해요(칠판 실측으로 맞춤)
     }
     case "list": {
       let h = 0;
@@ -193,10 +198,10 @@ export function blockHeight(b: SceneBlock, fs: number): number {
     }
     case "code":
       // 이름표 한 줄 + 코드 줄(줄바꿈 포함, 글자 0.8배·줄 높이 1.5) + 상자 안쪽 여백
-      return Math.ceil(fs * 0.8 * 1.2 + 24 * k + codeRows(b.code, fs) * fs * CODE_FS * 1.5);
+      return Math.ceil(fs * CODE_FS * 1.2 + 48 * k + codeRows(b.code, fs) * fs * CODE_FS * 1.5);
     case "image":
       // 그림은 칠판에서 최대 높이 IMG_H 안에 맞춰 그려요(board.css 의 .ui-image.is-board) + 설명 줄
-      return Math.ceil(IMG_H * k + (b.caption ? lineCount(b.caption, BODY_W, fs * 0.8) * fs * 0.8 * 1.4 + 8 * k : 0));
+      return Math.ceil(IMG_H * k + (b.caption ? lineCount(b.caption, BODY_W, fs * 0.875) * fs * 0.875 * 1.4 + 8 * k : 0));
     case "widget":
       return BODY_H; // 체험 장면은 무대를 통째로 써요
     case "q":

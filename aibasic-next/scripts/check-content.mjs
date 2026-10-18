@@ -1,23 +1,21 @@
 #!/usr/bin/env node
-// 콘텐츠·보조 데이터 검사. 원본 content/aimath 는 읽기만 해요.
-//  1) 20레슨·5단원이 units.json 순서대로 모두 있는지(tools/content-index.mjs 로 읽어요)
-//  2) 체험 도구가 옛 types.ts 의 WidgetId 와 같은 17종인지, 레슨이 쓰는 도구가 그 안에 있는지
-//  3) data/plan.json: 레슨·문제 id·소제목 번호가 실제로 있는지
-//  4) data/widget-guides.json: 17종 모두 predict·steps[3]·ask·reveal·mission{text,judge}
+// 콘텐츠·보조 데이터 검사. 원본 content/aibasic 는 읽기만 해요.
+//  1) 26레슨·4단원이 units.json 순서대로 모두 있는지(tools/content-index.mjs 로 읽어요), 레슨 id u2_1_3 · 문제 id u2_1_3-q7 모양
+//  2) 체험 도구를 쓰지 않는지(widget 블록 0), 블록 종류가 허용 목록(p·table·callout·list·code·image·term·example·dialog·math)인지
+//  3) data/plan.json: 레슨·문제 id·소제목 번호가 실제로 있는지, 레슨당 1~2차시
+//  4) data/widget-guides.json: 비어 있는지(도구가 없어요)
 //  5) data/characters.json: 이야기에 나오는 인물이 모두 있는지
 //  6) data/overrides/tone.json: where·path 가 실제로 있고, from(또는 match) 문장이 그 자리에 정확히 있는지
-//  7) data/teacher/prep/u1..u5.json: 그 단원의 레슨만, 필수 항목(목표·발문 3개·막히는 곳·오개념·준비물)
+//  7) data/teacher/prep/u1..u4.json: 그 단원의 레슨만, 필수 항목(목표·발문 3개·막히는 곳·오개념·준비물)
 //  8) 출판사 이름·교과서 쪽수 같은 금지어가 data/ 와 src/ 에 없는지
-//  9) 해요체: 20레슨 문제(practice)·단원 마무리(test)의 prompt·choices·hints·solution 에
-//     덧씌우기(tone.json 정확 일치 + src/content/tone.ts 규칙)를 거친 뒤 '한다.' '는가?' '인가?' '이다.' '하시오' 가 0건인지
-//     (수식 $…$ · 따옴표 안 · 코드 안은 빼요). 정답(answer)·종류·보기 개수가 그대로인지도 봐요.
+//  9) 문제·본문 형식: 선택형·OX, 정답 번호가 보기 안, 힌트 2개, 풀이, 제시문(passage)은 p·table·image 뿐, 그림 파일이 content/aibasic/img 에 있고,
+//     글에 HTML 태그(<b> <p> …)가 남지 않았는지(‘<보기>’ 같은 글자 꺾쇠는 괜찮아요)
 // 10) 화면 문구 띄어쓰기: 영문·숫자(또는 } · </b>) 뒤에 ' 로/을/를/에서/으로' 를 띄어 쓴 곳이 src/ 와 data/ 에 없는지(주석은 빼요)
 // 하나라도 어긋나면 1로 끝나요. 사용: node scripts/check-content.mjs [--verbose]
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildContentIndex } from "../tools/content-index.mjs";
-import { applyTone, haeyoDoc, haeraLeft } from "../src/content/tone.ts";
+import { buildContentIndex, CONTENT_DIR } from "../tools/content-index.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = path.resolve(ROOT, "..");
@@ -39,8 +37,9 @@ try {
   process.exit(1);
 }
 const { index, lessons, unitDocs } = built;
-if (index.units.length !== 5) err(`단원이 5개가 아니에요: ${index.units.length}`);
-if (index.order.length !== 20) err(`레슨이 20개가 아니에요: ${index.order.length}`);
+if (index.units.length !== 4) err(`단원이 4개가 아니에요: ${index.units.length}`);
+if (index.order.length !== 26) err(`레슨이 26개가 아니에요: ${index.order.length}`);
+for (const lid of index.order) if (!/^u[1-4]_[0-9A-Za-z_]+$/.test(lid)) err(`레슨 id 모양이 달라요: ${lid}`);
 for (const u of index.units) {
   if (!u.lessonIds.length) err(`단원 ${u.slug} 에 레슨이 없어요`);
   for (const lid of u.lessonIds) {
@@ -50,21 +49,45 @@ for (const u of index.units) {
   }
 }
 
-/* ───── 2) 체험 도구 17종 ───── */
-const legacyTypes = fs.readFileSync(path.join(REPO, "src/aimath/types.ts"), "utf8");
-const m = legacyTypes.match(/export type WidgetId\s*=([\s\S]*?);/);
-const LEGACY_WIDGETS = m ? Array.from(m[1].matchAll(/"([a-z0-9]+)"/g)).map((x) => x[1]) : [];
-if (LEGACY_WIDGETS.length !== 17) err(`옛 types.ts 의 WidgetId 가 17종이 아니에요: ${LEGACY_WIDGETS.length}`);
-const idsSrc = fs.readFileSync(path.join(ROOT, "src/shared/widgets/ids.ts"), "utf8");
-const im = idsSrc.match(/WIDGET_IDS[^=]*=\s*\[([\s\S]*?)\]/);
-const NEW_WIDGETS = im ? Array.from(im[1].matchAll(/"([a-z0-9]+)"/g)).map((x) => x[1]) : [];
-if (NEW_WIDGETS.join(",") !== LEGACY_WIDGETS.join(",")) err(`src/shared/widgets/ids.ts 의 WIDGET_IDS 가 옛 WidgetId 와 달라요`);
-for (const w of NEW_WIDGETS) {
-  const dir = path.join(ROOT, "src/shared/widgets", w);
-  if (!fs.existsSync(path.join(dir, "index.tsx"))) err(`체험 도구 화면이 없어요: src/shared/widgets/${w}/index.tsx`);
-  if (!fs.existsSync(path.join(dir, "mission.ts"))) err(`체험 도구 미션 판정이 없어요: src/shared/widgets/${w}/mission.ts`);
+/* ───── 2) 체험 도구 없음 · 블록 종류 ───── */
+if (index.widgets.length) err(`체험 도구(widget)를 쓰면 안 돼요: ${index.widgets.join(", ")}`);
+const BLOCKS = ["p", "table", "callout", "list", "code", "image", "term", "example", "dialog", "math"];
+const imgDir = path.join(CONTENT_DIR, "img");
+const TAG = /<\/?(b|i|p|code|div|table|tr|td|th|ul|ol|li|pre|br|svg|img|figure|figcaption|span|details|summary|strong|em)\b[^>]*>/i;
+const walkTexts = (v, where, fn) => {
+  if (typeof v === "string") fn(v, where);
+  else if (Array.isArray(v)) v.forEach((x, i) => walkTexts(x, where + "." + i, fn));
+  else if (v && typeof v === "object") for (const k of Object.keys(v)) if (k !== "code" && k !== "src") walkTexts(v[k], where + "." + k, fn);
+};
+const checkBlock = (b, where, allowed) => {
+  if (!b || BLOCKS.indexOf(b.t) < 0 || (allowed && allowed.indexOf(b.t) < 0)) return err(`${where}: 허용하지 않는 블록 ${b && b.t}`);
+  if (b.t === "image") {
+    if (!b.alt) err(`${where}: 그림 설명(alt)이 없어요`);
+    if (!/^img\/[\w.-]+\.(jpg|png|webp|svg)$/.test(b.src || "") || !fs.existsSync(path.join(CONTENT_DIR, b.src))) err(`${where}: 그림 파일이 없어요 ${b.src}`);
+  }
+  if (b.t === "code" && (typeof b.code !== "string" || !b.code.trim())) err(`${where}: 빈 코드 블록`);
+};
+for (const lid of index.order) {
+  const L = lessons[lid];
+  L.sections.forEach((s, si) => s.blocks.forEach((b, bi) => checkBlock(b, `${lid} sections.${si}.blocks.${bi}`)));
+  walkTexts([L.story, L.sections, L.terms, L.summary, L.goals, L.question], lid, (t, w) => {
+    if (TAG.test(t)) err(`${w}: 글에 HTML 태그가 남아 있어요: ${t.slice(0, 40)}`);
+  });
+  L.practice.forEach((q, qi) => {
+    const w = `${lid} practice.${qi}(${q.id})`;
+    if (q.id !== `${lid}-q${qi + 1}` && !new RegExp("^" + lid + "-q\\d+$").test(q.id)) err(`${w}: 문제 id 모양이 달라요`);
+    if (q.type !== "choice" && q.type !== "ox") err(`${w}: 문제 종류가 choice·ox 가 아니에요: ${q.type}`);
+    if (q.type === "choice" && !(Array.isArray(q.choices) && q.choices.length >= 2 && Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.choices.length)) err(`${w}: 보기·정답 번호가 맞지 않아요`);
+    if (q.type === "ox" && typeof q.answer !== "boolean") err(`${w}: OX 정답이 true/false 가 아니에요`);
+    if (!Array.isArray(q.hints) || q.hints.length !== 2 || q.hints.some((h) => !String(h).trim())) err(`${w}: 힌트가 2개가 아니에요`);
+    if (!String(q.solution || "").trim()) err(`${w}: 풀이가 없어요`);
+    (q.passage || []).forEach((b, bi) => checkBlock(b, `${w}.passage.${bi}`, ["p", "table", "image", "code"]));
+    walkTexts([q.prompt, q.choices, q.hints, q.solution, q.passage], w, (t, ww) => {
+      if (TAG.test(t)) err(`${ww}: 글에 HTML 태그가 남아 있어요: ${t.slice(0, 40)}`);
+    });
+  });
 }
-for (const w of index.widgets) if (LEGACY_WIDGETS.indexOf(w) < 0) err(`레슨이 모르는 체험 도구를 써요: ${w}`);
+if (!fs.existsSync(imgDir)) err("content/aibasic/img 폴더가 없어요");
 
 /* 문제 id → 레슨/단원 */
 const qOwner = {};
@@ -97,7 +120,7 @@ else {
       else P[k].forEach((q) => checkQ(q, k));
     }
     if (Array.isArray(P.board) && (P.board.length < 5 || P.board.length > 8)) warn(`plan.json ${lid}.board 가 ${P.board.length}문제예요(5~8 권장)`);
-    if (!Array.isArray(P.periods) || !P.periods.length) err(`plan.json ${lid}.periods 가 비어 있어요`);
+    if (!Array.isArray(P.periods) || !P.periods.length || P.periods.length > 2) err(`plan.json ${lid}.periods 는 1~2차시여야 해요`);
     else {
       const covered = new Set();
       P.periods.forEach((pp, i) => {
@@ -122,20 +145,7 @@ else {
 /* ───── 4) widget-guides.json ───── */
 const guidesFile = path.join(ROOT, "data/widget-guides.json");
 if (!fs.existsSync(guidesFile)) err("data/widget-guides.json 이 없어요");
-else {
-  const g = readJson(guidesFile);
-  for (const w of LEGACY_WIDGETS) {
-    const G = g[w];
-    if (!G) {
-      err(`widget-guides.json 에 ${w} 가 없어요`);
-      continue;
-    }
-    for (const k of ["title", "predict", "ask", "reveal"]) if (typeof G[k] !== "string" || !G[k].trim()) err(`widget-guides.json ${w}.${k} 가 비어 있어요`);
-    if (!Array.isArray(G.steps) || G.steps.length !== 3) err(`widget-guides.json ${w}.steps 는 3줄이어야 해요`);
-    if (!G.mission || !G.mission.text || !G.mission.judge) err(`widget-guides.json ${w}.mission{text,judge} 가 비어 있어요`);
-  }
-  for (const k of Object.keys(g)) if (LEGACY_WIDGETS.indexOf(k) < 0) err(`widget-guides.json 에 모르는 도구가 있어요: ${k}`);
-}
+else if (Object.keys(readJson(guidesFile)).length) err("data/widget-guides.json 은 비어 있어야 해요(체험 도구 없음)");
 
 /* ───── 5) characters.json ───── */
 const charFile = path.join(ROOT, "data/characters.json");
@@ -196,8 +206,6 @@ if (fs.existsSync(toneFile)) {
     const v = doc ? atPath(doc, c.path) : undefined;
     if (typeof v !== "string" || v.indexOf(c.match) < 0) err(`tone.json chips[${i}]: ${c.where} ${c.path} 에 '${c.match}' 가 없어요`);
   });
-  const turing = (tone.chips || []).some((c) => /심판 30명/.test(c.match) && /가상의 예/.test(c.label));
-  if (!turing) err("tone.json: 튜링 '심판 30명'에 '가상의 예' 칩이 없어요");
 } else err("data/overrides/tone.json 이 없어요");
 
 /* ───── 7) 교사 준비 자료 ───── */
@@ -244,41 +252,6 @@ for (const f of walk(path.join(ROOT, "data"), walk(path.join(ROOT, "src"), [path
 for (const f of built.files) {
   const text = fs.readFileSync(f, "utf8");
   for (const b of BANNED) if (text.indexOf(b) >= 0) warn(`원본 콘텐츠에 '${b}' 가 있어요(원본은 고치지 않아요): ${path.relative(REPO, f)}`);
-}
-
-/* ───── 9) 문제 본문 해요체 ───── */
-{
-  const tone = fs.existsSync(toneFile) ? readJson(toneFile) : null;
-  const QFIELDS = ["prompt", "solution", "choices", "hints"];
-  let nQ = 0;
-  let nLeft = 0;
-  const checkDoc = (raw, where, key) => {
-    const out = haeyoDoc(applyTone(raw, where, tone));
-    const before = raw[key] || [];
-    const after = out[key] || [];
-    if (before.length !== after.length) err(`해요체: ${where} ${key} 문제 수가 바뀌었어요`);
-    before.forEach((q, i) => {
-      const o = after[i];
-      nQ++;
-      // 정답·종류·보기 개수는 그대로여야 해요
-      if (!o || o.id !== q.id || o.type !== q.type || JSON.stringify(o.answer) !== JSON.stringify(q.answer) || o.tolerance !== q.tolerance || o.unit !== q.unit)
-        err(`해요체: ${q.id} 정답·종류가 바뀌었어요`);
-      if (Array.isArray(q.choices) && (!o || !Array.isArray(o.choices) || o.choices.length !== q.choices.length)) err(`해요체: ${q.id} 보기 개수가 바뀌었어요`);
-      for (const f of QFIELDS) {
-        const v = o ? o[f] : undefined;
-        const arr = Array.isArray(v) ? v : v == null ? [] : [v];
-        arr.forEach((t, k) => {
-          for (const hit of haeraLeft(t)) {
-            nLeft++;
-            err(`해요체: ${q.id} ${f}${Array.isArray(v) ? "[" + k + "]" : ""} 에 해라체가 남았어요: '${hit}' (tone.ts 규칙이나 tone.json 정확 일치로 바꿔 주세요)`);
-          }
-        });
-      }
-    });
-  };
-  for (const lid of index.order) checkDoc(lessons[lid], lid, "practice");
-  for (const u of index.units) checkDoc(unitDocs[u.id], u.slug, "test");
-  if (VERBOSE) console.log(`  · 해요체 검사: 문제 ${nQ}개, 남은 해라체 ${nLeft}건`);
 }
 
 /* ───── 10) 화면 문구 띄어쓰기(영문·숫자 뒤 조사) ───── */
@@ -376,6 +349,6 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(
-  `check-content: 통과 — 단원 ${index.units.length}, 레슨 ${index.order.length}, 문제 ${index.totals.practice}+${index.totals.test}+${index.totals.diag}, 체험 도구 ${LEGACY_WIDGETS.length}종` +
+  `check-content: 통과 — 단원 ${index.units.length}, 레슨 ${index.order.length}, 문제 ${index.totals.practice}+${index.totals.test}, 체험 도구 0종` +
     (warns.length ? `, 알림 ${warns.length}건` : ""),
 );

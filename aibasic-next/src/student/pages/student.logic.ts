@@ -47,9 +47,9 @@ export function nextLessonAfter(order: readonly string[], from: string | null, i
   return null;
 }
 
-/** '이어서 공부하기' 경로("/l/u1-2/s/c2/3", "/l/u1-2/q")에서 레슨 id */
+/** '이어서 공부하기' 경로("/l/u1_1_2/s/c2/3", "/l/u1_1_2/q")에서 레슨 id */
 export function lessonOfPath(path: string | null | undefined): string | null {
-  const m = /^\/l\/(u\d+-\d+)(?:\/|$|\?)/.exec(String(path || ""));
+  const m = /^\/l\/(u\d+_\w+)(?:\/|$|\?)/.exec(String(path || ""));
   return m ? m[1] : null;
 }
 

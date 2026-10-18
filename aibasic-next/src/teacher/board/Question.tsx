@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import type { Question } from "../../shared/contracts.ts";
 import { CHOICE_KEYS, Rich, answerText } from "../../shared/ui/index.ts";
+import { Passage } from "../../shared/ui/Passage.tsx";
 import { useTally, barPcts, sum, correctRate } from "../store/index.ts";
 import { QSTAGE_LABEL, qStages, rateAdvice, stageOpen, tallyAnswer, tallyLabels, type QStage } from "./board.logic.ts";
 
@@ -170,7 +171,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   const hints = Array.isArray(q.hints) ? (q.hints as string[]).filter((h) => !!h) : [];
   const solution = q.type === "open" ? undefined : q.solution;
   const advice = showAns && ans >= 0 ? rateAdvice(correctRate(counts, ans)) : null;
-  const longPrompt = (q.prompt || "").length > 120;
+  const longPrompt = (q.prompt || "").length + (q.passage ? 160 : 0) > 120;
 
   const bar = (i: number) => {
     const isAns = showAns && i === ans;
@@ -267,7 +268,7 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
   const nextIdx = r + 1 < stages.length ? r + 1 : -1;
 
   return (
-    <div className={"bdq" + (hidden ? " is-covered" : "") + (panelOpen ? " has-panel" : "") + (split ? " is-split" : "") + (longPrompt ? " is-longq" : "")}>
+    <div className={"bdq" + (hidden ? " is-covered" : "") + (panelOpen ? " has-panel" : "") + (split ? " is-split" : "") + (longPrompt ? " is-longq" : "") + (q.passage && q.passage.length ? " has-pass" : "")}>
       <div className="bdq-head">
         {label ? <span className="chip is-accent">{label}</span> : null}
         <span className="chip">{q.group.split(" · ")[0]}</span>
@@ -290,6 +291,9 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
             {advice}
           </span>
         ) : null}
+      </div>
+      <div className="bdq-passage">
+        <Passage blocks={q.passage} surface="board" />
       </div>
       <div className="bdq-prompt">
         <Rich text={q.prompt} />

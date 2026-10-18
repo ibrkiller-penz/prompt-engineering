@@ -208,3 +208,13 @@ html[data-page="print"] .pr-who::after {
   html[data-page="print"] .pr-qr-img path { fill: #000000 !important; }
   html[data-page="print"] .pr-qr-img rect { fill: #ffffff !important; }
 }
+
+@media print {
+  /* 가로로 밀어 보는 상자의 그림자 힌트와 코드 상자·그림은 종이에서 흑백이에요 */
+  .scroll-x, .ui-table-scroll, .ui-code-pre { background-image: none !important; background-color: transparent !important; }
+  .ui-code { background: #ffffff !important; border: 1px solid #000000 !important; page-break-inside: avoid; break-inside: avoid; }
+  .ui-code-pre { white-space: pre-wrap !important; word-break: break-all; overflow: visible !important; }
+  .ui-code-kw, .ui-code-fn { font-weight: 700; }
+  .ui-image img { -webkit-filter: grayscale(1); filter: grayscale(1); max-height: 70mm; width: auto; }
+  .ui-image { page-break-inside: avoid; break-inside: avoid; }
+}

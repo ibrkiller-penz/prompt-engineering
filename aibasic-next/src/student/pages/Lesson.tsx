@@ -118,6 +118,21 @@ export default function LessonPage({ lid, query }: { lid: string; query: Record<
           </p>
         </section>
 
+        {data && data.goals && data.goals.length ? (
+          <section className="s-sec" aria-labelledby="h-aim">
+            <h2 id="h-aim" className="s-sec-title">
+              학습 목표
+            </h2>
+            <ul className="ui-list s-aims">
+              {data.goals.map((g, i) => (
+                <li key={i}>
+                  <Rich text={g} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         <section className="s-sec" aria-labelledby="h-goal">
           <h2 id="h-goal" className="s-sec-title">
             오늘 배울 것

@@ -38,7 +38,7 @@ test("clip: 짧으면 그대로, 길면 끝 구두점을 지우고 '…'을 붙�
   assert.equal((b.match(/\*\*/g) || []).length % 2, 0, b);
 });
 
-test("clip: 20레슨 문제 본문 미리보기는 모두 짝이 맞고 끝이 구두점+…가 아니에요", () => {
+test("clip: 26레슨 문제 본문 미리보기는 모두 짝이 맞고 끝이 구두점+…가 아니에요", () => {
   let n = 0;
   for (const L of lessons)
     for (const q of L.practice)
@@ -57,7 +57,7 @@ test("숙제 미리보기: 앞 3줄만, 나머지는 '+n문제'", () => {
   assert.deepEqual(hwPreview(["a", "b"], 3), { shown: ["a", "b"], more: 0 });
   assert.deepEqual(hwPreview(["a", "b", "c"], 3), { shown: ["a", "b", "c"], more: 0 });
   assert.deepEqual(hwPreview(["a", "b", "c", "d", "e", "f", "g"], 3), { shown: ["a", "b", "c"], more: 4 });
-  // 20레슨 모든 차시에서 보이는 줄은 3줄 이하
+  // 26레슨 모든 차시에서 보이는 줄은 3줄 이하
   for (const L of lessons)
     for (const per of lessonPeriods(L, null, 45)) {
       const f = buildLessonFlow(L, null, 45, per.p);
@@ -85,7 +85,7 @@ test("QR 주소의 쿼리는 hw·ex 둘뿐이에요(반·이름·시간 없음)"
       for (const per of lessonPeriods(L, null, minutes)) {
         const f = buildLessonFlow(L, null, minutes, per.p);
         const url = studentLink("https://aibasics.web.app", L.id, { hw: f.pick.hw, ex: f.pick.exit });
-        const m = /^https:\/\/aibasics\.web\.app\/#\/l\/(u\d+-\d+)(?:\?(.*))?$/.exec(url);
+        const m = /^https:\/\/aibasics\.web\.app\/#\/l\/(u\d+_\w+)(?:\?(.*))?$/.exec(url);
         assert.ok(m, url);
         assert.equal(m![1], L.id);
         if (m![2])
@@ -118,7 +118,7 @@ test("머리 표시: 구간 이름 n/m · 장면 a/b, 꺼진 장면 수", () => 
   assert.equal(segmentInfo(scenes, 1).a, 1);
 });
 
-test("머리 표시: 20레슨 실제 장면에서도 a ≤ b, n ≤ m", () => {
+test("머리 표시: 26레슨 실제 장면에서도 a ≤ b, n ≤ m", () => {
   for (const L of lessons)
     for (const per of lessonPeriods(L, null, 45)) {
       const f = buildLessonFlow(L, null, 45, per.p);

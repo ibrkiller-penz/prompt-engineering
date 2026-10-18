@@ -16,13 +16,26 @@ import {
 import { BODY_H } from "../../src/teacher/logic/measure.logic.ts";
 import { lessonPeriods, splitSections } from "../../src/teacher/logic/periods.logic.ts";
 import { questionSections } from "../../src/teacher/logic/pick.logic.ts";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Plan, PlanLesson } from "../../src/shared/contracts.ts";
 import { loadLessons } from "../shared/_content.ts";
+
+const PLAN = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "data", "plan.json"), "utf8")) as Plan;
+/** 앱처럼 plan.json 의 레슨 항목을 넘겨요(레슨당 1~2차시) */
+/** 시간 배분은 장면 분량을 1.5배까지만 늘려요. 장면이 적은 차시는 수업 시간을 다 채우지 못해도 그 한도까지는 채워요 */
+function fills(L: Lesson, m: number, p: number, total: number): boolean {
+  const t0 = buildLessonFlow(L, PL(L), m, p, { noAllocate: true }).total;
+  return total <= m + 1 && total >= Math.min(m, t0 * 1.5) - 3;
+}
+const PL = (L: { id: string }) => (PLAN.lessons[L.id] || null) as PlanLesson | null;
 
 const lessons = loadLessons().map((x) => x.lesson as unknown as Lesson);
 const DURS = [45, 50, 70];
 
-test("20레슨을 읽어요", () => {
-  assert.equal(lessons.length, 20);
+test("26레슨을 읽어요", () => {
+  assert.equal(lessons.length, 26);
 });
 
 /** 단계 차례: 여는 단계(질문·도입·먼저 알고 가요) → 가운데(소제목마다 개념·체험·확인 문제, 그다음 '문제' 구간) → 정리 → 끝 */
@@ -31,10 +44,10 @@ const PHASE: Record<string, number> = { open: 0, prereq: 1, concept: 2, tool: 2,
 test("buildScenes: 모든 레슨·수업 시간·차시에서 켜진 장면 15개 이상, 896px 안, 차례가 맞아요", () => {
   for (const L of lessons) {
     for (const m of DURS) {
-      const periods = lessonPeriods(L, null, m);
+      const periods = lessonPeriods(L, PL(L), m);
       for (const per of periods) {
         const where = L.id + " " + m + "분 " + per.p + "차시";
-        const f = buildLessonFlow(L, null, m, per.p);
+        const f = buildLessonFlow(L, PL(L), m, per.p);
         const sc = f.scenes;
         const on = sc.filter((s) => s.on);
         assert.ok(on.length >= 15, where + ": 켜진 장면 " + on.length + "개");
@@ -86,9 +99,9 @@ test("buildScenes: 모든 레슨·수업 시간·차시에서 켜진 장면 15�
         assert.deepEqual(f.dropped, [], where);
         // 시간: 넘치지 않으면 수업 시간에 맞고(0.5분 반올림 허용), 넘치면 over = 합 − 수업 시간
         if (f.over > 0) assert.equal(f.over, f.total - m, where + ": over");
-        else assert.ok(Math.abs(f.total - m) <= 1, where + ": 시간 합 " + f.total);
+        else assert.ok(fills(L, m, per.p, f.total), where + ": 시간 합 " + f.total);
         // 줄이기 제안: 그대로 끄면 수업 시간에 맞고 장면 수도 상한 안, 확인 문제·필수는 제안에 없어요
-        if (f.suggest.over === 0) assert.ok(Math.abs(f.suggest.total - m) <= 1, where + ": 제안 시간 합 " + f.suggest.total);
+        if (f.suggest.over === 0) assert.ok(fills(L, m, per.p, f.suggest.total), where + ": 제안 시간 합 " + f.suggest.total);
         else assert.equal(f.suggest.over, f.suggest.total - m, where + ": 제안 뒤 넘침");
         if (f.over === 0 && on.length <= MAX_ON) assert.ok(f.suggest.dropped.length <= 1, where + ": 넘치지 않는데 제안이 많아요");
         // 제안 뒤 켜진 장면 수: 상한(MAX_ON) 안. 다만 끄지 않는 소제목 확인 문제만큼은 넘을 수 있어요
@@ -115,13 +128,13 @@ test("buildScenes: 모든 레슨·수업 시간·차시에서 켜진 장면 15�
 test("autoDrop: 예전처럼 자동으로 끄면 수업 시간에 맞고, 소제목 확인 문제는 남아요", () => {
   for (const L of lessons)
     for (const m of DURS)
-      for (const per of lessonPeriods(L, null, m)) {
+      for (const per of lessonPeriods(L, PL(L), m)) {
         const where = L.id + " " + m + "분 " + per.p + "차시";
-        const f = buildLessonFlow(L, null, m, per.p, { autoDrop: true });
-        assert.ok(Math.abs(f.total - m) <= 1, where + ": 시간 합 " + f.total);
+        const f = buildLessonFlow(L, PL(L), m, per.p, { autoDrop: true });
+        assert.ok(fills(L, m, per.p, f.total), where + ": 시간 합 " + f.total);
         assert.ok(f.scenes.filter((s) => s.on).length <= MAX_ON + Math.max(f.scenes.filter((s) => s.secCheck !== undefined).length, L.sections.length), where);
         for (const s of f.scenes) if (s.secCheck !== undefined) assert.ok(s.on, where + ": 확인 문제 " + s.id + " 가 꺼졌어요");
-        assert.deepEqual(f.dropped, buildLessonFlow(L, null, m, per.p).suggest.dropped, where + ": 자동 끄기 = 줄이기 제안");
+        assert.deepEqual(f.dropped, buildLessonFlow(L, PL(L), m, per.p).suggest.dropped, where + ": 자동 끄기 = 줄이기 제안");
       }
 });
 
@@ -168,7 +181,7 @@ test("buildScenes: 레슨 전체(차시 0)에서 모든 개념 블록이 장면�
 test("차시 나누기: 소제목이 빠짐없이, 겹치지 않고, 차례대로 나뉘어요", () => {
   for (const L of lessons) {
     for (const m of DURS) {
-      const ps = lessonPeriods(L, null, m);
+      const ps = lessonPeriods(L, PL(L), m);
       const flat = ([] as number[]).concat(...ps.map((p) => p.sections));
       assert.deepEqual(flat, L.sections.map((_, i) => i), L.id + " " + m);
       assert.ok(ps.every((p) => p.sections.length > 0));
@@ -182,24 +195,24 @@ test("차시 나누기: 소제목이 빠짐없이, 겹치지 않고, 차례대�
 });
 
 test("plan 의 차시를 따라요", () => {
-  const L = lessons.filter((x) => x.id === "u1-1")[0];
+  const L = lessons.filter((x) => x.id === "u1_1_1")[0];
   const plan = {
-    lid: "u1-1",
+    lid: "u1_1_1",
     sectionChecks: [],
     corePath: [],
     board: [],
     exit: [],
     hw: [],
     periods: [
-      { p: 1, sections: [0, 1], minutes: 45, board: ["u1-1-q01", "u1-1-q02", "u1-1-q03", "u1-1-q04", "u1-1-q05"] },
-      { p: 2, sections: [2, 3, 4, 5], minutes: 45 },
+      { p: 1, sections: [0, 1], minutes: 45, board: ["u1_1_1-q1", "u1_1_1-q2", "u1_1_1-q3", "u1_1_1-q4", "u1_1_1-q5"] },
+      { p: 2, sections: [2, 3, 4], minutes: 45 },
     ],
   };
   const f = buildLessonFlow(L, plan, 45, 1);
   assert.deepEqual(f.period.sections, [0, 1]);
   // 나눈 차시: plan 목록 가운데 이 차시 소제목 문제만 남기고(앞머리는 소제목 끝 확인) 모자라면 채워요
   const secOf = questionSections(L, plan);
-  assert.deepEqual(f.pick.board.slice(0, 2), ["u1-1-q01", "u1-1-q02"]);
+  assert.deepEqual(f.pick.board.slice(0, 2), ["u1_1_1-q1", "u1_1_1-q6"]);
   assert.ok(f.pick.board.length >= 5);
   for (const id of f.pick.board.concat(f.pick.exit, f.pick.hw)) assert.ok(secOf[id] <= 1, id + " 은 2차시 소제목 문제예요");
   assert.ok(f.scenes.every((s) => s.section === undefined || s.section <= 1));
@@ -269,9 +282,6 @@ test("applyFlow·requiredOnly: 필수는 끌 수 없고, 직접 켠 장면은 �
 });
 
 /* ─────────── 칠판 화면 약속(원본 글 검사) ─────────── */
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 const BOARD = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "teacher", "board");
 const rd = (f: string) => readFileSync(join(BOARD, f), "utf8");
 

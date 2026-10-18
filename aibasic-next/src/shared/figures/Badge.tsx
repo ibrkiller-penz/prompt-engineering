@@ -62,7 +62,7 @@ export function useDarkTone(): Tone {
 const SIZE: Record<Surface, number> = { phone: 32, prep: 40, board: 56 };
 
 export interface BadgeProps {
-  /** 인물 이름(characters.json 의 키, 예: "서하", "유 선생님") */
+  /** 인물 이름(characters.json 의 키, 예: "지우", "아라 쌤") */
   who: string;
   /** 지름(px). 없으면 표면마다 32 / 40 / 56 */
   size?: number;

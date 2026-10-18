@@ -98,7 +98,7 @@ export async function runPrint(cases) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const dir = process.argv[2];
-  const lids = (process.argv[3] || "u1-1,u2-3,u3-3,u4-4,u5-2").split(",");
+  const lids = (process.argv[3] || "u1_1_1,u2_1_3,u3_1_1,u4_2,u4_3").split(",");
   const cases = [];
   for (const lid of lids) {
     cases.push({ lid, set: "board", theme: "dark" });

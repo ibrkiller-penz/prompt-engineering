@@ -68,9 +68,9 @@ export function corePath(lid: string): string[] {
   return p && p.corePath ? p.corePath.slice() : [];
 }
 
-/** 문제 id 의 레슨 id("u1-1-q06" → "u1-1"). 단원 문제면 null */
+/** 문제 id 의 레슨 id("u1_1_1-q6" → "u1_1_1"). 단원 문제면 null */
 export function lessonOfQ(qid: string): string | null {
-  const m = /^(u\d+-\d+)-/.exec(qid);
+  const m = /^(u\d+_\w+)-/.exec(qid);
   return m && INDEX.lessons[m[1]] ? m[1] : null;
 }
 
@@ -173,7 +173,7 @@ export function setPos(lid: string, step: LessonStep, card: number) {
 }
 export const getPos = (lid: string): CardPos | undefined => sStore.read("pos", FALLBACK.pos)[lid];
 
-/** 이어서 공부하기(경로는 "#" 뒤, 예 "/l/u1-1/s/c2/3") */
+/** 이어서 공부하기(경로는 "#" 뒤, 예 "/l/u1_1_1/s/c2/3") */
 export function setLast(path: string, title: string) {
   sStore.write("last", { path, title, ts: now() });
 }

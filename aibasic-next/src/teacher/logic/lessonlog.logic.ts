@@ -89,13 +89,13 @@ export function weakQuestions(card: Pick<LessonLog, "qs">, n: number = 2): Lesso
   return idx.slice(0, max).map((x) => x.q);
 }
 
-/** 문제 id 끝 번호만("u1-1-q06" → "q06") */
+/** 문제 id 끝 번호만("u1_1_1-q6" → "q6") */
 const shortQ = (id: string) => {
   const m = /(q\d+)$/.exec(id);
   return m ? m[1] : id;
 };
 
-/** 문제 이름: 연습 순서 목록에 있으면 "6번", 없으면 예전 그대로 "q06" */
+/** 문제 이름: 연습 순서 목록에 있으면 "6번", 없으면 예전 그대로 "q6" */
 export function practiceNo(id: string, order?: readonly string[] | null): string {
   if (order) {
     const i = order.indexOf(id);

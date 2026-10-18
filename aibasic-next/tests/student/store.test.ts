@@ -109,7 +109,7 @@ test("깨진 값도 QRec 로 읽어요", () => {
 /* ─────────── 읽음 · 레슨 완료 ─────────── */
 
 const meta = {
-  id: "u9-1",
+  id: "u9_1",
   sections: [{}, {}, {}] as unknown as import("../../src/shared/contracts.ts").SectionIndex[],
   basicIds: ["a", "b", "c", "d", "e"],
   qids: ["a", "b", "c", "d", "e", "x"],
@@ -138,15 +138,15 @@ test("소제목을 펼치기(지나가기)만 해서는 읽음·완료가 되지
   const q: QMap = { a: ok(), b: ok(), c: ok(), d: ok(), e: ok() };
   // 끝 확인 문제가 있는 소제목 0·2 에서 확인 문제 기록을 지우면
   const noCheck: QMap = { c: ok(), d: ok(), e: ok() };
-  const seen = { "u9-1": [0, 1, 2] };
+  const seen = { "u9_1": [0, 1, 2] };
   assert.deepEqual(settleRead(undefined, [0, 1, 2], checks, noCheck, 3), [1], "확인 문제를 안 풀면 지나가기만으로 읽음 아님");
   assert.equal(lessonStatus(meta, q, {}, seen).complete, false, "read 가 비면 완료 아님");
-  assert.equal(lessonStatus(meta, q, { "u9-1": [1] }, seen).allRead, false);
+  assert.equal(lessonStatus(meta, q, { "u9_1": [1] }, seen).allRead, false);
   assert.equal(sectionDone(0, [], checks, q), false, "확인 문제를 풀었어도 마지막 카드를 지나가지 않으면 읽음 아님");
 });
 
 test("레슨 완료: 모두 읽음 + 기본 문제 모두 풀어 봄 + 60%(올림) 맞힘, 풀이 본 문제는 맞힘에서 빼요", () => {
-  const read = { "u9-1": [0, 1, 2] };
+  const read = { "u9_1": [0, 1, 2] };
   const q: QMap = { a: ok(), b: ok(), c: bad(), d: applyAnswer(applySolution(undefined, T0), true, T0, { afterSolution: true }), e: bad() };
   let st = lessonStatus(meta, q, read);
   assert.equal(st.need, 3);
@@ -157,7 +157,7 @@ test("레슨 완료: 모두 읽음 + 기본 문제 모두 풀어 봄 + 60%(올�
   st = lessonStatus(meta, q, read);
   assert.equal(st.basic.done, 3);
   assert.equal(st.complete, true);
-  st = lessonStatus(meta, q, { "u9-1": [0, 1] });
+  st = lessonStatus(meta, q, { "u9_1": [0, 1] });
   assert.equal(st.allRead, false);
   assert.equal(st.complete, false);
   const q2: QMap = { a: ok(), b: ok(), c: ok(), d: ok() };
@@ -167,8 +167,8 @@ test("레슨 완료: 모두 읽음 + 기본 문제 모두 풀어 봄 + 60%(올�
 test("숙달 4단계", () => {
   assert.equal(lessonMastery(meta, {}, {}), 0);
   assert.equal(lessonMastery(meta, { x: bad() }, {}), 1, "실력 문제만 풀어도 배우는 중");
-  assert.equal(lessonMastery(meta, {}, {}, { "u9-1": [0] }), 1, "지나가기만 해도 배우는 중");
-  const read = { "u9-1": [0, 1, 2] };
+  assert.equal(lessonMastery(meta, {}, {}, { "u9_1": [0] }), 1, "지나가기만 해도 배우는 중");
+  const read = { "u9_1": [0, 1, 2] };
   const q: QMap = { a: ok(), b: ok(), c: ok(), d: bad(), e: bad() };
   assert.equal(lessonMastery(meta, q, read), 2, "60%는 넘었지만 80%가 안 돼요");
   q.d = applyAnswer(q.d, true, T0 + 1);
@@ -179,14 +179,14 @@ test("숙달 4단계", () => {
 });
 
 test("단원 배지: 레슨 모두 완료면 done, 단원 마무리 도전까지 60%면 star", () => {
-  const m2 = { ...meta, id: "u9-2", basicIds: ["f"], qids: ["f"] };
-  const lessons = { "u9-1": meta, "u9-2": m2 };
-  const unit = { lessonIds: ["u9-1", "u9-2"], testIds: ["t1", "t2"] };
-  const read = { "u9-1": [0, 1, 2], "u9-2": [0, 1, 2] };
+  const m2 = { ...meta, id: "u9_2", basicIds: ["f"], qids: ["f"] };
+  const lessons = { "u9_1": meta, "u9_2": m2 };
+  const unit = { lessonIds: ["u9_1", "u9_2"], testIds: ["t1", "t2"] };
+  const read = { "u9_1": [0, 1, 2], "u9_2": [0, 1, 2] };
   const q: QMap = { a: ok(), b: ok(), c: ok(), d: ok(), e: ok() };
   let us = unitStatus(unit, lessons, q, read);
   assert.equal(us.done, 1);
-  assert.equal(us.next, "u9-2");
+  assert.equal(us.next, "u9_2");
   assert.equal(us.badge, null);
   q.f = ok();
   us = unitStatus(unit, lessons, q, read);
@@ -198,10 +198,10 @@ test("단원 배지: 레슨 모두 완료면 done, 단원 마무리 도전까지
 });
 
 test("홈(overall)의 완료 레슨 수와 단원 화면(unitStatus.done)의 합이 같아요", () => {
-  const m2 = { ...meta, id: "u9-2", basicIds: ["f"], qids: ["f"] };
-  const lessons = { "u9-1": meta, "u9-2": m2 };
-  const unit = { lessonIds: ["u9-1", "u9-2"], testIds: [] as string[] };
-  const read = { "u9-1": [0, 1, 2], "u9-2": [0, 1, 2] };
+  const m2 = { ...meta, id: "u9_2", basicIds: ["f"], qids: ["f"] };
+  const lessons = { "u9_1": meta, "u9_2": m2 };
+  const unit = { lessonIds: ["u9_1", "u9_2"], testIds: [] as string[] };
+  const read = { "u9_1": [0, 1, 2], "u9_2": [0, 1, 2] };
   const q: QMap = { a: ok(), b: ok(), c: ok(), d: ok(), e: ok() };
   assert.equal(overall(lessons, unit.lessonIds, q, read).complete, unitStatus(unit, lessons, q, read).done);
   q.f = ok();
@@ -266,18 +266,18 @@ test("오늘의 복습은 하루 최대 5문제, 오늘 푼 만큼 덜어요, �
 
 test("백업 왕복: 공용 키 + 학생 전용 키(seen·think·self·proj)가 그대로 돌아와요", () => {
   const data: Record<string, unknown> = {
-    q: { "u1-1-q01": ok(), "u1-1-q02": applySolution(undefined, T0) },
-    read: { "u1-1": [0, 2] },
-    seen: { "u1-1": [0, 1, 2] },
-    pos: { "u1-1": { step: "c2", card: 3, ts: T0 } },
-    last: { path: "/l/u1-1/s/c2/3", title: "Ⅰ-1 인공지능의 개념과 역사", ts: T0 },
+    q: { "u1_1_1-q1": ok(), "u1_1_1-q2": applySolution(undefined, T0) },
+    read: { "u1_1_1": [0, 2] },
+    seen: { "u1_1_1": [0, 1, 2] },
+    pos: { "u1_1_1": { step: "c2", card: 3, ts: T0 } },
+    last: { path: "/l/u1_1_1/s/c2/3", title: "Ⅰ-1 인공지능의 개념과 역사", ts: T0 },
     prefs: { fs: 2, theme: "dark", motion: "reduce", speak: true, contrast: false },
-    prereq: { "u1-1": { 명제: "unsure" } },
-    assigned: { "u1-1": { hw: ["u1-1-q06"], ex: ["u1-1-q03"], ts: T0 } },
+    prereq: { "u1_1_1": { 명제: "unsure" } },
+    assigned: { "u1_1_1": { hw: ["u1_1_1-q6"], ex: ["u1_1_1-q3"], ts: T0 } },
     tools: { turing: { done: true, ts: T0 } },
-    think: { "u1-1": { p0: "규칙을 사람이 다 정하기는 어려워요." } },
-    self: { "u1-1": { level: 2, ts: T0 } },
-    proj: { "u1-1": { steps: [0, 2], done: false, ts: T0 } },
+    think: { "u1_1_1": { p0: "규칙을 사람이 다 정하기는 어려워요." } },
+    self: { "u1_1_1": { level: 2, ts: T0 } },
+    proj: { "u1_1_1": { steps: [0, 2], done: false, ts: T0 } },
     rvday: { day: "2026-10-16", n: 2 },
   };
   const text = serializeStudentBackup(data, new Date(T0));
@@ -296,7 +296,7 @@ test("백업 왕복: 공용 키 + 학생 전용 키(seen·think·self·proj)가 
 
 test("백업 왕복 뒤 레슨 상태(lessonStatus)가 그대로예요", () => {
   const qa: QMap = { a: ok(), b: ok(), c: bad(), d: applyAnswer(applySolution(undefined, T0), true, T0, { afterSolution: true }), e: applyAnswer(applySolution(undefined, T0), true, T0 + DAY) };
-  const data: Record<string, unknown> = { q: qa, read: { "u9-1": [0, 1, 2] }, seen: { "u9-1": [0, 1, 2] } };
+  const data: Record<string, unknown> = { q: qa, read: { "u9_1": [0, 1, 2] }, seen: { "u9_1": [0, 1, 2] } };
   const back = parseStudentBackup(serializeStudentBackup(data, new Date(T0)));
   assert.ok(back.ok);
   if (!back.ok) return;
@@ -326,32 +326,32 @@ test("백업 불러오기: 다른 사이트·깨진 파일은 거절하고, 이�
     v: 1,
     savedAt: "x",
     data: {
-      q: { "u1-1-q01": { first: true, ok: true, wrong: 0, hints: 0, sol: false, lastWrong: null, t0: 1, t1: 1 }, "<script>": { ok: true } },
-      read: { "u1-1": [0, "1", -1, 2, 2], "../x": [0] },
+      q: { "u1_1_1-q1": { first: true, ok: true, wrong: 0, hints: 0, sol: false, lastWrong: null, t0: 1, t1: 1 }, "<script>": { ok: true } },
+      read: { "u1_1_1": [0, "1", -1, 2, 2], "../x": [0] },
       prefs: { fs: 9, theme: "chalk" },
-      think: { "u1-1": { p0: "가".repeat(3000) } },
+      think: { "u1_1_1": { p0: "가".repeat(3000) } },
       hacker: 1,
     },
   });
   const m = parseStudentBackup(messy);
   assert.ok(m.ok);
   if (!m.ok) return;
-  assert.deepEqual(Object.keys(m.data.q as object), ["u1-1-q01"]);
-  assert.deepEqual(m.data.read, { "u1-1": [0, 2] });
+  assert.deepEqual(Object.keys(m.data.q as object), ["u1_1_1-q1"]);
+  assert.deepEqual(m.data.read, { "u1_1_1": [0, 2] });
   assert.deepEqual(m.data.prefs, { fs: 1, theme: "auto", motion: "auto", speak: false, contrast: false });
-  assert.equal(((m.data.think as Record<string, Record<string, string>>)["u1-1"].p0).length, 1000);
+  assert.equal(((m.data.think as Record<string, Record<string, string>>)["u1_1_1"].p0).length, 1000);
   assert.deepEqual(m.skipped, ["hacker"]);
-  assert.equal(sanitize("pos", { "u1-1": { step: "evil", card: 1 } }) && Object.keys(sanitize("pos", { "u1-1": { step: "evil", card: 1 } }) as object).length, 0);
+  assert.equal(sanitize("pos", { "u1_1_1": { step: "evil", card: 1 } }) && Object.keys(sanitize("pos", { "u1_1_1": { step: "evil", card: 1 } }) as object).length, 0);
 });
 
 /* ─────────── 선생님 QR 쿼리 ─────────── */
 
 test("QR 쿼리: 짧은 id 를 늘리고, 다른 레슨·이상한 id 는 버려요", () => {
-  assert.equal(expandQid("u1-1", "q06"), "u1-1-q06");
-  assert.equal(expandQid("u1-1", "u1-1-q06"), "u1-1-q06");
-  const a = parseAssignQuery("u1-1", "?hw=q06,q11,u2-1-q01,q06&ex=q03%2Cq05,<x>");
-  assert.deepEqual(a, { hw: ["u1-1-q06", "u1-1-q11"], ex: ["u1-1-q03", "u1-1-q05"] });
-  const b = parseAssignQuery("u1-1", "/l/u1-1?hw=q06,q99", (id) => id !== "u1-1-q99");
-  assert.deepEqual(b, { hw: ["u1-1-q06"], ex: [] });
-  assert.deepEqual(parseAssignQuery("u1-1", ""), { hw: [], ex: [] });
+  assert.equal(expandQid("u1_1_1", "q6"), "u1_1_1-q6");
+  assert.equal(expandQid("u1_1_1", "u1_1_1-q6"), "u1_1_1-q6");
+  const a = parseAssignQuery("u1_1_1", "?hw=q6,q11,u2_1_1-q1,q6&ex=q3%2Cq5,<x>");
+  assert.deepEqual(a, { hw: ["u1_1_1-q6", "u1_1_1-q11"], ex: ["u1_1_1-q3", "u1_1_1-q5"] });
+  const b = parseAssignQuery("u1_1_1", "/l/u1_1_1?hw=q6,q99", (id) => id !== "u1_1_1-q99");
+  assert.deepEqual(b, { hw: ["u1_1_1-q6"], ex: [] });
+  assert.deepEqual(parseAssignQuery("u1_1_1", ""), { hw: [], ex: [] });
 });

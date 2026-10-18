@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// data/plan.json 초안을 만들어요(npm run gen:plan). 원본 콘텐츠(content/aimath)는 읽기만 해요.
+// data/plan.json 초안을 만들어요(npm run gen:plan). 원본 콘텐츠(content/aibasic)는 읽기만 해요.
 //
 // 레슨마다 만드는 것
-//   secOf          문제 id → 소제목 번호 태그(내용 기준). 문제 글(본문·보기·풀이)과 소제목 글의 두 글자 묶음·수식 명령을
-//                  TF-IDF 로 견줘 가장 가까운 소제목을 골라요. 기초력 UP 은 유형(group) 단위로 모아 정해요.
-//                  기본 규칙(pick.logic baseSections)과 다른 것만 적어요(쉬운 응용·실력 UP·도전은 모두 적혀요).
+//   secOf          문제 id → 소제목(계단) 번호 태그(내용 기준). 계단 확인 문제는 이름의 '계단' 번호가 그대로 소제목이에요.
+//                  마무리 퀴즈는 문제 글(제시문·본문·보기·풀이)과 소제목 글의 두 글자 묶음을 TF-IDF 로 견줘 가장 가까운 소제목을 골라요.
+//                  기본 규칙(pick.logic baseSections)과 다른 것만 적어요.
 //   sectionOf      secOf 를 덧씌운 최종 문제 → 소제목 번호(학생 오답노트·교사 문제 고르기 공용)
-//   periods        40차시 기준으로 모든 레슨을 2차시(소제목을 분량이 고르게 절반씩)로 나눠요(소제목 1개뿐이면 1차시)
+//   periods        레슨당 1~2차시(26레슨 → 계단이 5개 이상이면 2차시로 분량이 고르게 절반씩, 4개 이하면 1차시)
 //   periods[].question  2차시 레슨의 차시별 핵심 질문(1~2줄). 첫 물음표를 기준으로 나눠요
 //   sectionChecks  소제목 i 끝에서 푸는 확인 문제(그 소제목으로 태그된 개념 확인 문제, 소제목마다 최대 2개).
 //                  개념 확인이 없는 소제목은 그 소제목의 가장 쉬운 기초 문제(난이도 2 이하·선택형·OX 먼저) 1개로,
@@ -24,15 +24,19 @@
 import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CONTENT_DIR } from "../tools/content-index.mjs";
 import { baseSections, pickAll, questionSections, qKind } from "../src/teacher/logic/pick.logic.ts";
 import { sectionWeights, splitSections } from "../src/teacher/logic/periods.logic.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, "..");
-const CONTENT = path.resolve(ROOT, "../content/aimath");
+const CONTENT = CONTENT_DIR;
 const OUT = path.join(ROOT, "data/plan.json");
 
-export const TWO_PERIOD_OVER = 0; // 40차시 기준: 소제목이 2개 이상인 레슨은 모두 2차시 (20레슨 × 2)
+/** 소제목(계단)이 이 수 이상이면 2차시 */
+export const TWO_PERIOD_MIN_SECTIONS = 5;
+/** 한 차시 분량(분). 2차시 레슨은 합이 90분이라 70분 수업에서도 한 차시로 합치지 않아요 */
+export const PERIOD_MIN = 45;
 export const CHECKS_PER_SECTION = 2;
 export const CORE_MIN = 8;
 export const CORE_MAX = 10;
@@ -51,12 +55,10 @@ function strs(x, out) {
   else if (x && typeof x === "object") for (const k of Object.keys(x)) if (k !== "t" && k !== "id" && k !== "widget") strs(x[k], out);
   return out;
 }
-const MATH_SKIP = /^\\(frac|dfrac|left|right|times|cdot|text|textbf|begin|end|quad|qquad|le|ge|leq|geq|ne|lt|gt|mathrm|displaystyle)$/;
-/** 글 → 낱말 조각: 한글은 두 글자 묶음, 영문은 낱말, 수식은 명령(\\vec, \\leftarrow 처럼) */
+/** 글 → 낱말 조각: 한글은 두 글자 묶음, 영문은 낱말 */
 export function tokens(s) {
   const out = [];
-  for (const m of s.match(/\\[A-Za-z]+/g) || []) if (!MATH_SKIP.test(m)) out.push(m);
-  const t = s.replace(/\$[^$]*\$/g, " ").replace(/[^가-힣A-Za-z0-9]+/g, " ");
+  const t = s.replace(/[^가-힣A-Za-z0-9]+/g, " ");
   for (const w of t.split(" ")) {
     if (!w) continue;
     if (/^[A-Za-z]+$/.test(w)) {
@@ -92,7 +94,7 @@ const argmax = (a) => {
   for (let i = 1; i < a.length; i++) if (a[i] > a[k]) k = i;
   return k;
 };
-const qText = (q) => strs([q.prompt, q.choices || [], q.hints || [], q.solution || ""], []).join(" ");
+const qText = (q) => strs([q.passage || [], q.prompt, q.choices || [], q.hints || [], q.solution || ""], []).join(" ");
 
 /** 문제 → 소제목 태그(내용 기준). 기초력 UP 은 유형 단위로 점수를 더해 정해요. 점수가 0 이면 기본 규칙(없으면 마지막 소제목) */
 export function contentSections(lesson) {
@@ -100,17 +102,15 @@ export function contentSections(lesson) {
   const score = sectionScorer(lesson);
   const S = lesson.sections.length;
   const out = {};
-  const groupSum = {};
   const per = {};
+  for (const q of lesson.practice) per[q.id] = score(qText(q));
   for (const q of lesson.practice) {
-    per[q.id] = score(qText(q));
-    if (qKind(q) === "basic") {
-      const g = groupSum[q.group] || (groupSum[q.group] = new Array(S).fill(0));
-      per[q.id].forEach((v, i) => (g[i] += v));
+    // 계단 확인은 이름의 계단 번호가 곧 소제목이에요
+    if (qKind(q) === "check" && base[q.id] >= 0) {
+      out[q.id] = base[q.id];
+      continue;
     }
-  }
-  for (const q of lesson.practice) {
-    const sc = qKind(q) === "basic" ? groupSum[q.group] : per[q.id];
+    const sc = per[q.id];
     const best = Math.max(...sc) > 0 ? argmax(sc) : base[q.id] >= 0 ? base[q.id] : S - 1;
     out[q.id] = best;
   }
@@ -126,17 +126,38 @@ export function makeSecOf(lesson) {
   return out;
 }
 
-/** 정리 줄 → 소제목. 내용 점수로 고르고, 앞 줄보다 앞 소제목으로 돌아가면(점수 차가 작을 때) 앞 줄 소제목에 붙여요 */
+/** 정리 줄 → 소제목. 내용 점수의 합이 가장 크면서 앞 줄보다 앞 소제목으로 돌아가지 않는 차례(동적 계획법)로 정해요 */
 export function makeSummaryOf(lesson) {
   const score = sectionScorer(lesson);
-  const out = [];
-  let prev = 0;
-  for (const line of lesson.summary || []) {
-    const sc = score(line);
-    let k = Math.max(...sc) > 0 ? argmax(sc) : prev;
-    if (k < prev && sc[prev] >= sc[k] * 0.6) k = prev;
-    out.push(k);
-    prev = Math.max(prev, k);
+  const lines = lesson.summary || [];
+  const S = lesson.sections.length;
+  if (!lines.length) return [];
+  const sc = lines.map((l) => {
+    const v = score(l);
+    const mx = Math.max(...v);
+    return v.map((x) => (mx > 0 ? x / mx : 0));
+  });
+  // dp[i][k]: i 번째 줄까지 보고 i 줄이 소제목 k 일 때 최고 점수
+  const dp = sc.map(() => new Array(S).fill(-Infinity));
+  const from = sc.map(() => new Array(S).fill(0));
+  for (let k = 0; k < S; k++) dp[0][k] = sc[0][k];
+  for (let i = 1; i < sc.length; i++) {
+    let best = -Infinity;
+    let bk = 0;
+    for (let k = 0; k < S; k++) {
+      if (dp[i - 1][k] > best) {
+        best = dp[i - 1][k];
+        bk = k;
+      }
+      dp[i][k] = best + sc[i][k] + 1e-6 * (k === bk ? 1 : 0);
+      from[i][k] = bk;
+    }
+  }
+  let k = dp[sc.length - 1].reduce((bk, v, i, a) => (v > a[bk] ? i : bk), 0);
+  const out = new Array(sc.length);
+  for (let i = sc.length - 1; i >= 0; i--) {
+    out[i] = k;
+    k = from[i][k];
   }
   return out;
 }
@@ -247,9 +268,15 @@ export function makeCorePath(lesson, exclude) {
 /** 차시 */
 export function makePeriods(lesson, partial, questions) {
   const S = lesson.sections.length;
-  const n = lesson.minutes > TWO_PERIOD_OVER && S >= 2 ? 2 : 1;
-  const groups = n === 1 ? [lesson.sections.map((_, i) => i)] : splitSections(sectionWeights(lesson), 2);
-  const per = Math.round(lesson.minutes / n);
+  const n = S >= TWO_PERIOD_MIN_SECTIONS ? 2 : 1;
+  let groups = n === 1 ? [lesson.sections.map((_, i) => i)] : splitSections(sectionWeights(lesson), 2);
+  // 한 차시에 소제목이 하나뿐이면 문제가 모자라서, 그럴 때는 소제목 개수로 반씩 나눠요
+  if (groups.some((g) => g.length < 2)) {
+    const idx = lesson.sections.map((_, i) => i);
+    const half = Math.ceil(idx.length / 2);
+    groups = [idx.slice(0, half), idx.slice(half)];
+  }
+  const per = PERIOD_MIN;
   const qs = questions || splitQuestion(lesson.question || "", n);
   return groups.map((sections, i) => {
     const pp = { p: i + 1, sections, minutes: per };
@@ -300,7 +327,7 @@ function readLessons() {
   for (const d of readdirSync(CONTENT)) {
     if (!/^u\d+$/.test(d)) continue;
     for (const f of readdirSync(path.join(CONTENT, d))) {
-      if (!/^lesson-\d+\.json$/.test(f)) continue;
+      if (!/^lesson-[0-9A-Za-z_]+\.json$/.test(f)) continue;
       const l = JSON.parse(readFileSync(path.join(CONTENT, d, f), "utf8"));
       byId[l.id] = l;
     }

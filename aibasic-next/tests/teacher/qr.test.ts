@@ -46,12 +46,12 @@ test("qrcodegen: 원본과 같은 행렬(HELLO WORLD, Q)", () => {
   );
 });
 
-test("qrcodegen: 원본과 같은 행렬(학생 주소, M)", () => {
-  const m = makeQr("https://aibasics.web.app/#/l/u1-1?hw=q06,q07&ex=q02", "M");
+test("qrcodegen: 행렬 고정(학생 주소, M)", () => {
+  const m = makeQr("https://aibasics.web.app/#/l/u1_1_1?hw=q6,q7&ex=q2", "M");
   assert.equal(m.size, 33);
   assert.equal(m.version, 4);
-  assert.equal(m.mask, 3);
-  assert.equal(fingerprint(m), 3338480478);
+  assert.equal(m.mask, 2);
+  assert.equal(fingerprint(m), 1278196392); // 현재 구현의 출력(디코더 시험 qr-decode 가 읽히는지 따로 확인해요)
 });
 
 test("qrcodegen: 행렬 크기 = 버전×4 + 17, 찾기 무늬 세 귀퉁이", () => {
@@ -67,7 +67,7 @@ test("qrcodegen: 행렬 크기 = 버전×4 + 17, 찾기 무늬 세 귀퉁이", (
 });
 
 test("qrSvgPath: 검은 칸 수가 행렬과 같고, 여백만큼 밀려요", () => {
-  const m = makeQr("https://aibasics.web.app/#/l/u3-2?ex=q01,q02,q03", "M");
+  const m = makeQr("https://aibasics.web.app/#/l/u3_2_1?ex=q1,q2,q3", "M");
   let dark = 0;
   for (const row of m.modules) for (const d of row) if (d) dark++;
   const d = qrSvgPath(m, 4);
@@ -84,17 +84,17 @@ test("qrSvgPath: 검은 칸 수가 행렬과 같고, 여백만큼 밀려요", ()
   }
   assert.equal(fromPath, dark);
   assert.equal(d.replace(re, ""), "", "path 에 다른 명령이 없어요");
-  const s = qrSvg("https://aibasics.web.app/#/l/u3-2", { border: 2 });
-  assert.equal(s.n, makeQr("https://aibasics.web.app/#/l/u3-2").size + 4);
+  const s = qrSvg("https://aibasics.web.app/#/l/u3_2_1", { border: 2 });
+  assert.equal(s.n, makeQr("https://aibasics.web.app/#/l/u3_2_1").size + 4);
   assert.equal(s.viewBox, "0 0 " + s.n + " " + s.n);
   assert.match(qrSvgString("a", { title: '수업 "끝"' }), /^<svg [^>]*aria-label="수업 &quot;끝&quot;"/);
   assert.throws(() => qrSvgPath(m, -1));
 });
 
 test("수업 끝 QR: 숙제 5 + 끝 확인 3 주소도 칠판에서 읽기 쉬운 크기(버전 6 이하)", () => {
-  const url = studentLink("https://aibasics.web.app", "u4-3", {
-    hw: ["u4-3-q11", "u4-3-q12", "u4-3-q21", "u4-3-q33", "u4-3-q40"],
-    ex: ["u4-3-q02", "u4-3-q14", "u4-3-q19"],
+  const url = studentLink("https://aibasics.web.app", "u4_3", {
+    hw: ["u4_3-q11", "u4_3-q12", "u4_3-q21", "u4_3-q33", "u4_3-q40"],
+    ex: ["u4_3-q02", "u4_3-q14", "u4_3-q19"],
   });
   const m = makeQr(url, "M");
   assert.ok(m.version <= 6, "버전 " + m.version);

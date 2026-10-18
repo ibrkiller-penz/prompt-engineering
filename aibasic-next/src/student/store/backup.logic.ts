@@ -8,7 +8,7 @@ import { EXTRA_KEYS, THINK_MAX } from "./extra.ts";
 import { normRec } from "./record.logic.ts";
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
-const LID = /^u\d+-\d+$/;
+const LID = /^u\d+_\w+$/;
 const QID = /^[A-Za-z0-9_-]{1,60}$/;
 
 /** 기록 파일에 담는 키(공용 + 학생 전용, 겹치면 하나) */

@@ -1,5 +1,5 @@
 // 해시 라우터의 순수 함수(DOM 없음). node --test 로 바로 시험해요.
-// 주소 모양: "#/l/u1-1/s/c2/3?hw=u1-1-q06,u1-1-q11"
+// 주소 모양: "#/l/u1_1_1/s/c2/3?hw=u1_1_1-q6,u1_1_1-q11"
 
 export type Query = Record<string, string>;
 export type Params = Record<string, string>;
@@ -109,7 +109,7 @@ export function fillPath(pattern: string, params: Record<string, string | number
   );
 }
 
-/** 문제 id 목록 쿼리("u1-1-q06,u1-1-q11")를 안전하게 읽어요. id 모양이 아닌 것은 버리고 최대 max 개 */
+/** 문제 id 목록 쿼리("u1_1_1-q6,u1_1_1-q11")를 안전하게 읽어요. id 모양이 아닌 것은 버리고 최대 max 개 */
 export const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/;
 export function idList(v: string | undefined | null, max = 30): string[] {
   if (!v) return [];

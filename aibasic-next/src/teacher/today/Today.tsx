@@ -1,7 +1,7 @@
 // 교사 첫 화면 '오늘 수업'(#/).
 //   첫 화면 위쪽(1080 안): 오늘 할 레슨 고르기(이어서 할 레슨과 다르면 한 카드 안에서) · 수업 시간 · 차시 · '▶ 수업 시작'(장면 a/b, 칠판과 같은 번호)
 //   그 아래: 시간 배분 막대 · "시간이 n분 넘쳐요 · 줄이기" · 꺼진 장면 펼침 목록(바로 켜기) · 준비 바로 가기 · 이 반 진도에 기록하기 · 반별 진도 요약
-// 다른 차시는 #/?lid=u1-3&p=2 로 올려요(차시 찾기의 '오늘 수업으로'). 시간이 넘쳐도 장면을 자동으로 끄지 않아요.
+// 다른 차시는 #/?lid=u1_2_1&p=2 로 올려요(차시 찾기의 '오늘 수업으로'). 시간이 넘쳐도 장면을 자동으로 끄지 않아요.
 import { useEffect, useState } from "react";
 import { DURATIONS, type LessonIndex, type TeacherData } from "../../shared/contracts.ts";
 import { intParam, navigate } from "../../shared/router/index.ts";

@@ -37,7 +37,7 @@ function tagsOf(plan: PlanLike): PlanTags {
 /** group 첫머리로 문제 갈래를 정해요 */
 export function qKind(q: Pick<Question, "group">): QKind {
   const g = (q.group || "").trim();
-  if (g.indexOf("개념 확인") === 0) return "check";
+  if (g.indexOf("계단 확인") === 0 || g.indexOf("개념 확인") === 0) return "check";
   if (g.indexOf("쉬운 응용") === 0) return "easy";
   if (g.indexOf("실력") === 0) return "adv";
   if (g.indexOf("도전") === 0 || g.indexOf("수능") === 0) return "chal";
@@ -87,7 +87,12 @@ export function baseSections(lesson: L): Record<string, number> {
   const S = Math.max(1, lesson.sections.length);
   const out: Record<string, number> = {};
   const checks = lesson.practice.filter((q) => qKind(q) === "check");
-  checks.forEach((q, i) => (out[q.id] = Math.min(S - 1, Math.floor((i * S) / checks.length))));
+  checks.forEach((q, i) => {
+    // '계단 확인 3계단' 은 소제목(계단) 3번 = 번호 2. 그 밖의 이름이면 나온 순서대로 고르게 나눠요
+    const m = /(\d+)\s*계단/.exec(q.group || "");
+    const n = m ? parseInt(m[1], 10) - 1 : -1;
+    out[q.id] = n >= 0 && n < S ? n : Math.min(S - 1, Math.floor((i * S) / checks.length));
+  });
 
   const groups: string[] = [];
   for (const q of lesson.practice) if (qKind(q) === "basic" && groups.indexOf(q.group) < 0) groups.push(q.group);
@@ -326,6 +331,9 @@ export function pickExit(c: PickContext, exclude: readonly string[] = []): strin
     free.filter((q) => (q.type === "choice" || q.type === "ox") && q.level <= 3 && !inP(q) && qKind(q) !== "chal"),
     free.filter((q) => q.type === "number" && q.level <= 3 && inP(q)),
     free.filter((q) => q.type === "number" && q.level <= 3 && !inP(q)),
+    // 계단이 뒤로 갈수록 난이도가 올라가서(4~5) 위 조건에 안 걸리면 이 차시 안의 선택형·OX 를 그대로 써요
+    free.filter((q) => (q.type === "choice" || q.type === "ox") && inP(q)),
+    free.filter((q) => (q.type === "choice" || q.type === "ox") && !inP(q)),
   ];
   const out: string[] = [];
   const groups: string[] = [];
@@ -464,16 +472,16 @@ export function pickAll(lesson: L, plan?: (PlanLesson & PlanTags) | null, period
 /* ─────────── 학생 링크(수업 끝 QR) ─────────── */
 
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
-const LID_RE = /^u\d+-\d+$/;
+const LID_RE = /^u\d+_\w+$/;
 
-/** 레슨 id 앞머리를 떼서 짧게: "u1-1-q06" → "q06" (QR 을 작게). 앞머리가 다르면 그대로 */
+/** 레슨 id 앞머리를 떼서 짧게: "u1_1_1-q6" → "q6" (QR 을 작게). 앞머리가 다르면 그대로 */
 export function shortId(lid: string, id: string): string {
   return id.indexOf(lid + "-") === 0 ? id.slice(lid.length + 1) : id;
 }
 
-/** 짧은 id 를 다시 늘려요: "q06" → "u1-1-q06". 이미 긴 id 는 그대로. 학생 쪽 해석과 같은 규칙 */
+/** 짧은 id 를 다시 늘려요: "q6" → "u1_1_1-q6". 이미 긴 id 는 그대로. 학생 쪽 해석과 같은 규칙 */
 export function expandId(lid: string, id: string): string {
-  return /^u\d+-\d+-/.test(id) ? id : lid + "-" + id;
+  return /^u\d+_\w+-/.test(id) ? id : lid + "-" + id;
 }
 
 export interface StudentLinkOpts {
@@ -485,8 +493,8 @@ export interface StudentLinkOpts {
 
 /**
  * 학생 사이트 레슨 주소. 문제 id 만 담아요.
- *   studentLink("https://aibasics.web.app", "u1-1", { hw: ["u1-1-q06"], ex: ["u1-1-q03"] })
- *   → "https://aibasics.web.app/#/l/u1-1?hw=q06&ex=q03"
+ *   studentLink("https://aibasics.web.app", "u1_1_1", { hw: ["u1_1_1-q6"], ex: ["u1_1_1-q3"] })
+ *   → "https://aibasics.web.app/#/l/u1_1_1?hw=q06&ex=q03"
  */
 export function studentLink(base: string, lid: string, opts: StudentLinkOpts = {}): string {
   if (!LID_RE.test(lid)) throw new RangeError("레슨 id 가 올바르지 않아요: " + lid);
@@ -510,7 +518,7 @@ export function studentLink(base: string, lid: string, opts: StudentLinkOpts = {
 
 /** 학생 링크의 쿼리를 다시 읽어요(시험·미리보기용). 학생 사이트는 같은 규칙을 따로 구현해요 */
 export function parseStudentLink(url: string): { lid: string; hw: string[]; ex: string[] } | null {
-  const m = /#\/l\/(u\d+-\d+)(?:\?(.*))?$/.exec(url);
+  const m = /#\/l\/(u\d+_\w+)(?:\?(.*))?$/.exec(url);
   if (!m) return null;
   const lid = m[1];
   const out = { lid, hw: [] as string[], ex: [] as string[] };

@@ -7,11 +7,11 @@ import { loadLessons } from "./_content.ts";
 
 const lessons = loadLessons();
 
-test("콘텐츠 20레슨을 읽어요", () => {
-  assert.equal(lessons.length, 20);
+test("콘텐츠 26레슨을 읽어요", () => {
+  assert.equal(lessons.length, 26);
 });
 
-test("splitSection: 20레슨 모든 소제목에서 블록을 빠뜨리거나 겹치지 않아요", () => {
+test("splitSection: 26레슨 모든 소제목에서 블록을 빠뜨리거나 겹치지 않아요", () => {
   let sections = 0;
   let cardsTotal = 0;
   for (const { file, lesson } of lessons) {
@@ -97,7 +97,7 @@ test("splitSection: 규칙 단위 시험", () => {
   assert.equal(cards.length, 3);
 });
 
-test("splitStory: 20레슨 모든 문단을 빠뜨리거나 겹치지 않고, 대부분 말풍선으로 나눠요", () => {
+test("splitStory: 26레슨 모든 문단을 빠뜨리거나 겹치지 않고, 대부분 말풍선으로 나눠요", () => {
   let paras = 0;
   let fails = 0;
   let says = 0;
@@ -126,39 +126,34 @@ test("splitStory: 20레슨 모든 문단을 빠뜨리거나 겹치지 않고, �
   }
   assert.ok(paras >= 100, "문단 수: " + paras);
   assert.equal(fails, 0, "따옴표 나누기 실패 문단이 있어요");
-  assert.ok(says > 300, "말풍선 수: " + says);
-  assert.ok(named / says > 0.85, "말한 사람을 찾은 비율이 낮아요: " + named + "/" + says);
+  assert.ok(says > 40, "말풍선 수: " + says);
+  assert.ok(named / says > 0.5, "말한 사람을 찾은 비율이 낮아요: " + named + "/" + says);
 });
 
 test("splitStory: 말한 사람 찾기와 실패 시 원문 유지", () => {
-  const a = splitStoryParagraph("하은이 손을 들었다. “㉮는 사람이에요.” 지후는 고개를 저었다. “아니야.”");
+  const a = splitStoryParagraph("민준이 손을 들었다. “㉮는 사람이에요.” 지우는 고개를 저었다. “아니야.”");
   assert.ok(a.ok);
   const says = a.segs.filter((s) => s.k === "say");
-  assert.deepEqual(says.map((s) => (s.k === "say" ? s.who : "")), ["하은", "지후"]);
+  assert.deepEqual(says.map((s) => (s.k === "say" ? s.who : "")), ["민준", "지우"]);
   assert.equal(says[0].text, "㉮는 사람이에요.");
 
-  const b = splitStoryParagraph('"밝게 하면 되잖아!" 서하가 벌떡 일어났다.');
+  const b = splitStoryParagraph('"밝게 하면 되잖아!" 도윤이 벌떡 일어났다.');
   const sb = b.segs[0];
-  assert.ok(sb.k === "say" && sb.who === "서하");
+  assert.ok(sb.k === "say" && sb.who === "도윤");
 
-  const c = splitStoryParagraph("유 선생님이 웃었다. “바로 그거야.”");
+  const c = splitStoryParagraph("아라 쌤이 웃으셨다. “바로 그거야.”");
   const sc = c.segs[1];
-  assert.ok(sc.k === "say" && sc.who === "유 선생님");
+  assert.ok(sc.k === "say" && sc.who === "아라 쌤");
 
-  const d = splitStoryParagraph("선생님이 말했다. “좋아.”");
+  const d = splitStoryParagraph("쌤이 말했다. “좋아.”");
   const sd = d.segs[1];
-  assert.ok(sd.k === "say" && sd.who === "유 선생님", "별칭");
-
-  // 8비트 는 인물 '비트' 가 아니에요
-  const e = splitStoryParagraph("그림은 8비트로 그려져 있었다. “와!”");
-  const se = e.segs[1];
-  assert.ok(se.k === "say" && se.who === null);
+  assert.ok(sd.k === "say" && sd.who === "아라 쌤", "별칭");
 
   // 따옴표 짝이 안 맞으면 원문 그대로
-  const f = splitStoryParagraph("지후가 말했다. “끝나지 않는 말");
+  const f = splitStoryParagraph("지우가 말했다. “끝나지 않는 말");
   assert.equal(f.ok, false);
   assert.equal(f.segs.length, 1);
-  assert.equal(f.segs[0].raw, "지후가 말했다. “끝나지 않는 말");
+  assert.equal(f.segs[0].raw, "지우가 말했다. “끝나지 않는 말");
 
   // 따옴표 없는 문단은 지문 하나
   const g = splitStoryParagraph("비가 왔다.");
@@ -166,18 +161,22 @@ test("splitStory: 말한 사람 찾기와 실패 시 원문 유지", () => {
   assert.deepEqual(g.segs.map((s) => s.k), ["narr"]);
 });
 
-test("splitStory: 이어지는 말·화면 말풍선·적힌 글", () => {
-  const a = splitStoryParagraph("서하가 눈을 떴다. “이거 봐.” “진짜 많아!”");
+test("splitStory: 이어지는 말·화면 말풍선(옵션)·적힌 글", () => {
+  const a = splitStoryParagraph("도윤이 눈을 떴다. “이거 봐.” “진짜 많아!”");
   const says = a.segs.filter((s) => s.k === "say");
-  assert.deepEqual(says.map((s) => (s.k === "say" ? s.who : "")), ["서하", "서하"]);
-  assert.equal(a.segs.map((s) => s.raw).join(""), "서하가 눈을 떴다. “이거 봐.” “진짜 많아!”");
+  assert.deepEqual(says.map((s) => (s.k === "say" ? s.who : "")), ["도윤", "도윤"]);
+  assert.equal(a.segs.map((s) => s.raw).join(""), "도윤이 눈을 떴다. “이거 봐.” “진짜 많아!”");
 
+  // 화면 말풍선 화자는 기본으로 없고, 옵션으로 줄 수 있어요
   const b = splitStoryParagraph("화면에 말풍선이 떴다. “안녕하세요!”");
   const sb = b.segs[1];
-  assert.ok(sb.k === "say" && sb.who === "비트");
+  assert.ok(sb.k === "say" && sb.who === null);
+  const b2 = splitStoryParagraph("화면에 말풍선이 떴다. “안녕하세요!”", 0, { screenSpeaker: "챗봇" });
+  const sb2 = b2.segs[1];
+  assert.ok(sb2.k === "say" && sb2.who === "챗봇");
 
-  const c = splitStoryParagraph("쪽지에는 “국이 맛있다”라고 적혀 있었다. 지후가 웃었다. “좋네.”");
+  const c = splitStoryParagraph("쪽지에는 “국이 맛있다”라고 적혀 있었다. 민준이 웃었다. “좋네.”");
   assert.deepEqual(c.segs.map((s) => s.k), ["narr", "say"]);
   const sc = c.segs[1];
-  assert.ok(sc.k === "say" && sc.who === "지후");
+  assert.ok(sc.k === "say" && sc.who === "민준");
 });

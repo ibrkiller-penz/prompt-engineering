@@ -2,6 +2,7 @@
 //   vite build --mode student → dist-s (학생용 https://aibasics.web.app)
 //   vite build --mode teacher → dist-t (교사용 https://aibasict.web.app)
 // @site 별칭이 src/student 또는 src/teacher 를 가리켜서, 학생 빌드의 의존 그래프에는 교사 코드가 아예 들어가지 않아요.
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
@@ -73,6 +74,27 @@ function siteHtml(site: Site): Plugin {
   };
 }
 
+/** 콘텐츠 그림(content/aibasic/img)을 개발 서버와 빌드 결과(c/img/)에 함께 내보내요. 따로 복사하지 않아요 */
+function contentImages(): Plugin {
+  const dir = path.join(CONTENT_DIR, "img");
+  const files = () => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /\.(jpg|jpeg|png|webp|svg)$/.test(f)) : []);
+  const type = (n: string) => (n.endsWith(".svg") ? "image/svg+xml" : n.endsWith(".png") ? "image/png" : n.endsWith(".webp") ? "image/webp" : "image/jpeg");
+  return {
+    name: "aibn-content-images",
+    configureServer(server) {
+      server.middlewares.use("/c/img", (req, res, next) => {
+        const name = decodeURIComponent((req.url || "").split("?")[0].replace(/^\//, ""));
+        if (files().indexOf(name) < 0) return next();
+        res.setHeader("Content-Type", type(name));
+        res.end(fs.readFileSync(path.join(dir, name)));
+      });
+    },
+    generateBundle() {
+      for (const f of files()) this.emitFile({ type: "asset", fileName: "c/img/" + f, source: fs.readFileSync(path.join(dir, f)) });
+    },
+  };
+}
+
 export default defineConfig(({ mode, command }) => {
   let site: Site;
   if (mode === "student" || mode === "teacher") site = mode;
@@ -86,7 +108,7 @@ export default defineConfig(({ mode, command }) => {
     root: here,
     base: "/",
     publicDir: "public",
-    plugins: [react(), contentIndexPlugin(CONTENT_DIR), siteHtml(site)],
+    plugins: [react(), contentIndexPlugin(CONTENT_DIR), siteHtml(site), contentImages()],
     define: {
       __SITE__: JSON.stringify(site),
     },

@@ -7,6 +7,7 @@ import { chips as chipsOf } from "../../content/overrides.ts";
 import { Rich } from "./tex.tsx";
 import { MathBlock } from "./MathBlock.tsx";
 import { CodeBlock } from "./CodeBlock.tsx";
+import { ImageBlock } from "./ImageBlock.tsx";
 import { StackTable } from "./StackTable.tsx";
 import { TermView } from "./Term.tsx";
 import { Callout } from "./Callout.tsx";
@@ -18,7 +19,7 @@ import { useUiSurface } from "./surface.ts";
 export interface BlockViewProps {
   block: Block;
   surface?: Surface;
-  /** 칩을 찾을 문서(레슨 id "u1-1" 또는 단원 "u1") */
+  /** 칩을 찾을 문서(레슨 id "u1_1_1" 또는 단원 "u1") */
   where?: string;
   /** 문서 안 이 블록의 경로(예 "sections.0.blocks.2") */
   path?: string;
@@ -53,6 +54,8 @@ export function BlockView(props: BlockViewProps) {
       return <MathBlock tex={b.tex} surface={sf} />;
     case "code":
       return <CodeBlock code={b.code} lang={b.lang} surface={sf} />;
+    case "image":
+      return <ImageBlock src={b.src} alt={b.alt} caption={b.caption} surface={sf} />;
     case "table":
       return <StackTable head={b.head} rows={b.rows} caption={b.caption} surface={sf} />;
     case "term":

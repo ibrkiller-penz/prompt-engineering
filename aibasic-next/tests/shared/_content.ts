@@ -1,10 +1,9 @@
-// 시험용: 원본 콘텐츠(/content/aimath)를 읽기만 해요(고치지 않음).
+// 시험용: 원본 콘텐츠(/content/aibasic)를 읽기만 해요(고치지 않음).
 import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { CONTENT_DIR as DIR } from "../../tools/content-index.mjs";
 
-const here = dirname(fileURLToPath(import.meta.url));
-export const CONTENT_DIR = join(here, "..", "..", "..", "content", "aimath");
+export const CONTENT_DIR: string = DIR;
 
 export interface RawLesson {
   id: string;
@@ -16,7 +15,7 @@ export interface RawLesson {
 export function loadLessons(): { file: string; lesson: RawLesson }[] {
   const out: { file: string; lesson: RawLesson }[] = [];
   for (const u of readdirSync(CONTENT_DIR).filter((d) => /^u\d+$/.test(d)).sort()) {
-    for (const f of readdirSync(join(CONTENT_DIR, u)).filter((f) => /^lesson-\d+\.json$/.test(f)).sort()) {
+    for (const f of readdirSync(join(CONTENT_DIR, u)).filter((f) => /^lesson-[0-9A-Za-z_]+\.json$/.test(f)).sort()) {
       out.push({ file: u + "/" + f, lesson: JSON.parse(readFileSync(join(CONTENT_DIR, u, f), "utf8")) });
     }
   }

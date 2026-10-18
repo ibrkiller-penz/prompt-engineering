@@ -2,7 +2,7 @@
 // import 규칙 검사(원본 src/ 와 tests/ 를 읽어요).
 //  1) src/student · src/shared · src/content · src/styles 는 src/teacher 를 가져오면 안 돼요(상대 경로·별칭 모두)
 //  2) @site 별칭은 src/main.tsx 에서만(공용 코드가 @site 를 쓰면 교사 빌드에서 교사 코드를 가리켜요)
-//  3) @legacy 로 가져올 수 있는 것은 @legacy/widgets/*.logic 과 @legacy/types 뿐이에요
+//  3) 저장소 뿌리 src(옛 사이트 코드)는 가져오지 않아요(@legacy 별칭은 없어요)
 //  4) data/teacher/** 는 src/teacher 에서만
 //  5) 순수 로직(src/shared/logic · src/teacher/logic · widgets/*/mission.ts · *.logic.ts)은 react·DOM 없이,
 //     상대 import 에 .ts 를 붙이고 별칭을 쓰지 않아요(node --test 가 바로 돌아요)
@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CONTENT_DIR } from "../tools/content-index.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "src");
@@ -21,8 +22,7 @@ const VERBOSE = process.argv.includes("--verbose");
 const ALIAS = {
   "@shared/": path.join(SRC, "shared") + "/",
   "@data/": path.join(ROOT, "data") + "/",
-  "@content/": path.resolve(ROOT, "../content/aimath") + "/",
-  "@legacy/": path.resolve(ROOT, "../src/aimath") + "/",
+  "@content/": CONTENT_DIR + "/",
 };
 const BANNED_PKG = [/^react-router/, /^tailwindcss/, /^@tailwind/, /^@vitejs\/plugin-legacy/, /^qrcode/, /^(https?:)?\/\//];
 
@@ -96,12 +96,7 @@ for (const f of files) {
     }
     if (abs && !isTeacher && inside(abs, TEACHER)) problems.push(`${where} — 학생·공용 코드가 교사 코드를 가져와요`);
     if (abs && !isTeacher && inside(abs, DATA_TEACHER)) problems.push(`${where} — data/teacher 는 src/teacher 에서만 가져와요`);
-    if (s.indexOf("@legacy/") === 0) {
-      const rest = s.slice("@legacy/".length).replace(/\.ts$/, "");
-      if (!(/^widgets\/[A-Za-z0-9]+\.logic$/.test(rest) || rest === "types")) problems.push(`${where} — @legacy 는 widgets/*.logic 과 types 만 가져와요`);
-    }
-    if (abs && inside(abs, path.resolve(ROOT, "../src")) && s.indexOf("@legacy/") !== 0)
-      problems.push(`${where} — 뿌리 src 는 @legacy 별칭으로만 가져와요`);
+    if (abs && inside(abs, path.resolve(ROOT, "../src"))) problems.push(`${where} — 저장소 뿌리 src(옛 사이트 코드)는 가져오지 않아요`);
     if (pure && kind !== "glob") {
       const isType = /^\s*import\s+type\b/m.test(code) && new RegExp(`import\\s+type[^;]*["']${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']`).test(code);
       if (/^(react|react-dom|katex)(\/|$)/.test(s)) problems.push(`${where} — 순수 로직은 react·katex 를 가져오지 않아요`);
@@ -122,7 +117,7 @@ for (const f of testFiles) {
   if (!/\.test\.ts$/.test(f)) continue;
   const code = fs.readFileSync(f, "utf8");
   for (const { s } of specifiers(f, code)) {
-    if (/^@(site|shared|data|content|legacy)\//.test(s) && !/^\s*import\s+type/m.test(code.split(s)[0].split("\n").pop() || "")) {
+    if (/^@(site|shared|data|content)\//.test(s) && !/^\s*import\s+type/m.test(code.split(s)[0].split("\n").pop() || "")) {
       problems.push(`${rel(f)}: '${s}' — node --test 는 별칭을 못 풀어요(상대 경로로)`);
     }
   }

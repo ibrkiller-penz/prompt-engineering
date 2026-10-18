@@ -23,7 +23,7 @@ html.kbd .ui-math:focus, html.kbd .ui-table-scroll:focus, html.kbd .ui-code-pre:
 .ui-scroll-hint { display: block; margin: var(--sp-1) 0 0; font-size: var(--t-xs); color: var(--ink-2); text-align: right; }
 
 /* ── 코드 블록(t:"code") ──
- * 휴대폰·준비 화면: 줄을 바꾸지 않고 옆으로 밀어 봐요(키보드로도 돼요). 칠판: 본문의 0.8배 글자로 줄을 바꿔 한 화면에 담아요. */
+ * 휴대폰·준비 화면: 줄을 바꾸지 않고 옆으로 밀어 봐요(키보드로도 돼요). 칠판: 본문의 0.875배(28px) 글자로 줄을 바꿔 한 화면에 담아요. */
 .ui-code { margin: 0; border: var(--border) solid var(--line-strong); border-radius: var(--radius-m); background: var(--surface-2); color: var(--ink); overflow: hidden; }
 .ui-code-tag { display: block; padding: var(--sp-1) var(--sp-3); font-size: var(--t-xs); font-weight: 800; color: var(--ink-2); background: var(--surface); border-bottom: 1px solid var(--line); }
 .ui-code-pre { margin: 0; padding: var(--sp-3); overflow-x: auto; -webkit-overflow-scrolling: touch; font-family: var(--font-num); font-size: var(--t-sm); line-height: 1.55; white-space: pre; tab-size: 4; text-align: left; }
@@ -34,8 +34,8 @@ html.kbd .ui-math:focus, html.kbd .ui-table-scroll:focus, html.kbd .ui-code-pre:
 .ui-code-num { color: var(--info); }
 .ui-code-fn { color: var(--ink); font-weight: 700; }
 .ui-code-com { color: var(--ink-2); font-style: italic; }
-.ui-code.is-board .ui-code-tag { font-size: .8em; padding: 4px 24px; }
-.ui-code.is-board .ui-code-pre { font-size: .8em; line-height: 1.5; padding: 12px 24px; white-space: pre-wrap; word-break: break-all; overflow: hidden; }
+.ui-code.is-board .ui-code-tag { font-size: .875em; padding: 4px 24px; }
+.ui-code.is-board .ui-code-pre { font-size: .875em; line-height: 1.5; padding: 12px 24px; white-space: pre-wrap; word-break: break-all; overflow: hidden; }
 
 /* ── 표 ── */
 .ui-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -259,3 +259,14 @@ html[data-site="teacher"] .ui-q.is-wrong { padding-bottom: 0; }
 
 /* 글 속 코드(`isna()` 처럼 백틱으로 묶은 글자) */
 .ui-icode { font-family: var(--font-num); font-size: .92em; padding: .08em .35em; border-radius: 6px; background: var(--surface-2); color: var(--ink); word-break: break-word; }
+
+/* ── 그림(t:"image") ── 칠판은 높이 460px(measure.logic 의 IMG_H)을 넘지 않게 맞춰요 */
+.ui-image { margin: 0; text-align: center; }
+.ui-image img { display: block; max-width: 100%; height: auto; margin: 0 auto; border-radius: var(--radius-s); background: #fff; }
+.ui-image-cap { margin-top: var(--sp-2); font-size: var(--t-sm); color: var(--ink-2); line-height: var(--lh-tight); }
+.ui-image.is-board img { max-height: 460px; width: auto; object-fit: contain; }
+.ui-image.is-board .ui-image-cap { font-size: .875em; }
+.ui-image.is-prep img { max-height: 420px; width: auto; }
+/* 글 속 그림이 긴 이야기 상자 안에서도 잘리지 않게 */
+.ui-qpassage { margin-bottom: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--line-strong); border-radius: var(--radius-m); background: var(--surface-2); }
+.ui-qpassage > * + * { margin-top: var(--sp-2); }

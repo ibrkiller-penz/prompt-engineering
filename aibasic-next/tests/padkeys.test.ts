@@ -38,5 +38,5 @@ test("전체 숫자 문제: 키 구성이 정답 유형과 어긋나지 않아�
   };
   for (const { lesson } of loadLessons()) (lesson.practice || []).forEach(check);
   for (const { unit } of loadUnits()) (unit.test || []).forEach(check);
-  assert.ok(n > 50);
+  assert.equal(n, 0, "인공지능 기초에는 숫자 문제가 없어요(있으면 위 검사가 키 구성을 봐요)");
 });

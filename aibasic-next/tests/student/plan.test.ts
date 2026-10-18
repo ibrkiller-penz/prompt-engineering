@@ -6,13 +6,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadLessons } from "../shared/_content.ts";
 // @ts-ignore — .mjs 스크립트(타입 없음)
-import { buildPlan, CORE_MAX, CORE_MIN, KEEP_FIELDS, splitQuestion } from "../../scripts/gen-plan.mjs";
+import { buildPlan, CORE_MAX, CORE_MIN, KEEP_FIELDS, splitQuestion, TWO_PERIOD_MIN_SECTIONS } from "../../scripts/gen-plan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const plan = JSON.parse(readFileSync(join(here, "..", "..", "data", "plan.json"), "utf8"));
 const lessons = loadLessons().map((x) => x.lesson);
 
-test("plan.json 에 20레슨이 모두 있고, 지금 콘텐츠로 만든 초안과 같아요(keep: true 레슨 제외)", () => {
+test("plan.json 에 26레슨이 모두 있고, 지금 콘텐츠로 만든 초안과 같아요(keep: true 레슨 제외)", () => {
   assert.equal(Object.keys(plan.lessons).length, lessons.length);
   const fresh: { lessons: Record<string, unknown> } = buildPlan(plan);
   for (const lid of Object.keys(fresh.lessons)) {
@@ -40,7 +40,7 @@ test("plan.json 의 문제 id 는 모두 그 레슨에 있고, 규칙을 지켜�
     for (const k of ["board", "exit", "hw"]) for (const id of p[k]) assert.ok(has(id), where + " " + k + " " + id);
     const secs = ([] as number[]).concat(...p.periods.map((x: { sections: number[] }) => x.sections));
     assert.deepEqual(secs, L.sections.map((_: unknown, i: number) => i), where + ": 차시가 소제목을 빠짐없이 순서대로 나눠요");
-    assert.equal(p.periods.length, L.sections.length >= 2 ? 2 : 1, where + ": 차시 수(40차시 기준: 레슨마다 2차시)");
+    assert.equal(p.periods.length, L.sections.length >= TWO_PERIOD_MIN_SECTIONS ? 2 : 1, where + ": 차시 수(레슨당 1~2차시)");
     for (const q of L.practice) assert.ok(q.id in p.sectionOf, where + " sectionOf " + q.id);
   }
 });
@@ -92,7 +92,8 @@ test("plan.json: 확인 문제·태그·정리 줄·차시 질문이 소제목�
     assert.equal(p.summaryOf.length, (L as unknown as { summary: string[] }).summary.length, where + ": summaryOf 길이");
     for (const s of p.summaryOf) assert.ok(s >= -1 && s < L.sections.length, where + " summaryOf " + s);
     // 2차시 레슨은 차시마다 1~2줄 질문
-    if (p.periods.length > 1) for (const pp of p.periods) assert.ok(typeof pp.question === "string" && pp.question.length > 0 && pp.question.length <= 90, where + ": 차시 질문 " + pp.question);
+    // 핵심 질문이 하나뿐인 레슨은 차시별 질문이 없어도 돼요(없으면 레슨 질문을 그대로 써요). 있으면 90자 이하
+    if (p.periods.length > 1) for (const pp of p.periods) assert.ok(pp.question === undefined || (typeof pp.question === "string" && pp.question.length > 0 && pp.question.length <= 90), where + ": 차시 질문 " + pp.question);
   }
   assert.deepEqual(splitQuestion("가는 무엇일까? 그리고 나는 왜 그럴까?", 2), ["가는 무엇일까?", "나는 왜 그럴까?"]);
   assert.equal(splitQuestion("하나뿐이에요?", 2), null);

@@ -15,7 +15,7 @@
 // 높이: 모든 장면은 896px(BOARD_BODY_H) 안에 들어가야 해요. 넘치면 글자를 한 단계 줄이고(fsDown=1),
 //   그래도 넘치면 "이어서" 장면으로 나눠요(part). 큰 표는 행을 나눠 머리줄을 다시 붙이고, 긴 예제는 풀이 단계를 나눠요.
 import type { Block, Lesson, PlanLesson, Question, Scene, SceneBlock, SceneKind, SceneStage } from "../../shared/contracts.ts";
-import { BODY_H, BOARD_FS, blockWeight, codeLines, exampleSceneHeight, isBigTable, linesSceneHeight, qHeight, stackHeight } from "./measure.logic.ts";
+import { BODY_H, BOARD_FS, blockWeight, codeLines, isAside, exampleSceneHeight, isBigTable, linesSceneHeight, qHeight, stackHeight } from "./measure.logic.ts";
 import { lessonPeriods, periodQuestion, pickPeriod, recapLines, summaryForPeriod, type PeriodInfo } from "./periods.logic.ts";
 import { pickAll, questionSections, sectionCheckIds, type PickSet } from "./pick.logic.ts";
 
@@ -216,6 +216,14 @@ function splitBlock(b: SceneBlock, fs: number): SceneBlock[] {
     const c: Block = { t: "code", code: lines.slice(half).join("\n"), lang: b.lang };
     return splitBlock(a, fs).concat(splitBlock(c, fs));
   }
+  if (b.t === "callout" && b.text.indexOf("\n\n") > 0) {
+    // 긴 이야기 상자: 문단 경계에서 반으로(둘째 조각 제목에 '이어서')
+    const paras = b.text.split("\n\n");
+    const half = Math.ceil(paras.length / 2);
+    const a: Block = { t: "callout", kind: b.kind, title: b.title, text: paras.slice(0, half).join("\n\n") };
+    const c: Block = { t: "callout", kind: b.kind, title: (b.title || "") + " (이어서)", text: paras.slice(half).join("\n\n") };
+    return splitBlock(a, fs).concat(splitBlock(c, fs));
+  }
   if (b.t === "lines" && b.items.length > 1) {
     const half = Math.ceil(b.items.length / 2);
     return splitBlock({ t: "lines", items: b.items.slice(0, half) }, fs).concat(splitBlock({ t: "lines", items: b.items.slice(half) }, fs));
@@ -383,6 +391,7 @@ function conceptDrafts(lesson: L, s: number): { concept: Draft[]; widgets: Draft
   let cur: { blocks: SceneBlock[]; src: { s: number; b: number }[]; w: number } | null = null;
   let k = 0;
   let ex = 0;
+  let aside = 0;
   const heading: SceneBlock = { t: "heading", text: sec.heading };
 
   const flush = () => {
@@ -420,6 +429,24 @@ function conceptDrafts(lesson: L, s: number): { concept: Draft[]; widgets: Draft
         required: false,
         on: true,
         baseMin: 6,
+        section: s,
+        src: [{ s, b: bi }],
+      });
+      return;
+    }
+    if (b.t === "callout" && isAside(b)) {
+      // 읽을거리 상자는 따로 장면(기본 꺼짐). 흐름 화면에서 켜서 쓸 수 있어요
+      flush();
+      concept.push({
+        id: "as" + (s + 1) + "-" + ++aside,
+        stage: "concept",
+        kind: "concept",
+        title: b.title,
+        blocks: [b],
+        reveal: 0,
+        required: false,
+        on: false,
+        baseMin: round05(Math.min(3, 1 + blockWeight(b) / 80)),
         section: s,
         src: [{ s, b: bi }],
       });

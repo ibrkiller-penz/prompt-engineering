@@ -5,11 +5,11 @@
 //
 //   node scripts/shots.mjs                학생 375×812 · 교사 1920×1080 주요 화면을 tools/shots/ 에 저장 + 검사
 //   node scripts/shots.mjs --check        촬영하면서 콘솔 오류 · pageerror · 외부 요청 · 가로 넘침이 0건인지 봐요(기본으로 켜져 있어요)
-//   node scripts/shots.mjs --all-scenes   20레슨 × 모든 차시의 모든 칠판 장면(공개 단계마다)이 본문 896px 안에 드는지 봐요
+//   node scripts/shots.mjs --all-scenes   26레슨 × 모든 차시의 모든 칠판 장면(공개 단계마다)이 본문 896px 안에 드는지 봐요
 //   node scripts/shots.mjs --smoke        저장 없이 두 사이트 첫 화면과 몇 화면만 빠르게 검사(verify 마지막 단계)
 //   node scripts/shots.mjs --qa           통합 점검 사진 qa-board-1920-01~12 · qa-phone-375-01~09 를 다시 찍어요(tools/shots/qa-*.png)
 //   --only=s | --only=t                   한 사이트만
-//   --lessons=u1-1,u2-3                   --all-scenes 대상 레슨 줄이기
+//   --lessons=u1_1_1,u2_1_3                   --all-scenes 대상 레슨 줄이기
 // 화면마다 '불러오는 중'(.ui-loading · .t-loading · 글자 '불러오는 중')이 사라질 때까지 기다리고, 남아 있으면 문제로 적어요.
 // 하나라도 문제가 있으면 1로 끝나요.
 import fs from "node:fs";
@@ -267,12 +267,12 @@ async function studentShots(browser, base) {
 
   if (SMOKE) {
     await go("home", "/");
-    await go("lesson", "/l/u1-1");
-    await go("card", "/l/u2-3/s/c1/1");
-    await go("quiz", "/l/u1-1/q");
+    await go("lesson", "/l/u1_1_1");
+    await go("card", "/l/u2_1_3/s/c1/1");
+    await go("quiz", "/l/u1_1_1/q");
     await go("me", "/me");
     // 학생 첫 화면에 교사 화면이 없는지(주소로 들어가도 교사 화면이 아니어야 해요)
-    await go("no-teacher-route", "/board/u1-1");
+    await go("no-teacher-route", "/board/u1_1_1");
     const t = await page.evaluate(() => document.body.innerText);
     if (/정답 일괄|문제 고르기|수업 진행|교사 준비/.test(t)) problems.push("[s] 학생 사이트에 교사 화면 문구가 보여요");
     await ctx.close();
@@ -282,37 +282,30 @@ async function studentShots(browser, base) {
   await go("01-home", "/");
   await go("02-unit1", "/u/1");
   await go("03-unit4", "/u/4");
-  await go("04-lesson", "/l/u1-2");
-  await go("05-story", "/l/u1-1/s/story/1");
-  await go("06-prereq", "/l/u1-2/s/prereq/1");
-  await go("07-concept", "/l/u1-2/s/c1/1");
-  await go("08-concept-math", "/l/u2-3/s/c1/2");
-  await go("09-concept-table", "/l/u4-1/s/c3/1");
-  // 체험 도구가 나오는 카드를 찾아 찍어요(u1-1 소제목 2, 튜링)
-  let found = false;
-  for (let c = 1; c <= 20 && !found; c++) {
-    await page.goto(base + "/#/l/u1-1/s/c2/" + c, { waitUntil: "load" });
-    await settle(page);
-    collect();
-    found = (await page.$(".wg-tools")) !== null;
-    if (found) await go("10-widget", "/l/u1-1/s/c2/" + c);
-  }
-  if (!found) problems.push("[s] u1-1 소제목 2 카드에서 체험 도구(.wg-tools)를 찾지 못했어요");
-  await go("11-wrap", "/l/u1-1/s/wrap/1");
-  await go("12-quiz", "/l/u1-1/q");
-  await go("13-quiz-more", "/l/u1-1/q/more");
+  await go("04-lesson", "/l/u1_1_2");
+  await go("05-story", "/l/u1_1_1/s/story/1");
+  await go("06-prereq", "/l/u1_1_2/s/prereq/1");
+  await go("07-concept", "/l/u1_1_2/s/c1/1");
+  await go("08-concept-code", "/l/u2_1_3/s/c2/2");
+  await go("09-concept-table", "/l/u4_1_2/s/c2/1");
+  // 코드 블록이 나오는 카드(u2_1_3 소제목 3)와 그림 카드를 찍어요
+  await go("10-code", "/l/u2_1_3/s/c3/1");
+  await go("10b-image", "/l/u1_1_1/s/c1/2");
+  await go("11-wrap", "/l/u1_1_1/s/wrap/1");
+  await go("12-quiz", "/l/u1_1_1/q");
+  await go("13-quiz-more", "/l/u1_1_1/q/more");
   await go("14-note", "/note");
   await go("15-review", "/review");
   await go("16-dict", "/dict");
   await go("17-me", "/me", { full: true });
   await go("18-privacy", "/privacy");
   await go("19-answer-card", "/card");
-  await go("20-qr-entry", "/l/u1-1?hw=q06,q11&ex=q03,q05");
+  await go("20-qr-entry", "/l/u1_1_1?hw=q6,q11&ex=q3,q5");
   // 어두운 화면·큰 글자
   await setPrefs(page, "s", { theme: "dark" });
   await go("21-home-dark", "/", { reload: true });
   await setPrefs(page, "s", { theme: "light", fs: 3 });
-  await go("22-concept-fs3", "/l/u2-3/s/c1/2", { reload: true });
+  await go("22-concept-fs3", "/l/u2_1_3/s/c1/2", { reload: true });
   await setPrefs(page, "s", { fs: 1 });
   // '교사용' 링크가 교사 주소로 가는지
   await page.goto(base + "/#/me", { waitUntil: "load" });
@@ -332,8 +325,8 @@ async function teacherShots(browser, base) {
 
   if (SMOKE) {
     await go("today", "/");
-    await go("board", "/board/u1-1?p=1&s=0");
-    await go("board-end", "/board/u1-1/end");
+    await go("board", "/board/u1_1_1?p=1&s=0");
+    await go("board-end", "/board/u1_1_1/end");
     const qr = await page.$("svg, canvas, img");
     if (!qr) problems.push("[t] 수업 끝 화면에 QR 그림이 없어요");
     const t = await page.evaluate(() => document.body.innerText + " " + Array.from(document.querySelectorAll("a[href]")).map((a) => a.getAttribute("href")).join(" "));
@@ -344,19 +337,19 @@ async function teacherShots(browser, base) {
 
   await go("01-today", "/");
   await go("02-find", "/find");
-  await go("03-flow", "/flow/u1-1?p=1");
-  await go("04-pick", "/pick/u1-1?p=1");
-  await go("05-prep", "/prep/u1-1");
-  await go("06-print", "/print/u1-1", { full: true });
+  await go("03-flow", "/flow/u1_1_1?p=1");
+  await go("04-pick", "/pick/u1_1_1?p=1");
+  await go("05-prep", "/prep/u1_1_1");
+  await go("06-print", "/print/u1_1_1", { full: true });
   await go("07-progress", "/progress");
   await go("08-results", "/results");
-  await go("09-board-question", "/board/u1-1?p=1&s=0");
-  await go("10-board-s1", "/board/u1-1?p=1&s=1");
-  await go("11-board-s2", "/board/u1-1?p=1&s=2");
-  await go("12-board-math", "/board/u2-3?p=1&s=3");
-  await go("13-board-q", "/board/u1-1/q/u1-1-q05");
+  await go("09-board-question", "/board/u1_1_1?p=1&s=0");
+  await go("10-board-s1", "/board/u1_1_1?p=1&s=1");
+  await go("11-board-s2", "/board/u1_1_1?p=1&s=2");
+  await go("12-board-code", "/board/u2_1_3?p=1&s=3");
+  await go("13-board-q", "/board/u1_1_1/q/u1_1_1-q5");
   // 한 문제 크게: '다음'을 끝까지 눌러 풀이까지
-  await go("14-board-q-solution", "/board/u1-1/q/u1-1-q05", {
+  await go("14-board-q-solution", "/board/u1_1_1/q/u1_1_1-q5", {
     after: async (p) => {
       for (let i = 0; i < 6; i++) {
         const b = await p.$(".bd-next");
@@ -366,13 +359,11 @@ async function teacherShots(browser, base) {
       }
     },
   });
-  await go("15-board-tool", "/board/u1-1/tool/turing");
-  await go("16-board-tool-regression", "/board/u4-2/tool/regression");
-  await go("17-board-end", "/board/u1-1/end");
+  await go("17-board-end", "/board/u1_1_1/end");
   const t = await page.evaluate(() => document.body.innerText + " " + Array.from(document.querySelectorAll("a[href]")).map((a) => a.getAttribute("href")).join(" "));
   if (!/aibasics\.web\.app/.test(t)) problems.push("[t] 수업 끝 화면에 학생 주소(aibasics.web.app)가 없어요");
   await setPrefs(page, "t", { theme: "chalk" });
-  await go("18-board-chalk", "/board/u1-1?p=1&s=2", { reload: true });
+  await go("18-board-chalk", "/board/u1_1_1?p=1&s=2", { reload: true });
   await setPrefs(page, "t", { theme: "dark" });
   await go("19-today-dark", "/", { reload: true });
   await setPrefs(page, "t", { theme: "light" });
@@ -448,7 +439,7 @@ async function allScenes(browser, base) {
             let minTxt = "";
             for (let i = 0; i < els.length; i++) {
               const el = els[i];
-              if (el.closest(".katex, svg, .wg-host, .bd-qr, [aria-hidden='true'], .bd-cue, .bd-eyebrow, .bdq-sum, .bdq-tally, .bd-end-note, .bd-end-more, .bd-end-period, .bd-end-site, small, .chip, .bd-tag")) continue;
+              if (el.closest("svg, .wg-host, .bd-qr, [aria-hidden='true'], .bd-cue, .bd-eyebrow, .bdq-sum, .bdq-tally, .bd-end-note, .bd-end-more, .bd-end-period, .bd-end-site, small, .chip, .bd-tag")) continue;
               const r = el.getBoundingClientRect();
               if (!r.width || !r.height) continue;
               let direct = "";
@@ -510,7 +501,7 @@ async function pressNext(page, n, pred) {
   }
 }
 
-/** 칠판 한 차시의 장면을 차례로 열어 종류별 첫 위치를 찾아요(math: 블록 수식이 있는 개념 장면) */
+/** 칠판 한 차시의 장면을 차례로 열어 종류별 첫 위치를 찾아요(math: 코드 블록이 있는 개념 장면) */
 async function findScenes(page, base, lid, want, max = 60) {
   const found = {};
   for (let s = 0; s < max; s++) {
@@ -518,7 +509,7 @@ async function findScenes(page, base, lid, want, max = 60) {
     await settle(page, 6000);
     const info = await page.evaluate(() => {
       const sc = document.querySelector(".bd-scene");
-      return sc ? { cls: sc.className, math: !!sc.querySelector(".katex-display"), count: (document.querySelector(".bd-head-count") || {}).textContent || "" } : null;
+      return sc ? { cls: sc.className, math: !!sc.querySelector(".ui-code"), count: (document.querySelector(".bd-head-count") || {}).textContent || "" } : null;
     });
     if (!info) continue;
     const k = (info.cls.match(/kind-(\w+)/) || [])[1];
@@ -544,9 +535,9 @@ async function qaShots(browser, sBase, tBase) {
     const go = (file, hash, o = {}) => visit(page, collect, tBase, "t", "qa " + file, hash, Object.assign({ file: QA_BOARD + file }, o));
     const miss = (what) => problems.push(`[t] qa: ${what} 장면을 찾지 못했어요`);
 
-    const at = await findScenes(page, tBase, "u1-1", ["question", "story", "concept", "widget", "problem", "summary"]);
+    const at = await findScenes(page, tBase, "u1_1_1", ["question", "story", "concept", "problem", "summary"]);
     collect();
-    const b = (s) => `/board/u1-1?p=1&s=${s}`;
+    const b = (s) => `/board/u1_1_1?p=1&s=${s}`;
     await go("01-교사첫화면-오늘수업", "/");
     await go("02-차시시작-핵심질문", b(at.question !== undefined ? at.question : 0));
     if (at.story !== undefined) {
@@ -556,25 +547,22 @@ async function qaShots(browser, sBase, tBase) {
     if (at.concept !== undefined) await go("04-개념설명", b(at.concept));
     else miss("개념");
     for (const [lid, name] of [
-      ["u2-3", "05-수식-벡터-u2-3"],
-      ["u4-3", "05b-수식-경사하강-u4-3"],
+      ["u2_1_3", "05-코드-u2_1_3"],
+      ["u4_3", "05b-코드-u4_3"],
     ]) {
       const m = await findScenes(page, tBase, lid, ["math"], 40);
       collect();
       if (m.math !== undefined) await go(name, `/board/${lid}?p=1&s=${m.math}`, { after: (p) => pressNext(p, 12, (l) => /공개/.test(l)) });
-      else miss(lid + " 수식");
+      else miss(lid + " 코드");
     }
-    if (at.widget !== undefined) await go("06-체험도구-장면", b(at.widget));
-    else miss("체험 도구");
-    await go("06b-체험도구-회귀", "/board/u4-2/tool/regression");
     if (at.problem !== undefined) await go("07-문제", b(at.problem));
     else miss("칠판 문제");
-    await go("07b-한문제-보기가림", "/board/u1-1/q/u1-1-q05");
+    await go("07b-한문제-보기가림", "/board/u1_1_1/q/u1_1_1-q5");
     // 득표가 없을 때: 정답을 열어도 '정답률' 한 줄이 없어야 해요
-    await go("08-정답공개-풀이", "/board/u1-1/q/u1-1-q05", { after: (p) => pressNext(p, 6) });
+    await go("08-정답공개-풀이", "/board/u1_1_1/q/u1_1_1-q5", { after: (p) => pressNext(p, 6) });
     if (await page.$(".bdq-rate")) problems.push("[t] qa: 득표가 없는데 정답 공개에 '정답률' 줄이 떠요(.bdq-rate)");
     // 득표가 있을 때: 보기마다 손든 수를 올린 뒤 정답을 열면 '정답률 N% · 다음 행동' 한 줄이 떠요
-    await go("08b-정답공개-득표있음", "/board/u1-1/q/u1-1-q05", { after: voteAndReveal });
+    await go("08b-정답공개-득표있음", "/board/u1_1_1/q/u1_1_1-q5", { after: voteAndReveal });
     {
       const rate = await page.$(".bdq-rate");
       const txt = rate ? ((await rate.textContent()) || "").trim() : "";
@@ -585,9 +573,9 @@ async function qaShots(browser, sBase, tBase) {
       await go("09-마무리-오늘정리", b(at.summary));
       await go("09b-마무리-오늘정리-모두공개", b(at.summary), { after: (p) => pressNext(p, 12, (l) => /공개/.test(l)) });
     } else miss("정리");
-    await go("10-마무리-수업끝QR", "/board/u1-1/end");
-    await go("11-교사준비화면", "/prep/u1-1");
-    await go("12-수업흐름", "/flow/u1-1?p=1");
+    await go("10-마무리-수업끝QR", "/board/u1_1_1/end");
+    await go("11-교사준비화면", "/prep/u1_1_1");
+    await go("12-수업흐름", "/flow/u1_1_1?p=1");
     await ctx.close();
     // 작은 칠판(1366×768): 화면이 깨지지 않는지(가로 넘침은 visit 이 검사해요)
     {
@@ -596,10 +584,10 @@ async function qaShots(browser, sBase, tBase) {
       const c2 = watch(p2, tBase);
       const g2 = (file, hash, o = {}) => visit(p2, c2, tBase, "t", "qa " + file, hash, Object.assign({ file: "qa-board-1366-" + file }, o));
       await g2("01-오늘수업", "/");
-      await g2("02-한문제-보기가림", "/board/u1-1/q/u1-1-q05");
-      await g2("03-정답공개-풀이", "/board/u1-1/q/u1-1-q05", { after: (p) => pressNext(p, 6) });
-      await g2("04-수업끝QR", "/board/u1-1/end");
-      await g2("05-정답공개-득표있음", "/board/u1-1/q/u1-1-q05", { after: voteAndReveal });
+      await g2("02-한문제-보기가림", "/board/u1_1_1/q/u1_1_1-q5");
+      await g2("03-정답공개-풀이", "/board/u1_1_1/q/u1_1_1-q5", { after: (p) => pressNext(p, 6) });
+      await g2("04-수업끝QR", "/board/u1_1_1/end");
+      await g2("05-정답공개-득표있음", "/board/u1_1_1/q/u1_1_1-q5", { after: voteAndReveal });
       c2();
       await ctx2.close();
     }
@@ -646,14 +634,14 @@ async function qaPhone(browser, sBase) {
       await p.waitForTimeout(300);
     };
     await go("01-첫화면-홈", "/");
-    await go("02-레슨진행-개요", "/l/u1-2");
-    await go("03-레슨진행-이야기카드", "/l/u1-1/s/story/1");
-    await go("04-개념카드", "/l/u1-2/s/c1/1");
-    await go("05-개념카드-수식", "/l/u2-3/s/c1/2");
-    await go("06-문제", "/l/u1-1/q");
-    await go("07-문제-오답피드백", "/l/u1-1/q", { after: answer("5", 0) });
+    await go("02-레슨진행-개요", "/l/u1_1_2");
+    await go("03-레슨진행-이야기카드", "/l/u1_1_1/s/story/1");
+    await go("04-개념카드", "/l/u1_1_2/s/c1/1");
+    await go("05-개념카드-코드", "/l/u2_1_3/s/c3/1");
+    await go("06-문제", "/l/u1_1_1/q");
+    await go("07-문제-오답피드백", "/l/u1_1_1/q", { after: answer("5", 0) });
     // 오답 직후, 스크롤을 끝까지 내린 사진: '풀이 확인하기'·'이 개념 다시 보기' 단추가 하단바에 가리지 않고 보여야 해요
-    await go("07a-문제-오답직후-끝까지", "/l/u1-1/q", {
+    await go("07a-문제-오답직후-끝까지", "/l/u1_1_1/q", {
       after: async (p) => {
         await answer("5", 0)(p);
         await p.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
@@ -669,7 +657,7 @@ async function qaPhone(browser, sBase) {
         if (hid) problems.push("[s] qa: 오답 직후 단추 — " + hid);
       },
     });
-    await go("07b-문제-정답피드백", "/l/u1-1/q", { after: answer("10", 1) });
+    await go("07b-문제-정답피드백", "/l/u1_1_1/q", { after: answer("10", 1) });
     await go("08-오답노트", "/note");
     await go("09-오늘의복습", "/review");
     await ctx.close();
