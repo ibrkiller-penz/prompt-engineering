@@ -446,8 +446,9 @@ static char s_lastHM[8] = "";
 static volatile bool s_syncReq = false;
 static const uint32_t SYNC_EVERY_MS = 3600UL * 1000;
 
+static void setTopTitle();
 static void renderToday() {
-  lv_label_set_text(s_title, s_ttName.length() ? s_ttName.c_str() : BOARD_TITLE);
+  setTopTitle();
   if (!s_ttLoaded) {
     const bool noWifi = !s_prefs.getString("ssid", "").length();
     setTextIf(s_dayTitle, urlUnset() ? "시간표 주소가 없습니다" : noWifi ? "설정에서 와이파이를 연결하세요"
@@ -718,6 +719,12 @@ static String s_pickName = BOARD_DEFAULT_TT;
 // 단추 판(한 쪽 30개, 6×5)을 쪽으로 넘긴다. 단추는 처음에 한 번만 만들고 글자만 바꾼다(2026-10-18 사용자 요청).
 static lv_obj_t *s_pickView = nullptr, *s_pickBtn[30], *s_pickTab[2], *s_pickPage = nullptr;
 static bool s_principal = false;   // 교장실 모드: s_pickName 이 '@교장'·'@교감' 이면 켜진다
+// 위쪽 막대 왼쪽 제목: 교장실 모드면 '교장실'·'교감실'(전에 보던 선생님 이름이 남지 않게, 2026-10-18 사용자 요청)
+static void setTopTitle() {
+  if (!s_title) return;
+  const char *t = s_principal ? (s_pickName == "@교감" ? "교감실" : "교장실") : s_ttName.length() ? s_ttName.c_str() : BOARD_TITLE;
+  if (strcmp(lv_label_get_text(s_title), t)) lv_label_set_text(s_title, t);
+}
 static int s_pickKind = 0, s_pickPg = 0;   // 0: 선생님 · 1: 학급·특별실
 static const char *pickLabel(JsonObject it) {   // 선생님은 이름만(단추가 짧게), 학급은 '1학년 1반'
   const char *kind = it["kind"] | "teacher", *lb = it["label"] | "";
@@ -765,6 +772,7 @@ static void renderPicker() {
 static void setPrincipalTitles();
 static void fillPicker() {
   s_principal = s_pickName.startsWith("@");
+  setTopTitle();
   if (s_tabTT) lv_label_set_text(lv_obj_get_child(s_tabTT, 0), s_principal ? "학교 일정" : "시간표");
   if (s_principal && s_ttPick) {
     lv_label_set_text_fmt(lv_obj_get_child(s_ttPick, 0), "%s · 학교 일정  " LV_SYMBOL_RIGHT, s_pickName.c_str() + 1);
