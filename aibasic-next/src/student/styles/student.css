@@ -602,3 +602,9 @@ html[data-site="student"] .s-rail-ph { padding-bottom: 0; }
 /* 레슨 개요 단계 줄: 큰 글자·좁은 폭에서 설명이 한 줄로 늘어나 화면이 옆으로 밀리지 않게 */
 html[data-site="student"] .s-stage { white-space: normal; }
 html[data-site="student"] .s-stage > .grow { min-width: 0; }
+
+/* 폭 360~374px: 다음 단추를 조금 줄여 위치 글('개념 6 10/12' 같은 두 자리 번호)이 잘리지 않게. 단추 폭은 이 구간에서 라벨과 상관없이 고정이에요 */
+@media (max-width: 374px) {
+  html[data-site="student"] .s-next { min-width: max(118px, 6.6em); }
+  html[data-site="student"] .s-pos strong { font-size: 13px; }
+}
