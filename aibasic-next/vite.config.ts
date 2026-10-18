@@ -44,13 +44,13 @@ const META: Record<Site, { title: string; desc: string; theme: string; robots: s
   student: {
     title: "인공지능 기초",
     desc: "고등학교 인공지능 기초를 휴대폰으로 혼자서도 공부해요. 카드 한 장씩, 이야기와 문제로 쉽게.",
-    theme: "#1d4ed8",
+    theme: "#1f3a6b",
     robots: "index, follow",
   },
   teacher: {
     title: "인공지능 기초 · 교사용",
     desc: "전자칠판으로 인공지능 기초 수업을 '다음' 한 번에 진행해요.",
-    theme: "#9a3412",
+    theme: "#8e2a26",
     robots: "noindex, nofollow",
   },
 };
@@ -69,6 +69,7 @@ function siteHtml(site: Site): Plugin {
         .replace(/__TITLE__/g, esc(m.title))
         .replace(/__DESC__/g, esc(m.desc))
         .replace(/__THEME_COLOR__/g, m.theme)
+        .replace(/__ICON__/g, site === "teacher" ? "favicon-t.svg" : "favicon-s.svg")
         .replace(/__ROBOTS__/g, m.robots);
     },
   };

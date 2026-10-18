@@ -321,8 +321,7 @@ html[data-site="student"] .s-deck .h2 { font-size: calc(26px * var(--fs-scale));
 /* 큰 제목 아래 삼색 짧은 막대 */
 html[data-site="student"] .s-deck article > .h2:not(.s-core-q)::after {
   content: ""; display: block; width: 48px; height: 4px; margin-top: var(--sp-3); border-radius: 2px;
-  background: linear-gradient(90deg, var(--site-student) 0, var(--site-student) 33.4%, var(--surface) 33.4%, var(--surface) 66.6%, var(--bad) 66.6%, var(--bad) 100%);
-  box-shadow: 0 0 0 1px var(--line);
+  background: var(--site-student);
 }
 html[data-site="student"] .s-deck .prose,
 html[data-site="student"] .s-deck .ui-blocks { font-size: var(--t-md); line-height: var(--lh-body); }

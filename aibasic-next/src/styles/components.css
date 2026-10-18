@@ -377,8 +377,7 @@ html[data-surface="board"] .qr-card { padding: var(--sp-5); }
  * 삼색(남·백·적)은 제목 아래 작은 장식과 브랜드 표식에만 써요. 색은 토큰만 써서 어두운 테마에서도 따라가요. */
 .tri {
   display: block; width: 56px; height: 5px; border-radius: 3px; flex: 0 0 auto;
-  background: linear-gradient(90deg, var(--site-student) 0, var(--site-student) 33.4%, var(--surface) 33.4%, var(--surface) 66.6%, var(--bad) 66.6%, var(--bad) 100%);
-  box-shadow: 0 0 0 1px var(--line);
+  background: var(--site-student);
 }
 .tri.is-flag { display: inline-block; width: 22px; height: 16px; border-radius: 3px; vertical-align: -3px; }
 .num-chip {
