@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>학생 휴대폰 시안</title>
+<style>
+/* 디자인팀 3번 시안 — Chrome 80 안전: flex gap·aspect-ratio·:has·oklch 없음 */
+:root{--ink:#1b1f2a;--sub:#4a5160;--line:#d9dde5;--bg:#f6f7fb;--card:#fff;--u:#4f46e5;--usoft:#eef0ff;--ok:#0f7a3d;--okbg:#e6f6ec;--no:#b42318;--nobg:#fdecea;--fs:17px}
+*{box-sizing:border-box}html,body{margin:0;background:#c9ccd4;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink)}
+.row{display:flex;flex-wrap:wrap;justify-content:center;padding:16px}
+.phone{width:375px;height:812px;margin:8px;background:var(--bg);position:relative;overflow:hidden;border-radius:24px;box-shadow:0 4px 18px rgba(0,0,0,.2)}
+.phone h6{position:absolute;top:-1px;left:0;right:0;margin:0;font:600 11px/1 system-ui;color:#888;text-align:center}
+.top{height:52px;display:flex;align-items:center;padding:0 8px;background:#fff;border-bottom:1px solid var(--line)}
+.top .ic{width:44px;height:44px;border:0;background:none;font-size:20px}
+.top .t{flex:1;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 4px}
+.rail{display:flex;padding:8px 16px 6px;background:#fff}
+.rail i{flex:1;height:6px;border-radius:3px;background:var(--line);margin-right:4px}.rail i:last-child{margin-right:0}
+.rail i.d{background:var(--u)}.rail i.c{background:var(--u);opacity:.45}
+.where{font-size:13px;color:var(--sub);padding:0 16px 8px;background:#fff;border-bottom:1px solid var(--line)}
+.body{position:absolute;top:110px;bottom:76px;left:0;right:0;overflow:auto;padding:16px;font-size:var(--fs);line-height:1.7}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.kick{display:inline-block;font-size:13px;font-weight:700;color:var(--u);background:var(--usoft);border-radius:999px;padding:2px 10px;margin-bottom:8px}
+.who{font-weight:700;color:var(--u);margin-right:6px}
+.bub{background:var(--usoft);border-radius:4px 14px 14px 14px;padding:10px 12px;margin:8px 0}
+.mathbox{overflow-x:auto;background:#fafbff;border:1px dashed #b8bde8;border-radius:10px;padding:10px;font-family:"Times New Roman",serif;font-size:19px;white-space:nowrap;position:relative}
+.hint-scroll{font-size:12px;color:var(--sub);margin-top:4px}
+.ch{display:block;width:100%;min-height:52px;text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;margin-bottom:8px;font-size:16px}
+.ch.sel{border-color:var(--u);background:var(--usoft)}.ch.ok{border-color:var(--ok);background:var(--okbg)}
+.fb{border-radius:12px;padding:12px;margin-top:8px;font-size:15px}.fb.ok{background:var(--okbg);color:var(--ok)}.fb.no{background:var(--nobg);color:var(--no)}
+.bar{position:absolute;left:0;right:0;bottom:0;height:76px;background:#fff;border-top:1px solid var(--line);display:flex;align-items:center;padding:10px 12px}
+.bar .back{width:56px;height:52px;border:1px solid var(--line);background:#fff;border-radius:12px;font-size:18px;margin-right:10px}
+.bar .next{flex:1;height:52px;border:0;border-radius:12px;background:var(--u);color:#fff;font-size:17px;font-weight:700}
+.bar .next[disabled]{background:#aab0c0}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid var(--line);display:flex}
+.tabs a{flex:1;text-align:center;font-size:12px;color:var(--sub);padding-top:8px;text-decoration:none}.tabs a b{display:block;font-size:20px}
+.tabs a.on{color:var(--u);font-weight:700}
+.big{background:var(--u);color:#fff;border-radius:18px;padding:18px}
+.big .s{opacity:.9;font-size:14px}.big .ttl{font-size:21px;font-weight:800;margin:4px 0 10px}
+.big button{width:100%;height:52px;border:0;border-radius:12px;background:#fff;color:var(--u);font-weight:800;font-size:17px}
+.todo li{margin-bottom:6px}
+.pill{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin:0 4px 4px 0;background:#fff}
+.lvl{color:#8a6d00}
+.steps{counter-reset:s;padding:0;margin:0;list-style:none}
+.steps li{position:relative;padding-left:34px;margin-bottom:8px}
+.steps li:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:2px;width:24px;height:24px;border-radius:12px;background:var(--usoft);color:var(--u);font-weight:700;font-size:13px;text-align:center;line-height:24px}
+.reveal{display:block;width:100%;min-height:48px;border:1px dashed var(--u);background:#fff;color:var(--u);border-radius:12px;font-size:15px;font-weight:700}
+</style></head><body><div class="row">
+
+<!-- ① 학생 홈 -->
+<div class="phone"><h6>① 학생 홈</h6>
+ <div class="top"><span class="t" style="margin-left:8px">인공지능 수학</span><button class="ic" aria-label="설정">가</button></div>
+ <div class="body" style="top:52px;bottom:64px">
+  <div class="big"><div class="s">이어서 공부해요 · Ⅰ단원 2번째 레슨</div>
+   <div class="ttl">명제와 진리표</div>
+   <div class="rail" style="background:none;padding:0 0 10px"><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i></div>
+   <div class="s" style="margin-bottom:12px">③ 개념 2/6 · 남은 시간 약 25분</div>
+   <button>이어서 하기 →</button></div>
+  <div class="card" style="margin-top:12px"><b>오늘 할 일</b>
+   <ul class="todo" style="padding-left:20px;margin:8px 0 0"><li>개념 2~3 읽고 확인 문제 2개</li><li>오늘의 복습 3문제 <span class="pill">틀린 문제</span></li><li>기본 문제 10개 중 6개 맞히기</li></ul></div>
+  <div class="card"><b>단원 진행</b><div style="font-size:14px;color:var(--sub);margin-top:6px">Ⅰ 인공지능과 빅데이터 · 1/5 완료</div>
+   <div class="rail" style="padding:8px 0 0;background:none"><i class="d"></i><i class="c"></i><i></i><i></i><i></i></div></div>
+ </div>
+ <nav class="tabs"><a class="on" href="#"><b>🏠</b>홈</a><a href="#"><b>📚</b>단원</a><a href="#"><b>📝</b>오답노트</a><a href="#"><b>🔤</b>사전</a><a href="#"><b>📊</b>내 기록</a></nav>
+</div>
+
+<!-- ② 이야기 카드 -->
+<div class="phone"><h6>② 이야기 카드</h6>
+ <div class="top"><button class="ic" aria-label="레슨 목차">☰</button><span class="t">명제와 진리표</span><button class="ic" aria-label="닫기">✕</button></div>
+ <div class="rail"><i class="c"></i><i></i><i></i><i></i><i></i></div>
+ <div class="where">① 이야기 · 장면 2/4 &nbsp;<a href="#" style="color:var(--u)">건너뛰고 개념부터</a></div>
+ <div class="body">
+  <div class="card"><span class="kick">장면 2</span>
+   <div class="bub"><span class="who">지후</span>“둘 다 참이어야 문이 열리는 거야?”</div>
+   <div class="bub"><span class="who">비트</span>“하나만 참이어도 열리는 문도 있어요.”</div>
+   <p style="margin:8px 0 0">(이야기 문단 하나 = 카드 한 장. 대화는 말풍선으로 나눠요.)</p></div>
+  <div class="card" style="font-size:15px;color:var(--sub)">🔊 읽어 주기 · 가 글자 크기</div>
+ </div>
+ <div class="bar"><button class="back" aria-label="이전">←</button><button class="next">다음 장면</button></div>
+</div>
+
+<!-- ③ 개념 카드 -->
+<div class="phone"><h6>③ 개념 카드(블록 묶음)</h6>
+ <div class="top"><button class="ic">☰</button><span class="t">명제와 진리표</span><button class="ic">✕</button></div>
+ <div class="rail"><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i></div>
+ <div class="where">③ 개념 2/6 · 카드 3/5 &nbsp;“그리고·또는”</div>
+ <div class="body">
+  <div class="card"><span class="kick">예제 3 · 먼저 풀어 봐요</span>
+   <p style="margin:0 0 8px">$p$ 가 참, $q$ 가 거짓일 때 $p \wedge q$ 의 참·거짓은?</p>
+   <ol class="steps"><li>∧ 는 둘 다 참일 때만 참이에요.</li></ol>
+   <button class="reveal">다음 단계 보기 (2/3)</button></div>
+  <div class="mathbox">p ∧ q = (참) ∧ (거짓) = 거짓 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(긴 식)</div>
+  <div class="hint-scroll">↔ 식이 길면 옆으로 밀어 보세요</div>
+ </div>
+ <div class="bar"><button class="back">←</button><button class="next">다음 카드</button></div>
+</div>
+
+<!-- ④ 확인 문제(절 끝) -->
+<div class="phone"><h6>④ 절 끝 확인 문제</h6>
+ <div class="top"><button class="ic">☰</button><span class="t">명제와 진리표</span><button class="ic">✕</button></div>
+ <div class="rail"><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i></div>
+ <div class="where">③ 개념 2/6 · 확인 문제 <span class="lvl">★</span></div>
+ <div class="body">
+  <div class="card"><span class="kick">바로 확인해요</span>
+   <p style="margin:0 0 10px">$p$ 가 거짓이면 $p \vee q$ 는 언제 참일까요?</p>
+   <button class="ch">① 항상 거짓이에요</button>
+   <button class="ch ok">② $q$ 가 참일 때 ✓</button>
+   <button class="ch">③ 항상 참이에요</button>
+   <div class="fb ok" role="status">✓ 맞았어요! 또는(∨)은 하나만 참이어도 참이에요.</div></div>
+ </div>
+ <div class="bar"><button class="back">←</button><button class="next">개념 3으로</button></div>
+</div>
+
+<!-- ⑤ 계단 문제 -->
+<div class="phone"><h6>⑤ 계단 문제</h6>
+ <div class="top"><button class="ic">☰</button><span class="t">명제와 진리표</span><button class="ic">✕</button></div>
+ <div class="rail"><i class="d"></i><i class="d"></i><i class="d"></i><i class="c"></i><i></i></div>
+ <div class="where">④ 계단 문제 4/10 · 맞힘 3 (목표 6)</div>
+ <div class="body">
+  <div class="card"><span class="kick">기초력 UP · <span class="lvl">★★</span></span>
+   <div style="font-size:13px;color:var(--sub);margin-bottom:6px">새로 더해진 것: 세 명제</div>
+   <p style="margin:0 0 10px">진리표에서 $p \wedge (q \vee r)$ 가 참인 줄은 몇 개일까요?</p>
+   <input inputmode="decimal" style="width:100%;height:52px;font-size:20px;border:2px solid var(--line);border-radius:12px;padding:0 12px" value="4">
+   <div class="fb no" role="alert">✗ 다시 해 봐요. 혹시 $q \vee r$ 이 거짓인 줄도 셌나요?</div>
+   <div style="margin-top:10px"><button class="reveal" style="width:48%;display:inline-block">힌트 1</button> <button class="reveal" style="width:48%;display:inline-block;opacity:.5">풀이 보기</button></div></div>
+ </div>
+ <div class="bar"><button class="back">←</button><button class="next">확인</button></div>
+</div>
+
+<!-- ⑥ 오답노트 -->
+<div class="phone"><h6>⑥ 오답노트</h6>
+ <div class="top"><span class="t" style="margin-left:8px">오답노트</span></div>
+ <div style="display:flex;background:#fff;border-bottom:1px solid var(--line)">
+  <a style="flex:1;text-align:center;padding:14px 0;border-bottom:3px solid var(--u);color:var(--u);font-weight:700">아직 5</a>
+  <a style="flex:1;text-align:center;padding:14px 0;color:var(--sub)">복습 중 3</a>
+  <a style="flex:1;text-align:center;padding:14px 0;color:var(--sub)">졸업 12</a></div>
+ <div class="body" style="top:100px;bottom:64px">
+  <div class="card" style="background:var(--usoft);border-color:#c9cdf5"><b>오늘의 복습 3문제</b><div style="font-size:14px;color:var(--sub)">1·3·7일 간격으로 다시 나와요</div>
+   <button class="reveal" style="margin-top:10px;background:var(--u);color:#fff;border:0">지금 풀기</button></div>
+  <div class="card"><span class="pill">Ⅰ-2 명제와 진리표</span><span class="pill lvl">★★</span>
+   <p style="margin:6px 0">진리표에서 $p \wedge (q \vee r)$ …</p>
+   <div style="font-size:13px;color:var(--sub)">힌트 2개 보고 틀림 · 3일 전</div>
+   <div style="margin-top:8px"><button class="reveal" style="width:48%;display:inline-block">다시 풀기</button> <button class="reveal" style="width:48%;display:inline-block">개념 다시 보기</button></div></div>
+ </div>
+ <nav class="tabs"><a href="#"><b>🏠</b>홈</a><a href="#"><b>📚</b>단원</a><a class="on" href="#"><b>📝</b>오답노트</a><a href="#"><b>🔤</b>사전</a><a href="#"><b>📊</b>내 기록</a></nav>
+</div>
+
+</div></body></html>

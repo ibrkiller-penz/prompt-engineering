@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="ko" data-site="teacher" data-surface="prep" data-unit="u1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>교사 준비·관리 시안</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+/* ── 교사 준비·관리 화면 전용 밀도(prep): 폭 1200 이상. 학생이 아니라 칠판 앞 교사가 1m 안에서 보는 화면 ── */
+@media (min-width: 1200px) {
+  html[data-surface="prep"] {
+    --t-xs: calc(16px * var(--fs-scale)); --t-sm: calc(19px * var(--fs-scale)); --t-md: calc(22px * var(--fs-scale));
+    --t-lg: calc(26px * var(--fs-scale)); --t-xl: calc(32px * var(--fs-scale)); --t-2xl: calc(40px * var(--fs-scale));
+    --t-num: calc(56px * var(--fs-scale));
+    --sp-1: 5px; --sp-2: 10px; --sp-3: 14px; --sp-4: 20px; --sp-5: 28px; --sp-6: 40px;
+    --gutter: 40px; --tap: 56px; --tap-main: 72px; --radius-m: 14px; --radius-l: 20px;
+  }
+}
+body { min-height: 100vh; }
+.t-app { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
+/* 상단 막대 */
+.t-bar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
+.t-bar .inner { display: flex; align-items: center; height: 56px; padding: 0 var(--gutter); }
+.t-logo { font-weight: 800; font-size: var(--t-sm); white-space: nowrap; }
+.t-logo .tag { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 6px; background: var(--site-teacher); color: #fff; font-size: var(--t-xs); }
+.t-nav { display: none; }
+.t-nav a { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--sp-3); color: var(--ink-2); text-decoration: none; font-weight: 700; font-size: var(--t-sm); border-bottom: 4px solid transparent; }
+.t-nav a + a { margin-left: var(--sp-1); }
+.t-nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--site-teacher); }
+.grow { flex: 1 1 auto; min-width: 0; }
+.cls { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--sp-3); border: 2px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--surface); font-weight: 800; font-size: var(--t-sm); white-space: nowrap; }
+.t-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; height: var(--tab-h); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+.t-tabs a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--ink-2); text-decoration: none; font-size: 12px; font-weight: 700; }
+.t-tabs a .ico { font-size: 20px; line-height: 1; margin-bottom: 2px; }
+.t-tabs a[aria-current="page"] { color: var(--site-teacher); }
+@media (min-width: 1200px) {
+  .t-app { padding-bottom: 0; }
+  .t-bar .inner { height: 88px; }
+  .t-nav { display: flex; margin-left: var(--sp-5); }
+  .t-tabs { display: none; }
+}
+.wrap { padding: var(--sp-4) var(--gutter) var(--sp-6); max-width: 1840px; margin: 0 auto; }
+.screen { display: none; }
+.screen.on { display: block; }
+/* 2단: 폰에서는 1단 */
+.cols { display: block; }
+.cols > * + * { margin-top: var(--sp-4); }
+@media (min-width: 1200px) {
+  .cols { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-gap: var(--sp-5); }
+  .cols > * + * { margin-top: 0; }
+  .cols.wide-left { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+}
+/* 시간 배분 막대 */
+.plan-bar { display: flex; height: 56px; border-radius: var(--radius-m); overflow: hidden; border: 2px solid var(--line-strong); }
+.plan-bar > div { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: var(--t-xs); color: #fff; white-space: nowrap; overflow: hidden; }
+.plan-bar > div + div { border-left: 2px solid var(--surface); }
+.seg-intro { background: #4338ca; } .seg-concept { background: #0f766e; } .seg-tool { background: #9a3412; } .seg-prob { background: #be123c; } .seg-wrap { background: #4b5563; }
+.legend { font-size: var(--t-xs); color: var(--ink-2); }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+.legend span + span { margin-left: var(--sp-3); }
+.seg-pick { display: inline-flex; border: 2px solid var(--line-strong); border-radius: var(--radius-pill); overflow: hidden; }
+.seg-pick button { min-height: var(--tap); min-width: 72px; border: 0; background: var(--surface); font-weight: 800; font-size: var(--t-sm); cursor: pointer; }
+.seg-pick button + button { border-left: 2px solid var(--line-strong); }
+.seg-pick button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.q-line { font-size: var(--t-lg); font-weight: 700; line-height: 1.45; }
+.big-start { min-height: 96px; font-size: var(--t-lg); font-weight: 800; }
+/* 장면 목록 */
+.scene { display: flex; align-items: center; min-height: 72px; padding: var(--sp-2) var(--sp-3); border: 2px solid var(--line); border-radius: var(--radius-m); background: var(--surface); }
+.scene + .scene { margin-top: var(--sp-2); }
+.scene.off { background: var(--surface-2); border-style: dashed; color: var(--ink-3); }
+.scene .kind { flex: 0 0 auto; width: 10px; align-self: stretch; border-radius: 5px; margin-right: var(--sp-3); }
+.scene .no { flex: 0 0 auto; width: 2em; font-weight: 800; color: var(--ink-2); }
+.scene .ttl { flex: 1 1 auto; min-width: 0; }
+.scene .ttl b { display: block; font-size: var(--t-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene .ttl small { display: block; font-size: var(--t-xs); color: var(--ink-2); }
+.scene .ctl { flex: 0 0 auto; display: flex; align-items: center; }
+.scene .ctl > * + * { margin-left: var(--sp-1); }
+.step { display: inline-flex; align-items: center; }
+.step .btn { min-width: var(--tap); padding: 0; font-size: var(--t-md); }
+.step .v { min-width: 3.2em; text-align: center; font-weight: 800; }
+@media (max-width: 699px) {
+  .scene { flex-wrap: wrap; }
+  .scene .ttl { flex-basis: calc(100% - 3em - 24px); }
+  .scene .ctl { flex-basis: 100%; margin-top: var(--sp-2); }
+  .scene .ctl .toggle { min-width: 76px; padding: 0 8px; }
+  .scene .ctl .toggle { margin-left: auto; }
+}
+.toggle { min-width: 96px; }
+.toggle[aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.toggle[aria-pressed="false"] { color: var(--ink-2); }
+.sum { position: sticky; top: 96px; }
+.over { color: var(--bad); font-weight: 800; }
+/* 문제 고르기 */
+.filters .chip { margin: 0 var(--sp-1) var(--sp-1) 0; }
+button.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.qrow { display: flex; align-items: flex-start; padding: var(--sp-3); border: 2px solid var(--line); border-radius: var(--radius-m); background: var(--surface); }
+.qrow + .qrow { margin-top: var(--sp-2); }
+.qrow .meta { flex: 0 0 auto; width: 104px; font-size: var(--t-xs); color: var(--ink-2); font-weight: 700; }
+.qrow .meta .lv { display: block; color: #b45309; letter-spacing: 1px; }
+.qrow .body { flex: 1 1 auto; min-width: 0; font-size: var(--t-sm); }
+.qrow .body .grp { font-size: var(--t-xs); color: var(--ink-2); }
+.qrow .ans { margin-top: var(--sp-1); font-size: var(--t-xs); color: var(--ok); font-weight: 700; }
+.qrow .put { flex: 0 0 auto; display: flex; flex-direction: column; margin-left: var(--sp-3); }
+.qrow .put .btn { min-width: 112px; font-size: var(--t-xs); padding: 0 var(--sp-2); }
+.qrow .put .btn + .btn { margin-top: var(--sp-1); }
+.qrow .put .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+a.btn { text-decoration: none; }
+@media (min-width: 1200px) {
+  .qrow .put { flex-direction: row; align-self: center; }
+  .qrow .put .btn + .btn { margin-top: 0; margin-left: var(--sp-1); }
+}
+.basket h3 { display: flex; align-items: center; }
+.basket .cnt { margin-left: auto; font-size: var(--t-sm); }
+.basket ol { margin: var(--sp-2) 0 0; padding-left: 1.6em; font-size: var(--t-sm); }
+.basket ol li + li { margin-top: 4px; }
+.basket + .basket { margin-top: var(--sp-3); }
+.linkbox { font-family: var(--font-num); font-size: var(--t-xs); background: var(--surface-2); border-radius: var(--radius-s); padding: var(--sp-2); word-break: break-all; }
+/* 차시 카드 */
+.lgrid { display: grid; grid-template-columns: 1fr; grid-gap: var(--sp-3); }
+@media (min-width: 700px) { .lgrid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1200px) { .lgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.lcard { display: block; text-align: left; width: 100%; border: 2px solid var(--line); border-top: 8px solid var(--accent); border-radius: var(--radius-m); background: var(--surface); padding: var(--sp-3); cursor: pointer; }
+.lcard .code { font-weight: 800; color: var(--accent-ink); font-size: var(--t-xs); }
+.lcard b { display: block; font-size: var(--t-sm); margin: 2px 0 var(--sp-1); }
+.lcard .m { font-size: var(--t-xs); color: var(--ink-2); }
+.lcard .done { display: inline-block; margin-top: var(--sp-1); padding: 2px 8px; border-radius: 6px; background: var(--ok-bg); color: var(--ok); font-size: var(--t-xs); font-weight: 800; }
+.lcard .now { background: var(--warn-bg); color: var(--warn); }
+/* 진도 표 */
+.ptbl td, .ptbl th { text-align: center; white-space: nowrap; }
+.ptbl td:first-child, .ptbl th:first-child { text-align: left; }
+.cell { display: inline-block; min-width: 44px; padding: 4px 6px; border-radius: 6px; font-weight: 800; font-size: var(--t-xs); }
+.c-done { background: var(--ok-bg); color: var(--ok); } .c-now { background: var(--warn-bg); color: var(--warn); } .c-none { color: var(--ink-3); }
+/* 평가 막대 */
+.hbar { display: flex; align-items: center; min-height: var(--tap); }
+.hbar + .hbar { margin-top: var(--sp-1); }
+.hbar .lab { flex: 0 0 auto; width: 9em; font-size: var(--t-xs); font-weight: 700; }
+.hbar .track { flex: 1 1 auto; height: 28px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.hbar .track i { display: block; height: 100%; background: var(--ok); }
+.hbar .track i.low { background: var(--bad); background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 6px, transparent 6px 12px); }
+.hbar .v { flex: 0 0 auto; width: 6.5em; text-align: right; font-weight: 800; font-size: var(--t-xs); }
+.note { font-size: var(--t-xs); color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="t-app">
+  <div class="site-band"></div>
+  <header class="t-bar">
+    <div class="inner">
+      <div class="t-logo">AI 수학<span class="tag">교사용</span></div>
+      <nav class="t-nav" aria-label="교사 메뉴">
+        <a href="#today">오늘 수업</a><a href="#find">차시 찾기</a><a href="#flow">수업 흐름</a><a href="#pick">문제 고르기</a><a href="#progress">반 진도</a><a href="#results">평가 결과</a>
+      </nav>
+      <div class="grow"></div>
+      <button class="cls" aria-haspopup="listbox" aria-label="반 고르기, 지금 2-3반">2-3반 ▾</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- ① 오늘 수업 -->
+    <section class="screen" id="s-today" aria-labelledby="h-today">
+      <div class="cols">
+        <div class="stack-lg">
+          <div class="card card-hero stack">
+            <div class="eyebrow">이어서 하기 · 지난 수업 10월 14일(화)</div>
+            <h1 class="h1" id="h-today">Ⅰ-1 인공지능의 개념과 역사 <span class="muted" style="font-size:var(--t-lg)">· 2차시 중 2번째</span></h1>
+            <p class="q-line" style="margin:0">🔎 인공지능이란 무엇이고, 사람과 구별되지 않으면 ‘생각한다’고 할 수 있을까요?</p>
+            <div class="row" style="justify-content:space-between">
+              <span class="legend">수업 길이</span>
+              <div class="seg-pick" role="group" aria-label="수업 길이"><button aria-pressed="true">45분</button><button aria-pressed="false">50분</button></div>
+            </div>
+            <div class="plan-bar" aria-label="시간 배분: 도입 5분, 개념 20분, 체험 8분, 문제 8분, 정리 4분">
+              <div class="seg-intro" style="width:11%">도입 5</div><div class="seg-concept" style="width:44%">개념 20</div><div class="seg-tool" style="width:18%">체험 8</div><div class="seg-prob" style="width:18%">문제 8</div><div class="seg-wrap" style="width:9%">정리 4</div>
+            </div>
+            <div class="legend"><span><i class="seg-intro"></i>도입</span><span><i class="seg-concept"></i>개념 ④~⑥</span><span><i class="seg-tool"></i>체험: 규칙 vs 학습</span><span><i class="seg-prob"></i>칠판 문제 6</span><span><i class="seg-wrap"></i>정리·QR</span></div>
+            <button class="btn btn-primary btn-block big-start">▶ 수업 시작 · 장면 1/14 부터</button>
+            <div class="row wrap">
+              <a class="btn" href="#flow">🧭 흐름 바꾸기</a>
+              <a class="btn" href="#pick">✅ 문제 고르기</a>
+              <button class="btn">📋 준비 한 장</button>
+              <button class="btn">🖨️ 학습지</button>
+            </div>
+          </div>
+          <div class="card stack">
+            <h2 class="h3">지난 시간에 남긴 메모</h2>
+            <p class="muted" style="margin:0">“포함 관계(AI ⊃ 기계학습 ⊃ 딥러닝)에서 헷갈려 함. 다음 시간 도입에서 다시.” — 2-3반, 10/14</p>
+          </div>
+        </div>
+        <div class="stack-lg">
+          <div class="card stack">
+            <h2 class="h3">이번 주 반별 진도</h2>
+            <div class="scroll-x">
+              <table class="tbl ptbl">
+                <thead><tr><th>반</th><th>지금 차시</th><th>마지막</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td><b>2-1</b></td><td>Ⅰ-1 · 2차시 끝</td><td>10/15</td><td><span class="cell c-done">앞섬</span></td></tr>
+                  <tr><td><b>2-3</b></td><td>Ⅰ-1 · 장면 9/14</td><td>10/14</td><td><span class="cell c-now">오늘</span></td></tr>
+                  <tr><td><b>2-5</b></td><td>Ⅰ-1 · 1차시 끝</td><td>10/13</td><td><span class="cell c-none">—</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="note" style="margin:0">반 이름과 진도만 이 기기에 남아요. 학생 이름은 받지 않아요.</p>
+          </div>
+          <div class="card stack">
+            <h2 class="h3">수업 끝에 나눌 것</h2>
+            <p style="margin:0">학생 주소 QR · 복습 문제 <b>5개</b> · 확인 문제 <b>3개</b></p>
+            <div class="linkbox">aimaths.web.app/#/l/u1-1?hw=q06,q10,q22,q26,q31</div>
+          </div>
+          <div class="card stack">
+            <h2 class="h3">다음 차시 미리 보기</h2>
+            <p style="margin:0"><b>Ⅰ-2 명제와 진리표</b> · 65분 → 2차시 · 체험: 진리표 만들기</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ② 차시 찾기 -->
+    <section class="screen" id="s-find" aria-labelledby="h-find">
+      <div class="row" style="justify-content:space-between">
+        <h1 class="h2" id="h-find">차시 찾기</h1>
+        <input class="btn" style="min-width:min(100%,420px);text-align:left;font-weight:400" type="search" placeholder="🔍 제목·용어 찾기 (ㅌㄹ 처럼 초성도 돼요)" aria-label="차시 찾기">
+      </div>
+      <div class="filters" style="margin:var(--sp-3) 0">
+        <button class="chip" aria-pressed="true">Ⅰ 인공지능과 빅데이터</button><button class="chip" aria-pressed="false">Ⅱ 텍스트</button><button class="chip" aria-pressed="false">Ⅲ 이미지</button><button class="chip" aria-pressed="false">Ⅳ 예측과 최적화</button><button class="chip" aria-pressed="false">Ⅴ 탐구</button>
+      </div>
+      <div class="lgrid">
+        <button class="lcard"><span class="code">Ⅰ-1</span><b>인공지능의 개념과 역사</b><span class="m">70분 · 2차시 · 문제 45 · 🧪2</span><br><span class="done now">2-3반 진행 중</span></button>
+        <button class="lcard"><span class="code">Ⅰ-2</span><b>명제와 진리표</b><span class="m">65분 · 2차시 · 문제 41 · 🧪1</span></button>
+        <button class="lcard"><span class="code">Ⅰ-3</span><b>알고리즘과 순서도</b><span class="m">45분 · 1차시 · 문제 25 · 🧪1</span></button>
+        <button class="lcard"><span class="code">Ⅰ-4</span><b>순서도 마무리와 퍼즐 추론</b><span class="m">40분 · 1차시 · 문제 24</span></button>
+        <button class="lcard"><span class="code">Ⅰ-5</span><b>빅데이터</b><span class="m">70분 · 2차시 · 문제 45 · 🧪1</span></button>
+      </div>
+      <p class="note">번호는 수업 순서예요(units.json 순서). 파일 이름 u1-4 는 화면에서 Ⅰ-3 으로 보여요.</p>
+    </section>
+
+    <!-- ③ 수업 흐름 -->
+    <section class="screen" id="s-flow" aria-labelledby="h-flow">
+      <div class="cols wide-left">
+        <div>
+          <div class="row" style="justify-content:space-between;margin-bottom:var(--sp-3)">
+            <h1 class="h2" id="h-flow">수업 흐름 · Ⅰ-1</h1>
+            <div class="seg-pick" role="group" aria-label="차시"><button aria-pressed="false">1차시</button><button aria-pressed="true">2차시</button></div>
+          </div>
+          <div class="row wrap" style="margin-bottom:var(--sp-3)">
+            <button class="btn">⚡ 핵심만(자동)</button><button class="btn">↺ 처음 제안으로</button><button class="btn">👁️ 미리 보기</button>
+          </div>
+          <div id="scenes"></div>
+        </div>
+        <div>
+          <div class="card stack sum">
+            <h2 class="h3">합계</h2>
+            <div><span class="bignum num" id="tot">0</span><span class="h3"> / <span id="target">45</span>분</span></div>
+            <div class="meter" style="height:18px"><i id="totbar" style="width:0"></i></div>
+            <p id="totmsg" style="margin:0"></p>
+            <p class="note" style="margin:0">꺼 둔 장면은 칠판에 안 나오고, 학생 사이트의 ‘숙제로 읽기’ 목록에 담겨요.</p>
+            <button class="btn btn-primary btn-block">저장하고 오늘 수업으로</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ④ 문제 고르기 -->
+    <section class="screen" id="s-pick" aria-labelledby="h-pick">
+      <div class="cols wide-left">
+        <div>
+          <div class="row" style="justify-content:space-between;margin-bottom:var(--sp-2)">
+            <h1 class="h2" id="h-pick">문제 고르기 · Ⅰ-1 <span class="muted" style="font-size:var(--t-sm)">45문제</span></h1>
+            <button class="btn">✨ 자동 추천</button>
+          </div>
+          <div class="filters">
+            <button class="chip" aria-pressed="true">★1</button><button class="chip" aria-pressed="true">★2</button><button class="chip" aria-pressed="true">★3</button><button class="chip" aria-pressed="false">★4</button><button class="chip" aria-pressed="false">★5</button>
+            <button class="chip" aria-pressed="false">객관식</button><button class="chip" aria-pressed="false">OX</button><button class="chip" aria-pressed="false">수</button><button class="chip" aria-pressed="false">서술</button>
+            <button class="chip" aria-pressed="false">정답 보이기</button>
+          </div>
+          <div id="qlist" style="margin-top:var(--sp-2)"></div>
+        </div>
+        <div>
+          <div class="sum stack">
+            <div class="card basket"><h3 class="h3">🧑‍🏫 칠판 문제 <span class="cnt num" id="c-b">0/8</span></h3><ol id="l-b"></ol></div>
+            <div class="card basket"><h3 class="h3">🚪 수업 끝 확인 <span class="cnt num" id="c-e">0/3</span></h3><ol id="l-e"></ol></div>
+            <div class="card basket"><h3 class="h3">🏠 복습 숙제 <span class="cnt num" id="c-h">0/8</span></h3><ol id="l-h"></ol>
+              <div class="linkbox" id="hwlink" style="margin-top:var(--sp-2)"></div></div>
+            <div class="row wrap"><button class="btn">🖨️ 학습지</button><button class="btn">🖨️ 정답지</button><button class="btn">📋 링크 복사</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑤ 반 진도 -->
+    <section class="screen" id="s-progress" aria-labelledby="h-progress">
+      <h1 class="h2" id="h-progress">반 진도</h1>
+      <div class="scroll-x" style="margin-top:var(--sp-3)">
+        <table class="tbl ptbl">
+          <thead><tr><th>반</th><th>Ⅰ-1</th><th>Ⅰ-2</th><th>Ⅰ-3</th><th>Ⅰ-4</th><th>Ⅰ-5</th><th>Ⅰ 마무리</th><th>메모</th></tr></thead>
+          <tbody>
+            <tr><td><b>2-1</b></td><td><span class="cell c-done">✓ 2/2</span></td><td><span class="cell c-now">▶ 1/2</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td>📝 1</td></tr>
+            <tr><td><b>2-3</b></td><td><span class="cell c-now">▶ 9/14</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td>📝 2</td></tr>
+            <tr><td><b>2-5</b></td><td><span class="cell c-now">▶ 1/2</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td><span class="cell c-none">·</span></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row wrap" style="margin-top:var(--sp-3)"><button class="btn">＋ 반 추가</button><button class="btn">📥 학생 진도 코드 붙여넣기</button><button class="btn">💾 교사 기록 파일로 저장</button></div>
+    </section>
+
+    <!-- ⑥ 평가 결과 -->
+    <section class="screen" id="s-results" aria-labelledby="h-results">
+      <div class="cols">
+        <div class="card stack">
+          <h1 class="h2" id="h-results">평가 결과 · 2-3반 · Ⅰ-1</h1>
+          <p class="note" style="margin:0">칠판에서 손들기로 센 수예요(응답 26명). 이름은 남지 않아요.</p>
+          <div>
+            <div class="hbar"><span class="lab">q03 포함 관계</span><span class="track"><i class="low" style="width:38%"></i></span><span class="v">38% ✗ 낮음</span></div>
+            <div class="hbar"><span class="lab">q22 지도학습</span><span class="track"><i style="width:81%"></i></span><span class="v">81% ✓</span></div>
+            <div class="hbar"><span class="lab">q26 가중합</span><span class="track"><i style="width:69%"></i></span><span class="v">69% ✓</span></div>
+            <div class="hbar"><span class="lab">q31 가중치 해석</span><span class="track"><i class="low" style="width:46%"></i></span><span class="v">46% ✗ 낮음</span></div>
+          </div>
+        </div>
+        <div class="card stack">
+          <h2 class="h3">다시 짚으면 좋은 곳</h2>
+          <div class="callout warn"><b>⚠️ q03 · 많이 고른 오답 ③ (11명)</b>‘딥러닝 ⊃ 기계학습’으로 거꾸로 생각했어요. → 개념 ③ ‘네 단계와 포함 관계’ 장면</div>
+          <button class="btn btn-block">▶ 그 장면을 칠판에 열기</button>
+          <button class="btn btn-block">➕ 다음 시간 도입 ‘지난 시간 3문제’에 넣기</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="t-tabs" aria-label="교사 메뉴">
+    <a href="#today"><span class="ico">🏫</span>오늘</a><a href="#find"><span class="ico">📚</span>차시</a><a href="#pick"><span class="ico">✅</span>문제</a><a href="#progress"><span class="ico">📈</span>진도</a><a href="#results"><span class="ico">📊</span>평가</a>
+  </nav>
+</div>
+
+<script>
+/* ES5 만 사용(Chrome 80 시안이라 빌드 없이도 돌게) */
+var SCENES = [
+  ['intro','도입 · 지난 시간 3문제','q03 · q11 · q22',4,true],
+  ['intro','오늘의 핵심 질문','생각 먼저 묻기',2,true],
+  ['intro','이야기 ㉮㉯㉰ 장면','이야기 3~5문단',4,false],
+  ['concept','개념 ④ 알고리즘과 기계학습','예제 2개 · 표 2개',7,true],
+  ['tool','체험 · 규칙 vs 학습','시연 3단계',6,true],
+  ['concept','개념 ⑤ 지도·비지도·강화학습','표 1개 · 예제 1개',6,true],
+  ['concept','개념 ⑥ 인공 뉴런','수식 · 예제 4개',8,true],
+  ['prob','칠판 문제 6개','q22 q24 q26 q27 q31 q33',8,true],
+  ['concept','AI 이야기 읽기','숙제로 돌릴 수 있어요',5,false],
+  ['wrap','정리 · 수업 끝 확인 3문제 · QR','학생 주소',4,true]
+];
+var COLORS = {intro:'#4338ca',concept:'#0f766e',tool:'#9a3412',prob:'#be123c',wrap:'#4b5563'};
+function el(h){var d=document.createElement('div');d.innerHTML=h;return d.firstChild;}
+function drawScenes(){
+  var box=document.getElementById('scenes');box.innerHTML='';var tot=0,n=0;
+  for(var i=0;i<SCENES.length;i++){var s=SCENES[i];if(s[4]){tot+=s[3];n++;}
+    var r=el('<div class="scene'+(s[4]?'':' off')+'">'+
+      '<span class="kind" style="background:'+COLORS[s[0]]+'"></span><span class="no num">'+(s[4]?n:'–')+'</span>'+
+      '<span class="ttl"><b>'+s[1]+'</b><small>'+s[2]+'</small></span>'+
+      '<span class="ctl"><button class="btn" data-up="'+i+'" aria-label="위로">↑</button><button class="btn" data-dn="'+i+'" aria-label="아래로">↓</button>'+
+      '<span class="step"><button class="btn" data-m="'+i+'" aria-label="1분 줄이기">−</button><span class="v num">'+s[3]+'분</span><button class="btn" data-p="'+i+'" aria-label="1분 늘리기">＋</button></span>'+
+      '<button class="btn toggle" data-t="'+i+'" aria-pressed="'+s[4]+'">'+(s[4]?'칠판에':'숙제로')+'</button></span></div>');
+    box.appendChild(r);}
+  var tg=+document.getElementById('target').textContent;
+  document.getElementById('tot').textContent=tot;
+  document.getElementById('totbar').style.width=Math.min(100,tot/tg*100)+'%';
+  var m=document.getElementById('totmsg');
+  if(tot>tg){m.className='over';m.textContent='⚠️ '+(tot-tg)+'분 넘어요. 장면을 숙제로 돌리거나 줄여 보세요.';}
+  else if(tot===tg){m.className='';m.textContent='✓ 수업 시간에 딱 맞아요.';}
+  else{m.className='';m.textContent='✓ '+(tg-tot)+'분 남아요. 질문 받을 여유예요.';}
+}
+document.getElementById('scenes').addEventListener('click',function(e){
+  var b=e.target.closest?e.target.closest('button'):null;if(!b)return;var d=b.dataset,i,t;
+  if(d.p){SCENES[+d.p][3]++;} else if(d.m){i=+d.m;if(SCENES[i][3]>1)SCENES[i][3]--;}
+  else if(d.t){i=+d.t;SCENES[i][4]=!SCENES[i][4];}
+  else if(d.up&&+d.up>0){i=+d.up;t=SCENES[i];SCENES[i]=SCENES[i-1];SCENES[i-1]=t;}
+  else if(d.dn&&+d.dn<SCENES.length-1){i=+d.dn;t=SCENES[i];SCENES[i]=SCENES[i+1];SCENES[i+1]=t;}
+  drawScenes();
+});
+
+var QS=[
+ ['q01',1,'객관식','개념 확인','인공지능(AI)에 대한 설명으로 가장 알맞은 것은?','②'],
+ ['q03',1,'객관식','개념 확인','인공지능, 기계학습, 딥러닝을 ‘넓은 것에서 좁은 것’ 순서로 늘어놓은 것은?','①'],
+ ['q06',1,'수','기초력 UP · 유형 1','심판이 30명이고 전체의 1/3 이상을 속이면 통과라고 해요. 최소 몇 명을 속여야 할까요?','10'],
+ ['q11',1,'OX','기초력 UP · 유형 2','모든 인공지능은 기계학습으로 만들어진다.','X'],
+ ['q22',2,'객관식','기초력 UP · 유형 5','이름표가 붙은 사진 5000장으로 동물을 구별하게 한다. 이 학습 방식은?','지도학습'],
+ ['q26',2,'수','기초력 UP · 유형 6','입력 (3, 2), 가중치 (2, 4)인 뉴런의 가중합은?','14'],
+ ['q31',3,'객관식','쉬운 응용','가중치가 (5, 1)인 뉴런에 대한 설명으로 알맞은 것은?','③'],
+ ['q37',3,'수','실력 UP','농구부 선발 뉴런 문제','—'],
+ ['q44',5,'서술','도전','‘사람에게는 있고 기계에게는 없다’고 생각하는 말을 하나 골라…','루브릭 3항목']
+];
+var PICK={b:['q22','q26','q31'],e:['q03'],h:['q06','q11']};
+var CAP={b:8,e:3,h:8};
+var showAns=false;
+function inB(k,id){return PICK[k].indexOf(id)>=0;}
+function drawQs(){
+  var box=document.getElementById('qlist');box.innerHTML='';
+  for(var i=0;i<QS.length;i++){var q=QS[i];var st='';for(var s=0;s<q[1];s++)st+='★';
+    box.appendChild(el('<div class="qrow"><div class="meta">'+q[0]+'<span class="lv">'+st+'</span>'+q[2]+'</div>'+
+      '<div class="body"><div class="grp">'+q[3]+'</div>'+q[4]+(showAns?'<div class="ans">정답 '+q[5]+'</div>':'')+'</div>'+
+      '<div class="put"><button class="btn" data-k="b" data-id="'+q[0]+'" aria-pressed="'+inB('b',q[0])+'">칠판</button>'+
+      '<button class="btn" data-k="e" data-id="'+q[0]+'" aria-pressed="'+inB('e',q[0])+'">끝 확인</button>'+
+      '<button class="btn" data-k="h" data-id="'+q[0]+'" aria-pressed="'+inB('h',q[0])+'">숙제</button></div></div>'));}
+  ['b','e','h'].forEach(function(k){document.getElementById('c-'+k).textContent=PICK[k].length+'/'+CAP[k];
+    document.getElementById('l-'+k).innerHTML=PICK[k].map(function(x){return '<li>'+x+'</li>';}).join('');});
+  document.getElementById('hwlink').textContent='aimaths.web.app/#/l/u1-1?hw='+PICK.h.join(',');
+}
+document.getElementById('qlist').addEventListener('click',function(e){
+  var b=e.target.closest?e.target.closest('button'):null;if(!b)return;var k=b.getAttribute('data-k'),id=b.getAttribute('data-id');
+  var a=PICK[k],j=a.indexOf(id);if(j>=0)a.splice(j,1);else if(a.length<CAP[k])a.push(id);drawQs();
+});
+document.querySelector('#s-pick .filters').addEventListener('click',function(e){
+  var b=e.target;if(b.tagName!=='BUTTON')return;var on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);
+  if(b.textContent==='정답 보이기'){showAns=on;drawQs();}
+});
+
+function route(){
+  var h=(location.hash||'#today').slice(1);if(!document.getElementById('s-'+h))h='today';
+  var ss=document.querySelectorAll('.screen');for(var i=0;i<ss.length;i++)ss[i].className='screen'+(ss[i].id==='s-'+h?' on':'');
+  var as=document.querySelectorAll('.t-nav a,.t-tabs a');for(var j=0;j<as.length;j++){
+    if(as[j].getAttribute('href')==='#'+h)as[j].setAttribute('aria-current','page');else as[j].removeAttribute('aria-current');}
+  window.scrollTo(0,0);
+}
+addEventListener('hashchange',route);
+drawScenes();drawQs();route();
+</script>
+</body>
+</html>

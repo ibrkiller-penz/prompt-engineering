@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ko" data-surface="phone" data-theme="light" data-unit="u4">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시각 규칙 견본</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="visual.css">
+<style>
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: var(--t-md); line-height: var(--lh-body); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: var(--sp-4) var(--gutter) var(--sp-7); }
+  .wrap > section + section { margin-top: var(--sp-6); }
+  .icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); grid-gap: var(--sp-3); }
+  .icons figure { margin: 0; text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: var(--sp-3) var(--sp-1); }
+  .icons figcaption { font-size: var(--t-xs); color: var(--ink-2); margin-top: var(--sp-1); }
+  .ctl { overflow: hidden; position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); padding: var(--sp-2) var(--gutter); }
+  .ctl .btn { min-height: var(--tap); }
+</style>
+</head>
+<body>
+<!-- 아이콘 묶음(sprite): 24x24 격자, 선 2px, 둥근 끝. 실제 앱에서는 icons.svg 한 파일 + <use href="#i-..."> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M8 7h7"/></symbol>
+  <symbol id="i-progress" viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M21 20H3"/></symbol>
+  <symbol id="i-dict" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 15l2.5-6 2.5 6"/><path d="M10 13h3"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M9 8l6 6"/><path d="M15 8l-6 6"/></symbol>
+  <symbol id="i-hint" viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-solution" viewBox="0 0 24 24"><path d="M4 6h10"/><path d="M4 12h7"/><path d="M4 18h5"/><path d="M14 16l3 3 5-6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 3.9"/><path d="M6.6 6.6C3.7 8.4 2 12 2 12s4 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></symbol>
+  <symbol id="i-bad" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></symbol>
+  <symbol id="i-o" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5l14 14"/><path d="M19 5L5 19"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></symbol>
+  <symbol id="i-marker" viewBox="0 0 24 24"><path d="M5 19h6"/><path d="M8 16l-2-2 9-9 4 4-9 9z"/><path d="M13 7l4 4"/></symbol>
+  <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M4 15l9-9 6 6-7 7H8z"/><path d="M9 10l6 6"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/><path d="M10 7v6"/><path d="M7 10h6"/></symbol>
+  <symbol id="i-curtain" viewBox="0 0 24 24"><path d="M3 4h18v16H3z"/><path d="M3 10h18" /><path d="M6 13h3M6 16h6" opacity=".5"/></symbol>
+  <symbol id="i-full" viewBox="0 0 24 24"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 4v6h6"/><path d="M5 15a8 8 0 1 0 2-8.3L4 10"/></symbol>
+  <symbol id="i-step" viewBox="0 0 24 24"><path d="M5 6v12l8-6z"/><path d="M17 6v12"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M14 14h2v2h-2zM18 14h2M14 18v2M18 18h2v2"/></symbol>
+  <symbol id="i-group" viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20a6 6 0 0 1 12 0"/><path d="M10 20a6 6 0 0 1 12 0"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/></symbol>
+  <symbol id="i-speak" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M19 6a8 8 0 0 1 0 12"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M3 19l5-13 5 13"/><path d="M5 14h6"/><path d="M15 19l3-8 3 8"/><path d="M16 16.5h4"/></symbol>
+  <symbol id="i-teacher" viewBox="0 0 24 24"><path d="M3 4h18v11H3z"/><path d="M8 20l4-5 4 5"/><path d="M7 8h6M7 11h4"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-widget" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6 16l4-6 3 3 5-8"/><circle cx="18" cy="5" r="1.5"/></symbol>
+  <symbol id="i-story" viewBox="0 0 24 24"><path d="M4 5h11v8H8l-4 3z"/><path d="M15 9h5v8l-3-2h-6v-2"/></symbol>
+  <symbol id="i-question" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/></symbol>
+</svg>
+
+<div class="ctl"><div class="row wrap" role="toolbar" aria-label="견본 설정">
+  <button class="btn" data-k="surface" data-v="phone">휴대폰 크기</button>
+  <button class="btn" data-k="surface" data-v="board">칠판 크기</button>
+  <button class="btn" data-k="theme" data-v="light">밝게</button>
+  <button class="btn" data-k="theme" data-v="dark">어둡게</button>
+  <button class="btn" data-k="theme" data-v="chalk">칠판색</button>
+  <button class="btn" data-k="contrast" data-v="more">고대비</button>
+  <button class="btn" data-k="motion" data-v="reduce">움직임 줄이기</button>
+</div></div>
+
+<main class="wrap">
+  <section>
+    <h1 class="h1">그림·아이콘·움직임 견본</h1>
+    <p class="muted">디자인 5번 시안이에요. 위 단추로 크기·색·움직임을 바꿔 보세요.</p>
+  </section>
+
+  <section aria-labelledby="h-ico">
+    <h2 class="h2" id="h-ico">아이콘 39종 (24 격자 · 선 2px)</h2>
+    <div class="icons" id="icons"></div>
+  </section>
+
+  <section aria-labelledby="h-btn">
+    <h2 class="h2" id="h-btn">아이콘 단추는 늘 이름표와 함께</h2>
+    <div class="row wrap">
+      <button class="icon-btn stacked"><svg class="ico-svg"><use href="#i-pen"/></svg><span class="lbl">펜</span></button>
+      <button class="icon-btn stacked"><svg class="ico-svg"><use href="#i-marker"/></svg><span class="lbl">형광펜</span></button>
+      <button class="icon-btn stacked"><svg class="ico-svg"><use href="#i-eraser"/></svg><span class="lbl">지우개</span></button>
+      <button class="icon-btn stacked"><svg class="ico-svg"><use href="#i-undo"/></svg><span class="lbl">되돌리기</span></button>
+      <button class="icon-btn stacked"><svg class="ico-svg"><use href="#i-timer"/></svg><span class="lbl">타이머</span></button>
+      <button class="icon-btn stacked"><svg class="ico-svg"><use href="#i-curtain"/></svg><span class="lbl">가림막</span></button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-v">
+    <h2 class="h2" id="h-v">정오 표시: 색 + 기호 + 글자</h2>
+    <div class="stack">
+      <div class="verdict ok" role="status"><svg class="ico-svg"><use href="#i-ok"/></svg>맞았어요! 한 번에 풀었어요.</div>
+      <div class="verdict bad" role="alert"><svg class="ico-svg"><use href="#i-bad"/></svg>다시 해 봐요. 힌트 1을 열어 볼까요?</div>
+      <div class="row"><button class="btn" id="bOk">정답 움직임</button><button class="btn" id="bBad">오답 움직임</button></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-plot">
+    <h2 class="h2" id="h-plot">그래프: 직선 맞추기 (점 끌기 + 단추 대체)</h2>
+    <figure class="figure">
+      <svg class="plot" id="plot" role="img" aria-labelledby="plotT plotD">
+        <title id="plotT">공부 시간과 점수의 산점도와 맞춘 직선</title>
+        <desc id="plotD">점 6개와 직선이 있어요.</desc>
+      </svg>
+      <figcaption>범례: <b style="color:var(--s1)">● 실선</b> 내가 그은 직선 · <b style="color:var(--s5)">✕ 점선</b> 최소제곱 직선 · <b style="color:var(--s2)">긴 점선</b> 오차</figcaption>
+    </figure>
+    <div class="stepper" aria-label="기울기 조절">
+      <button class="btn" id="aDn" aria-label="기울기 줄이기">−</button>
+      <span>기울기 a =</span><output class="val" id="aVal" aria-live="polite">1.0</output>
+      <button class="btn" id="aUp" aria-label="기울기 늘리기">+</button>
+    </div>
+    <p class="muted num" id="sse" aria-live="polite"></p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  // 키보드 사용 감지 (:focus-visible 대체)
+  document.addEventListener('keydown', function (e) { if (e.key === 'Tab') root.classList.add('kbd'); });
+  document.addEventListener('pointerdown', function () { root.classList.remove('kbd'); });
+  // 설정 단추
+  var bs = document.querySelectorAll('.ctl .btn');
+  for (var i = 0; i < bs.length; i++) bs[i].addEventListener('click', function () {
+    var k = this.getAttribute('data-k'), v = this.getAttribute('data-v');
+    var cur = root.getAttribute('data-' + k);
+    if ((k === 'contrast' || k === 'motion') && cur === v) root.removeAttribute('data-' + k); else root.setAttribute('data-' + k, v);
+  });
+  // 아이콘 목록
+  var names = { prev:'이전', next:'다음', home:'홈', book:'단원', progress:'내 진도', dict:'사전', note:'오답노트', hint:'힌트', solution:'풀이', eye:'보이기', 'eye-off':'가리기', ok:'맞음', bad:'틀림', o:'O', x:'X', timer:'타이머', pen:'펜', marker:'형광펜', eraser:'지우개', undo:'되돌리기', trash:'전체 지우기', zoom:'확대', curtain:'가림막', full:'전체 화면', reset:'처음으로', step:'한 걸음', play:'재생', qr:'QR', group:'모둠', dice:'번호 뽑기', speak:'읽어 주기', text:'글자 크기', teacher:'교사용', flag:'목표', lock:'잠김', widget:'체험 도구', story:'이야기', question:'핵심 질문' };
+  var box = document.getElementById('icons'), html = '';
+  for (var n in names) html += '<figure><svg class="ico-svg lg" aria-hidden="true"><use href="#i-' + n + '"/></svg><figcaption>' + names[n] + '</figcaption></figure>';
+  box.innerHTML = html;
+  // 움직임 시연
+  function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  document.getElementById('bOk').onclick = function () { replay(document.querySelector('.verdict.ok'), 'm-ok'); };
+  document.getElementById('bBad').onclick = function () { replay(document.querySelector('.verdict.bad'), 'm-bad'); };
+
+  // 그래프
+  var NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('plot');
+  var pts = [[1, 3], [2, 4.5], [3, 4], [4, 6], [5, 7.5], [6, 7]];
+  /* 규칙: viewBox = 실제 그려지는 px 폭 → SVG 글자가 줄어들지 않음 */
+  var W = Math.round(svg.parentNode.clientWidth), H = Math.round(W * .62);
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  var fz = parseFloat(getComputedStyle(svg).fontSize) || 16;
+  var L = fz * 3, R = W - fz, T = fz * 1.6, B = H - fz * 3, X0 = 0, X1 = 7, Y0 = 0, Y1 = 10;
+  function sx(x) { return L + (x - X0) / (X1 - X0) * (R - L); }
+  function sy(y) { return B - (y - Y0) / (Y1 - Y0) * (B - T); }
+  function el(tag, at, parent) { var e = document.createElementNS(NS, tag); for (var k in at) e.setAttribute(k, at[k]); (parent || svg).appendChild(e); return e; }
+  var g = el('g', { 'class': 'grid' });
+  for (var x = 0; x <= 7; x++) el('line', { x1: sx(x), x2: sx(x), y1: T, y2: B }, g);
+  for (var y = 0; y <= 10; y += 2) el('line', { x1: L, x2: R, y1: sy(y), y2: sy(y) }, g);
+  var ax = el('g', { 'class': 'axis' });
+  el('line', { x1: L, x2: R, y1: B, y2: B }, ax); el('line', { x1: L, x2: L, y1: T, y2: B }, ax);
+  for (x = 1; x <= 7; x++) { var t = el('text', { x: sx(x), y: B + fz * 1.4, 'text-anchor': 'middle' }); t.textContent = x; }
+  for (y = 2; y <= 10; y += 2) { t = el('text', { x: L - fz * .5, y: sy(y) + fz * .35, 'text-anchor': 'end' }); t.textContent = y; }
+  var xl = el('text', { 'class': 'lab', x: R, y: B + fz * 2.7, 'text-anchor': 'end' }); xl.textContent = '공부 시간(시간)';
+  var yl = el('text', { 'class': 'lab', x: L, y: T - 4 }); yl.textContent = '점수';
+  // 최소제곱
+  var n = pts.length, mx = 0, my = 0; pts.forEach(function (p) { mx += p[0] / n; my += p[1] / n; });
+  var sxy = 0, sxx = 0; pts.forEach(function (p) { sxy += (p[0] - mx) * (p[1] - my); sxx += (p[0] - mx) * (p[0] - mx); });
+  var ba = sxy / sxx, bb = my - ba * mx, emin = 0;
+  pts.forEach(function (p) { var r = p[1] - (ba * p[0] + bb); emin += r * r; });
+  el('line', { 'class': 'ln s5 d5', x1: sx(0), y1: sy(bb), x2: sx(7), y2: sy(bb + ba * 7) });
+  var resG = el('g', {}), user = el('line', { 'class': 'ln s1' });
+  pts.forEach(function (p) { el('circle', { 'class': 'pt s1', cx: sx(p[0]), cy: sy(p[1]), r: parseFloat(getComputedStyle(root).getPropertyValue('--pt-r')) || 6 }); });
+  var a = 1.0, b = 2.0;
+  var hit = el('circle', { 'class': 'handle-hit', r: (parseFloat(getComputedStyle(root).getPropertyValue('--tap')) || 44) / 2 + 8 }), hd = el('circle', { 'class': 'handle', r: (parseFloat(getComputedStyle(root).getPropertyValue('--handle')) || 28) / 2 });
+  function draw() {
+    user.setAttribute('x1', sx(0)); user.setAttribute('y1', sy(b)); user.setAttribute('x2', sx(7)); user.setAttribute('y2', sy(b + a * 7));
+    while (resG.firstChild) resG.removeChild(resG.firstChild);
+    var e = 0;
+    pts.forEach(function (p) { var yh = a * p[0] + b; e += (p[1] - yh) * (p[1] - yh); el('line', { 'class': 'resid', x1: sx(p[0]), x2: sx(p[0]), y1: sy(p[1]), y2: sy(yh) }, resG); });
+    var hx = sx(6), hy = sy(b + a * 6);
+    hit.setAttribute('cx', hx); hit.setAttribute('cy', hy); hd.setAttribute('cx', hx); hd.setAttribute('cy', hy);
+    document.getElementById('aVal').textContent = a.toFixed(1);
+    document.getElementById('sse').textContent = '오차 제곱의 합 E = ' + e.toFixed(2) + ' · 최소제곱 직선의 E = ' + emin.toFixed(2);
+  }
+  var drag = false;
+  function toY(ev) { var r = svg.getBoundingClientRect(); var py = (ev.clientY - r.top) / r.height * H; return Y0 + (B - py) / (B - T) * (Y1 - Y0); }
+  hit.addEventListener('pointerdown', function (ev) { drag = true; hit.setPointerCapture(ev.pointerId); hd.classList.add('is-drag'); });
+  hit.addEventListener('pointermove', function (ev) { if (!drag) return; a = Math.round(((toY(ev) - b) / 6) * 10) / 10; a = Math.max(-1, Math.min(2, a)); draw(); });
+  hit.addEventListener('pointerup', function () { drag = false; hd.classList.remove('is-drag'); });
+  document.getElementById('aUp').onclick = function () { a = Math.min(2, Math.round((a + .1) * 10) / 10); draw(); };
+  document.getElementById('aDn').onclick = function () { a = Math.max(-1, Math.round((a - .1) * 10) / 10); draw(); };
+  draw();
+})();
+</script>
+</body>
+</html>

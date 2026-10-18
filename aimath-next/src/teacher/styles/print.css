@@ -1,0 +1,210 @@
+/* 교사 화면 인쇄(디자인4). A4 세로 · 흑백으로 읽혀요.
+ *  - 학습지·정답지(#/print/:lid)는 종이 미리보기(src/teacher/print/print-sheet.css)가 뼈대를 맡고,
+ *    이 파일은 쪽 여백·흑백·쪽 나눔·이름 칸·QR 2.5cm 를 맞춰요.
+ *  - 준비 한 장·반별 진도·손들기 결과·수업 흐름·문제 고르기 같은 준비 화면도 그대로 인쇄해도 읽히게 해요.
+ *  - 화면 전용 요소(머리·탭·반 고르기·단추·시트·가림막·칠판 무대)는 숨겨요.
+ * App.tsx 가 공용 css 보다 먼저 불러요. 그래서 토큰은 !important 로, 나머지는 html[...] 접두로 이겨요.
+ * Chrome 80 안전: flex gap·aspect-ratio·:has·:is·:where·:focus-visible·inset·dvh·@layer·oklch·color-mix·@property·중첩 없음.
+ */
+
+/* ── 화면에서도 쓰는 것: 학습지 QR 2.5cm · 이름 칸(미리보기와 인쇄가 같게) ── */
+html[data-page="print"] .pr-qr-img { width: 25mm; height: 25mm; }
+/* 제목이 길면 쓰는 칸(날짜·반·번호·이름)은 다음 줄 오른쪽으로 내려가요. 칸 자체는 한 줄로 유지해요 */
+html[data-page="print"] .pr-head { -ms-flex-wrap: wrap; flex-wrap: wrap; }
+html[data-page="print"] .pr-title { -ms-flex-preferred-size: 60%; flex-basis: 60%; }
+html[data-page="print"] .pr-who { -ms-flex-wrap: nowrap; flex-wrap: nowrap; margin-left: auto; padding-top: 2mm; }
+html[data-page="print"] .pr-who > i { width: 20mm; }
+/* 이름 칸: 날짜 · 반·번호 뒤에 붙여요(종이에 손으로 쓰는 칸이에요. 기기에는 아무것도 저장하지 않아요) */
+html[data-page="print"] .pr-who::before {
+  content: "이름"; -webkit-box-ordinal-group: 10; -ms-flex-order: 9; order: 9;
+  margin-left: 3mm; white-space: nowrap;
+}
+html[data-page="print"] .pr-who::after {
+  content: ""; -webkit-box-ordinal-group: 11; -ms-flex-order: 10; order: 10;
+  display: inline-block; width: 30mm; height: 1.2em; margin-left: 1.5mm; border-bottom: 1px solid #000;
+}
+/* 휴대폰 화면 미리보기: 종이 여백을 줄이고 쓰는 칸은 줄을 바꿔도 돼요(인쇄에는 영향 없어요) */
+@media screen and (max-width: 760px) {
+  html[data-page="print"] .pr-paper { padding: 6mm 5mm; min-height: 0; }
+  html[data-page="print"] .pr-head .pr-title { -ms-flex-preferred-size: 100%; flex-basis: 100%; }
+  html[data-page="print"] .pr-head .pr-who {
+    -ms-flex-wrap: wrap; flex-wrap: wrap; margin-left: 0; max-width: 100%;
+    -webkit-box-flex: 0; -ms-flex: 0 1 100%; flex: 0 1 100%;
+  }
+  html[data-page="print"] .pr-head .pr-who > span:first-child { margin-left: 0; }
+  html[data-page="print"] .pr-head .pr-who > i { width: 16mm; }
+  html[data-page="print"] .pr-head .pr-who::before { margin-left: 3mm; }
+  html[data-page="print"] .pr-head .pr-who::after { width: 20mm; }
+}
+
+@media print {
+  /* 쪽 여백은 @page 한 곳에서(모든 쪽에 같게). 학습지 종이의 자체 여백은 0 으로 맞춰요.
+   * !important: 나중에 불리는 다른 @page 규칙(margin:0)보다 앞서요(Chromium 에서 확인). */
+  @page { size: A4 portrait; margin: 12mm 13mm 13mm !important; }
+
+  /* 흑백 토큰: 테마(어두운·칠판)와 상관없이 흰 종이에 검은 글자 */
+  html {
+    --bg: #ffffff !important; --surface: #ffffff !important; --surface-2: #f2f2f2 !important;
+    --line: #9a9a9a !important; --line-strong: #000000 !important;
+    --ink: #000000 !important; --ink-2: #222222 !important; --ink-3: #333333 !important;
+    --accent: #000000 !important; --accent-ink: #000000 !important; --accent-soft: #ffffff !important;
+    --site: #000000 !important; --on-site: #000000 !important; --on-accent: #000000 !important;
+    --ok: #000000 !important; --ok-bg: #ffffff !important; --bad: #000000 !important; --bad-bg: #ffffff !important;
+    --warn: #000000 !important; --warn-bg: #ffffff !important; --info: #000000 !important; --info-bg: #ffffff !important;
+    --aha: #000000 !important; --aha-bg: #ffffff !important;
+    --shadow-1: none !important; --shadow-2: none !important;
+    /* 종이 글자 크기(준비 화면 22px 는 종이에 너무 커요) */
+    --fs-scale: 1 !important;
+    --t-base: 10.5pt !important; --t-xs: 8.5pt !important; --t-sm: 9.5pt !important; --t-md: 10.5pt !important;
+    --t-lg: 12pt !important; --t-xl: 14pt !important; --t-2xl: 16pt !important; --t-num: 18pt !important;
+    --sp-1: 1mm !important; --sp-2: 2mm !important; --sp-3: 3mm !important; --sp-4: 4mm !important;
+    --sp-5: 5mm !important; --sp-6: 7mm !important; --sp-7: 10mm !important;
+    --gutter: 0 !important; --tap: 0 !important; --tap-main: 0 !important;
+    --page-max: none !important; --measure: none !important;
+    --lh-body: 1.5 !important;
+  }
+  html, body { background: #ffffff !important; color: #000000 !important; }
+  html body { font-size: 10.5pt; line-height: 1.5; orphans: 3; widows: 3; }
+  html body * { color: #000000 !important; text-shadow: none !important; box-shadow: none !important; }
+  html body a { text-decoration: none; }
+  html .katex { color: #000000 !important; }
+  html .katex-display { overflow: visible !important; }
+
+  /* ── 화면 전용 요소 숨기기 ── */
+  html .no-print,
+  html .skip-link,
+  html .site-band,
+  html .t-head,
+  html .t-tabbar,
+  html .t-klass,
+  html .scrim,
+  html .ui-scrim,
+  html .sheet,
+  html [role="dialog"],
+  html .toast,
+  html .btn,
+  html .t-prep-links,
+  html .t-start-wrap,
+  html .t-pickers,
+  html .t-flow-acts,
+  html .t-scene-ctl,
+  html .t-q-bask,
+  html .t-bk-ctl,
+  html .t-res-acts,
+  html .t-search,
+  html .t-find-tools,
+  html .scroll-hint,
+  html .bd-viewport,
+  html .bd-toolbelt { display: none !important; }
+
+  /* ── 틀: 여백·고정 위치·스크롤 상자 풀기 ── */
+  html .t-app, html .t-main { min-height: 0 !important; padding: 0 !important; }
+  html .page { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+  html .page.t-today,
+  html .t-flow-grid,
+  html .t-pick-grid,
+  html .pp-grid { display: block !important; }
+  html .page.t-today > * + *,
+  html .t-flow-grid > * + *,
+  html .t-pick-grid > * + *,
+  html .pp-grid > * + * { margin-top: 4mm !important; }
+  html .page.t-today > .t-lesson, html .page.t-today > .card { float: none !important; width: auto !important; margin-left: 0 !important; }
+  html .t-flow-sum, html .t-flow-list, html .t-baskets, html .t-pick-list {
+    position: static !important; width: auto !important; max-height: none !important; overflow: visible !important; margin-left: 0 !important;
+  }
+  html .t-prog-wrap, html .pp-ans-scroll, html .t-res-lesson, html .table-wrap, html .scroll-x {
+    overflow: visible !important; max-height: none !important;
+  }
+
+  /* ── 제목은 다음 내용과 붙여요 ── */
+  html h1, html h2, html h3, html .h1, html .h2, html .h3 { page-break-after: avoid; break-after: avoid; }
+  html h1, html .h1 { font-size: 16pt !important; margin: 0 0 2mm; }
+  html h2, html .h2, html h3, html .h3 { font-size: 12pt !important; margin: 0 0 1.5mm; }
+  html .eyebrow { font-size: 9pt !important; }
+
+  /* ── 카드·행은 쪽 사이에서 끊지 않아요 ── */
+  html .card,
+  html .pp-card,
+  html .t-scene-row,
+  html .t-q-row,
+  html .t-basket,
+  html .t-res-row,
+  html .t-prog-card,
+  html .t-lcard,
+  html .t-period,
+  html .pr-q,
+  html .pr-head,
+  html .pr-foot,
+  html .pr-keybox,
+  html .callout,
+  html figure,
+  html tr,
+  html img,
+  html svg { page-break-inside: avoid; break-inside: avoid; }
+  html .card {
+    background: #ffffff !important; border: 1px solid #000000 !important; border-radius: 2mm !important;
+    padding: 3mm 4mm !important;
+  }
+  /* 큰 표가 들어 있는 카드는 쪽을 넘어가도 돼요(행 단위로만 끊어요) */
+  html .pp-answers, html .t-res-lesson { page-break-inside: auto; break-inside: auto; }
+
+  /* 색 테두리(단원·바구니·장면 종류) → 검은 선 굵기로 */
+  html .t-lcard, html .t-flow-sum, html .t-prog-card.is-now, html .pp-card,
+  html .t-basket.is-board, html .t-basket.is-exit, html .t-basket.is-hw { border-top: 2mm solid #000000 !important; }
+  html .t-basket.is-exit { border-top-style: double !important; }
+  html .t-basket.is-hw { border-top-style: dashed !important; }
+  html .t-scene-row, html .t-q-row { border: 1px solid #000000 !important; padding: 2mm 3mm !important; }
+  html .t-scene-row + .t-scene-row, html .t-q-row + .t-q-row { margin-top: 1.5mm !important; }
+  html .t-scene-row.is-off { border-style: dashed !important; background: #ffffff !important; }
+  html .t-scene-row.is-off .t-scene-title { text-decoration: line-through; }
+  html .t-scene-n { background: none !important; }
+  html .t-q-row.in-board, html .t-q-row.in-exit, html .t-q-row.in-hw { border-left: 2mm solid #000000 !important; }
+  html .chip { border: 1px solid #000000 !important; background: #ffffff !important; min-height: 0 !important; padding: 0 1.5mm !important; }
+
+  /* ── 표: 가는 검은 선, 머리는 쪽마다 반복 ── */
+  html table { border-collapse: collapse !important; width: 100% !important; }
+  html thead { display: table-header-group; }
+  html th, html td { border: 1px solid #000000 !important; background: #ffffff !important; padding: 1mm 1.5mm !important; }
+  html thead th, html .t-prog-unit th { background: #eeeeee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html th, html .t-prog-lesson { position: static !important; }
+  html .t-prog-btn { min-height: 0 !important; padding: 0 !important; }
+  html .t-prog-cell.is-done .t-prog-sym { font-weight: 900; }
+  html .pp-clamp { display: block !important; -webkit-line-clamp: none !important; overflow: visible !important; }
+
+  /* ── 막대: 색 대신 테두리·회색 무늬(배경 그래픽을 꺼도 테두리로 읽혀요) ── */
+  html .meter, html .t-tb-bar, html .t-res-track {
+    background: #ffffff !important; border: 1px solid #000000 !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  html .meter > i { background: #777777 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html .t-tb-bar { height: 9mm !important; border-radius: 1mm !important; }
+  html .t-tb-seg { background: #ffffff !important; font-size: 8.5pt !important; }
+  html .t-tb-seg + .t-tb-seg { border-left: 1px solid #000000 !important; }
+  html .t-tb-sw { background: #ffffff !important; border: 1px solid #000000; }
+  html .t-res-track { height: 4mm !important; border-radius: 0 !important; }
+  html .t-res-bar {
+    background-color: #ffffff !important;
+    background-image: repeating-linear-gradient(135deg, #000000 0, #000000 1px, transparent 1px, transparent 4px) !important;
+    border-right: 1px solid #000000;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  html .t-res-bar.is-ans { background-image: none !important; background-color: #555555 !important; }
+  html .t-res-bar-row { min-height: 0 !important; }
+
+  /* ── 학습지·정답지(#/print) ── */
+  html[data-page="print"] .pr-root { padding: 0 !important; }
+  html[data-page="print"] .pr-root > * + * { margin-top: 0 !important; }
+  html[data-page="print"] .pr-paper {
+    width: auto !important; max-width: none !important; min-height: 0 !important;
+    margin: 0 !important; padding: 0 !important; border: 0 !important;
+    font-size: 11pt !important; line-height: 1.55 !important;
+  }
+  html[data-page="print"] .pr-qs { margin-top: 4mm; }
+  html[data-page="print"] .pr-q { border-bottom: 1px dashed #000000 !important; }
+  html[data-page="print"] .pr-q-n { border-color: #000000 !important; }
+  html[data-page="print"] .pr-open > i { border-bottom: 1px solid #000000 !important; }
+  html[data-page="print"] .pr-foot { margin-top: 5mm; }
+  html[data-page="print"] .pr-qr-img { width: 25mm !important; height: 25mm !important; margin-right: 4mm; }
+  html[data-page="print"] .pr-qr-img path { fill: #000000 !important; }
+  html[data-page="print"] .pr-qr-img rect { fill: #ffffff !important; }
+}

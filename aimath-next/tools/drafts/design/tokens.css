@@ -1,0 +1,158 @@
+/* aimath-next 디자인 토큰 시안 (Chrome 80 안전)
+ * 금지: flex gap, aspect-ratio, :has, :focus-visible, inset, dvh, @layer, oklch, color-mix, @property
+ * 허용: CSS 변수, clamp/min/max(79+), grid + grid-gap, sticky, env(safe-area-*), prefers-color-scheme
+ *
+ * 축 3개
+ *   html[data-surface="phone"|"board"]   : 크기 축 (학생=phone 기본, 교사 수업 진행=board)
+ *   html[data-theme="light"|"dark"|"chalk"] : 색 축 (chalk = 칠판 어두운 초록)
+ *   html[data-fs="0"|"1"|"2"|"3"]        : 글자 크기 단계 (사용자 설정)
+ *   html[data-unit="u1".."u5"]           : 단원 포인트 색
+ */
+
+:root {
+  /* ── 색: 라이트 ── */
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --line: #d5dae3;
+  --line-strong: #a8b0bd;
+  --ink: #1f2430;          /* 본문 15.5:1 */
+  --ink-2: #4b5563;        /* 보조 7.6:1  (기존 회색 text-muted 대체) */
+  --ink-3: #5b6472;        /* 최소 허용 회색 6.0:1, 이보다 옅은 글자 금지 */
+  --focus: #1d4ed8;
+  --ok: #15803d;   --ok-bg: #e7f6ec;
+  --bad: #b91c1c;  --bad-bg: #fdecec;
+  --warn: #9a3412; --warn-bg: #fff3e0;
+  --info: #1d4ed8; --info-bg: #e8effe;
+  --aha: #6d28d9;  --aha-bg: #f1ebff;
+  --hl: rgba(250, 204, 21, .45);   /* 형광펜·강조 */
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, .08), 0 1px 3px rgba(16, 24, 40, .06);
+  --shadow-2: 0 4px 12px rgba(16, 24, 40, .12);
+
+  /* 단원 (units.json color 는 장식·굵은 글자용, 본문 글자색은 -ink) */
+  --u1: #4f46e5; --u1-ink: #4338ca; --u1-soft: #eef0ff; --u1-dk: #818cf8;
+  --u2: #0f766e; --u2-ink: #0f766e; --u2-soft: #e3f6f2; --u2-dk: #2dd4bf;
+  --u3: #e11d48; --u3-ink: #be123c; --u3-soft: #ffe8ee; --u3-dk: #fb7185;
+  --u4: #b45309; --u4-ink: #9a3412; --u4-soft: #fff1dc; --u4-dk: #fbbf24;
+  --u5: #7c3aed; --u5-ink: #6d28d9; --u5-soft: #f0e9ff; --u5-dk: #a78bfa;
+  --accent: var(--u1); --accent-ink: var(--u1-ink); --accent-soft: var(--u1-soft);
+  --on-accent: #ffffff;
+
+  /* 사이트 띠 (학생/교사 구분) */
+  --site-student: #1d4ed8;
+  --site-teacher: #9a3412;
+
+  /* ── 글꼴 ── */
+  --font: "Pretendard", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --font-num: "Pretendard", "Roboto Mono", "Consolas", monospace; /* tabular-nums 함께 */
+
+  /* ── 크기: phone 기본 (375x812) ── */
+  --fs-scale: 1;
+  --t-xs: calc(13px * var(--fs-scale));   /* 배지·법적 안내 한정, 최소 13px */
+  --t-sm: calc(15px * var(--fs-scale));
+  --t-md: calc(17px * var(--fs-scale));   /* 본문 */
+  --t-lg: calc(20px * var(--fs-scale));
+  --t-xl: calc(24px * var(--fs-scale));
+  --t-2xl: calc(28px * var(--fs-scale));
+  --t-num: calc(40px * var(--fs-scale));  /* 타이머·큰 숫자 */
+  --lh-body: 1.7;
+  --lh-tight: 1.3;
+  --math-inline: 1.08em;  /* KaTeX 인라인 배율 */
+  --math-block: 1.2em;
+
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  --gutter: 16px;
+  --measure: 34em;        /* 읽기 줄 길이 상한 */
+  --radius-s: 8px; --radius-m: 12px; --radius-l: 16px; --radius-pill: 999px;
+  --tap: 44px;            /* 최소 터치 대상 */
+  --tap-main: 52px;       /* 주 행동 단추 */
+  --bar-h: 64px;          /* 하단 진행 바 */
+  --tab-h: 56px;          /* 하단 탭 */
+  --stroke: 2px;          /* 그래프 선 */
+  --handle: 28px;         /* 위젯 손잡이 지름(보이는 크기), 잡히는 영역은 --tap */
+  --dur: 160ms;
+}
+
+/* ── 전자칠판 1920x1080 고정 무대(.stage) 기준 수치 ── */
+html[data-surface="board"] {
+  --t-xs: calc(20px * var(--fs-scale));
+  --t-sm: calc(24px * var(--fs-scale));
+  --t-md: calc(32px * var(--fs-scale));   /* 본문 32 (요구 28 이상) */
+  --t-lg: calc(40px * var(--fs-scale));
+  --t-xl: calc(52px * var(--fs-scale));
+  --t-2xl: calc(64px * var(--fs-scale));  /* 장면 제목 */
+  --t-num: calc(120px * var(--fs-scale)); /* 타이머·집계 숫자 */
+  --lh-body: 1.55;
+  --math-inline: 1.15em;
+  --math-block: 1.4em;
+  --sp-1: 6px; --sp-2: 12px; --sp-3: 18px; --sp-4: 24px; --sp-5: 36px; --sp-6: 48px; --sp-7: 72px;
+  --gutter: 64px;
+  --measure: 28em;
+  --radius-s: 12px; --radius-m: 18px; --radius-l: 24px;
+  --tap: 64px;
+  --tap-main: 88px;
+  --bar-h: 112px;          /* 하단 도구띠 */
+  --stroke: 4px;
+  --handle: 48px;
+  --dur: 200ms;
+}
+
+/* 글자 크기 단계 (사용자) */
+html[data-fs="0"] { --fs-scale: .9; }
+html[data-fs="2"] { --fs-scale: 1.2; }
+html[data-fs="3"] { --fs-scale: 1.45; }
+
+/* ── 다크 (OS 따라가기) ── */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]):not([data-theme="chalk"]) {
+    --bg: #0e1218; --surface: #161b24; --surface-2: #1e2532;
+    --line: #2c3442; --line-strong: #4a5568;
+    --ink: #f2f4f8; --ink-2: #c9ced8; --ink-3: #a8b0bd;
+    --focus: #60a5fa;
+    --ok: #4ade80; --ok-bg: #0f2a1a; --bad: #f87171; --bad-bg: #2d1414;
+    --warn: #fbbf24; --warn-bg: #2a1e0a; --info: #60a5fa; --info-bg: #0f1d33;
+    --aha: #a78bfa; --aha-bg: #1d1633;
+    --hl: rgba(250, 204, 21, .35);
+    --u1-ink: var(--u1-dk); --u2-ink: var(--u2-dk); --u3-ink: var(--u3-dk); --u4-ink: var(--u4-dk); --u5-ink: var(--u5-dk);
+    --u1-soft: #1c1f3d; --u2-soft: #0f2a27; --u3-soft: #33141d; --u4-soft: #2e2010; --u5-soft: #241a3d;
+    --shadow-1: none; --shadow-2: 0 4px 16px rgba(0, 0, 0, .5);
+  }
+}
+html[data-theme="dark"] {
+  --bg: #0e1218; --surface: #161b24; --surface-2: #1e2532;
+  --line: #2c3442; --line-strong: #4a5568;
+  --ink: #f2f4f8; --ink-2: #c9ced8; --ink-3: #a8b0bd;
+  --focus: #60a5fa;
+  --ok: #4ade80; --ok-bg: #0f2a1a; --bad: #f87171; --bad-bg: #2d1414;
+  --warn: #fbbf24; --warn-bg: #2a1e0a; --info: #60a5fa; --info-bg: #0f1d33;
+  --aha: #a78bfa; --aha-bg: #1d1633;
+  --hl: rgba(250, 204, 21, .35);
+  --u1-ink: var(--u1-dk); --u2-ink: var(--u2-dk); --u3-ink: var(--u3-dk); --u4-ink: var(--u4-dk); --u5-ink: var(--u5-dk);
+  --u1-soft: #1c1f3d; --u2-soft: #0f2a27; --u3-soft: #33141d; --u4-soft: #2e2010; --u5-soft: #241a3d;
+  --shadow-1: none; --shadow-2: 0 4px 16px rgba(0, 0, 0, .5);
+}
+/* 칠판 테마: 눈부심 줄인 짙은 초록, 분필 흰색 */
+html[data-theme="chalk"] {
+  --bg: #0f2a20; --surface: #133227; --surface-2: #1a3d30;
+  --line: #2f5546; --line-strong: #5d8a77;
+  --ink: #f2f4f8; --ink-2: #d6e3dc; --ink-3: #b3c7bd;
+  --focus: #facc15;
+  --ok: #4ade80; --ok-bg: #123d26; --bad: #fca5a5; --bad-bg: #3d1a1a;
+  --warn: #fbbf24; --warn-bg: #3a2c0c; --info: #93c5fd; --info-bg: #15304a;
+  --aha: #c4b5fd; --aha-bg: #2a2445;
+  --hl: rgba(250, 204, 21, .35);
+  --u1-ink: #a5b4fc; --u2-ink: #5eead4; --u3-ink: #fda4af; --u4-ink: #fcd34d; --u5-ink: #c4b5fd;
+  --u1-soft: #1d2f45; --u2-soft: #154036; --u3-soft: #3a2230; --u4-soft: #3a3418; --u5-soft: #2d2a45;
+  --shadow-1: none; --shadow-2: 0 6px 20px rgba(0, 0, 0, .45);
+}
+
+/* 단원 포인트 */
+html[data-unit="u1"] { --accent: var(--u1); --accent-ink: var(--u1-ink); --accent-soft: var(--u1-soft); }
+html[data-unit="u2"] { --accent: var(--u2); --accent-ink: var(--u2-ink); --accent-soft: var(--u2-soft); }
+html[data-unit="u3"] { --accent: var(--u3); --accent-ink: var(--u3-ink); --accent-soft: var(--u3-soft); }
+html[data-unit="u4"] { --accent: var(--u4); --accent-ink: var(--u4-ink); --accent-soft: var(--u4-soft); }
+html[data-unit="u5"] { --accent: var(--u5); --accent-ink: var(--u5-ink); --accent-soft: var(--u5-soft); }
+
+/* 동작 줄이기 */
+@media (prefers-reduced-motion: reduce) { :root { --dur: 0ms; } }
+html[data-motion="reduce"] { --dur: 0ms; }

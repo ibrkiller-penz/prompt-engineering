@@ -1,0 +1,128 @@
+/* aimath-next 시각 규칙 시안 (5번: 그림·아이콘·움직임·접근성·수식·그래프)
+ * tokens.css → components.css → visual.css 순서로 불러온다. Chrome 80 안전.
+ * 금지: flex gap, aspect-ratio, :has, :focus-visible, inset, ?. ?? (JS), @layer, oklch, color-mix
+ */
+
+:root {
+  /* 그래프 계열색 (밝은 바탕, 흰색 대비 모두 4.5:1 이상) — 색 + 선 모양 + 표식 3중 구분 */
+  --s1: #0b5cad; /* 파랑  · 실선   · ●  6.7:1 */
+  --s2: #c2410c; /* 주황  · 긴 점선 · ▲  5.2:1 */
+  --s3: #047857; /* 초록  · 짧은 점선 · ■ 5.5:1 */
+  --s4: #7e22ce; /* 보라  · 점-선  · ◆  7.0:1 */
+  --s5: #4b5563; /* 회색  · 점선   · ✕  7.6:1 (기준선·이론값) */
+  --grid: #e3e7ee;      /* 격자: 장식(대비 요구 없음) */
+  --axis: #5b6472;      /* 축·눈금 글자 6.0:1 */
+  --plot-bg: var(--surface);
+  --pt-r: 6px;          /* 데이터 점 반지름(보이는 크기) */
+  --ico: 24px;          /* 아이콘 기본 */
+  --ico-stroke: 2px;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-io: cubic-bezier(.4, 0, .2, 1);
+  --d-fast: calc(var(--dur) * .75); /* 120 / 150 */
+  --d-mid: calc(var(--dur) * 1.5);  /* 240 / 300 */
+  --d-slow: calc(var(--dur) * 2.5); /* 400 / 500 */
+}
+html[data-surface="board"] { --pt-r: 11px; --ico: 40px; --ico-stroke: 2.5px; --grid: #d9dee6; }
+html[data-theme="dark"], html[data-theme="chalk"] {
+  --s1: #7cb8ff; --s2: #ffa36b; --s3: #4ade80; --s4: #d0a8ff; --s5: #cbd5e1;
+  --axis: var(--ink-2);
+}
+html[data-theme="dark"] { --grid: #2c3442; }
+html[data-theme="chalk"] { --grid: #2f5546; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]):not([data-theme="chalk"]) {
+    --s1: #7cb8ff; --s2: #ffa36b; --s3: #4ade80; --s4: #d0a8ff; --s5: #cbd5e1; --axis: var(--ink-2); --grid: #2c3442;
+  }
+}
+/* 고대비(사용자 설정): 계열색을 더 짙게, 격자 진하게, 선 굵게 */
+html[data-contrast="more"] { --grid: #a8b0bd; --stroke: 3px; --line: #6b7280; }
+html[data-surface="board"][data-contrast="more"] { --stroke: 6px; }
+
+/* ── 아이콘 ── */
+.ico-svg { display: inline-block; width: var(--ico); height: var(--ico); vertical-align: -0.2em; flex: 0 0 auto;
+  fill: none; stroke: currentColor; stroke-width: var(--ico-stroke); stroke-linecap: round; stroke-linejoin: round; }
+.ico-svg.sm { width: calc(var(--ico) * .75); height: calc(var(--ico) * .75); }
+.ico-svg.lg { width: calc(var(--ico) * 1.5); height: calc(var(--ico) * 1.5); }
+/* 아이콘만 있는 단추: 보이는 크기와 별개로 터치 영역 보장 */
+.icon-btn { position: relative; display: inline-flex; align-items: center; justify-content: center;
+  min-width: var(--tap); min-height: var(--tap); border-radius: var(--radius-m); border: 2px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; padding: 0; }
+.icon-btn .lbl { display: block; font-size: var(--t-xs); font-weight: 700; margin-top: 2px; }
+.icon-btn.stacked { flex-direction: column; min-width: calc(var(--tap) * 1.25); padding: 4px 6px; }
+
+/* ── 초점 표시 (Chrome 80: :focus-visible 없음 → 키보드 사용 시 html.kbd 부여) ── */
+:focus { outline: none; }
+html.kbd :focus { outline: 3px solid var(--focus); outline-offset: 3px; box-shadow: 0 0 0 6px var(--surface); }
+html[data-surface="board"].kbd :focus { outline-width: 5px; outline-offset: 4px; }
+
+/* ── 정오 표시: 색 + 기호 + 글자 ── */
+.verdict { display: flex; align-items: center; font-weight: 800; font-size: var(--t-md); border-radius: var(--radius-m); padding: var(--sp-2) var(--sp-3); border: 2px solid; }
+.verdict .ico-svg { margin-right: .4em; }
+.verdict.ok { color: var(--ok); background: var(--ok-bg); border-color: var(--ok); }
+.verdict.bad { color: var(--bad); background: var(--bad-bg); border-color: var(--bad); border-style: dashed; }
+
+/* ── 그래프 (SVG) ── */
+.plot { display: block; width: 100%; height: auto; background: var(--plot-bg); border-radius: var(--radius-m); touch-action: none; }
+.plot .grid line { stroke: var(--grid); stroke-width: 1; }
+.plot .axis line, .plot .axis path { stroke: var(--axis); stroke-width: calc(var(--stroke) * .75); }
+.plot text { fill: var(--axis); font-family: var(--font-num); font-size: var(--t-xs); font-variant-numeric: tabular-nums; }
+.plot .lab { fill: var(--ink); font-weight: 700; font-size: var(--t-sm); }
+.plot .s1 { stroke: var(--s1); fill: var(--s1); }
+.plot .s2 { stroke: var(--s2); fill: var(--s2); }
+.plot .s3 { stroke: var(--s3); fill: var(--s3); }
+.plot .s4 { stroke: var(--s4); fill: var(--s4); }
+.plot .s5 { stroke: var(--s5); fill: var(--s5); }
+.plot .ln { fill: none; stroke-width: var(--stroke); stroke-linecap: round; }
+.plot .ln.d2 { stroke-dasharray: 12 6; }
+.plot .ln.d3 { stroke-dasharray: 4 5; }
+.plot .ln.d4 { stroke-dasharray: 12 5 3 5; }
+.plot .ln.d5 { stroke-dasharray: 2 6; }
+.plot .pt { stroke: var(--plot-bg); stroke-width: 2; }
+.plot .resid { stroke: var(--s2); stroke-width: calc(var(--stroke) * .75); stroke-dasharray: 4 4; }
+.plot .handle-hit { fill: transparent; stroke: none; cursor: grab; }     /* 잡히는 영역 r = --tap/2 */
+.plot .handle { fill: var(--surface); stroke: var(--accent); stroke-width: 3; }
+.plot .handle.is-drag { fill: var(--accent-soft); stroke-width: 5; }
+
+/* ── 슬라이더 (input range, 크게) ── */
+.range { -webkit-appearance: none; appearance: none; width: 100%; height: var(--tap); background: transparent; margin: 0; }
+.range::-webkit-slider-runnable-track { height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line-strong); }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: var(--handle); height: var(--handle); margin-top: calc((10px - var(--handle)) / 2 - 1px);
+  border-radius: 50%; background: var(--surface); border: 4px solid var(--accent); box-shadow: var(--shadow-1); }
+.stepper { display: flex; align-items: center; }
+.stepper > * + * { margin-left: var(--sp-2); }
+.stepper .val { min-width: 4ch; text-align: center; font-size: var(--t-lg); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ── 움직임 ── */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(.85); opacity: 0; } 60% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes shake { 0%,100% { transform: none; } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@keyframes slideL { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slideR { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pulseRing { from { box-shadow: 0 0 0 0 rgba(234, 88, 12, .55); } to { box-shadow: 0 0 0 18px rgba(234, 88, 12, 0); } }
+.m-reveal { animation: fadeUp var(--d-mid) var(--ease-out) both; }
+.m-ok { animation: pop var(--d-mid) var(--ease-out) both; }
+.m-bad { animation: shake var(--d-mid) var(--ease-io) 1; }
+.m-next { animation: slideL var(--d-mid) var(--ease-out) both; }
+.m-prev { animation: slideR var(--d-mid) var(--ease-out) both; }
+.m-timeup { animation: pulseRing 900ms ease-out 3; }
+/* 동작 줄이기: 이동·흔들림 제거, 투명도 전환만 짧게 남김 */
+@media (prefers-reduced-motion: reduce) {
+  .m-reveal, .m-ok, .m-bad, .m-next, .m-prev, .m-timeup { animation: none !important; }
+}
+html[data-motion="reduce"] .m-reveal, html[data-motion="reduce"] .m-ok, html[data-motion="reduce"] .m-bad,
+html[data-motion="reduce"] .m-next, html[data-motion="reduce"] .m-prev, html[data-motion="reduce"] .m-timeup { animation: none !important; }
+
+/* ── 수식 가독성 ── */
+.katex .mord.mathnormal { letter-spacing: .01em; }
+html[data-surface="board"] .katex { font-size: var(--math-inline) !important; }
+.math-read { display: block; font-size: var(--t-sm); color: var(--ink-2); margin-top: var(--sp-1); } /* "읽는 법" 한 줄 */
+.math-block.is-overflow::after { content: "← 밀어서 보기 →"; display: block; text-align: right; font-size: var(--t-xs); color: var(--ink-2); }
+.hl-term { background: linear-gradient(transparent 55%, var(--hl) 55%); } /* 형광펜 밑줄식 강조 */
+
+/* ── 그림(도식) 틀 ── */
+.figure { margin: 0; }
+.figure svg { display: block; width: 100%; height: auto; }
+.figure figcaption { font-size: var(--t-sm); color: var(--ink-2); margin-top: var(--sp-2); }
+.ratio { position: relative; width: 100%; height: 0; padding-top: 56.25%; } /* aspect-ratio 대체 */
+.ratio > * { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.ratio.r1 { padding-top: 100%; } .ratio.r43 { padding-top: 75%; }

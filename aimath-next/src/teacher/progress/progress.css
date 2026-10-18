@@ -1,0 +1,29 @@
+/* 반별 진도(#/progress) */
+.t-prog > * + * { margin-top: var(--sp-4); }
+.t-prog-head > * + * { margin-top: var(--sp-1); }
+.t-prog-head p { margin-bottom: 0; }
+.t-prog-sum { display: flex; flex-wrap: wrap; margin: 0 calc(var(--sp-2) * -1); padding: 0; list-style: none; }
+.t-prog-card { width: 240px; margin: var(--sp-2); }
+.t-prog-card > * + * { margin-top: var(--sp-2); }
+.t-prog-card.is-now { box-shadow: inset 0 0 0 var(--border) var(--site); }
+.t-prog-card p { margin: 0; }
+.t-prog-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-m); box-shadow: inset 0 0 0 var(--border) var(--line); }
+.t-prog-tbl { width: 100%; border-collapse: collapse; }
+.t-prog-tbl th, .t-prog-tbl td { padding: 0; border-bottom: 1px solid var(--line); text-align: center; }
+.t-prog-tbl thead th { position: -webkit-sticky; position: sticky; top: 0; padding: var(--sp-2) var(--sp-3); background: var(--surface-2); white-space: nowrap; }
+.t-prog-tbl thead th.is-now { box-shadow: inset 0 -4px 0 var(--site); }
+.t-prog-unit th { padding: var(--sp-2) var(--sp-3); text-align: left; background: var(--accent-soft); color: var(--ink); font-weight: 800; }
+.t-prog-lesson { padding: var(--sp-1) var(--sp-3) !important; text-align: left !important; font-weight: 600; min-width: 18em; }
+.t-prog-lesson a { color: var(--ink); text-decoration: none; }
+.t-prog-btn {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-width: 6em; min-height: var(--tap);
+  padding: 0 var(--sp-2); border: 0; background: transparent; color: var(--ink); font: inherit; cursor: pointer;
+}
+.t-prog-btn > * + * { margin-left: .35em; }
+.t-prog-sym { font-weight: 800; font-size: 1.2em; }
+.t-prog-cell.is-done { background: var(--ok-bg); }
+.t-prog-cell.is-done .t-prog-sym { color: var(--ok); }
+.t-prog-cell.is-part { background: var(--warn-bg); }
+.t-prog-cell.is-part .t-prog-sym { color: var(--warn); }
+.t-prog-cell.is-none .t-prog-txt { color: var(--ink-3); }
+.t-prog-now { font-weight: 800; font-size: var(--t-base); }

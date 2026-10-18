@@ -156,6 +156,13 @@ function checkUnit(f, U) {
   const rel = path.relative(ROOT, f);
   for (const k of ["id", "why", "opening", "test", "future"]) if (U[k] == null) return err(rel, `필드 누락: ${k}`);
   for (const k of ["why", "opening", "future"]) { checkText(rel, `${k}.title`, U[k].title); (U[k].paragraphs || []).forEach((t, i) => checkText(rel, `${k}[${i}]`, t)); }
+  const checkImages = (label, imgs, n) => (imgs || []).forEach((im, k) => {
+    if (!Number.isInteger(im.after) || im.after < 0 || im.after >= n) err(rel, `${label}.images[${k}].after 가 문단 범위(0~${n - 1}) 밖`);
+    if (!im.alt) err(rel, `${label}.images[${k}].alt 없음`);
+    if (!im.src || !fs.existsSync(path.join(ROOT, "..", "..", "public", im.src.replace(/^\//, "")))) err(rel, `${label}.images[${k}] 파일 없음: ${im.src}`);
+  });
+  checkImages("opening", U.opening.images, U.opening.paragraphs.length);
+  (U.stories || []).forEach((s, si) => checkImages(`stories[${si}]`, s.images, (s.paragraphs || []).length));
   (U.stories || []).forEach((s, si) => { checkText(rel, `stories[${si}].title`, s.title); (s.paragraphs || []).forEach((t, i) => checkText(rel, `stories[${si}][${i}]`, t)); if ((s.paragraphs || []).length < 5) warn(rel, `stories[${si}] 문단 ${(s.paragraphs || []).length}개(5개 이상 권장)`); });
   if ((U.stories || []).length < 3) warn(rel, `시작 전 이야기(stories) ${(U.stories || []).length}편(3편 이상 권장)`);
   if (U.why.paragraphs.length < 2) warn(rel, "why 문단 2개 이상 권장");
