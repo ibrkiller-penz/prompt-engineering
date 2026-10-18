@@ -431,3 +431,4 @@ html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height:
 html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-auto-rows: minmax(52px, 1fr); }
 html[data-surface="board"] .bdq.has-pass .bdq-opt-main { min-height: 40px; }
 html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height: 230px; }
+html[data-surface="board"] .bdq.has-pass .bdq-prompt { font-size: 30px; line-height: 1.3; max-height: 140px; overflow-y: auto; }
