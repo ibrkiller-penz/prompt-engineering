@@ -4,7 +4,7 @@ import { href } from "../../shared/router/index.ts";
 import { INDEX } from "../../content/index.ts";
 import { Icon, UnitIcon } from "../../shared/icons/index.ts";
 import { ProgressBar } from "../../shared/ui/index.ts";
-import { Screen, useDocTitle } from "../shell/Shell.tsx";
+import { PageHead, Screen, useDocTitle } from "../shell/Shell.tsx";
 import {
   UNIT_BADGE_LABEL,
   isTried,
@@ -86,63 +86,75 @@ export default function Home() {
 
   return (
     <Screen title="인공지능 수학" noBack tab="home">
-      <div className="page stack-lg">
-        <a className="card card-hero card-link s-continue" href={cont.to}>
-          <span className="eyebrow">이어서 공부하기</span>
-          <strong className="h2 s-continue-title">{cont.title}</strong>
-          <span className="small muted">{cont.sub}</span>
+      <div className="page s-home">
+        <PageHead eyebrow="오늘의 공부" title="인공지능 수학" sub="카드를 한 장씩 넘기며 차근차근 배워요." />
+
+        <a className="card card-link s-continue" href={cont.to}>
+          <span className="s-continue-tag">이어서 하기</span>
+          <strong className="s-continue-title">{cont.title}</strong>
+          <span className="s-continue-sub">{cont.sub}</span>
+          <span className="s-continue-prog">
+            <ProgressBar value={sum.complete} max={sum.lessons || 1} label={"전체 레슨 " + sum.lessons + "개 중 " + sum.complete + "개 완료"} />
+            <span className="s-continue-txt">
+              레슨 {sum.complete}/{sum.lessons} 완료
+            </span>
+          </span>
           <span className="btn btn-primary btn-block s-continue-go">
             <span>이어서 하기</span>
             <Icon name="next" />
           </span>
         </a>
 
-        <section aria-labelledby="h-today">
-          <h2 id="h-today" className="section-title">
+        <section className="s-sec" aria-labelledby="h-today">
+          <h2 id="h-today" className="s-sec-title">
             오늘 할 일
           </h2>
-          <ul className="list card s-today">
+          <ol className="list s-today">
             {rows.map((r, i) => (
               <li key={i}>
                 <a className="list-row s-today-row" href={r.to}>
-                  <Icon name={r.icon} />
+                  <span className={"num-chip" + (r.done ? " is-done" : "")} aria-hidden="true">
+                    {i + 1}
+                  </span>
                   <span className="grow">{r.text}</span>
                   {r.done ? <span className="verdict ok small">끝</span> : <Icon name="next" />}
                 </a>
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
 
-        <section aria-labelledby="h-units">
-          <h2 id="h-units" className="section-title">
-            단원 진행
+        <section className="s-sec" aria-labelledby="h-units">
+          <h2 id="h-units" className="s-sec-title">
+            단원
           </h2>
-          <p className="small muted">
+          <p className="s-sec-sub">
             레슨 {sum.lessons}개 중 {sum.complete}개 완료 · 맞힌 문제 {sum.ok}개
           </p>
-          <ul className="list s-units">
+          <ul className="s-ucards">
             {INDEX.units.map((u) => {
               const st = unitStatusOf(u.id, q, read);
               return (
-                <li key={u.id} data-unit={u.slug} className="s-unit-li">
-                  <a className="list-row s-unit-row" href={href(STUDENT_ROUTES.unit, { n: u.id })}>
+                <li key={u.id} data-unit={u.slug}>
+                  <a className="card card-link s-ucard" href={href(STUDENT_ROUTES.unit, { n: u.id })}>
                     <UnitIcon unit={u.id} badge />
-                    <span className="grow">
-                      <span className="s-unit-name">
-                        {u.roman}. {u.title}
+                    <span className="grow s-ucard-body">
+                      <span className="s-ucard-top">
+                        <span className="num-chip">{u.roman}</span>
+                        {st && st.badge ? (
+                          <span className={"chip " + (st.badge === "star" ? "is-accent" : "is-ok")}>
+                            <Icon name="badge" />
+                            <span>{UNIT_BADGE_LABEL[st.badge]}</span>
+                          </span>
+                        ) : null}
                       </span>
+                      <strong className="s-ucard-name">{u.title}</strong>
                       <ProgressBar value={st ? st.percent : 0} max={100} label={u.roman + " 단원 진행 " + (st ? st.percent : 0) + "%"} />
-                      <span className="tiny muted">
+                      <span className="s-ucard-sub">
                         레슨 {st ? st.done : 0}/{u.lessonIds.length} 완료
                       </span>
                     </span>
-                    {st && st.badge ? (
-                      <span className={"chip " + (st.badge === "star" ? "is-accent" : "is-ok")}>
-                        <Icon name="badge" />
-                        <span>{UNIT_BADGE_LABEL[st.badge]}</span>
-                      </span>
-                    ) : null}
+                    <Icon name="next" />
                   </a>
                 </li>
               );
@@ -150,7 +162,7 @@ export default function Home() {
           </ul>
         </section>
 
-        <p className="small center">
+        <p className="small center s-foot">
           <a href={href(STUDENT_ROUTES.answerCard)}>수업 중 응답 카드 열기</a>
         </p>
       </div>

@@ -22,6 +22,7 @@ import { EndScene, useFinish } from "./End.tsx";
 import type { LogSource } from "./LessonLogCard.tsx";
 import { useBoardData } from "./data.ts";
 import "./board.css";
+import "../styles/frev-board.css";
 
 /** 교사 전용 표식(학생 빌드에 들어가면 누출 검사가 잡아요) */
 export const BOARD_MARK = TEACHER_MARK;

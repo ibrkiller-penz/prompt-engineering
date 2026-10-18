@@ -23,11 +23,7 @@ function applyBootPrefs() {
   let theme: Theme = "light";
   const pref = p && p.theme ? p.theme : "auto";
   if (pref === "auto") {
-    try {
-      theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    } catch {
-      theme = "light";
-    }
+    theme = "light"; // 기기 어두운 설정은 따르지 않아요(읽기 설정에서 직접 고르면 어둡게)
   } else if (pref === "chalk" && !IS_TEACHER) theme = "dark"; // 칠판 테마는 교사만
   else theme = pref;
   html.setAttribute("data-site", SITE);

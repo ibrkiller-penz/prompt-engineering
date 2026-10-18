@@ -10,7 +10,7 @@
 /* ── 무대 전용 토큰 ── */
 html[data-surface="board"] {
   /* 도구띠: 테마와 상관없이 짙은 고정색 */
-  --tb-bg: #161b26;
+  --tb-bg: #1b2a4a;
   --tb-bg-2: #232a38;
   --tb-line: #3a4357;
   --tb-ink: #f3f5f9;

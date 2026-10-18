@@ -29,22 +29,6 @@ html[data-surface="prep"] .t-prog-card .small { font-variant-numeric: tabular-nu
 
 /* ════════════════ 2단 배치(1200px 이상) ════════════════ */
 @media (min-width: 1200px) {
-  /* 오늘 수업: 왼쪽 오늘 레슨(1.35) · 오른쪽 반 요약과 학생 주소(1) */
-  /* 격자로 하면 레슨 카드가 두 줄을 차지해 오른쪽 카드 사이가 벌어져요(검수 1920 확인).
-   * 그래서 레슨 카드를 왼쪽에 띄우고(float) 오른쪽 카드는 위에서부터 차례로 쌓아요. */
-  html[data-surface="prep"] .page.t-today { max-width: 1760px; }
-  html[data-surface="prep"] .page.t-today::after { content: ""; display: table; clear: both; }
-  html[data-surface="prep"] .page.t-today > .t-lesson {
-    float: left;
-    width: calc((100% - var(--pp-col-gap)) * .574);
-  }
-  html[data-surface="prep"] .page.t-today > .card {
-    margin-left: calc((100% - var(--pp-col-gap)) * .574 + var(--pp-col-gap));
-  }
-  html[data-surface="prep"] .page.t-today > .t-lesson,
-  html[data-surface="prep"] .page.t-today > .t-resume,
-  html[data-surface="prep"] .page.t-today > .t-welcome { margin-left: 0; }
-
   /* 준비 한 장: 1.35:1 */
   html[data-surface="prep"] .pp-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-gap: var(--sp-4) var(--pp-col-gap); }
   html[data-surface="prep"] .pp-grid .pp-answers { grid-column: 1 / -1; }
