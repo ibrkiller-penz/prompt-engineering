@@ -144,3 +144,10 @@ html[data-surface="board"] .bd-stage .bdq-card.is-sol { box-shadow: inset 5px 0 
 /* 칠판 본문 글자는 크니까 에스코어드림 3(Light)로 가볍게. 굵은 글씨(strong)는 그대로 */
 html[data-surface="board"] .bd-stage p { font-weight: 300; }
 html[data-surface="board"] .bd-stage p strong, html[data-surface="board"] .bd-stage p b { font-weight: 700; }
+
+/* ── T5: 수업 끝 '수업 마치기' 설명이 잘리지 않게 줄바꿈을 허용하고(두 줄이어도 단추 높이 72 안, 라벨은 위에 붙여 장면마다 제자리), 장면 카운터는 고정 폭 ── */
+html[data-surface="board"] .bd-stage .bd-bar .bd-next { height: 72px; box-sizing: border-box; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt { overflow: visible; -ms-flex-item-align: stretch; align-self: stretch; -webkit-box-pack: start; justify-content: flex-start; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt > span { line-height: 1.1; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-next-txt small { max-width: 274px; overflow: visible; white-space: normal; text-overflow: clip; font-size: 17px; line-height: 1.02; }
+html[data-surface="board"] .bd-stage .bd-strip .bd-head-count { flex: 0 0 340px; width: 340px; text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }

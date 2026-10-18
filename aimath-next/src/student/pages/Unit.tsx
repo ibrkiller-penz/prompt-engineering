@@ -23,7 +23,7 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
   useDocTitle(u ? u.roman + ". " + u.title : "단원");
   if (!u) {
     return (
-      <Screen title="단원" tab="unit">
+      <Screen title="단원" noBack tab="unit">
         <NotFoundBody />
       </Screen>
     );
@@ -39,7 +39,7 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
   const unitHref = href(STUDENT_ROUTES.unit, { n: num });
 
   return (
-    <Screen title="단원" code={u.roman} tab="unit" unitHref={unitHref} backTo="/">
+    <Screen title="단원" code={u.roman} noBack tab="unit" unitHref={unitHref}>
       <div className="page s-unit-page">
         <PageHead eyebrow={"단원 " + u.roman} title={u.title} sub={u.short} />
 
