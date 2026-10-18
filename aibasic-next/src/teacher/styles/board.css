@@ -424,3 +424,5 @@ html[data-surface="board"] .bdq.has-pass .bdq-opt-txt, html[data-surface="board"
 html[data-surface="board"] .bdq.has-pass .bdq-key, html[data-surface="board"] .bdq.has-pass .bdq-ox { font-size: 30px; }
 html[data-surface="board"] .bdq-passage .ui-code .ui-code-pre { font-size: 24px; line-height: 1.3; padding: 6px 16px; }
 html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 22px; padding: 2px 16px; }
+/* 정답·풀이 칸이 열리면 제시문은 접어서(안에서 스크롤) 본문이 896px 을 넘지 않게 해요 */
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-passage .ui-qpassage { max-height: 170px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
