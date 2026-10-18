@@ -135,6 +135,12 @@ export default function PrintPage(m: TeacherPageProps) {
   const link = studentLink(STUDENT_URL, lid, { hw: st.baskets.hw, ex: st.baskets.exit });
   const go = (patch: Record<string, string | number | undefined>) => navigate(TEACHER_ROUTES.print.replace(":lid", lid), { p, set, key: key ? 1 : undefined, ...patch }, { replace: true });
 
+  // 마지막 문제와 QR 안내를 한 덩어리로 묶어서, QR 만 다음 쪽에 외톨이로 남지 않게 해요
+  const foot = (
+    <footer className="pr-foot">
+      <QrBox url={link} />
+    </footer>
+  );
   let body: ReactNode;
   if (!qs.length) body = <p className="pr-empty">이 바구니에 담긴 문제가 없어요. '문제 고르기'에서 담아 주세요.</p>;
   else
@@ -153,6 +159,7 @@ export default function PrintPage(m: TeacherPageProps) {
               <Rich text={q.prompt} />
             </div>
             {key ? <KeyArea q={q} /> : <AnswerArea q={q} />}
+            {i === qs.length - 1 ? foot : null}
           </li>
         ))}
       </ol>
@@ -207,9 +214,7 @@ export default function PrintPage(m: TeacherPageProps) {
           </p>
         ) : null}
         {body}
-        <footer className="pr-foot">
-          <QrBox url={link} />
-        </footer>
+        {qs.length ? null : foot}
       </article>
     </section>
   );

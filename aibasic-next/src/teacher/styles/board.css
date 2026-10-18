@@ -482,10 +482,12 @@ html[data-surface="board"] .bd-end .bd-end-list { line-height: 1.38; }
 @media print {
   html[data-page="print"] .pr-head { padding-bottom: 2mm !important; }
   html[data-page="print"] .pr-question { margin-top: 2.5mm !important; padding: 1.2mm 3mm !important; }
-  html[data-page="print"] .pr-qs { margin-top: 2.5mm !important; }
-  html[data-page="print"] .pr-q { padding: 1.4mm 0 1.8mm !important; line-height: 1.4 !important; }
+  html[data-page="print"] .pr-qs { margin-top: 1.5mm !important; }
+  html[data-page="print"] .pr-q { padding: 1mm 0 1.2mm !important; line-height: 1.4 !important; }
   html[data-page="print"] .pr-q > * + * { margin-top: 1.2mm !important; }
   html[data-page="print"] .pr-choices > li + li { margin-top: 0.4mm !important; }
-  html[data-page="print"] .pr-foot { margin-top: 1.5mm !important; padding-top: 1.2mm !important; }
-  html[data-page="print"] .pr-qr-img { width: 17mm !important; height: 17mm !important; margin-right: 3mm !important; }
+  html[data-page="print"] .pr-foot { margin-top: 0.5mm !important; padding-top: 0.8mm !important; }
+  html[data-page="print"] .pr-foot .pr-qr-img { width: 11mm !important; height: 11mm !important; margin-right: 3mm !important; }
+  html[data-page="print"] .pr-qr-txt { font-size: 8pt !important; line-height: 1.25 !important; }
+  html[data-page="print"] .pr-qr-txt > span:not(.pr-url) { display: none !important; }
 }
