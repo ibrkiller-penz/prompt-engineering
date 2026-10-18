@@ -193,6 +193,7 @@ static int batteryPct(int mv) {
   return 100;
 }
 static lv_obj_t *s_wifiList, *s_wifiInfo, *s_pwBox, *s_pwTa, *s_kb, *s_ttPick;
+static lv_obj_t *s_pwBg = nullptr;   // 비밀번호 창 뒤 어두운 막: 누르면 취소(뒤의 와이파이 목록이 눌리지 않게)
 static String s_pickSsid;
 
 // ── 화면 밀림 대처(Waveshare/Espressif 매뉴얼 'Why do I get drift', 19_개발보드2 와 같게 2026-10-06) ──
@@ -1218,6 +1219,15 @@ static void connectWifi(const String &ssid, const String &pw, bool save) {
   s_syncReq = true;
 }
 static void onPwOk(lv_event_t *e);
+static void pwShow(bool on) {   // 비밀번호 창·자판·뒤 막을 함께 열고 닫는다
+  lv_obj_t *o[] = {s_pwBg, s_pwBox, s_kb};
+  for (lv_obj_t *x : o) if (x) { if (on) { lv_obj_clear_flag(x, LV_OBJ_FLAG_HIDDEN); lv_obj_move_foreground(x); } else lv_obj_add_flag(x, LV_OBJ_FLAG_HIDDEN); }
+}
+static void pwCancel(lv_event_t *) {   // 비밀번호를 모르는 와이파이를 잘못 골랐을 때: 닫고 목록으로
+  lv_textarea_set_text(s_pwTa, "");
+  pwShow(false);
+  lv_label_set_text(s_wifiInfo, "취소했습니다. 목록에서 다른 와이파이를 고르세요.");
+}
 static void onSsidPick(lv_event_t *e) {
   lv_obj_t *btn = lv_event_get_target(e);
   s_pickSsid = String(lv_list_get_btn_text(s_wifiList, btn));
@@ -1231,21 +1241,17 @@ static void onSsidPick(lv_event_t *e) {
   }
   lv_label_set_text_fmt(lv_obj_get_child(s_pwBox, 0), "'%s' 비밀번호", s_pickSsid.c_str());
   lv_textarea_set_text(s_pwTa, "");
-  lv_obj_clear_flag(s_pwBox, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_clear_flag(s_kb, LV_OBJ_FLAG_HIDDEN);
+  pwShow(true);
 }
 static void onPwOk(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
   if (code == LV_EVENT_READY) {
     String pw = lv_textarea_get_text(s_pwTa);
-    lv_obj_add_flag(s_pwBox, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(s_kb, LV_OBJ_FLAG_HIDDEN);
+    if (!pw.length()) { pwCancel(e); return; }   // 빈 채로 입력을 누르면 취소(빈 비밀번호를 저장하지 않는다)
+    pwShow(false);
     lv_label_set_text_fmt(s_wifiInfo, "'%s'에 연결하는 중…", s_pickSsid.c_str());
     connectWifi(s_pickSsid, pw, true);
-  } else if (code == LV_EVENT_CANCEL) {
-    lv_obj_add_flag(s_pwBox, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(s_kb, LV_OBJ_FLAG_HIDDEN);
-  }
+  } else if (code == LV_EVENT_CANCEL) pwCancel(e);   // 자판의 닫기 단추
 }
 static volatile bool s_scanReq = false;
 static void onScan(lv_event_t *e) { s_scanReq = true; lv_obj_clean(s_wifiList); lv_list_add_text(s_wifiList, "찾는 중…"); }
@@ -2139,7 +2145,7 @@ static void buildPrincipalMore(lv_obj_t *scr, int top) {
 }
 
 static void hideOverlays() {   // 덮개 창(선생님 판·일정 자세히·볼 시간표·비밀번호·자판)을 모두 닫는다
-  lv_obj_t *o[] = {s_pTeach, s_pDetail, s_pickView, s_pwBox, s_kb};
+  lv_obj_t *o[] = {s_pTeach, s_pDetail, s_pickView, s_pwBox, s_kb, s_pwBg};
   for (lv_obj_t *x : o) if (x && !lv_obj_has_flag(x, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(x, LV_OBJ_FLAG_HIDDEN);
 }
 static bool overlayOpen() {
@@ -2157,7 +2163,7 @@ static void showView(View v) {
   if (s_viewSched) vis(s_viewSched, v == V_WEEK && s_principal);
   if (s_pTeach) vis(s_pTeach, false);
   if (s_pDetail) vis(s_pDetail, false);
-  if (v != V_SET && s_pwBox) { vis(s_pwBox, false); vis(s_kb, false); }
+  if (v != V_SET && s_pwBox) { vis(s_pwBox, false); vis(s_kb, false); if (s_pwBg) vis(s_pwBg, false); }
   vis(s_viewSet, v == V_SET);
   vis(s_viewClock, v == V_CLOCK && !s_principal);
   if (s_viewPrin) vis(s_viewPrin, v == V_CLOCK && s_principal);
@@ -2636,6 +2642,12 @@ static void buildUI() {
     lv_obj_add_event_cb(bn, onPickPage, LV_EVENT_CLICKED, (void *)(intptr_t)1);
   }
 
+  s_pwBg = lv_obj_create(scr);                                   // 뒤 막(누르면 취소)
+  lv_obj_remove_style_all(s_pwBg);
+  lv_obj_set_size(s_pwBg, s_W, s_H); lv_obj_set_pos(s_pwBg, 0, 0);
+  lv_obj_set_style_bg_color(s_pwBg, lv_color_hex(0x000000), 0); lv_obj_set_style_bg_opa(s_pwBg, LV_OPA_50, 0);
+  lv_obj_add_flag(s_pwBg, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_event_cb(s_pwBg, pwCancel, LV_EVENT_CLICKED, nullptr);
   s_pwBox = box(scr, C_SURF, C_BORDER, 12);
   lv_obj_set_size(s_pwBox, s_W - 160, small ? 110 : 130); lv_obj_align(s_pwBox, LV_ALIGN_TOP_MID, 0, TOP + 6);
   lv_obj_set_style_shadow_width(s_pwBox, 30, 0); lv_obj_set_style_shadow_opa(s_pwBox, LV_OPA_30, 0);
@@ -2645,6 +2657,12 @@ static void buildUI() {
   lv_textarea_set_password_mode(s_pwTa, false);   // 칠판 앞에서 치므로 보이게(오타 확인)
   lv_obj_set_style_text_font(s_pwTa, small ? &lv_font_montserrat_20 : &lv_font_montserrat_24, 0);
   lv_obj_set_size(s_pwTa, s_W - 192, small ? 48 : 56); lv_obj_align(s_pwTa, LV_ALIGN_BOTTOM_MID, 0, -10);
+  {
+    lv_obj_t *cb = button(s_pwBox, "취소", small ? 80 : 100, small ? 34 : 40, C_ALT, C_TEXT);   // 비밀번호를 모르면 여기서 닫는다
+    lv_obj_set_style_border_color(cb, lv_color_hex(C_BORDER), 0); lv_obj_set_style_border_width(cb, 1, 0);
+    lv_obj_align(cb, LV_ALIGN_TOP_RIGHT, -12, 6);
+    lv_obj_add_event_cb(cb, pwCancel, LV_EVENT_CLICKED, nullptr);
+  }
   lv_obj_add_flag(s_pwBox, LV_OBJ_FLAG_HIDDEN);
   s_kb = lv_keyboard_create(scr);
   lv_obj_set_size(s_kb, s_W, s_H / 2);
