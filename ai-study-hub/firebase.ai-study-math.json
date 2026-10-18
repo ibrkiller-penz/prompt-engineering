@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "site": "ai-study-math",
+    "public": "dist",
+    "ignore": ["firebase.json", "firebase.ai-study.json", "**/.*", "**/node_modules/**"],
+    "redirects": [
+      { "source": "/", "destination": "https://aiworld.web.app/", "type": 302 }
+    ],
+    "rewrites": [{ "source": "**", "destination": "/app.html" }]
+  }
+}
