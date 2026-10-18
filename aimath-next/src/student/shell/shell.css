@@ -188,8 +188,9 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 60px; --s-rail-h: 12px
 .c4 { background: #9a3412; } .c5 { background: #6d28d9; }
 .co { background: #157238; } .cx { background: #b91c1c; } .cq { background: #374151; }
 
-/* ── 넓은 화면(1024px 이상): 가운데 720px 칸 ── */
+/* ── 넓은 화면(1024px 이상): 가운데 넓은 칸 + 큰 글자(좌우 빈 곳 줄이기) ── */
 @media (min-width: 1024px) {
+  html[data-site="student"][data-surface] { --s-col: min(1080px, 100%); --gutter: 40px; --page-max: 1080px; --t-base: 27px; --t-lg: calc(30px * var(--fs-scale)); --t-xl: calc(35px * var(--fs-scale)); --t-2xl: calc(42px * var(--fs-scale)); }
   html[data-site="student"] body { background: var(--surface-2); }
   .s-screen, .s-deck-wrap {
     max-width: var(--s-col); margin: 0 auto;
@@ -198,6 +199,11 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 60px; --s-rail-h: 12px
   .s-main .page, .s-deck { max-width: var(--s-col); }
   .s-actionbar, .tabbar.s-tabbar { max-width: var(--s-col); margin: 0 auto; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
   .s-cardgrid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+}
+
+/* 태블릿·큰 폰(600~1023px): 글자 조금 키우기 */
+@media (min-width: 600px) and (max-width: 1023px) {
+  html[data-site="student"][data-surface] { --t-base: 20px; --t-lg: calc(23px * var(--fs-scale)); --t-xl: calc(27px * var(--fs-scale)); --gutter: 28px; }
 }
 
 /* 아주 좁은 화면(320px) */
@@ -227,3 +233,8 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 60px; --s-rail-h: 12px
 .s-story-no { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: var(--t-sm); }
 .s-story-title { display: block; font-size: var(--t-lg); line-height: 1.35; }
 .s-story-d[open] > .s-story-sum { margin-bottom: var(--sp-2); }
+
+/* 넓은 화면의 카드 제목: 본문(27px)보다 확실히 크게 */
+@media (min-width: 1024px) {
+  html[data-site="student"] .s-deck .h2 { font-size: calc(36px * var(--fs-scale)); }
+}
