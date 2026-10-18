@@ -201,3 +201,11 @@ html[data-surface="prep"] .pp-q { border-left: 5px solid var(--bad); background:
 html[data-surface="prep"] .pp-q-tag { color: var(--bad); }
 
 html[data-surface="prep"] .t-unit-h { margin-bottom: var(--sp-3); }
+
+/* ── 중간 너비(노트북·작은 창): 메뉴줄이 겹치지 않게 반 칩과 화면 설정은 둘째 줄로 ── */
+@media (min-width: 901px) and (max-width: 1500px) {
+  html[data-surface="prep"] .t-head-row { flex-wrap: wrap; min-height: 72px; }
+  html[data-surface="prep"] .t-tabs { flex: 1 1 auto; margin-left: var(--sp-3); }
+  html[data-surface="prep"] .t-head-row > .t-klass.is-compact { order: 5; flex: 1 1 calc(100% - 220px); padding: 0 0 var(--sp-2); }
+  html[data-surface="prep"] .t-head-row > .t-gear { order: 6; margin-bottom: var(--sp-2); }
+}
