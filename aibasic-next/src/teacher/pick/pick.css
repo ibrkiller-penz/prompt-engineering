@@ -1,0 +1,56 @@
+/* 문제 고르기(#/pick). Chrome 80: flex gap 대신 여백 */
+.page.t-pick { max-width: 1760px; }
+.t-pick > * + * { margin-top: var(--sp-4); }
+.t-pick-head > * + * { margin-top: var(--sp-1); }
+.t-pick-head > p { margin-bottom: 0; }
+.t-pick-grid { display: flex; align-items: flex-start; }
+.t-pick-list { flex: 1 1 auto; min-width: 0; }
+.t-pick-list > * + * { margin-top: var(--sp-3); }
+.t-baskets { flex: 0 0 480px; width: 480px; margin-left: var(--sp-5); position: -webkit-sticky; position: sticky; top: var(--sp-3); max-height: calc(100vh - 2 * var(--sp-3)); overflow: auto; }
+.t-baskets > * + * { margin-top: var(--sp-3); }
+
+.t-filters > * + * { margin-top: var(--sp-2); }
+.t-filters .row > .chip { margin: 0 var(--sp-1) var(--sp-1) 0; cursor: pointer; border: 2px solid transparent; }
+.t-filters .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+.t-filters p { margin: 0; }
+
+.t-q-rows { margin: 0; padding: 0; list-style: none; }
+.t-q-row { padding: var(--sp-3); border-radius: var(--radius-m); background: var(--surface); box-shadow: inset 0 0 0 var(--border) var(--line); }
+.t-q-row + .t-q-row { margin-top: var(--sp-2); }
+.t-q-row > * + * { margin-top: var(--sp-2); }
+.t-q-row.in-board { box-shadow: inset 6px 0 0 #9a3412, inset 0 0 0 var(--border) var(--line); }
+.t-q-row.in-exit { box-shadow: inset 6px 0 0 #0f766e, inset 0 0 0 var(--border) var(--line); }
+.t-q-row.in-hw { box-shadow: inset 6px 0 0 #1d4ed8, inset 0 0 0 var(--border) var(--line); }
+.t-q-top { display: flex; align-items: center; flex-wrap: wrap; }
+.t-q-top > * { margin-right: var(--sp-1); }
+.t-q-lv { color: var(--warn); }
+.t-q-id { margin-left: auto; }
+.t-q-prompt { display: block; width: 100%; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; line-height: 1.5; }
+.t-q-more { padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-s); background: var(--surface-2); }
+.t-q-more p { margin: var(--sp-1) 0 0; }
+.t-q-choices { margin: 0; padding-left: 1.6em; }
+.t-q-bask { display: flex; flex-wrap: wrap; }
+.t-q-bask > .btn { margin: 0 var(--sp-2) 0 0; }
+.t-bk[aria-pressed="true"] { font-weight: 800; color: var(--ink); background: var(--accent-soft); border-color: var(--accent); }
+
+.t-basket > * + * { margin-top: var(--sp-2); }
+.t-basket.is-board { border-top: 6px solid #9a3412; }
+.t-basket.is-exit { border-top: 6px solid #0f766e; }
+.t-basket.is-hw { border-top: 6px solid #1d4ed8; }
+.t-bk-list { margin: 0; padding: 0; list-style: none; }
+.t-bk-list > li { display: flex; align-items: center; padding: var(--sp-1) 0; }
+.t-bk-list > li + li { border-top: 1px solid var(--line); }
+.t-bk-n { flex: 0 0 auto; width: 1.8em; font-weight: 800; color: var(--ink-2); }
+.t-bk-txt { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.t-bk-ctl { flex: 0 0 auto; display: flex; }
+.t-bk-ctl > * + * { margin-left: 4px; }
+.t-warn { color: var(--warn); font-weight: 700; margin: 0; }
+.t-link-url { margin: 0; padding: var(--sp-2); border-radius: var(--radius-s); background: var(--surface-2); word-break: break-all; font-size: var(--t-sm); }
+.t-link .btn > * + * { margin-left: .4em; }
+.t-link .row > * + * { margin-left: var(--sp-2); }
+.t-pick-acts > * { margin: 0 var(--sp-2) var(--sp-2) 0; }
+
+@media (max-width: 1100px) {
+  .t-pick-grid { display: block; }
+  .t-baskets { position: static; width: auto; max-height: none; margin: var(--sp-4) 0 0; }
+}

@@ -1,0 +1,209 @@
+/* 교사 준비 화면 리디자인(프랑스 혁명 수업 사이트 풍): 미색 종이 + 올린 카드(1px 선, 작은 둥근 모서리, 그림자 거의 없음),
+ * 남색 = 현재·선택·주 단추, 적색 = 주의·핵심 질문(왼쪽 세로줄 카드), 삼색 막대는 제목 아래 작은 장식으로만,
+ * 번호 칩이 달린 메뉴, 단원 색은 작은 점·윗줄로만.
+ * App.tsx 가 맨 마지막에 불러요. 늦게 불러오는 화면 css(flow·pick·prep·results·progress)보다 이기도록
+ * 모든 규칙을 html[data-site="teacher"] 또는 html[data-surface="prep"] 아래에 둬요.
+ * Chrome 80 안전: flex gap·aspect-ratio·:has·:is·:where·:focus-visible·inset·dvh·@layer·oklch·color-mix·중첩 없음.
+ */
+
+/* ── 색 토큰: 남색을 사이트·포인트 색으로(단원 색은 --unit-c 로 따로 남겨요) ── */
+html[data-site="teacher"] { --tn: #1f3a6b; --tn-on: #ffffff; --tn-soft: #e6ebf4; --unit-c: var(--tn); }
+html[data-site="teacher"][data-theme="dark"] { --tn: #8fb0f2; --tn-on: #0e1218; --tn-soft: #1c2740; }
+html[data-site="teacher"][data-theme="chalk"] { --tn: #a9c2f7; --tn-on: #0f2a20; --tn-soft: #1d3350; }
+html[data-site="teacher"],
+html[data-site="teacher"][data-theme="dark"],
+html[data-site="teacher"][data-theme="chalk"] {
+  --site: var(--tn); --on-site: var(--tn-on);
+  --accent: var(--tn); --accent-ink: var(--tn); --accent-soft: var(--tn-soft); --on-accent: var(--tn-on);
+}
+html[data-unit="u1"] { --unit-c: var(--u1-c); }
+html[data-unit="u2"] { --unit-c: var(--u2-c); }
+html[data-unit="u3"] { --unit-c: var(--u3-c); }
+html[data-unit="u4"] { --unit-c: var(--u4-c); }
+/* 카드·행마다 단원이 다를 때: 포인트 색은 남색으로 두고 단원 색만 --unit-c 에 담아요 */
+html[data-site="teacher"] .t-u1 { --unit-c: var(--u1-c); }
+html[data-site="teacher"] .t-u2 { --unit-c: var(--u2-c); }
+html[data-site="teacher"] .t-u3 { --unit-c: var(--u3-c); }
+html[data-site="teacher"] .t-u4 { --unit-c: var(--u4-c); }
+html[data-site="teacher"] .t-u1, html[data-site="teacher"] .t-u2, html[data-site="teacher"] .t-u3,
+html[data-site="teacher"] .t-u4 {
+  --accent: var(--tn); --accent-ink: var(--tn); --accent-soft: var(--tn-soft);
+}
+
+/* '교사용' 이름표: 테두리만 있는 적색 표식(남색 화면에서 구분돼요) */
+html[data-site="teacher"] .site-tag { background: transparent; color: var(--bad); box-shadow: inset 0 0 0 2px var(--bad); }
+
+/* ── 삼색 장식(남·백·적): 깃발 · 제목 아래 짧은 막대 ── */
+.t-flag, .bd-flag { display: inline-flex; flex: 0 0 auto; }
+.t-flag > i, .bd-flag > i { display: block; width: 7px; height: 26px; background: #1f3a6b; }
+.t-flag > i + i, .bd-flag > i + i { background: #ffffff; box-shadow: inset 0 0 0 1px #c9c2ad; }
+.t-flag > i + i + i, .bd-flag > i + i + i { background: #b9382f; box-shadow: none; }
+.t-tribar { display: flex; width: 112px; height: 6px; box-shadow: 0 0 0 1px var(--line); }
+.t-tribar > i { display: block; flex: 1 1 0; background: #1f3a6b; }
+.t-tribar > i + i { background: #ffffff; }
+.t-tribar > i + i + i { background: #b9382f; }
+html[data-surface="prep"] .t-find > header .h1::after,
+html[data-surface="prep"] .t-flow-head .h1::after,
+html[data-surface="prep"] .t-pick-head .h1::after,
+html[data-surface="prep"] .pp-head .h1::after,
+html[data-surface="prep"] .t-prog-head .h1::after,
+html[data-surface="prep"] .t-prog > .h1::after,
+html[data-surface="prep"] .t-res-head .h1::after,
+html[data-surface="prep"] section.page.stack-lg > header .h1::after {
+  content: ""; display: block; width: 112px; height: 6px; margin: 16px 0 14px;
+  background: linear-gradient(90deg, #1f3a6b 0, #1f3a6b 33.3%, #ffffff 33.3%, #ffffff 66.6%, #b9382f 66.6%, #b9382f 100%);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* ════════════════ 위 틀: 72px 얇은 바(브랜드 + 번호 칩 메뉴) ════════════════ */
+html[data-surface="prep"] .site-band { display: none; }
+html[data-surface="prep"] .t-head { border-bottom: 1px solid var(--line); background: var(--surface); }
+html[data-surface="prep"] .t-head-row { min-height: 72px; }
+html[data-surface="prep"] .t-brand { min-height: 48px; }
+html[data-surface="prep"] .t-brand > * + * { margin-left: var(--sp-3); }
+html[data-surface="prep"] .t-brand-name { font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+html[data-surface="prep"] .t-tabs { margin-left: var(--sp-4); }
+html[data-surface="prep"] .t-tab { min-height: 72px; padding: 0 var(--sp-3); border-bottom-width: 4px; color: var(--ink-2); font-size: 20px; }
+html[data-surface="prep"] .t-tab + .t-tab { margin-left: var(--sp-3); }
+html[data-surface="prep"] .t-tab > * + * { margin-left: 10px; }
+html[data-surface="prep"] .t-tab-n {
+  display: inline-block; width: 34px; height: 34px; line-height: 30px; text-align: center; box-sizing: border-box;
+  border: 2px solid var(--line-strong); border-radius: 8px; background: var(--surface);
+  color: var(--ink-2); font-size: 18px; font-weight: 800;
+}
+html[data-surface="prep"] .t-tab[aria-current="page"] { color: var(--tn); font-weight: 800; border-bottom-color: var(--tn); }
+html[data-surface="prep"] .t-tab[aria-current="page"] .t-tab-n { background: var(--tn); border-color: var(--tn); color: var(--tn-on); }
+html[data-surface="prep"] .t-gear { color: var(--ink-2); }
+
+/* ════════════════ 공통: 카드·제목·단추 ════════════════ */
+html[data-surface="prep"] .card { border-radius: 12px; box-shadow: none; }
+html[data-surface="prep"] .card-hero { border: 1px solid var(--line); background: var(--surface); }
+html[data-surface="prep"] .h1 { font-size: 44px; letter-spacing: -.01em; }
+html[data-surface="prep"] .page > header .eyebrow,
+html[data-surface="prep"] .t-flow-head .eyebrow,
+html[data-surface="prep"] .t-pick-head .eyebrow,
+html[data-surface="prep"] .pp-head .eyebrow { color: var(--ink-2); letter-spacing: .01em; }
+html[data-surface="prep"] .btn { border-width: 1px; border-color: var(--line-strong); border-radius: 10px; }
+html[data-surface="prep"] .btn-primary { border-color: var(--tn); }
+html[data-surface="prep"] .btn-ghost { border-color: transparent; }
+html[data-surface="prep"] .btn-soft { border-color: transparent; }
+html[data-surface="prep"] .btn[aria-pressed="true"] { background: var(--tn-soft); border-color: var(--tn); color: var(--tn); }
+html[data-surface="prep"] .t-dur[aria-pressed="true"],
+html[data-surface="prep"] .t-cls-row.is-now .t-cls-name,
+html[data-surface="prep"] .t-klass .chip[aria-pressed="true"] { background: var(--tn); border-color: var(--tn); color: var(--tn-on); }
+html[data-surface="prep"] .t-klass .chip[aria-pressed="true"] { box-shadow: none; }
+html[data-surface="prep"] .t-klass .chip { border-width: 1px; }
+html[data-surface="prep"] .callout { border-radius: 10px; border-left-width: 4px; }
+html[data-surface="prep"] .callout.warn { border-color: var(--bad); }
+html[data-surface="prep"] .callout.warn > b, html[data-surface="prep"] .callout.warn > .callout-title { color: var(--bad); }
+
+/* ════════════════ 오늘 수업: 표지 ════════════════ */
+html[data-surface="prep"] .page.t-today { max-width: 1760px; padding-top: var(--sp-5); padding-bottom: var(--sp-7); }
+html[data-surface="prep"] .t-today > * + * { margin-top: 0; }
+html[data-surface="prep"] .t-cover { display: block; padding: var(--sp-5) 0 var(--sp-4); }
+html[data-surface="prep"] .t-cover-main > * { margin: 0; }
+html[data-surface="prep"] .t-cover-eyebrow { font-size: 22px; font-weight: 700; color: var(--ink-2); }
+html[data-surface="prep"] .t-cover-now { color: var(--bad); font-weight: 800; }
+html[data-surface="prep"] .t-cover-title { margin-top: var(--sp-3); font-size: 76px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; color: var(--ink); word-break: keep-all; }
+html[data-surface="prep"] .t-cover-main > .t-tribar { margin-top: var(--sp-5); width: 168px; height: 8px; }
+html[data-surface="prep"] .t-cover-main > .t-status { margin-top: var(--sp-5); padding: var(--sp-2) var(--sp-4); border-radius: 10px; font-size: 22px; box-shadow: none; border-left: 4px solid var(--line-strong); background: var(--surface-2); }
+html[data-surface="prep"] .t-cover-main > .t-status.is-done { border-left-color: var(--bad); background: var(--warn-bg); }
+html[data-surface="prep"] .t-cover-main > .t-status.is-part { border-left-color: var(--tn); background: var(--tn-soft); }
+html[data-surface="prep"] .t-start-wrap { margin-top: var(--sp-6); }
+html[data-surface="prep"] .t-start-wrap > * + * { margin-top: var(--sp-3); }
+html[data-surface="prep"] .t-start {
+  display: inline-flex; width: auto; min-width: 320px; min-height: 88px; padding: 0 var(--sp-6); border-radius: 12px;
+  background: var(--tn); border: 3px solid var(--tn); color: var(--tn-on); font-size: 34px; font-weight: 800; letter-spacing: 0;
+  box-shadow: none;
+}
+html[data-surface="prep"] .t-start > * + * { margin-left: .6em; }
+html[data-surface="prep"] .t-start-arrow { font-size: 1.1em; }
+html[data-surface="prep"] .t-start-wrap > .t-start-note { margin: var(--sp-4) 0 0; font-size: 22px; color: var(--ink-2); }
+html[data-surface="prep"] .t-start-wrap > .t-keyhint { margin: var(--sp-2) 0 0; font-size: 20px; color: var(--ink-2); }
+html[data-surface="prep"] .t-keyhint kbd, .bd-keyhint kbd {
+  display: inline-block; min-width: 1.6em; padding: 0 8px; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: 6px;
+  background: var(--surface); color: var(--ink); font: inherit; font-weight: 800; text-align: center; box-shadow: 0 1px 0 var(--line-strong);
+}
+html[data-surface="prep"] .t-start-wrap > .t-start-acts { margin: var(--sp-4) 0 0; }
+
+/* 오른쪽: 핵심 질문(적색 세로줄 카드) · 수업 시간 · 차시 */
+html[data-surface="prep"] .t-cover-side { margin-top: var(--sp-6); }
+html[data-surface="prep"] .t-cover-side > * + * { margin-top: var(--sp-4); }
+html[data-surface="prep"] .t-question {
+  position: relative; padding: var(--sp-4) var(--sp-5); border-radius: 10px; border-left: 5px solid var(--bad);
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: 30px; line-height: 1.5; font-weight: 700;
+}
+html[data-surface="prep"] .t-q-tag { display: block; margin: 0 0 var(--sp-1); padding: 0; background: transparent; color: var(--bad); font-size: 22px; line-height: 1.4; }
+html[data-surface="prep"] .t-q-tag + .t-q-line { display: block; }
+html[data-surface="prep"] .t-cover-side .t-pickers { margin: var(--sp-4) 0 0; padding: var(--sp-4) var(--sp-5); border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .t-cover-side .t-pickers > .t-picker { margin: var(--sp-1) var(--sp-5) var(--sp-1) 0; }
+html[data-surface="prep"] .t-choice-opt { border-width: 1px; border-radius: 10px; }
+html[data-surface="prep"] .t-choice-opt.is-on { border-color: var(--tn); box-shadow: inset 0 0 0 2px var(--tn); }
+html[data-surface="prep"] .t-choice-mark { color: var(--tn); }
+html[data-surface="prep"] .t-find-link { align-self: flex-start; }
+html[data-surface="prep"] .t-cover-side .t-story-add { margin: var(--sp-4) 0 0; }
+
+@media (min-width: 1200px) {
+  html[data-surface="prep"] .t-cover { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); grid-column-gap: 72px; align-items: center; min-height: calc(100vh - 72px - 56px - 48px); }
+  html[data-surface="prep"] .t-cover-side { margin-top: 0; }
+  /* 표지 아래: 시간 배분(1.35) · 반별 진도(1) */
+  html[data-surface="prep"] .page.t-today { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-column-gap: var(--sp-5); grid-row-gap: var(--sp-5); align-items: start; }
+  html[data-surface="prep"] .t-today > .t-cover { grid-column: 1 / -1; }
+  html[data-surface="prep"] .t-today > .t-welcome { grid-column: 1 / -1; -webkit-box-ordinal-group: 1; order: -1; }
+  html[data-surface="prep"] .t-today > .t-cover { -webkit-box-ordinal-group: 0; order: -2; }
+  html[data-surface="prep"] .t-today > .t-student-url { grid-column: 1 / -1; }
+}
+@media (max-width: 1199px) {
+  html[data-surface="prep"] .t-today > .card { margin-top: var(--sp-4); }
+}
+@media (max-width: 760px) {
+  html[data-surface="prep"] .t-cover-title { font-size: 40px; }
+  html[data-surface="prep"] .t-cover-eyebrow { font-size: 18px; }
+  html[data-surface="prep"] .t-start { display: flex; width: 100%; min-width: 0; padding: 0 var(--sp-4); font-size: 24px; }
+  html[data-surface="prep"] .t-question { font-size: 22px; }
+  html[data-surface="prep"] .t-keyhint { display: none; }
+}
+
+html[data-surface="prep"] .t-welcome { border: 1px solid var(--line); border-left: 5px solid var(--bad); }
+html[data-surface="prep"] .t-plan, html[data-surface="prep"] .t-today > section.card { padding: var(--sp-5); }
+html[data-surface="prep"] .t-plan > h2, html[data-surface="prep"] .t-today > section.card .h3 { font-size: 30px; }
+html[data-surface="prep"] .t-over-box { border-left-color: var(--bad); }
+html[data-surface="prep"] .t-over-msg b { color: var(--bad); }
+html[data-surface="prep"] .t-student-url { background: transparent; border-style: dashed; }
+html[data-surface="prep"] .t-cls-row.is-now { background: var(--tn-soft); }
+
+/* ════════════════ 수업 흐름·문제 고르기·진도·결과·찾기 ════════════════ */
+html[data-surface="prep"] .t-flow-sum { border-top: 4px solid var(--tn); }
+html[data-surface="prep"] .t-flow-total { background: var(--surface-2); }
+html[data-surface="prep"] .t-flow-total.is-over, html[data-surface="prep"] .t-flow-total.is-over b { color: var(--bad); }
+html[data-surface="prep"] .t-flow-total.is-over::after { color: var(--bad); }
+html[data-surface="prep"] .t-scene-row, html[data-surface="prep"] .t-q-row { box-shadow: inset 0 0 0 1px var(--line); border-radius: 12px; }
+html[data-surface="prep"] .t-scene-row.kind-problem { box-shadow: inset 4px 0 0 #9a3412, inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .t-scene-row.kind-widget { box-shadow: inset 4px 0 0 #6d28d9, inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .t-scene-row.kind-concept, html[data-surface="prep"] .t-scene-row.kind-example { box-shadow: inset 4px 0 0 #0f766e, inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .t-q-row.in-board { box-shadow: inset 4px 0 0 #9a3412, inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .t-q-row.in-exit { box-shadow: inset 4px 0 0 #0f766e, inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .t-q-row.in-hw { box-shadow: inset 4px 0 0 #1d4ed8, inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .t-scene-n { width: 2.1em; height: 2.1em; line-height: 2.1em; border-radius: 8px; border: 2px solid var(--line-strong); background: var(--surface); box-sizing: border-box; line-height: calc(2.1em - 4px); }
+html[data-surface="prep"] .t-scene-row.is-off .t-scene-n { background: var(--surface-2); }
+html[data-surface="prep"] .t-basket { border-top-width: 4px; }
+html[data-surface="prep"] .t-prog-card.is-now { border-top-width: 4px; }
+html[data-surface="prep"] .t-prog-card.is-now { border-top-color: var(--tn); }
+html[data-surface="prep"] .t-lcard { border-top: 4px solid var(--unit-c); padding: var(--sp-4) var(--sp-4) var(--sp-4); }
+html[data-surface="prep"] .t-lcard-code { color: var(--ink); }
+html[data-surface="prep"] .t-lcard-code::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 3px; background: var(--unit-c); vertical-align: -1px; }
+html[data-surface="prep"] .t-period { border-left: 4px solid var(--unit-c); }
+html[data-surface="prep"] .t-unit-roman { color: var(--unit-c); }
+html[data-surface="prep"] .pp-card { border-top: 4px solid var(--unit-c); }
+html[data-surface="prep"] .pp-q { border-left: 5px solid var(--bad); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+html[data-surface="prep"] .pp-q-tag { color: var(--bad); }
+
+html[data-surface="prep"] .t-unit-h { margin-bottom: var(--sp-3); }
+
+/* ── 중간 너비(노트북·작은 창): 메뉴줄이 겹치지 않게 반 칩과 화면 설정은 둘째 줄로 ── */
+@media (min-width: 901px) and (max-width: 1500px) {
+  html[data-surface="prep"] .t-head-row { flex-wrap: wrap; min-height: 72px; }
+  html[data-surface="prep"] .t-tabs { flex: 1 1 auto; margin-left: var(--sp-3); }
+  html[data-surface="prep"] .t-head-row > .t-klass.is-compact { order: 5; flex: 1 1 calc(100% - 220px); padding: 0 0 var(--sp-2); }
+  html[data-surface="prep"] .t-head-row > .t-gear { order: 6; margin-bottom: var(--sp-2); }
+}

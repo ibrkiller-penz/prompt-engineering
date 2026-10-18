@@ -1,0 +1,3 @@
+# 교사용 사이트(aibasict)는 검색에 나오지 않게 해요.
+User-agent: *
+Disallow: /

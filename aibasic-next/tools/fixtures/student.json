@@ -1,0 +1,575 @@
+{
+  "//": "촬영(scripts/shots.mjs)이 화면을 열기 전에 localStorage 에 넣는 가짜 학습 기록이에요. 개인 정보는 없어요. 기준 시각 2026-10-16T00:00:00.000Z",
+  "now": 1792108800000,
+  "storage": {
+    "aibn:s1:q": {
+      "u1-1-q01": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q02": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q03": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q04": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-1-q05": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q06": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q07": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q08": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-1-q09": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q10": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q11": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q12": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-1-q13": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q14": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q15": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q16": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-1-q17": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q18": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q19": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q20": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-1-q21": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q22": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q23": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q24": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-1-q25": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q26": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q27": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q28": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-1-q29": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q30": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q31": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q32": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-1-q33": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q34": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q35": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-1-q36": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1-2-q01": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-2-q02": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-2-q03": {
+        "first": false,
+        "wrong": 1,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 1,
+          "due": 1792108799000
+        }
+      },
+      "u1-2-q04": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-2-q05": {
+        "first": false,
+        "wrong": 1,
+        "hints": 1,
+        "sol": true,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-2-q06": {
+        "first": false,
+        "wrong": 1,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 1,
+          "due": 1792108799000
+        }
+      },
+      "u1-2-q07": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1-2-q08": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u2-1-q01": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 3,
+          "due": 1794700800000
+        }
+      },
+      "u2-1-q02": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 3,
+          "due": 1794700800000
+        }
+      },
+      "u2-1-q03": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 3,
+          "due": 1794700800000
+        }
+      }
+    },
+    "aibn:s1:read": {
+      "u1-1": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "u1-2": [
+        0,
+        1
+      ]
+    },
+    "aibn:s1:pos": {
+      "u1-2": {
+        "step": "c2",
+        "card": 2,
+        "ts": 1792022400000
+      }
+    },
+    "aibn:s1:last": {
+      "path": "/l/u1-2/s/c2/2",
+      "title": "Ⅰ-2 명제와 진리표",
+      "ts": 1792022400000
+    },
+    "aibn:s1:prefs": {
+      "fs": 1,
+      "theme": "light",
+      "motion": "reduce",
+      "speak": false,
+      "contrast": false
+    },
+    "aibn:s1:prereq": {},
+    "aibn:s1:assigned": {},
+    "aibn:s1:tools": {
+      "turing": {
+        "done": true,
+        "ts": 1791849600000
+      }
+    }
+  }
+}
