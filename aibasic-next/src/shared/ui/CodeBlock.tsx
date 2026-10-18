@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { Surface } from "../contracts.ts";
 import { tokenizeCode } from "../logic/codeHighlight.ts";
-import { useUiSurface } from "./surface.ts";
+import { useOverflowX, useUiSurface } from "./surface.ts";
 import "./ui.css";
 
 export interface CodeBlockProps {
@@ -15,11 +15,15 @@ export interface CodeBlockProps {
 export function CodeBlock(props: CodeBlockProps) {
   const sf = useUiSurface(props.surface);
   const lines = useMemo(() => tokenizeCode(props.code), [props.code]);
+  const [preRef, over] = useOverflowX<HTMLPreElement>([props.code, sf]);
   const name = props.lang === "python" || !props.lang ? "파이썬 코드" : "코드";
   return (
     <figure className={"ui-code is-" + sf} data-noswipe="">
-      <figcaption className="ui-code-tag">{name}</figcaption>
-      <pre className="ui-code-pre" tabIndex={0} role="group" aria-label={name}>
+      <figcaption className="ui-code-tag">
+        {name}
+        {over ? <span className="ui-code-hint" aria-hidden="true">옆으로 밀어요 →</span> : null}
+      </figcaption>
+      <pre ref={preRef} className={"scroll-x ui-code-pre" + (over ? " is-overflow" : "")} tabIndex={0} role="group" aria-label={name}>
         <code>
           {lines.map((toks, i) => (
             <span key={i} className="ui-code-line">

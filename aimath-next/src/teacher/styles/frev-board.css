@@ -167,3 +167,10 @@ html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen.is-act + .bd-pen.i
  * 점 사이 틈(3px)을 양옆 1.5px 씩 나눠 가져서 이웃 점과 겹치지 않고, 위로 14px 늘려요(32 → 46px).
  * 아래는 이전·다음 단추와 붙어 있어서 늘리지 않아요. */
 html[data-surface="board"] .bd-stage .bd-rail button::after { content: ""; position: absolute; left: -1.5px; right: -1.5px; top: -14px; bottom: 0; background: transparent; }
+
+/* ════════════════ 이름이 바뀌는 도구 단추(판서·확대·타이머): 폭은 가장 긴 이름 기준으로 늘 같아요 ════════════════
+ * BarTool 이 가능한 이름을 같은 칸에 겹쳐 두고(안 보이는 쪽은 투명) 보이는 이름만 가운데에 놓아요. 켜고 꺼도 옆 단추가 안 밀려요. */
+html[data-surface="board"] .bd-stage .bd-tool-swap { display: inline-block; position: relative; text-align: center; }
+html[data-surface="board"] .bd-stage .bd-tool-swap > span:first-child { position: absolute; left: 0; right: 0; top: 0; white-space: nowrap; }
+html[data-surface="board"] .bd-stage .bd-tool-swap > .bd-tool-ghost { display: block; visibility: hidden; white-space: nowrap; }
+html[data-surface="board"] .bd-stage .bd-tool-swap > .bd-tool-ghost + .bd-tool-ghost { height: 0; overflow: hidden; }

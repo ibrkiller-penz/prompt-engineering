@@ -268,7 +268,7 @@ export function canFullscreen(): boolean {
 /* ─────────── 아래 도구띠 ─────────── */
 
 /** 도구띠 단추 하나(아이콘 + 24px 이름표, 터치 칸 72px 이상) */
-export function BarTool(props: { icon?: AnyIconName; big?: string; label: string; on?: boolean; onClick: () => void; badge?: string | null; disabled?: boolean; dot?: boolean; className?: string; ariaLabel?: string; expanded?: boolean }) {
+export function BarTool(props: { icon?: AnyIconName; big?: string; label: string; on?: boolean; onClick: () => void; badge?: string | null; disabled?: boolean; dot?: boolean; className?: string; ariaLabel?: string; expanded?: boolean; alts?: string[] }) {
   return (
     <button
       type="button"
@@ -292,7 +292,19 @@ export function BarTool(props: { icon?: AnyIconName; big?: string; label: string
           {props.big}
         </span>
       )}
-      <span className={"bd-tool-txt" + (props.badge ? " num" : "")}>{props.badge || props.label}</span>
+      {props.alts ? (
+        /* 이름이 바뀌는 단추(판서·확대·타이머): 가능한 이름을 같은 칸에 겹쳐 두어(안 보이는 쪽은 투명) 단추 폭이 가장 긴 이름 기준으로 늘 같아요 */
+        <span className="bd-tool-txt bd-tool-swap">
+          <span className={props.badge ? "num" : undefined}>{props.badge || props.label}</span>
+          {props.alts.map((a, i) => (
+            <span key={i} className={"bd-tool-ghost" + (/^[0-9]/.test(a) ? " num" : "")} aria-hidden="true">
+              {a}
+            </span>
+          ))}
+        </span>
+      ) : (
+        <span className={"bd-tool-txt" + (props.badge ? " num" : "")}>{props.badge || props.label}</span>
+      )}
       {props.dot ? <i className="bd-tool-dot" aria-hidden="true" /> : null}
     </button>
   );
@@ -526,7 +538,7 @@ export function BoardToolbar(props: BoardToolbarProps) {
     <div className="bd-bar-tools" role="toolbar" aria-label="칠판 도구">
       <BarTool icon="home" label="나가기" className="bd-tool-exit" onClick={() => setAsk(true)} ariaLabel="수업 나가기" />
       <span className="bd-bar-sep" aria-hidden="true" />
-      <BarTool icon="pen" label={props.ink ? "판서 끄기" : "판서"} on={props.ink} onClick={() => props.onInk(!props.ink)} />
+      <BarTool icon="pen" label={props.ink ? "판서 끄기" : "판서"} alts={["판서", "판서 끄기"]} on={props.ink} onClick={() => props.onInk(!props.ink)} />
       {props.ink ? (
         <div className="bd-pens" role="group" aria-label="펜 고르기">
           {BAR_PENS.map((p) => {
@@ -546,9 +558,9 @@ export function BoardToolbar(props: BoardToolbarProps) {
         </div>
       ) : (
         <>
-          <BarTool icon="timer" label="타이머" badge={props.timerBadge} on={props.pop === "timer"} onClick={() => props.onPop(props.pop === "timer" ? null : "timer")} />
+          <BarTool icon="timer" label="타이머" alts={["타이머", "00:00"]} badge={props.timerBadge} on={props.pop === "timer"} onClick={() => props.onPop(props.pop === "timer" ? null : "timer")} />
           <BarTool icon="curtain" label="가림막" on={props.curtain} onClick={props.onCurtain} />
-          <BarTool icon="zoom" label={props.zoomOn ? "확대 끄기" : "확대"} on={props.zoomed} onClick={props.onZoom} />
+          <BarTool icon="zoom" label={props.zoomOn ? "확대 끄기" : "확대"} alts={["확대", "확대 끄기"]} on={props.zoomed} onClick={props.onZoom} />
           <div className="bd-more" ref={moreRef}>
             <BarTool big="more" label="더 보기" className="bd-tool-more" on={more} expanded={more} dot={moreDot && !more} onClick={() => setMore((v) => !v)} />
             {more ? <MoreMenu {...props} onClose={() => setMore(false)} /> : null}

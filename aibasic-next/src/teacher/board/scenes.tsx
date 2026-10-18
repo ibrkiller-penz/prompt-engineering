@@ -125,11 +125,16 @@ export function SceneBody(props: SceneBodyProps) {
   });
 
   const offset = starts[display] || 0;
+  // 다음 쪽이 블록 경계에서 시작하면, 이 쪽 아래에 비쳐 보이는 다음 블록의 윗부분(반쯤 걸린 카드 등)은 가려요
+  const gap = display < last ? (starts[display + 1] || 0) - offset : 0;
+  const clipBottom = gap > 0 && gap < BODY_H - 1 ? Math.round(BODY_H - gap) : 0;
   const cls = "bd-scene kind-" + scene.kind + (level >= 1 ? " is-down" : "") + (level >= 2 ? " is-single" : "") + (starts.length > 1 ? " is-paged" : "");
   return (
     <div className={cls}>
-      <div ref={inner} className="bd-scene-inner" style={offset ? { transform: "translateY(" + -offset + "px)" } : undefined}>
-        {props.children(level)}
+      <div className="bd-scene-clip" style={clipBottom > 0 ? { clipPath: "inset(0 0 " + clipBottom + "px 0)" } : undefined}>
+        <div ref={inner} className="bd-scene-inner" style={offset ? { transform: "translateY(" + -offset + "px)" } : undefined}>
+          {props.children(level)}
+        </div>
       </div>
       {starts.length > 1 ? (
         <p className="bd-pageno num" aria-live="polite">

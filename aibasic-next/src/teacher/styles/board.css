@@ -476,3 +476,16 @@ html[data-surface="board"] .bd-end .bd-end-hwnos { font-size: 40px; margin-botto
 html[data-surface="board"] .bd-end .bd-end-morebtn { min-height: 52px; }
 html[data-surface="board"] .bd-end .bd-end-note { margin-top: 8px; }
 html[data-surface="board"] .bd-end .bd-end-list { line-height: 1.38; }
+
+/* ── 칠판 문제 학습지(#/print, set=board) 인쇄: 문제 아래 QR 안내만 다음 쪽에 외톨이로 남지 않게 간격만 줄여요(흑백·A4·글자 크기는 그대로) ──
+ * print.css 와 같은 높이의 선택자라 !important 로 앞서요. */
+@media print {
+  html[data-page="print"] .pr-head { padding-bottom: 2mm !important; }
+  html[data-page="print"] .pr-question { margin-top: 2.5mm !important; padding: 1.2mm 3mm !important; }
+  html[data-page="print"] .pr-qs { margin-top: 2.5mm !important; }
+  html[data-page="print"] .pr-q { padding: 1.4mm 0 1.8mm !important; line-height: 1.4 !important; }
+  html[data-page="print"] .pr-q > * + * { margin-top: 1.2mm !important; }
+  html[data-page="print"] .pr-choices > li + li { margin-top: 0.4mm !important; }
+  html[data-page="print"] .pr-foot { margin-top: 1.5mm !important; padding-top: 1.2mm !important; }
+  html[data-page="print"] .pr-qr-img { width: 17mm !important; height: 17mm !important; margin-right: 3mm !important; }
+}
