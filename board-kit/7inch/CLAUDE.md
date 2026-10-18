@@ -118,7 +118,7 @@ board-kit\
 | 화면 박자 | HPW 4 · HBP 8 · HFP 8 · VPW 4 · VBP 8 · VFP 8, `PCLK_ACTIVE_NEG`=1 | 공장 값. `PCLK_ACTIVE_NEG`=0 이면 글자가 붉게 보인다 |
 | 완충 버퍼 | 가로 폭 × **10줄** (`configRGB_BounceBufferSize(width*10)`) | 공장 예제 값 |
 | LVGL 그림판 | **내부 RAM 작은 버퍼(10줄)** + PSRAM 프레임 버퍼 **1장** (`esp_lv_adapter` · `use_psram`) | PSRAM 병목을 줄인다(바뀐 곳만 그린다) |
-| LVGL 물체 메모리 | `lv_conf.h` 의 `LV_MEM_CUSTOM_ALLOC` = `lv_psram_malloc`(`includelv_psram_alloc.h`) — 화면 물체를 **PSRAM** 에 | 화면 물체가 늘자 작은 조각이 내부 RAM 을 채워 와이파이가 `ESP_ERR_NO_MEM` 으로 켜지지 못했다(2026-10-18). 그림판 버퍼는 계속 내부 RAM |
+| LVGL 물체 메모리 | `lv_conf.h` 의 `LV_MEM_CUSTOM_ALLOC` = `lv_psram_malloc`(`include/lv_psram_alloc.h`) — 화면 물체를 **PSRAM** 에 | 화면 물체가 늘자 작은 조각이 내부 RAM 을 채워 와이파이가 `ESP_ERR_NO_MEM` 으로 켜지지 못했다(2026-10-18). 그림판 버퍼는 계속 내부 RAM |
 | 다시 그리기 | **분이 바뀔 때만** 글자를 바꾼다(매초 바꾸지 말 것) | 한 번 그릴 때마다 화면 전체를 PSRAM 에 다시 쓰므로 매초 바꾸면 흔들린다 |
 | 와이파이 | 평소 **끄고 1시간마다(밤·주말 2시간) 잠깐(10~20초)만** 켠다. **수업 중에는 쉬는 시간으로 미룬다**. 시간표 주소가 비어 있으면 시간표는 받지 않고, 404 는 6시간 뒤, 인터넷 실패는 2·4·8·16·32·60분 뒤 다시 | 와이파이가 PSRAM 을 같이 쓰면 흔들리고, 받을 때마다 화면 박자를 바꿔 잠깐 깜빡인다 |
 | `heap_caps_malloc_extmem_enable(64)` | **화면 초기화(`initDisplay()`) 뒤에** 호출 | 64바이트 넘는 메모리를 PSRAM 에서 먼저 준다. 화면 물체가 내부 RAM 을 다 쓰면 HTTPS 가 `SSL - Memory allocation failed` 로 실패했다. **앞에 두면 RGB 드라이버 객체가 PSRAM 으로 가서 부팅이 멈춘다** |
