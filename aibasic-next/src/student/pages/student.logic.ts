@@ -25,7 +25,7 @@ export function dueText(days: number): string {
 
 /** 오답노트 카드의 '다음 복습 때' 한 줄. days < 0 이면 날짜 없음 */
 export function nextReviewText(state: "todo" | "reviewing" | "graduated", days: number): string {
-  if (state === "graduated") return "졸업했어요. 이제 복습에 나오지 않아요.";
+  if (state === "graduated") return "다 익혔어요. 이제 복습에 나오지 않아요.";
   if (days < 0) return "다시 풀어 맞히면 복습 일정이 잡혀요.";
   if (days === 0) return "오늘의 복습에 나와요.";
   if (days === 1) return "내일 다시 나와요.";
