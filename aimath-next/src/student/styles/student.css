@@ -600,3 +600,6 @@ html[data-site="student"] .s-rail-ph { padding-bottom: 0; }
 @media (min-width: 600px) {
   html[data-site="student"] .s-head-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+/* 레슨 개요 단계 줄: 큰 글자·좁은 폭에서 설명이 한 줄로 늘어나 화면이 옆으로 밀리지 않게 */
+html[data-site="student"] .s-stage { white-space: normal; }
+html[data-site="student"] .s-stage > .grow { min-width: 0; }
