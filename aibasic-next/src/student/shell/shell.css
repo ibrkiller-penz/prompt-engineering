@@ -237,3 +237,6 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 60px; --s-rail-h: 12px
 @media (min-width: 1024px) {
   html[data-site="student"] .s-deck .h2 { font-size: calc(36px * var(--fs-scale)); }
 }
+
+/* 브랜드 표식: 사이트 아이콘(파비콘)과 같은 그림 */
+.s-brand-mark { display: block; flex: 0 0 auto; width: 24px; height: 24px; border-radius: 6px; margin-right: var(--sp-2); }

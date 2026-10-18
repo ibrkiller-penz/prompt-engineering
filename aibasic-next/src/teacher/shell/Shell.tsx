@@ -269,11 +269,7 @@ export function TeacherShell({ route, children }: { route: TeacherRoute | null; 
       <header className="t-head no-print">
         <div className="t-head-row">
           <a className="t-brand" href="#/" aria-label="인공지능 기초 교사용, 오늘 수업으로">
-            <span className="t-flag" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </span>
+            <img className="t-flag" src="/favicon-t.svg?v=2" alt="" width={34} height={34} aria-hidden="true" />
             <span className="t-brand-name">인공지능 기초</span>
             <span className="site-tag">교사용</span>
           </a>
