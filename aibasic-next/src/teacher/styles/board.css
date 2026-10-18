@@ -422,3 +422,5 @@ html[data-surface="board"] .bdq.has-pass .bdq-opt { padding: 2px 16px 4px 20px; 
 html[data-surface="board"] .bdq.has-pass .bdq-opt-main { min-height: 48px; }
 html[data-surface="board"] .bdq.has-pass .bdq-opt-txt, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long .bdq-opt-txt { font-size: 30px; line-height: 1.3; }
 html[data-surface="board"] .bdq.has-pass .bdq-key, html[data-surface="board"] .bdq.has-pass .bdq-ox { font-size: 30px; }
+html[data-surface="board"] .bdq-passage .ui-code .ui-code-pre { font-size: 24px; line-height: 1.3; padding: 6px 16px; }
+html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 22px; padding: 2px 16px; }
