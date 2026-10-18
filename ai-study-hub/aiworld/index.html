@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 수학 학습 사이트</title>
+<meta name="description" content="인공지능 수학, 인공지능 기초, 수학 놀이터를 한곳에서 골라 공부해요.">
+<meta property="og:title" content="AI 수학 학습 사이트">
+<meta property="og:description" content="인공지능 수학, 인공지능 기초, 수학 놀이터를 한곳에서 골라 공부해요.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aiworld.web.app/">
+<style>
+@font-face{font-family:"S-Core Dream";font-weight:400;font-display:swap;src:url("/fonts/S-CoreDream-4Regular.woff") format("woff")}
+@font-face{font-family:"S-Core Dream";font-weight:500;font-display:swap;src:url("/fonts/S-CoreDream-5Medium.woff") format("woff")}
+@font-face{font-family:"S-Core Dream";font-weight:700;font-display:swap;src:url("/fonts/S-CoreDream-6Bold.woff") format("woff")}
+:root{--bg:#f5efe0;--card:#fbf8ef;--ink:#1c1a17;--muted:#4e473c;--line:#d9cfb8;--navy:#1f3a6b;--red:#a8322d;--focus:#b26b00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"S-Core Dream","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;line-height:1.6}
+main{max-width:1040px;margin:0 auto;padding:48px 20px 56px}
+.eyebrow{margin:0 0 6px;color:var(--red);font-weight:700;font-size:1rem}
+h1{margin:0;font-size:clamp(2rem,6vw,3.2rem);line-height:1.2;font-weight:700}
+.tri{display:flex;width:112px;height:6px;margin:16px 0 14px;box-shadow:0 0 0 1px var(--line)}
+.tri i{flex:1;background:var(--navy)}.tri i+i{background:#fff}.tri i+i+i{background:#b9382f}
+header p.lead{margin:0 0 32px;color:var(--muted);font-size:1.1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:18px}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;text-decoration:none;color:inherit;transition:border-color .2s,background .2s}
+.card:hover{border-color:var(--navy);background:#fff}
+.card:focus{outline:3px solid var(--focus);outline-offset:2px}
+.n{display:inline-grid;place-items:center;width:32px;height:32px;margin-bottom:14px;border:1.5px solid #7a705c;border-radius:8px;font-weight:700;font-size:1rem}
+.tag{align-self:flex-start;font-size:.85rem;font-weight:700;padding:3px 10px;border-radius:99px;background:#e6ebf4;color:var(--navy);margin-bottom:10px}
+.card h2{margin:0 0 8px;font-size:1.35rem}
+.card p{margin:0 0 18px;color:var(--muted);font-size:.98rem;flex:1}
+.go{font-weight:700;color:var(--navy)}
+.card.t{border-left:4px solid var(--red)}
+.card.t .tag{background:#f4e4de;color:#8e2a26}
+.card.t .go{color:#8e2a26}
+footer{margin-top:40px;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">살빠진 임선생과 함께하는 교육자료</p>
+    <h1>AI 수학 학습 사이트</h1>
+    <div class="tri" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="lead">공부하고 싶은 곳을 골라 들어가세요.</p>
+  </header>
+  <section class="grid">
+    <a class="card" href="https://aimaths.web.app/">
+      <span class="n">1</span>
+      <span class="tag">고등 진로선택 · 휴대폰</span>
+      <h2>인공지능 수학(학생용)</h2>
+      <p>이야기로 시작해서 개념·체험·문제까지. 5개 단원 20레슨을 휴대폰으로 한 장씩 넘기며 공부해요.</p>
+      <span class="go">공부하러 가기 →</span>
+    </a>
+    <a class="card t" href="https://aimatht.web.app/">
+      <span class="n">2</span>
+      <span class="tag">수업용 · 전자칠판</span>
+      <h2>인공지능 수학(교사용)</h2>
+      <p>차시별 수업 장면, 핵심 질문, 손들기 결과를 전자칠판에 띄워 수업해요.</p>
+      <span class="go">수업하러 가기 →</span>
+    </a>
+    <a class="card" href="https://ai-study-math.web.app/aibasic/">
+      <span class="n">3</span>
+      <span class="tag">고등 인공지능 기초 · 교과서 단원</span>
+      <h2>인공지능 기초</h2>
+      <p>교과서 단원 순서대로 이야기를 읽고, 계단을 하나씩 올라가며 확인 문제를 풀어요. 단원 시험까지 있어요.</p>
+      <span class="go">공부하러 가기 →</span>
+    </a>
+    <a class="card" href="https://ai-study-math.web.app/mathplay/">
+      <span class="n">4</span>
+      <span class="tag">수학 놀이터 · 마우스 게임</span>
+      <h2>수학 놀이터</h2>
+      <p>마우스로 하는 수학 게임 모음. 퍼즐과 체험 게임을 끌고 눌러 가며 해 봐요.</p>
+      <span class="go">놀러 가기 →</span>
+    </a>
+  </section>
+  <footer>살빠진 임선생과 함께하는 교육자료</footer>
+</main>
+</body>
+</html>
