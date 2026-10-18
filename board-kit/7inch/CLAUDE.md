@@ -44,6 +44,7 @@
 | 박자 | HPW 162 · HBP 152 · HFP 48 · VPW 45 · VBP 13 · VFP 3, `PCLK_ACTIVE_NEG`=1 (Waveshare 공식 예제 `examples/Arduino/08_TOUCH/rgb_lcd_port.cpp`). 공식은 PSRAM 120MHz + 30MHz 지만 우리는 PSRAM 80MHz 에 **28MHz**(초당 약 30장, 받는 동안 12MHz). 21MHz(초당 23장)는 미묘하게 떨려 보였다(2026-10-18) |
 | IO 확장 칩 | **I2C 0x24, 레지스터 방식**(방향 0x02 · 출력 0x03 · PWM 0x05). CH422G 가 아니다 → 화면 라이브러리의 확장 칩·백라이트를 끄고 `src\ioexp.cpp` 가 맡는다 |
 | EXIO | 1 터치 리셋 · 2 백라이트 · 4 SD_CS · 5 USB/CAN 선택 · 6 LCD_VDD_EN. 터치 리셋: EXIO1 낮음 → 100ms → INT(GPIO4) 낮음 → 100ms → EXIO1 높음 → 200ms |
+| 배터리 | 전압만 읽을 수 있다(확장 칩 ADC 레지스터 0x06, 10비트 · 3:1 분압, `ioexp_battery_mv()`). **충전 신호(CHRG)는 읽을 수 없다**(충전 칩 CS8501 은 LED 만 켠다). 그래서 1분마다 잰 전압을 10분 전과 비교해 30mV 넘게 오르면 '충전 중', 4.17V 이상에서 거의 그대로면 '충전 완료'로 짐작한다(켠 뒤 10분은 %만). 800×480 보드는 배터리 전압·충전 신호를 모두 읽을 수 없어 표시하지 않는다(Waveshare 위키 확인, 2026-10-18) |
 | I2C | 부팅 기록 `i2c scan: 0x24 0x5d` (RTC 없음 — 시각은 와이파이로만 맞춘다) |
 | 연결 | CH343 UART 단자. **같은 PC 에 다른 ESP32(예: ESP32-C6)가 꽂혀 있으면 COM 번호가 바뀔 수 있다** → 업로드 전 `python -m esptool --port COM번호 chip-id` 로 ESP32-S3 인지 확인 |
 | 백업 | 공장 펌웨어 16MB: `backup\factory_1024_rtc_pcf85063_full16MB.bin` (git 제외). 되돌리기: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0 backup\factory_1024_rtc_pcf85063_full16MB.bin` |
@@ -92,7 +93,7 @@ board-kit\
   - 이유: `custom_sdkconfig` 때문에 ESP-IDF 를 다시 컴파일하는데, **경로에 한글·빈칸이 있으면 CMake·링커가 실패**한다.
     스크립트가 `firmware` 를 `%USERPROFILE%\.pio-build\penedu-board-7inch-src` 로 복사해 거기서 빌드한다. 복사본은 고치지 말고 **원본 `firmware` 만 고친다.**
   - `-NoUpload`: 빌드만 · `-Port COM번호`(또는 환경변수 `PIO_PORT`): 업로드 포트 · 둘 다 없으면 USB 시리얼 칩을 자동으로 찾는다.
-  - `-Env board`(기본, 800×480) / `-Env board7b`(1024×600, **-Port 필수**). 환경을 바꾸면 ESP-IDF 를 다시 컴파일해 **35분 안팎** 걸린다.
+  - `-Env board`(기본, 800×480) / `-Env board7b`(1024×600, **-Port 필수**). 환경을 바꾸면 ESP-IDF 를 다시 컴파일해 **35분 안팎** 걸린다. 같은 환경을 다시 빌드하면 1~7분.
   - 7B 를 빌드만 하고 굽기: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0x0 %USERPROFILE%\.pio-build\penedu-board-7inch-src\.pio\build\board7b\firmware.factory.bin` (칩이 다르면 esptool 이 거부한다)
   - **주의: `firmware.factory.bin` 을 0x0 에 굽으면 설정 구역(NVS, 0x9000)까지 덮어써 저장한 와이파이·볼 시간표가 지워진다**(2026-10-18 겪음).
     평소에는 앱만 굽는다: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0x10000 %USERPROFILE%\.pio-build\penedu-board-7inch-src\.pio\build\board7b\firmware.bin`

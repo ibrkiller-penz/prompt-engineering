@@ -182,6 +182,7 @@ static void clockText(const struct tm &tm, char *out, size_t n, const char **amp
 static lv_obj_t *s_row[8], *s_rowP[8], *s_rowA[8], *s_rowB[8], *s_rowTag[8];
 static lv_obj_t *s_guide = nullptr;   // 시간표가 없을 때 오른쪽 칸에 띄우는 할 일 안내
 static lv_obj_t *s_stale = nullptr;   // 시계 화면 날짜 바로 아래: '자료 갱신 안 됨 · 10/16 기준'(받기가 계속 실패할 때만)
+static lv_obj_t *s_pBat = nullptr;    // 교장 화면의 배터리 표시(같은 글)
 static lv_obj_t *s_bat = nullptr;     // 배터리 남은 양(7B, 시계 화면 왼쪽 칸 오른쪽 위)
 static int s_batPct = -1;             // -1: 배터리 없음·못 읽음
 // 리튬 배터리 전압 → 남은 양(%) 어림값(3.3V 0% ~ 4.2V 100%)
@@ -1811,6 +1812,7 @@ static void buildPrincipal(lv_obj_t *scr) {
   s_pClock = label(left, FCLK(), D_TEXT, "--:--");
   lv_obj_align(s_pClock, LV_ALIGN_TOP_MID, 0, S(18));
   s_pAmPm = label(left, &kr28, D_SUB, ""); lv_obj_add_flag(s_pAmPm, LV_OBJ_FLAG_HIDDEN);
+  s_pBat = label(left, FM(), D_MUTED, ""); lv_obj_align(s_pBat, LV_ALIGN_TOP_RIGHT, -S(12), S(6)); lv_obj_add_flag(s_pBat, LV_OBJ_FLAG_HIDDEN);   // 배터리(읽을 수 있을 때만)
   const int DATE_Y = S(18) + lv_font_get_line_height(FCLK()) + S(12);
   s_pDate = label(left, &kr28, D_SUB, "");
   lv_obj_set_width(s_pDate, LW); lv_obj_set_style_text_align(s_pDate, LV_TEXT_ALIGN_CENTER, 0); lv_obj_set_pos(s_pDate, 0, DATE_Y);
@@ -2762,15 +2764,30 @@ void loop() {
     lastBat = ms;
     const int mv = ioexp_battery_mv();
     const int pct = (mv >= 3000 && mv <= 4500) ? batteryPct(mv) : -1;
-    Serial.printf("battery %dmV -> %d%%\n", mv, pct);
-    if (pct != s_batPct && s_bat) {
-      s_batPct = pct;
+    // 충전 여부: 이 보드는 충전 신호(CHRG)를 읽을 수 없다(충전 칩 CS8501 은 LED 만 켠다). 그래서 1분마다 잰 전압을
+    // 10분 전과 비교해 짐작한다. 30mV 넘게 오르면 '충전 중', 4.17V 이상에서 10분 동안 거의 그대로면 '충전 완료'.
+    static int hist[11]; static int hn = 0;
+    if (pct >= 0) { if (hn < 11) hist[hn++] = mv; else { memmove(hist, hist + 1, 10 * sizeof(int)); hist[10] = mv; } } else hn = 0;
+    int chg = 0;   // 0 모름·방전 · 1 충전 중 · 2 충전 완료
+    if (hn >= 11) { const int d = hist[10] - hist[0]; if (d >= 30) chg = 1; else if (mv >= 4170 && d > -15) chg = 2; }
+    Serial.printf("battery %dmV -> %d%% (%s)\n", mv, pct, chg == 1 ? "charging" : chg == 2 ? "full" : "-");
+    static int lastChg = -1;
+    if ((pct != s_batPct || chg != lastChg) && s_bat) {
+      s_batPct = pct; lastChg = chg;
+      const char *ic = pct >= 88 ? LV_SYMBOL_BATTERY_FULL : pct >= 63 ? LV_SYMBOL_BATTERY_3 : pct >= 38 ? LV_SYMBOL_BATTERY_2 : pct >= 13 ? LV_SYMBOL_BATTERY_1 : LV_SYMBOL_BATTERY_EMPTY;
+      char t[48];
+      if (chg == 1) snprintf(t, sizeof t, LV_SYMBOL_CHARGE " %d%% 충전 중", pct);
+      else if (chg == 2) snprintf(t, sizeof t, LV_SYMBOL_CHARGE " %d%% 충전 완료", pct);
+      else snprintf(t, sizeof t, "%s %d%%", ic, pct);
+      const uint32_t col = chg ? 0x34d399 : pct <= 20 ? 0xfb923c : D_MUTED;
       lock();
-      if (pct < 0) lv_obj_add_flag(s_bat, LV_OBJ_FLAG_HIDDEN);
-      else {
-        lv_label_set_text_fmt(s_bat, "배터리 %d%%", pct);
-        lv_obj_set_style_text_color(s_bat, lv_color_hex(pct <= 20 ? 0xfb923c : D_MUTED), 0);
-        lv_obj_clear_flag(s_bat, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_t *labs[] = {s_bat, s_pBat};
+      for (lv_obj_t *l : labs) {
+        if (!l) continue;
+        if (pct < 0) { lv_obj_add_flag(l, LV_OBJ_FLAG_HIDDEN); continue; }
+        lv_label_set_text(l, t);
+        lv_obj_set_style_text_color(l, lv_color_hex(col), 0);
+        lv_obj_clear_flag(l, LV_OBJ_FLAG_HIDDEN);
       }
       unlock();
     }
