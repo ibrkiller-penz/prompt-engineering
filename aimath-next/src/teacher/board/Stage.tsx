@@ -1,5 +1,5 @@
 // 칠판 무대: 1920×1080 고정, 화면 크기에 맞춰 scale 해요.
-//   위 64px: 진행 레일 + 레슨·장면 이름·'구간 n/m · 장면 a/b'   ·   가운데: 본문 1760×896(좌우 80px 여백)   ·   아래 120px: 도구띠
+//   위 72px: 브랜드·단원 + 번호 칩 탭(1 도입 2 개념 …)   ·   가운데: 본문 1760×896(좌우 80px 여백)   ·   아래 112px: 키 안내·진행 표시(32) + 도구띠(80)
 // 이전·다음은 아래 막대의 단추 하나로만 해요(가장자리 화살표는 없앴어요). '다음' 단추 폭은 고정이라 글자가 바뀌어도 자리가 그대로예요.
 // 넘김: →·Space·PageDown(다음) / ←·PageUp(이전) / Home·End, 한 손가락 스와이프(두 손가락은 무시).
 // 판서·확대·가림막·타이머·번호 뽑기·A±·전체 화면·칠판 테마는 이 무대가 맡아요(메모리에만, 저장 안 함).
@@ -13,8 +13,8 @@ import type { PhaseItem } from "./board.logic.ts";
 import { addStroke, canUndo, clearPage, InkBook, undo, type InkColor, type InkTool, type Stroke } from "./ink.logic.ts";
 import { BoardToolbar, Curtain, Picker, Timer, canFullscreen, isFullscreen, toggleFullscreen, useTimerBadge } from "./tools.tsx";
 
-export const HEAD_H = 64;
-export const BAR_H = 120;
+export const HEAD_H = 72;
+export const BAR_H = 112;
 export const SIDE_W = 80;
 export const BODY_W = BOARD_W - SIDE_W * 2; // 1760(measure.logic 의 BODY_W 와 같아요)
 export const BODY_H = BOARD_H - HEAD_H - BAR_H; // 896
@@ -248,37 +248,37 @@ export function Stage(props: StageProps) {
           onPointerUpCapture={sUp}
           onPointerCancelCapture={sCancel}
         >
-          {/* ── 머리: 진행 레일 + 이름 ── */}
+          {/* ── 머리 72: 브랜드·단원 + 번호 칩 탭 ── */}
           <header className="bd-head">
-            {rail ? (
-              <ol className="bd-rail" aria-label="장면 진행">
-                {rail.items.map((it, i) => (
-                  <li key={it.s} className={it.s === rail.cur ? "is-cur" : it.s < rail.cur ? "is-past" : ""}>
-                    <button type="button" onClick={() => rail.onJump(it.s)} aria-label={i + 1 + "번 장면: " + it.label} aria-current={it.s === rail.cur ? "step" : undefined} />
-                  </li>
-                ))}
-              </ol>
-            ) : null}
             <div className="bd-head-row">
+              <span className="bd-brand" aria-hidden="true">
+                <span className="bd-flag">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              </span>
               <span className="bd-head-lesson">{props.lessonLabel}</span>
               <span className="bd-head-title">{props.title}</span>
               {props.phases && props.phases.length ? (
                 <ol className="bd-phases" aria-label="수업 구간">
-                  {props.phases.map((ph) => (
+                  {props.phases.map((ph, i) => (
                     <li key={ph.label} className={"is-" + ph.state} aria-current={ph.state === "cur" ? "step" : undefined}>
-                      {ph.label}
+                      <span className="bd-ph-n num" aria-hidden="true">
+                        {i + 1}
+                      </span>
+                      <span className="bd-ph-t">{ph.label}</span>
                     </li>
                   ))}
                 </ol>
               ) : null}
-              <span className="bd-head-count num">{props.counter}</span>
               {props.counterNote ? <span className="bd-head-off">{props.counterNote}</span> : null}
               <span className="site-tag bd-tag">교사용</span>
             </div>
           </header>
 
           {/* ── 본문 ── */}
-          <div className="bd-frame" style={{ left: SIDE_W + "px", width: BODY_W + "px", height: BODY_H + "px" }}>
+          <div className="bd-frame" style={{ top: HEAD_H + "px", left: SIDE_W + "px", width: BODY_W + "px", height: BODY_H + "px" }}>
             <div
               className={"bd-zoom" + (zoom.on ? " is-zoomed" : "")}
               style={zoom.on ? { transform: "scale(2)", transformOrigin: zoom.x + "% " + zoom.y + "%" } : undefined}
@@ -300,6 +300,32 @@ export function Stage(props: StageProps) {
 
           {/* ── 아래 도구띠 ── */}
           <footer className="bd-bar">
+            <div className="bd-strip">
+              <span className="bd-keyhint" aria-hidden="true">
+                <kbd>←</kbd>
+                <kbd>→</kbd>
+                <span>장면 이동</span>
+                {props.onFirst ? (
+                  <>
+                    <span className="bd-keyhint-sep">·</span>
+                    <kbd>Home</kbd>
+                    <kbd>End</kbd>
+                    <span>처음·끝</span>
+                  </>
+                ) : null}
+              </span>
+              <span className="bd-head-count num">{props.counter}</span>
+              {rail ? (
+                <ol className="bd-rail" aria-label="장면 진행">
+                  {rail.items.map((it, i) => (
+                    <li key={it.s} className={it.s === rail.cur ? "is-cur" : it.s < rail.cur ? "is-past" : ""}>
+                      <button type="button" onClick={() => rail.onJump(it.s)} aria-label={i + 1 + "번 장면: " + it.label} aria-current={it.s === rail.cur ? "step" : undefined} />
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </div>
+            <div className="bd-bar-row">
             <BoardToolbar
               ink={ink}
               onInk={(v) => setInk(v)}
@@ -349,6 +375,7 @@ export function Stage(props: StageProps) {
                 </span>
                 <TIcon name="next" size="lg" />
               </button>
+            </div>
             </div>
           </footer>
         </div>

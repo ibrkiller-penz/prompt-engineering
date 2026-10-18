@@ -269,13 +269,20 @@ export function TeacherShell({ route, children }: { route: TeacherRoute | null; 
       <header className="t-head no-print">
         <div className="t-head-row">
           <a className="t-brand" href="#/" aria-label="인공지능 수학 교사용, 오늘 수업으로">
+            <span className="t-flag" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
             <span className="t-brand-name">인공지능 수학</span>
             <span className="site-tag">교사용</span>
           </a>
           <nav className="t-tabs" aria-label="교사 화면">
-            {TABS.map((t) => (
+            {TABS.map((t, i) => (
               <a key={t.key} className="t-tab" href={t.href} aria-current={active === t.key ? "page" : undefined}>
-                <TIcon name={t.icon} size="em" />
+                <span className="t-tab-n num" aria-hidden="true">
+                  {i + 1}
+                </span>
                 <span>{t.label}</span>
               </a>
             ))}

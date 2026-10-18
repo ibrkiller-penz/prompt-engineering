@@ -353,66 +353,96 @@ export default function Today({ query }: TeacherPageProps) {
 
   return (
     <div className={"page t-today t-u" + meta.unit}>
-      <header className="row between t-today-head">
-        <div className="stack tight">
-          <p className="eyebrow">교사용{klass ? " · " + klass + "반" : ""}</p>
-          <h1 className="h2">오늘 수업</h1>
-        </div>
-        <a className="btn" href="#/find">
-          <TIcon name="search" size="em" />
-          <span>차시 찾기</span>
-        </a>
-      </header>
-
-      {status ? (
-        <p className={"t-status is-" + mark} role="status">
-          {status}
-        </p>
-      ) : null}
-
-      <section className="card card-hero t-lesson" aria-labelledby="t-lesson-h">
-        {resumeDiff && lastOk && lastMeta && todayMeta ? (
-          <div className="t-choice" role="radiogroup" aria-label="오늘 할 레슨 고르기">
-            <button type="button" role="radio" aria-checked={mode === "resume"} className={"t-choice-opt" + (mode === "resume" ? " is-on" : "")} onClick={() => setChoice("resume")}>
-              <span className="t-choice-mark" aria-hidden="true">
-                {mode === "resume" ? "●" : "○"}
-              </span>
-              <span className="t-choice-txt">
-                <b>
-                  {lastMeta.code} {lastDone ? "다시 하기" : "마저 하기"}
-                </b>
-                <span className="t-choice-sub">
-                  {lastMeta.short || lastMeta.title}
-                  {lastOk.p > 0 ? " · " + lastOk.p + "차시" : ""} · {lastDone ? "끝난 레슨이에요 · " + agoLabel(lastOk.ts) + " 마지막" : agoLabel(lastOk.ts) + " 멈춘 곳부터"}
-                </span>
-              </span>
-            </button>
-            <button type="button" role="radio" aria-checked={mode === "today"} className={"t-choice-opt" + (mode === "today" ? " is-on" : "")} onClick={() => setChoice("today")}>
-              <span className="t-choice-mark" aria-hidden="true">
-                {mode === "today" ? "●" : "○"}
-              </span>
-              <span className="t-choice-txt">
-                <b>
-                  {todayMeta.code}
-                  {todayLid === lastOk.lid ? " " + todayP + "차시" : ""} 시작하기
-                </b>
-                <span className="t-choice-sub">
-                  {todayMeta.short || todayMeta.title} · {qLid ? "고른 차시" : klass ? klass + "반 다음 레슨" : "다음 레슨"}
-                </span>
-              </span>
-            </button>
-          </div>
-        ) : null}
-
-        <div className="t-lesson-top">
-          <p className="eyebrow">
-            {meta.code}
-            {unit ? " · " + unit.title : ""}
-            {nPeriods > 1 ? " · " + p + "/" + nPeriods + "차시" : ""}
+      <section className="t-cover" aria-labelledby="t-lesson-h">
+        <div className="t-cover-main">
+          <p className="t-cover-eyebrow">
+            <span className="t-cover-now">오늘 수업</span>
+            {klass ? <span> · {klass}반</span> : null}
+            <span>
+              {" · "}
+              {meta.code}
+              {unit ? " · " + unit.title : ""}
+              {nPeriods > 1 ? " · " + p + "/" + nPeriods + "차시" : ""}
+            </span>
           </p>
-          <h2 className="h1 t-lesson-title" id="t-lesson-h">
+          <h1 className="t-cover-title" id="t-lesson-h">
             {meta.title}
-          </h2>
+          </h1>
+          <div className="t-tribar" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </div>
+          {status ? (
+            <p className={"t-status is-" + mark} role="status">
+              {status}
+            </p>
+          ) : null}
+
+          {view && start && sl ? (
+            <div className="t-start-wrap">
+              <a className="btn btn-primary t-start" href={boardHref(lid, view.p, fromStart ? view.on[0].s : start.s)}>
+                <span>{sl.label}</span>
+                <span className="t-start-arrow" aria-hidden="true">
+                  →
+                </span>
+              </a>
+              <p className="t-start-note">
+                {sl.sub} · 켜진 장면 {nOn}개 · 예상 {minLabel(view.total)}
+              </p>
+              <p className="t-keyhint" aria-hidden="true">
+                <kbd>Space</kbd> 또는 <kbd>→</kbd> 키로 다음 장면
+              </p>
+              {mark === "done" && resuming ? (
+                <p className="t-start-acts">
+                  <a className="btn btn-soft t-resume-sub" href={boardHref(lid, view.p, start.s)}>
+                    이어서 수업 · 장면 {start.n}/{nOn}부터
+                  </a>
+                </p>
+              ) : null}
+              {mark !== "done" && resuming ? (
+                <p className="small t-start-acts">
+                  <a href={boardHref(lid, view.p, view.on[0].s)}>처음(장면 1/{nOn})부터 하기</a>
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="t-cover-side">
+          {resumeDiff && lastOk && lastMeta && todayMeta ? (
+            <div className="t-choice" role="radiogroup" aria-label="오늘 할 레슨 고르기">
+              <button type="button" role="radio" aria-checked={mode === "resume"} className={"t-choice-opt" + (mode === "resume" ? " is-on" : "")} onClick={() => setChoice("resume")}>
+                <span className="t-choice-mark" aria-hidden="true">
+                  {mode === "resume" ? "●" : "○"}
+                </span>
+                <span className="t-choice-txt">
+                  <b>
+                    {lastMeta.code} {lastDone ? "다시 하기" : "마저 하기"}
+                  </b>
+                  <span className="t-choice-sub">
+                    {lastMeta.short || lastMeta.title}
+                    {lastOk.p > 0 ? " · " + lastOk.p + "차시" : ""} · {lastDone ? "끝난 레슨이에요 · " + agoLabel(lastOk.ts) + " 마지막" : agoLabel(lastOk.ts) + " 멈춘 곳부터"}
+                  </span>
+                </span>
+              </button>
+              <button type="button" role="radio" aria-checked={mode === "today"} className={"t-choice-opt" + (mode === "today" ? " is-on" : "")} onClick={() => setChoice("today")}>
+                <span className="t-choice-mark" aria-hidden="true">
+                  {mode === "today" ? "●" : "○"}
+                </span>
+                <span className="t-choice-txt">
+                  <b>
+                    {todayMeta.code}
+                    {todayLid === lastOk.lid ? " " + todayP + "차시" : ""} 시작하기
+                  </b>
+                  <span className="t-choice-sub">
+                    {todayMeta.short || todayMeta.title} · {qLid ? "고른 차시" : klass ? klass + "반 다음 레슨" : "다음 레슨"}
+                  </span>
+                </span>
+              </button>
+            </div>
+          ) : null}
+
           <div className="t-question">
             <span className="t-q-tag">핵심 질문</span>
             {qLines.map((t, i) => (
@@ -421,74 +451,56 @@ export default function Today({ query }: TeacherPageProps) {
               </span>
             ))}
           </div>
-        </div>
 
-        <div className="t-pickers">
-          <div className="t-picker">
-            <p className="t-set-label" id="t-dur-label">
-              수업 시간
-            </p>
-            <div className="row t-chips" role="radiogroup" aria-labelledby="t-dur-label">
-              {DURATIONS.map((d) => (
-                <button key={d} type="button" role="radio" aria-checked={dur === d} aria-pressed={dur === d} className="btn t-dur" onClick={() => setDur(d)}>
-                  {d}분
-                </button>
-              ))}
-            </div>
-          </div>
-          {view && view.periods.length > 1 ? (
+          <div className="t-pickers">
             <div className="t-picker">
-              <p className="t-set-label" id="t-per-label">
-                차시 <span className="muted">({view.periods.length}차시로 나눴어요)</span>
+              <p className="t-set-label" id="t-dur-label">
+                수업 시간
               </p>
-              <div className="row t-chips" role="radiogroup" aria-labelledby="t-per-label">
-                {view.periods.map((pp) => (
-                  <button key={pp.p} type="button" role="radio" aria-checked={view.p === pp.p} aria-pressed={view.p === pp.p} className="btn t-dur" onClick={() => pickLesson(lid, pp.p)}>
-                    {pp.p}차시
+              <div className="row t-chips" role="radiogroup" aria-labelledby="t-dur-label">
+                {DURATIONS.map((d) => (
+                  <button key={d} type="button" role="radio" aria-checked={dur === d} aria-pressed={dur === d} className="btn t-dur" onClick={() => setDur(d)}>
+                    {d}분
                   </button>
                 ))}
               </div>
             </div>
-          ) : null}
-        </div>
-
-        {loading ? <Skeleton label="장면을 만드는 중이에요…" rows={2} /> : null}
-        {error ? (
-          <p className="callout bad" role="alert">
-            <b>레슨을 불러오지 못했어요.</b>
-            새로고침해 보세요. 그래도 안 되면 다른 차시를 골라 주세요.
-          </p>
-        ) : null}
-
-        {view && sAdd ? (
-          <p className={"callout t-story-add" + (tv && (tv.state === "over" || sAdd.over > 0) ? " warn" : "")} role="status">
-            {tv && tv.state !== "over" ? tv.text + " " : ""}
-            {storyAddText(sAdd)}
-          </p>
-        ) : null}
-
-        {view && start && sl ? (
-          <div className="t-start-wrap">
-            <a className="btn btn-primary t-start" href={boardHref(lid, view.p, fromStart ? view.on[0].s : start.s)}>
-              <span aria-hidden="true">▶</span>
-              <span>{sl.label}</span>
-              <span className="t-start-n">· {sl.sub}</span>
-            </a>
-            <p className="small muted t-start-note">켜진 장면 {nOn}개 · 예상 {minLabel(view.total)}</p>
-            {mark === "done" && resuming ? (
-              <p className="t-start-acts">
-                <a className="btn btn-soft t-resume-sub" href={boardHref(lid, view.p, start.s)}>
-                  이어서 수업 · 장면 {start.n}/{nOn}부터
-                </a>
-              </p>
-            ) : null}
-            {mark !== "done" && resuming ? (
-              <p className="small t-start-acts">
-                <a href={boardHref(lid, view.p, view.on[0].s)}>처음(장면 1/{nOn})부터 하기</a>
-              </p>
+            {view && view.periods.length > 1 ? (
+              <div className="t-picker">
+                <p className="t-set-label" id="t-per-label">
+                  차시 <span className="muted">({view.periods.length}차시로 나눴어요)</span>
+                </p>
+                <div className="row t-chips" role="radiogroup" aria-labelledby="t-per-label">
+                  {view.periods.map((pp) => (
+                    <button key={pp.p} type="button" role="radio" aria-checked={view.p === pp.p} aria-pressed={view.p === pp.p} className="btn t-dur" onClick={() => pickLesson(lid, pp.p)}>
+                      {pp.p}차시
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : null}
           </div>
-        ) : null}
+
+          {loading ? <Skeleton label="장면을 만드는 중이에요…" rows={2} /> : null}
+          {error ? (
+            <p className="callout bad" role="alert">
+              <b>레슨을 불러오지 못했어요.</b>
+              새로고침해 보세요. 그래도 안 되면 다른 차시를 골라 주세요.
+            </p>
+          ) : null}
+
+          {view && sAdd ? (
+            <p className={"callout t-story-add" + (tv && (tv.state === "over" || sAdd.over > 0) ? " warn" : "")} role="status">
+              {tv && tv.state !== "over" ? tv.text + " " : ""}
+              {storyAddText(sAdd)}
+            </p>
+          ) : null}
+
+          <a className="btn btn-ghost t-find-link" href="#/find">
+            <TIcon name="search" size="em" />
+            <span>다른 차시 찾기</span>
+          </a>
+        </div>
       </section>
 
       {view ? (

@@ -190,12 +190,14 @@ export function QuestionScene({ scene }: { scene: Scene }) {
   const items = linesOf(scene);
   return (
     <div className="bd-question">
-      <p className="bd-eyebrow">오늘의 핵심 질문</p>
-      {items.map((t, i) => (
-        <Rv key={i} step={0} r={0} className="bd-question-text">
-          <Rich text={t} />
-        </Rv>
-      ))}
+      <div className="bd-qcard">
+        <p className="bd-eyebrow">오늘의 핵심 질문</p>
+        {items.map((t, i) => (
+          <Rv key={i} step={0} r={0} className="bd-question-text">
+            <Rich text={t} />
+          </Rv>
+        ))}
+      </div>
       <p className="bd-question-tip">잠깐 생각해 보고, 짝과 한마디씩 나눠 봐요.</p>
     </div>
   );
