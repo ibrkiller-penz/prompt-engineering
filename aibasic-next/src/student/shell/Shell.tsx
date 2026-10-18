@@ -28,7 +28,12 @@ export function TopBar({ title, backTo, noBack, code, eyebrow, right, hardBack }
   const showTitle = !!title && title !== BRAND;
   return (
     <header className="topbar s-topbar">
-      {noBack ? null : (
+      {noBack ? (
+        // 뒤로 단추가 없는 화면도 같은 폭의 보이지 않는 자리를 둬요(브랜드 x 가 화면마다 같게)
+        <button type="button" className="btn btn-ghost btn-icon s-back s-back-ph" aria-label="뒤로" aria-hidden="true" tabIndex={-1} disabled>
+          <Icon name="prev" />
+        </button>
+      ) : (
         <button type="button" className="btn btn-ghost btn-icon s-back" aria-label="뒤로" title="뒤로" onClick={() => (hardBack && backTo ? navigate(backTo) : goBack(backTo || "/"))}>
           <Icon name="prev" />
         </button>
@@ -39,8 +44,8 @@ export function TopBar({ title, backTo, noBack, code, eyebrow, right, hardBack }
       </a>
       {showTitle || chip ? (
         <div className="s-loc">
-          {chip ? <span className="num-chip is-on s-loc-chip">{chip}</span> : null}
           {showTitle ? <span className="s-loc-t">{title}</span> : null}
+          {chip ? <span className="num-chip is-on s-loc-chip">{chip}</span> : null}
         </div>
       ) : (
         <span className="s-loc-fill" />
@@ -80,7 +85,7 @@ export function TabBar({ current, unitHref }: { current: TabId | null; unitHref?
 export function ActionBar({ children, rail }: { children: ReactNode; rail?: ReactNode }) {
   return (
     <div className="s-actionbar" role="region" aria-label="카드 넘기기">
-      {rail || null}
+      {rail || <div className="s-rail s-rail-ph" aria-hidden="true" />}
       <div className="s-actionbar-in">{children}</div>
     </div>
   );
@@ -125,7 +130,7 @@ export function PageHead({ eyebrow, title, sub, chip }: { eyebrow?: ReactNode; t
           {eyebrow ? <span>{eyebrow}</span> : null}
         </p>
       ) : null}
-      <h1 className="s-head-title">{title}</h1>
+      <h1 className="s-head-title" title={typeof title === "string" ? title : undefined}>{title}</h1>
       <span className="tri s-head-tri" aria-hidden="true" />
       {sub ? <p className="s-head-sub">{sub}</p> : null}
     </header>

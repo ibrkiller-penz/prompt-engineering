@@ -22,6 +22,7 @@ export default function ProgressPage(_m: TeacherPageProps) {
   if (!classes.length) {
     return (
       <div className="page t-prog">
+        <p className="eyebrow">교사용 · 반별 진도</p>
         <h1 className="h1">반별 진도</h1>
         <section className="card empty stack">
           <p>아직 반이 없어요. 위의 '+ 반 추가'에 '2-3'처럼 반 이름을 적어 주세요.</p>
@@ -45,6 +46,7 @@ export default function ProgressPage(_m: TeacherPageProps) {
   return (
     <div className="page t-prog">
       <header className="t-prog-head">
+        <p className="eyebrow">교사용 · 반별 진도</p>
         <h1 className="h1">반별 진도</h1>
         <p className="muted">칸을 누를 때마다 아직 → 진행 중 → 끝으로 바뀌어요. 수업 끝 화면의 '수업 마치기'도 여기에 표시해요.</p>
       </header>

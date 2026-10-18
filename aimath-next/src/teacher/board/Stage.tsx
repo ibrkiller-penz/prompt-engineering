@@ -65,8 +65,9 @@ function useFit(): { k: number; x: number; y: number } {
   const calc = () => {
     const W = window.innerWidth || BOARD_W;
     const H = window.innerHeight || BOARD_H;
+    // 4:3 같은 화면에서도 아래 도구띠가 화면 바닥에 붙도록 위쪽에만 빈 자리를 둬요(가운데 정렬이면 단추가 바닥에서 떠요)
     const k = Math.min(W / BOARD_W, H / BOARD_H);
-    return { k, x: Math.max(0, (W - BOARD_W * k) / 2), y: Math.max(0, (H - BOARD_H * k) / 2) };
+    return { k, x: Math.max(0, (W - BOARD_W * k) / 2), y: Math.max(0, H - BOARD_H * k) };
   };
   const [fit, setFit] = useState(calc);
   useEffect(() => {

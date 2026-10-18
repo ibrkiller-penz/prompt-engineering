@@ -152,8 +152,6 @@ html[data-site="student"] .s-deck { padding-bottom: calc(var(--s-action-h) + var
 html[data-site="student"] .s-actionbar .btn-block { font-weight: 800; }
 
 /* ───────────────────────── 홈 ───────────────────────── */
-html[data-site="student"] .s-home .s-head { padding-top: var(--sp-5); }
-html[data-site="student"] .s-home .s-head-title { font-size: calc(38px * var(--fs-scale)); line-height: 1.2; }
 html[data-site="student"] .s-continue { display: block; padding: var(--sp-4); color: var(--ink); }
 html[data-site="student"] .s-continue > * { display: block; }
 html[data-site="student"] .s-continue > * + * { margin-top: 0; }
@@ -338,10 +336,10 @@ html[data-site="student"] .s-deck .katex .mfrac, html[data-site="student"] .s-de
 html[data-site="student"] .s-skip { margin-top: var(--sp-4); text-align: center; }
 html[data-site="student"] .s-skip .btn { min-height: var(--tap); }
 
-/* ── 개념 카드: 올린 카드(1px 선), 위쪽 띠 없이 ── */
-html[data-site="student"] .s-concept { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); padding: var(--sp-4); }
-html[data-site="student"] .s-concept.is-example { border-left: 4px solid var(--ok); }
-html[data-site="student"] .s-concept.is-widget { padding-left: var(--sp-3); padding-right: var(--sp-3); }
+/* ── 개념 카드: 이야기·먼저 알고 가요·확인 카드와 같은 틀(상자 없이) — 카드 종류가 바뀌어도 제목 위치가 같게 ── */
+html[data-site="student"] .s-concept { position: relative; }
+/* 예시 카드 표시: 칸 바깥 여백에 얇은 막대(글 위치가 다른 카드와 같게) */
+html[data-site="student"] .s-concept.is-example::before { content: ""; position: absolute; left: -10px; top: 0; bottom: 0; width: 4px; border-radius: 2px; background: var(--ok); }
 html[data-site="student"] .s-concept .s-cont { display: block; background: transparent; padding: 0; color: var(--ink-2); white-space: normal; overflow: visible; text-overflow: clip; font-size: 14px; font-size: max(14px, var(--t-sm)); font-weight: 700; }
 html[data-site="student"] .s-concept .s-cont::before { content: none; }
 html[data-site="student"] .s-concept .ui-blocks > * + * { margin-top: 1em; }
@@ -584,3 +582,23 @@ html.kbd[data-site="student"] .s-unit-filter .chip:focus { outline: var(--focus-
 @media print {
   html[data-site="student"] .s-continue { color: #000; border: 1px solid #000; }
 }
+
+/* ───────────────────────── 위치 고정(화면을 옮겨도 틀이 밀리지 않게) ─────────────────────────
+ * Chrome 80 은 scrollbar-gutter 를 몰라요. 세로 스크롤바 자리를 항상 만들어서 칸·바·탭·띠가 7.5~15px 밀리지 않게 해요 */
+html[data-site="student"] { overflow-y: scroll; scroll-padding-bottom: calc(var(--s-action-h) + var(--s-rail-h) + 1px + env(safe-area-inset-bottom) + var(--sp-4)); }
+/* 뒤로 단추가 없는 화면의 보이지 않는 자리(폭은 진짜 뒤로 단추와 같아요) */
+html[data-site="student"] .s-topbar .s-back-ph { visibility: hidden; pointer-events: none; }
+/* 위치 칩: 제목(말줄임)이 왼쪽, 칩은 항상 오른쪽 끝 */
+html[data-site="student"] .s-loc-t { flex: 1 1 auto; text-align: right; }
+html[data-site="student"] .s-loc-chip { flex: 0 0 auto; }
+/* 다음 단추 폭: 어떤 라벨이어도 같게(가장 긴 라벨 '다음 문제' 기준) */
+html[data-site="student"] .s-actionbar .s-next { min-width: 137px; min-width: max(137px, 8em); justify-content: center; }
+/* 진행 레일 자리: 레슨 개요처럼 레일이 없는 화면도 같은 높이를 비워 둬요 */
+html[data-site="student"] .s-rail-ph { padding-bottom: 0; }
+/* 쪽 제목: 태블릿 이상에서는 한 줄(말줄임)로 두어 레슨마다 아래 내용 위치가 같게 */
+@media (min-width: 600px) {
+  html[data-site="student"] .s-head-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+/* 레슨 개요 단계 줄: 큰 글자·좁은 폭에서 설명이 한 줄로 늘어나 화면이 옆으로 밀리지 않게 */
+html[data-site="student"] .s-stage { white-space: normal; }
+html[data-site="student"] .s-stage > .grow { min-width: 0; }

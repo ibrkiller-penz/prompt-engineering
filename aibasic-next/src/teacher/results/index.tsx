@@ -227,6 +227,7 @@ export default function ResultsPage(_m: TeacherPageProps) {
   return (
     <div className="page t-res">
       <header className="t-res-head">
+        <p className="eyebrow">교사용 · 손들기 결과</p>
         <h1 className="h1">손들기 결과</h1>
         <p className="muted">칠판 문제에서 보기마다 손든 학생 수를 센 결과예요. 숫자만 이 기기에 남고, 이름은 저장하지 않아요.</p>
       </header>
