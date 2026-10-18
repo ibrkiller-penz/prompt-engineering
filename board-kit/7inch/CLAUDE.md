@@ -41,7 +41,7 @@
 | 항목 | 내용 |
 |---|---|
 | 화면 | 7인치 **1024×600**, RGB 병렬(핀은 아래 표와 **같다**), ST7262, 터치 GT911(0x5D) |
-| 박자 | HPW 162 · HBP 152 · HFP 48 · VPW 45 · VBP 13 · VFP 3, `PCLK_ACTIVE_NEG`=1 (Waveshare 공식 예제 `examples/Arduino/08_TOUCH/rgb_lcd_port.cpp`). 공식은 PSRAM 120MHz + 30MHz 지만 우리는 PSRAM 80MHz 라 **18MHz**(받는 동안 12MHz) |
+| 박자 | HPW 162 · HBP 152 · HFP 48 · VPW 45 · VBP 13 · VFP 3, `PCLK_ACTIVE_NEG`=1 (Waveshare 공식 예제 `examples/Arduino/08_TOUCH/rgb_lcd_port.cpp`). 공식은 PSRAM 120MHz + 30MHz 지만 우리는 PSRAM 80MHz 에 **28MHz**(초당 약 30장, 받는 동안 12MHz). 21MHz(초당 23장)는 미묘하게 떨려 보였다(2026-10-18) |
 | IO 확장 칩 | **I2C 0x24, 레지스터 방식**(방향 0x02 · 출력 0x03 · PWM 0x05). CH422G 가 아니다 → 화면 라이브러리의 확장 칩·백라이트를 끄고 `src\ioexp.cpp` 가 맡는다 |
 | EXIO | 1 터치 리셋 · 2 백라이트 · 4 SD_CS · 5 USB/CAN 선택 · 6 LCD_VDD_EN. 터치 리셋: EXIO1 낮음 → 100ms → INT(GPIO4) 낮음 → 100ms → EXIO1 높음 → 200ms |
 | I2C | 부팅 기록 `i2c scan: 0x24 0x5d` (RTC 없음 — 시각은 와이파이로만 맞춘다) |
@@ -96,7 +96,7 @@ board-kit\
   - 7B 를 빌드만 하고 굽기: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0x0 %USERPROFILE%\.pio-build\penedu-board-7inch-src\.pio\build\board7b\firmware.factory.bin` (칩이 다르면 esptool 이 거부한다)
   - **주의: `firmware.factory.bin` 을 0x0 에 굽으면 설정 구역(NVS, 0x9000)까지 덮어써 저장한 와이파이·볼 시간표가 지워진다**(2026-10-18 겪음).
     평소에는 앱만 굽는다: `python -m esptool --chip esp32s3 --port COM번호 write-flash 0x10000 %USERPROFILE%\.pio-build\penedu-board-7inch-src\.pio\build\board7b\firmware.bin`
-  - 7B 에서 PSRAM·플래시 120MHz(공식 설정)는 이 Arduino 빌드에서 앱 시작 때 멈춰 재부팅이 반복됐다(2026-10-18). 지금은 PSRAM 80MHz + 화면 21MHz. 120MHz 는 원인을 찾은 뒤 다시 시험한다.
+  - 7B 에서 PSRAM·플래시 120MHz(공식 설정)는 이 Arduino 빌드에서 앱 시작 때 멈춰 재부팅이 반복됐다(2026-10-18). 지금은 PSRAM 80MHz + 화면 28MHz. 120MHz 는 원인을 찾은 뒤 다시 시험한다.
 - **처음 한 번은 25~45분**(약 3GB 받아 7GB 로 풀림). 두 번째부터 1~2분. 첫 빌드는 **끝까지 기다린다**(중간에 끄지 말 것).
 - 플랫폼은 **pioarduino**(Arduino-ESP32 3.x). 공식 espressif32 는 Arduino 2.x 라 화면 드라이버가 안 맞는다.
 - **LVGL 은 8.3.11 고정**(`lib_deps`), ArduinoJson 7.x. 버전을 올리지 말 것.
@@ -118,6 +118,7 @@ board-kit\
 | 화면 박자 | HPW 4 · HBP 8 · HFP 8 · VPW 4 · VBP 8 · VFP 8, `PCLK_ACTIVE_NEG`=1 | 공장 값. `PCLK_ACTIVE_NEG`=0 이면 글자가 붉게 보인다 |
 | 완충 버퍼 | 가로 폭 × **10줄** (`configRGB_BounceBufferSize(width*10)`) | 공장 예제 값 |
 | LVGL 그림판 | **내부 RAM 작은 버퍼(10줄)** + PSRAM 프레임 버퍼 **1장** (`esp_lv_adapter` · `use_psram`) | PSRAM 병목을 줄인다(바뀐 곳만 그린다) |
+| LVGL 물체 메모리 | `lv_conf.h` 의 `LV_MEM_CUSTOM_ALLOC` = `lv_psram_malloc`(`includelv_psram_alloc.h`) — 화면 물체를 **PSRAM** 에 | 화면 물체가 늘자 작은 조각이 내부 RAM 을 채워 와이파이가 `ESP_ERR_NO_MEM` 으로 켜지지 못했다(2026-10-18). 그림판 버퍼는 계속 내부 RAM |
 | 다시 그리기 | **분이 바뀔 때만** 글자를 바꾼다(매초 바꾸지 말 것) | 한 번 그릴 때마다 화면 전체를 PSRAM 에 다시 쓰므로 매초 바꾸면 흔들린다 |
 | 와이파이 | 평소 **끄고 1시간마다(밤·주말 2시간) 잠깐(10~20초)만** 켠다. **수업 중에는 쉬는 시간으로 미룬다**. 시간표 주소가 비어 있으면 시간표는 받지 않고, 404 는 6시간 뒤, 인터넷 실패는 2·4·8·16·32·60분 뒤 다시 | 와이파이가 PSRAM 을 같이 쓰면 흔들리고, 받을 때마다 화면 박자를 바꿔 잠깐 깜빡인다 |
 | `heap_caps_malloc_extmem_enable(64)` | **화면 초기화(`initDisplay()`) 뒤에** 호출 | 64바이트 넘는 메모리를 PSRAM 에서 먼저 준다. 화면 물체가 내부 RAM 을 다 쓰면 HTTPS 가 `SSL - Memory allocation failed` 로 실패했다. **앞에 두면 RGB 드라이버 객체가 PSRAM 으로 가서 부팅이 멈춘다** |

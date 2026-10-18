@@ -8,10 +8,10 @@
 
 /* 메모리는 표준 malloc(Arduino-ESP32 는 큰 덩어리를 PSRAM 에 준다) */
 #define LV_MEM_CUSTOM 1
-#define LV_MEM_CUSTOM_INCLUDE <stdlib.h>
-#define LV_MEM_CUSTOM_ALLOC malloc
+#define LV_MEM_CUSTOM_INCLUDE "lv_psram_alloc.h"   // 화면 물체는 PSRAM 에(내부 RAM 은 와이파이 몫)
+#define LV_MEM_CUSTOM_ALLOC lv_psram_malloc
 #define LV_MEM_CUSTOM_FREE free
-#define LV_MEM_CUSTOM_REALLOC realloc
+#define LV_MEM_CUSTOM_REALLOC lv_psram_realloc
 #define LV_MEMCPY_MEMSET_STD 1   /* ESP-IDF 의 빠른 memcpy/memset 을 쓴다 */
 
 /* 틱은 어댑터(esp_timer)가 lv_tick_inc 로 준다 */

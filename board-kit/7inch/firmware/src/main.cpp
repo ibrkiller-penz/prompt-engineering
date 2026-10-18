@@ -200,7 +200,7 @@ static String s_pickSsid;
 // (CONFIG_LCD_RGB_RESTART_IN_VSYNC 는 platformio.ini 에서 =n 으로 명시해 끈다 — 기본값이 y 다. esp-idf#19070)
 static LCD *s_lcd = nullptr;
 #if BOARD_7B   // 1024x600: 박자는 esp_panel_board_custom_conf.h 와 같게(21MHz, 초당 약 23장). 받는 동안 12MHz
-static const uint32_t PCLK_HZ = 21 * 1000 * 1000, PCLK_SLOW_HZ = 12 * 1000 * 1000;   // PSRAM 80MHz 에서 22MHz 를 넘기지 않는다
+static const uint32_t PCLK_HZ = 28 * 1000 * 1000, PCLK_SLOW_HZ = 12 * 1000 * 1000;   // 2026-10-18 21→28MHz 시험(초당 약 30장)(PSRAM 80MHz 권장 한계 22MHz 근처 — 와이파이 때 밀리면 되돌린다)
 static const uint32_t FRAME_SLOW_MS = 86, FRAME_FAST_MS = 54;   // 한 장 그리는 시간 + 10ms ((1024+362)x(600+61)/pclk)
 #else
 static const uint32_t PCLK_HZ = 16 * 1000 * 1000, PCLK_SLOW_HZ = 6 * 1000 * 1000;
@@ -713,6 +713,7 @@ static void renderPicker() {
 static void setPrincipalTitles();
 static void fillPicker() {
   s_principal = s_pickName.startsWith("@");
+  if (s_tabTT) lv_label_set_text(lv_obj_get_child(s_tabTT, 0), s_principal ? "학교 일정" : "시간표");
   if (s_principal && s_ttPick) {
     lv_label_set_text_fmt(lv_obj_get_child(s_ttPick, 0), "%s · 학교 일정  " LV_SYMBOL_RIGHT, s_pickName.c_str() + 1);
     setPrincipalTitles();
@@ -1396,7 +1397,10 @@ static void tabStyle(lv_obj_t *tab, bool on) {
 //   ① goog.script.init(" … ", " 사이 ② JS 이스케이프 풀기 ③ "userHtml":" 문자열 ④ JSON 이스케이프 풀기 ⑤ init-data JSON
 // (tools/sched_extract.py 로 같은 순서를 PC 에서 검증했다)
 static void showView(View v);
-static JsonDocument s_sched(&s_alloc);              // {"items":[[날짜, 끝날짜, 시간, 제목, 장소, 부서], …], "acad":[[날짜, 이름, 종류], …]}
+static void onSchedRow(lv_event_t *e);
+static void onTeachOpen(lv_event_t *e);
+static void renderSchedList();
+static JsonDocument s_sched(&s_alloc);              // {"items":[[날짜, 끝날짜, 시간, 제목, 장소, 부서, 담당, 내용], …], "acad":[[날짜, 이름, 종류], …]}
 static lv_obj_t *s_viewPrin = nullptr, *s_pClock, *s_pDate, *s_pNowA, *s_pNowB, *s_pNowC, *s_pNowN, *s_pRing, *s_pWx, *s_pWx2, *s_pMeal, *s_pNews;
 static const int P_ROWS = 8;   // 학교 일정 줄 수(오늘부터 다가오는 날까지)
 static lv_obj_t *s_pRow[P_ROWS], *s_pRowT[P_ROWS], *s_pRowA[P_ROWS], *s_pRowB[P_ROWS], *s_pAcad[3], *s_pTitle;
@@ -1463,7 +1467,7 @@ static bool downloadSchedule() {
             // 오늘 하루 전 ~ 14일 뒤 일정, 오늘 ~ 60일 뒤 학사 일정만 남긴다
             const String today = todayIso();
             auto addDays = [](const String &iso, int n) { struct tm t = {}; t.tm_year = iso.substring(0, 4).toInt() - 1900; t.tm_mon = iso.substring(5, 7).toInt() - 1; t.tm_mday = iso.substring(8, 10).toInt() + n; t.tm_hour = 12; mktime(&t); char b[11]; strftime(b, sizeof b, "%Y-%m-%d", &t); return String(b); };
-            const String from = addDays(today, -1), to = addDays(today, 14), to2 = addDays(today, 60);
+            const String from = addDays(today, -1), to = addDays(today, 30), to2 = addDays(today, 60);
             JsonDocument out(&s_alloc);
             JsonArray items = out["items"].to<JsonArray>(), acad = out["acad"].to<JsonArray>();
             for (JsonObject x : src["schedules"].as<JsonArray>()) {
@@ -1471,7 +1475,7 @@ static bool downloadSchedule() {
               const String end = *ed ? String(ed) : String(sd);
               if (end < from || String(sd) > to) continue;
               JsonArray r = items.add<JsonArray>();
-              r.add(sd); r.add(end); r.add(x["time"] | ""); r.add(x["title"] | ""); r.add(x["place"] | ""); r.add(x["dept"] | "");
+              r.add(sd); r.add(end); r.add(x["time"] | ""); r.add(x["title"] | ""); r.add(x["place"] | ""); r.add(x["dept"] | ""); r.add(x["manager"] | ""); r.add(x["content"] | "");
             }
             for (JsonObject x : src["academic"].as<JsonArray>()) {
               const char *dt = x["date"] | "";
@@ -1564,16 +1568,18 @@ static void renderPrincipal() {
   auto mdOf = [&](const String &iso) { return String(iso.substring(5, 7).toInt()) + "/" + iso.substring(8, 10).toInt() + " " + DW[dowOf(iso)]; };
   {
     const String td = todayIso();
-    struct Row { String d, t, a, b, dept; int m; bool today; };
+    struct Row { String d, t, a, b, dept; int m; bool today; int idx; };
     Row rows[P_ROWS]; int n = 0;
-    Row cand[48]; int c = 0;
+    static Row cand[48]; int c = 0;   // 크다(약 4KB) → 스택 대신 고정 메모리(2026-10-18 스택 넘침으로 재부팅)
+    int ii = -1;
     for (JsonArray r : s_sched["items"].as<JsonArray>()) {
+      ii++;
       const String sd = r[0] | "", ed = r[1] | "";
       if (ed < td) continue;                                   // 끝난 일정
       if (c >= 48) break;
       const bool today = sd <= td;
       cand[c].d = today ? td : sd; cand[c].t = (const char *)(r[2] | ""); cand[c].a = (const char *)(r[3] | ""); cand[c].b = (const char *)(r[4] | ""); cand[c].dept = (const char *)(r[5] | "");
-      cand[c].m = schedMin(r[2] | ""); cand[c].today = today; c++;
+      cand[c].m = schedMin(r[2] | ""); cand[c].today = today; cand[c].idx = ii; c++;
     }
     for (int x = 0; x < c; x++) for (int y = x + 1; y < c; y++)
       if (cand[y].d < cand[x].d || (cand[y].d == cand[x].d && cand[y].m < cand[x].m)) { Row tmp = cand[x]; cand[x] = cand[y]; cand[y] = tmp; }
@@ -1588,6 +1594,9 @@ static void renderPrincipal() {
       const bool past = r.today && r.m >= 0 && r.m + 50 <= nm;
       const bool nxt = i == nextI && !cur;
       lv_label_set_text(s_pRowT[i], r.today ? "오늘" : mdOf(r.d).c_str());
+      lv_obj_set_user_data(s_pRow[i], (void *)(intptr_t)r.idx);   // 누르면 자세히
+      lv_label_set_long_mode(s_pRowA[i], r.today ? LV_LABEL_LONG_WRAP : LV_LABEL_LONG_DOT);   // 오늘 일정은 두 줄까지
+      lv_obj_set_height(s_pRowA[i], r.today ? 2 * lv_font_get_line_height(&kr16) + 2 : LV_SIZE_CONTENT);
       lv_label_set_text(s_pRowA[i], r.a.c_str());
       String sub = r.t;
       if (r.b.length()) { if (sub.length()) sub += " · "; sub += r.b; }
@@ -1664,7 +1673,8 @@ static void buildPrincipal(lv_obj_t *scr) {
   lv_obj_set_width(s_pDate, LW); lv_obj_set_style_text_align(s_pDate, LV_TEXT_ALIGN_CENTER, 0); lv_obj_set_pos(s_pDate, 0, DATE_Y);
   const int nowY = DATE_Y + 29 + S(20), nowH = S(118);
   lv_obj_t *nc = box(left, D_ROW, D_LINE, 14);
-  lv_obj_set_size(nc, CW, nowH); lv_obj_set_pos(nc, P, nowY); lv_obj_clear_flag(nc, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_size(nc, CW, nowH); lv_obj_set_pos(nc, P, nowY);
+  lv_obj_add_flag(nc, LV_OBJ_FLAG_CLICKABLE); lv_obj_add_event_cb(nc, onTeachOpen, LV_EVENT_CLICKED, nullptr);   // 누르면 수업 중/없음 선생님
   const int RR = S(38);
   s_pRing = lv_arc_create(nc);                                // 얇은 교시 링(남은 시간)
   lv_obj_set_size(s_pRing, 2 * RR, 2 * RR); lv_obj_set_pos(s_pRing, S(14), (nowH - 2 * RR) / 2);
@@ -1695,7 +1705,8 @@ static void buildPrincipal(lv_obj_t *scr) {
   const int ROW_Y0 = S(40), ROW_X = S(12), ROW_W = RW - 2 * ROW_X, RP_ = (PH - ROW_Y0 - AH - S(16)) / P_ROWS, RH_ = RP_ - S(5), TW = S(70);
   for (int i = 0; i < P_ROWS; i++) {
     s_pRow[i] = box(right, D_ROW, D_LINE, UI_SOFT ? 10 : 8);
-    lv_obj_set_size(s_pRow[i], ROW_W, RH_); lv_obj_set_pos(s_pRow[i], ROW_X, ROW_Y0 + i * RP_); lv_obj_clear_flag(s_pRow[i], LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(s_pRow[i], ROW_W, RH_); lv_obj_set_pos(s_pRow[i], ROW_X, ROW_Y0 + i * RP_);
+    lv_obj_add_flag(s_pRow[i], LV_OBJ_FLAG_CLICKABLE); lv_obj_add_event_cb(s_pRow[i], onSchedRow, LV_EVENT_CLICKED, nullptr);
     lv_obj_t *tb = box(s_pRow[i], D_LINE, 0, UI_SOFT ? 10 : 6);
     lv_obj_set_size(tb, TW, RH_ - 8); lv_obj_align(tb, LV_ALIGN_LEFT_MID, S(5) - 1, 0);
     s_pRowT[i] = label(tb, FM(), D_SUB, ""); lv_obj_center(s_pRowT[i]);
@@ -1720,10 +1731,226 @@ static void setPrincipalTitles() {   // 제목에 누구 책상인지(교장·�
   lv_label_set_text_fmt(s_pTitle, "학교 일정 · %s", s_pickName == "@교감" ? "교감" : "교장");
 }
 
+// ── 교장실 모드 더하기(2026-10-18 사용자 요청) ──
+// · 일정 줄을 누르면 자세히(제목 전체·기간·시간·장소·부서·담당·내용)
+// · 교장실 모드에서는 [시간표] 탭이 [학교 일정] 목록(30일, 한 쪽 7개, 쪽 넘기기)이 된다
+// · '학교 지금' 칸을 누르면 수업 중/수업 없음 선생님 이름 단추 → 이름을 누르면 '찾기' 화면에 그 선생님 하루
+static lv_obj_t *s_pDetail = nullptr, *s_dDate, *s_dTitle, *s_dInfo;
+static lv_obj_t *s_viewSched = nullptr, *s_sRow[7], *s_sRowT[7], *s_sRowA[7], *s_sRowB[7], *s_sPage;
+static int s_sPg = 0;
+static lv_obj_t *s_pTeach = nullptr, *s_tBtn[30], *s_tTab[2], *s_tPage, *s_tNote;
+static int s_tKind = 0, s_tPg = 0;   // 0 수업 중 · 1 수업 없음
+
+// 일정 차례(끝나지 않은 것, 날짜 → 시간). idx 에 s_sched["items"] 번호를 담고 개수를 돌려준다
+static int schedSorted(int *idx, int maxn) {
+  const String td = todayIso();
+  JsonArray items = s_sched["items"].as<JsonArray>();
+  int n = 0;
+  String key[64];
+  for (int i = 0; i < (int)items.size() && n < maxn && n < 64; i++) {
+    JsonArray r = items[i];
+    const String sd = r[0] | "", ed = r[1] | "";
+    if (ed < td) continue;
+    const String d = sd <= td ? td : sd;
+    char k[24]; snprintf(k, sizeof k, "%s%05d", d.c_str(), schedMin(r[2] | "") + 1);
+    key[n] = k; idx[n] = i; n++;
+  }
+  for (int a = 0; a < n; a++) for (int b = a + 1; b < n; b++)
+    if (key[b] < key[a]) { String t = key[a]; key[a] = key[b]; key[b] = t; int x = idx[a]; idx[a] = idx[b]; idx[b] = x; }
+  return n;
+}
+static String schedDay(const String &sd, const String &ed) {   // "10/21 수" · "10/16 금 ~ 10/20 화"
+  static const char *DW[7] = {"일", "월", "화", "수", "목", "금", "토"};
+  auto one = [&](const String &iso) {
+    struct tm t = {}; t.tm_year = iso.substring(0, 4).toInt() - 1900; t.tm_mon = iso.substring(5, 7).toInt() - 1; t.tm_mday = iso.substring(8, 10).toInt(); t.tm_hour = 12; mktime(&t);
+    return String(iso.substring(5, 7).toInt()) + "/" + iso.substring(8, 10).toInt() + " " + DW[t.tm_wday];
+  };
+  return (ed.length() && ed != sd) ? one(sd) + " ~ " + one(ed) : one(sd);
+}
+
+static void showSchedDetail(int i) {
+  JsonArray r = s_sched["items"][i];
+  if (r.isNull() || !s_pDetail) return;
+  const String sd = r[0] | "", ed = r[1] | "";
+  lv_label_set_text(s_dDate, schedDay(sd, ed).c_str());
+  lv_label_set_text(s_dTitle, r[3] | "");
+  String info;
+  auto line = [&](const char *k, const char *v) { if (v && *v) { if (info.length()) info += (char)10; info += k; info += "   "; info += v; } };
+  line("시간", r[2] | ""); line("장소", r[4] | ""); line("부서", r[5] | ""); line("담당", r[6] | ""); line("내용", r[7] | "");
+  if (!info.length()) info = "자세한 내용이 없습니다";
+  lv_label_set_text(s_dInfo, info.c_str());
+  lv_obj_clear_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(s_pDetail);
+}
+static void onSchedRow(lv_event_t *e) { showSchedDetail((int)(intptr_t)lv_obj_get_user_data(lv_event_get_current_target(e))); }
+
+static void renderSchedList() {
+  if (!s_viewSched) return;
+  int idx[64]; const int n = schedSorted(idx, 64);
+  const int pages = max(1, (n + 6) / 7);
+  if (s_sPg >= pages) s_sPg = pages - 1;
+  const String td = todayIso();
+  JsonArray items = s_sched["items"].as<JsonArray>();
+  for (int k = 0; k < 7; k++) {
+    const int j = s_sPg * 7 + k;
+    if (j >= n) { lv_obj_add_flag(s_sRow[k], LV_OBJ_FLAG_HIDDEN); continue; }
+    JsonArray r = items[idx[j]];
+    const String sd = r[0] | "", ed = r[1] | "";
+    const bool today = sd <= td;
+    lv_obj_clear_flag(s_sRow[k], LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_user_data(s_sRow[k], (void *)(intptr_t)idx[j]);
+    lv_label_set_text(s_sRowT[k], today ? "오늘" : schedDay(sd, "").c_str());
+    lv_obj_set_style_bg_color(lv_obj_get_parent(s_sRowT[k]), lv_color_hex(today ? NOW_TAG : D_LINE), 0);
+    lv_obj_set_style_text_color(s_sRowT[k], lv_color_hex(today ? NOW_TX : D_SUB), 0);
+    lv_label_set_text(s_sRowA[k], r[3] | "");
+    String sub = schedDay(sd, ed);
+    const char *tm = r[2] | "", *pl = r[4] | "", *dp = r[5] | "";
+    if (*tm) { sub += " · "; sub += tm; }
+    if (*pl) { sub += " · "; sub += pl; }
+    if (*dp) { sub += " · "; sub += dp; }
+    lv_label_set_text(s_sRowB[k], sub.c_str());
+  }
+  lv_label_set_text_fmt(s_sPage, n ? "%d / %d" : "다가오는 일정 없음", s_sPg + 1, pages);
+}
+static void onSchedPage(lv_event_t *e) { s_sPg = max(0, s_sPg + (int)(intptr_t)lv_event_get_user_data(e)); renderSchedList(); }
+
+// 수업 중/없음 선생님 단추(이름만). 오늘이 수업일이 아니면 다음 수업일 기준
+static int teachDay(String &label) {
+  const String td = todayIso();
+  JsonArray dates = s_where["dates"].as<JsonArray>();
+  for (int i = 0; i < (int)dates.size(); i++) if (td == (const char *)(dates[i] | "")) { label = ""; return i; }
+  if (dates.size()) { label = schedDay(String((const char *)(dates[0] | "")), "") + " 기준"; return 0; }
+  return -1;
+}
+static void renderTeach() {
+  if (!s_pTeach) return;
+  String lbl; const int di = teachDay(lbl);
+  const int nm = timeValid() ? nowMin() : -1;
+  int p = -1;
+  for (int q = 0; q < 7; q++) { const int st = toMin(PERIOD_START[q]); if (nm >= st && nm < st + 50) p = q; }
+  if (lbl.length()) p = 0;   // 다음 수업일이면 1교시 기준
+  JsonArray ts = s_where["teachers"].as<JsonArray>();
+  int idx[120], n = 0, cnt[2] = {0, 0};
+  for (int i = 0; i < (int)ts.size() && i < 120; i++) {
+    const char *c = (di >= 0 && p >= 0) ? (const char *)(ts[i]["d"][di][p] | "") : "";
+    const int k = *c ? 0 : 1;
+    cnt[k]++;
+    if (k == s_tKind) idx[n++] = i;
+  }
+  for (int t = 0; t < 2; t++) {
+    const bool on = t == s_tKind;
+    lv_obj_set_style_bg_color(s_tTab[t], lv_color_hex(on ? C_PRIMARY : C_ALT), 0);
+    lv_obj_t *l = lv_obj_get_child(s_tTab[t], 0);
+    lv_label_set_text_fmt(l, "%s %d", t ? "수업 없음" : "수업 중", cnt[t]);
+    lv_obj_set_style_text_color(l, lv_color_hex(on ? 0xffffff : C_MUTED), 0);
+  }
+  const int pages = max(1, (n + 29) / 30);
+  if (s_tPg >= pages) s_tPg = pages - 1;
+  for (int b = 0; b < 30; b++) {
+    const int k = s_tPg * 30 + b;
+    if (k >= n) { lv_obj_add_flag(s_tBtn[b], LV_OBJ_FLAG_HIDDEN); continue; }
+    lv_obj_clear_flag(s_tBtn[b], LV_OBJ_FLAG_HIDDEN);
+    lv_label_set_text(lv_obj_get_child(s_tBtn[b], 0), ts[idx[k]]["n"] | "");
+  }
+  lv_label_set_text_fmt(s_tPage, "%d / %d", s_tPg + 1, pages);
+  if (p < 0) lv_label_set_text(s_tNote, "지금은 수업 시간이 아닙니다");
+  else lv_label_set_text_fmt(s_tNote, "%s%s%d교시 · 이름을 누르면 오늘 수업", lbl.c_str(), lbl.length() ? " · " : "", p + 1);
+}
+static void onTeachOpen(lv_event_t *) { s_tPg = 0; renderTeach(); lv_obj_clear_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN); lv_obj_move_foreground(s_pTeach); }
+static void onTeachTab(lv_event_t *e) { s_tKind = (int)(intptr_t)lv_event_get_user_data(e); s_tPg = 0; renderTeach(); }
+static void onTeachPage(lv_event_t *e) { s_tPg = max(0, s_tPg + (int)(intptr_t)lv_event_get_user_data(e)); renderTeach(); }
+static void onTeachName(lv_event_t *e) {   // 이름 → '찾기' 화면에 그 선생님 하루
+  s_findSel = lv_label_get_text(lv_obj_get_child(lv_event_get_current_target(e), 0));
+  lv_obj_add_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN);
+  showView(V_FIND);
+}
+
+// 화면 만들기(buildUI 에서 한 번)
+static void buildPrincipalMore(lv_obj_t *scr, int top) {
+  const bool small = s_W <= 800;
+  const int M = small ? 8 : 12, HB = small ? 38 : 46;
+  const lv_font_t *fTitle = small ? &kr16 : &kr20, *fCellA = small ? &kr16 : &kr20;
+  // 일정 자세히(어두운 덮개 + 가운데 카드, 아무 데나 누르면 닫힘)
+  s_pDetail = box(scr, 0x000000, 0, 0);
+  lv_obj_set_style_bg_opa(s_pDetail, LV_OPA_70, 0);
+  lv_obj_set_size(s_pDetail, s_W, s_H); lv_obj_set_pos(s_pDetail, 0, 0);
+  lv_obj_add_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(s_pDetail, [](lv_event_t *) { lv_obj_add_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN); }, LV_EVENT_CLICKED, nullptr);
+  lv_obj_t *card = box(s_pDetail, C_SURF, C_BORDER, 16);
+  lv_obj_set_size(card, s_W * 7 / 10, s_H * 7 / 10); lv_obj_center(card); lv_obj_clear_flag(card, LV_OBJ_FLAG_CLICKABLE);
+  s_dDate = label(card, FM(), C_MUTED, ""); lv_obj_set_pos(s_dDate, 24, 20);
+  s_dTitle = label(card, &kr28, C_TEXT, ""); lv_obj_set_width(s_dTitle, s_W * 7 / 10 - 48); lv_label_set_long_mode(s_dTitle, LV_LABEL_LONG_WRAP); lv_obj_set_pos(s_dTitle, 24, 46);
+  s_dInfo = label(card, &kr20, C_MUTED, ""); lv_obj_set_width(s_dInfo, s_W * 7 / 10 - 48); lv_label_set_long_mode(s_dInfo, LV_LABEL_LONG_WRAP);
+  lv_obj_set_style_text_line_space(s_dInfo, 8, 0); lv_obj_align(s_dInfo, LV_ALIGN_TOP_LEFT, 24, 46 + 29 * 2 + 20);
+  lv_obj_t *hint = label(card, &kr14, C_LIGHT, "아무 데나 누르면 닫힙니다"); lv_obj_align(hint, LV_ALIGN_BOTTOM_RIGHT, -20, -14);
+
+  // 학교 일정 목록(교장실 모드의 [학교 일정] 탭)
+  const int VH = s_H - top;
+  s_viewSched = box(scr, D_BG, 0, 0);
+  lv_obj_set_size(s_viewSched, s_W, VH); lv_obj_set_pos(s_viewSched, 0, top);
+  lv_obj_add_flag(s_viewSched, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_t *t = label(s_viewSched, fTitle, D_TEXT, "학교 일정 · 30일"); lv_obj_set_pos(t, M + 4, M + (HB - 21) / 2);
+  const int RY = M + HB + M / 2, FB = HB, RH = (VH - RY - FB - 2 * M) / 7;
+  for (int k = 0; k < 7; k++) {
+    s_sRow[k] = box(s_viewSched, D_ROW, D_LINE, UI_SOFT ? 10 : 8);
+    lv_obj_set_size(s_sRow[k], s_W - 2 * M, RH - 6); lv_obj_set_pos(s_sRow[k], M, RY + k * RH);
+    lv_obj_add_flag(s_sRow[k], LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(s_sRow[k], onSchedRow, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t *tb = box(s_sRow[k], D_LINE, 0, UI_SOFT ? 10 : 6);
+    lv_obj_set_size(tb, small ? 70 : 92, RH - 14); lv_obj_align(tb, LV_ALIGN_LEFT_MID, 4, 0); lv_obj_clear_flag(tb, LV_OBJ_FLAG_CLICKABLE);
+    s_sRowT[k] = label(tb, FM(), D_SUB, ""); lv_obj_center(s_sRowT[k]);
+    s_sRowA[k] = label(s_sRow[k], fCellA, D_TEXT, ""); lv_obj_set_width(s_sRowA[k], s_W - 2 * M - (small ? 90 : 116)); lv_label_set_long_mode(s_sRowA[k], LV_LABEL_LONG_DOT);
+    lv_obj_set_pos(s_sRowA[k], small ? 82 : 106, 6);
+    s_sRowB[k] = label(s_sRow[k], FM(), D_MUTED, ""); lv_obj_set_width(s_sRowB[k], s_W - 2 * M - (small ? 90 : 116)); lv_label_set_long_mode(s_sRowB[k], LV_LABEL_LONG_DOT);
+    lv_obj_set_pos(s_sRowB[k], small ? 82 : 106, RH - 6 - 22);
+    lv_obj_add_flag(s_sRow[k], LV_OBJ_FLAG_HIDDEN);
+  }
+  const int FY = VH - M - FB, PW = small ? 120 : 150;
+  lv_obj_t *bp = button(s_viewSched, LV_SYMBOL_LEFT "  이전", PW, FB, D_ROW, D_TEXT); lv_obj_set_pos(bp, s_W / 2 - PW - 70, FY);
+  lv_obj_add_event_cb(bp, onSchedPage, LV_EVENT_CLICKED, (void *)(intptr_t)-1);
+  s_sPage = label(s_viewSched, FM(), D_MUTED, ""); lv_obj_set_width(s_sPage, 140); lv_obj_set_style_text_align(s_sPage, LV_TEXT_ALIGN_CENTER, 0); lv_obj_set_pos(s_sPage, s_W / 2 - 70, FY + (FB - 17) / 2);
+  lv_obj_t *bn = button(s_viewSched, "다음  " LV_SYMBOL_RIGHT, PW, FB, D_ROW, D_TEXT); lv_obj_set_pos(bn, s_W / 2 + 70, FY);
+  lv_obj_add_event_cb(bn, onSchedPage, LV_EVENT_CLICKED, (void *)(intptr_t)1);
+
+  // 수업 중/없음 선생님 판(화면 전체, 위쪽 막대 아래)
+  s_pTeach = box(scr, C_BG, 0, 0);
+  lv_obj_set_size(s_pTeach, s_W, s_H); lv_obj_set_pos(s_pTeach, 0, 0);
+  lv_obj_add_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_t *tt = label(s_pTeach, fTitle, C_TEXT, "지금 선생님"); lv_obj_align(tt, LV_ALIGN_TOP_LEFT, M + 4, M + (HB - 21) / 2);
+  for (int k = 0; k < 2; k++) {
+    s_tTab[k] = button(s_pTeach, "", small ? 130 : 170, HB, C_ALT, C_MUTED);
+    lv_obj_set_style_border_color(s_tTab[k], lv_color_hex(C_BORDER), 0);
+    lv_obj_set_pos(s_tTab[k], (small ? 200 : 260) + k * ((small ? 130 : 170) + 8), M);
+    lv_obj_add_event_cb(s_tTab[k], onTeachTab, LV_EVENT_CLICKED, (void *)(intptr_t)k);
+  }
+  lv_obj_t *bc = button(s_pTeach, "닫기", small ? 90 : 110, HB, C_ALT, C_MUTED);
+  lv_obj_set_style_border_color(bc, lv_color_hex(C_BORDER), 0); lv_obj_align(bc, LV_ALIGN_TOP_RIGHT, -M, M);
+  lv_obj_add_event_cb(bc, [](lv_event_t *) { lv_obj_add_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN); }, LV_EVENT_CLICKED, nullptr);
+  s_tNote = label(s_pTeach, FM(), C_MUTED, ""); lv_obj_set_pos(s_tNote, M + 4, M + HB + 6);
+  const int GY = M + HB + 30, GH = s_H - GY - FB - 2 * M, GAP = small ? 6 : 8, BW = (s_W - 2 * M - 5 * GAP) / 6, BH = (GH - 4 * GAP) / 5;
+  for (int b = 0; b < 30; b++) {
+    s_tBtn[b] = button(s_pTeach, "", BW, BH, C_SURF, C_TEXT);
+    lv_obj_set_style_border_color(s_tBtn[b], lv_color_hex(C_BORDER), 0);
+    lv_obj_set_style_text_font(lv_obj_get_child(s_tBtn[b], 0), fCellA, 0);
+    lv_obj_set_pos(s_tBtn[b], M + (b % 6) * (BW + GAP), GY + (b / 6) * (BH + GAP));
+    lv_obj_add_event_cb(s_tBtn[b], onTeachName, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_flag(s_tBtn[b], LV_OBJ_FLAG_HIDDEN);
+  }
+  const int TFY = s_H - M - FB;
+  lv_obj_t *tp = button(s_pTeach, LV_SYMBOL_LEFT "  이전", PW, FB, C_ALT, C_TEXT); lv_obj_set_style_border_color(tp, lv_color_hex(C_BORDER), 0); lv_obj_set_pos(tp, s_W / 2 - PW - 70, TFY);
+  lv_obj_add_event_cb(tp, onTeachPage, LV_EVENT_CLICKED, (void *)(intptr_t)-1);
+  s_tPage = label(s_pTeach, FM(), C_MUTED, ""); lv_obj_set_width(s_tPage, 140); lv_obj_set_style_text_align(s_tPage, LV_TEXT_ALIGN_CENTER, 0); lv_obj_set_pos(s_tPage, s_W / 2 - 70, TFY + (FB - 17) / 2);
+  lv_obj_t *tn = button(s_pTeach, "다음  " LV_SYMBOL_RIGHT, PW, FB, C_ALT, C_TEXT); lv_obj_set_style_border_color(tn, lv_color_hex(C_BORDER), 0); lv_obj_set_pos(tn, s_W / 2 + 70, TFY);
+  lv_obj_add_event_cb(tn, onTeachPage, LV_EVENT_CLICKED, (void *)(intptr_t)1);
+}
+
 static void showView(View v) {
   s_view = v;
   auto vis = [](lv_obj_t *o, bool on) { if (on) lv_obj_clear_flag(o, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN); };
-  vis(s_viewTT, v == V_WEEK);
+  vis(s_viewTT, v == V_WEEK && !s_principal);
+  if (s_viewSched) vis(s_viewSched, v == V_WEEK && s_principal);
+  if (s_pTeach) vis(s_pTeach, false);
+  if (s_pDetail) vis(s_pDetail, false);
   vis(s_viewSet, v == V_SET);
   vis(s_viewClock, v == V_CLOCK && !s_principal);
   if (s_viewPrin) vis(s_viewPrin, v == V_CLOCK && s_principal);
@@ -1736,6 +1963,7 @@ static void showView(View v) {
   if (v == V_FIND) { if (s_findGridDirty) fillFinderGrid(); renderFinder(); }
   if (v == V_SET) refreshWifiLabel();
   if (v == V_CLOCK && s_principal) renderPrincipal();
+  if (v == V_WEEK && s_principal) renderSchedList();
 }
 static void onTabTT(lv_event_t *e) { showView(V_WEEK); }
 static void onTabSet(lv_event_t *e) { showView(V_SET); }
@@ -2148,6 +2376,7 @@ static void buildUI() {
 
   // 비밀번호 입력 (위쪽 창 + 화면 아래 키보드)
   buildPrincipal(scr);   // 교장실 모드 화면(숨김)
+  buildPrincipalMore(scr, TOP);   // 일정 자세히 · 학교 일정 목록 · 선생님 판(숨김)
 
   // ── '볼 시간표' 단추 판(설정 위에 덮는 화면, 처음엔 숨김) ──
   {
@@ -2241,6 +2470,8 @@ static void initDisplay() {
   ESP_ERROR_CHECK(esp_lv_adapter_start());
   Serial.printf("screen %dx%d pclk %luMHz%s\n", s_W, s_H, (unsigned long)(PCLK_HZ / 1000000), BOARD_7B ? " (7B)" : "");
 }
+
+SET_LOOP_TASK_STACK_SIZE(16 * 1024);   // loop 스택 8→16KB(교장실 화면 그리기가 깊다)
 
 void setup() {
   Serial.begin(115200);
@@ -2380,7 +2611,7 @@ void loop() {
       bool whr = !noUrl && downloadWhere();
       const bool sch = s_principal && downloadSchedule();
       lock(); if (loaded) { s_week = -1; renderTT(); } if (wx) renderWeather(); if (meal) renderMeal(); if (air) renderAir(); if (whr) { fillFinderGrid(); renderFinder(); } unlock();
-      if (s_principal) { lock(); renderPrincipal(); unlock(); }
+      if (s_principal) { lock(); renderPrincipal(); renderSchedList(); unlock(); }
       if (s_principal && !noUrl) finishSync(timeValid() && (sch || !cfgSet(SCHEDULE_URL)), sch ? "시간과 학교 일정을 받았습니다." : cfgSet(SCHEDULE_URL) ? "학교 일정을 받지 못했습니다. 인터넷을 확인하세요." : "학교 일정 주소가 없습니다(SCHEDULE_URL).");
       else if (noUrl) finishSync(timeValid(), timeValid() ? "시간을 맞췄습니다. 시간표 주소를 넣으면 시간표도 받습니다." : "시간을 맞추지 못했습니다. 인터넷을 확인하세요.");
       else {
