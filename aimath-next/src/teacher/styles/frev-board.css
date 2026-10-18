@@ -140,3 +140,7 @@ html[data-surface="board"] .bd-stage .bdq-step.is-next, html[data-surface="board
 html[data-surface="board"] .bd-stage .bdq-step.is-next { background: var(--tn); color: var(--tn-on); box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--tn); }
 html[data-surface="board"] .bd-stage .bdq-card.is-hint { box-shadow: inset 5px 0 0 var(--info), inset 0 0 0 1px var(--line); }
 html[data-surface="board"] .bd-stage .bdq-card.is-sol { box-shadow: inset 5px 0 0 var(--aha), inset 0 0 0 1px var(--line); }
+
+/* 칠판 본문 글자는 크니까 에스코어드림 3(Light)로 가볍게. 굵은 글씨(strong)는 그대로 */
+html[data-surface="board"] .bd-stage p { font-weight: 300; }
+html[data-surface="board"] .bd-stage p strong, html[data-surface="board"] .bd-stage p b { font-weight: 700; }

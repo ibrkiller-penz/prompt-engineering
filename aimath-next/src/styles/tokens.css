@@ -15,7 +15,8 @@
  * 색 대비는 scripts/check-contrast.mjs 가 이 파일을 읽어서 테마별로 계산해요(글자 4.5, 그래픽 3 이상).
  */
 
-/* 에스코어드림 4·5·6 (자체 제공 글꼴. 외부 요청 없음) */
+/* 에스코어드림 3·4·5·6 (자체 제공 글꼴. 외부 요청 없음) */
+@font-face { font-family: "S-Core Dream"; font-weight: 300; font-style: normal; font-display: swap; src: url("./fonts/S-CoreDream-3Light.woff") format("woff"); }
 @font-face { font-family: "S-Core Dream"; font-weight: 400; font-style: normal; font-display: swap; src: url("./fonts/S-CoreDream-4Regular.woff") format("woff"); }
 @font-face { font-family: "S-Core Dream"; font-weight: 500; font-style: normal; font-display: swap; src: url("./fonts/S-CoreDream-5Medium.woff") format("woff"); }
 @font-face { font-family: "S-Core Dream"; font-weight: 600 900; font-style: normal; font-display: swap; src: url("./fonts/S-CoreDream-6Bold.woff") format("woff"); }
