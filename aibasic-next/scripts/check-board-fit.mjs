@@ -108,12 +108,24 @@ function measure() {
   // 본문(.bd-scene-inner)이 896 을 넘지 않는지
   const inner = document.querySelector(".bd-scene-inner");
   if (inner && inner.scrollHeight > 898) bad.push("본문 높이 " + inner.scrollHeight + ">896");
-  // 겹침: 보기끼리
-  const os = Array.prototype.slice.call(q.querySelectorAll(".bdq-opt")).map((e) => rel(e.getBoundingClientRect()));
-  for (let i = 0; i < os.length; i++) for (let j = i + 1; j < os.length; j++) {
-    const a = os[i], b = os[j];
-    if (a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1) bad.push("보기 겹침 " + (i + 1) + "," + (j + 1));
+  // 겹침: 보기 · 손들기 단추 · 정답/힌트/풀이 칸 · 제시문 · 질문 · 공개 단추끼리(포함 관계는 빼요)
+  const boxes = [];
+  const add = (sel, nm) => q.querySelectorAll(sel).forEach((e) => { const r0 = e.getBoundingClientRect(); if (r0.width && r0.height) boxes.push({ e: e, nm: nm, r: rel(r0) }); });
+  add(".bdq-opt", "보기"); add(".bdq-answer", "정답"); add(".bdq-card", "힌트/풀이"); add(".bdq-passage .ui-qpassage", "제시문"); add(".bdq-prompt", "질문"); add(".bdq-steps", "공개단추"); add(".bdq-groups-open", "모둠점수"); add(".bdq-head", "머리");
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i], b = boxes[j];
+    if (a.e.contains(b.e) || b.e.contains(a.e)) continue;
+    if (a.r.l < b.r.r - 1 && b.r.l < a.r.r - 1 && a.r.t < b.r.b - 1 && b.r.t < a.r.b - 1) bad.push("겹침 " + a.nm + "·" + b.nm);
   }
+  // 열린 칸(.bdq-panel)이 보기 칸과 겹치는지(패널 안 카드는 위에서 따로 봐요)
+  const pn = q.querySelector(".bdq-panel");
+  if (pn) {
+    const pr = rel(pn.getBoundingClientRect());
+    q.querySelectorAll(".bdq-opt").forEach((o) => { const a = rel(o.getBoundingClientRect()); if (a.l < pr.r - 1 && pr.l < a.r - 1 && a.t < pr.b - 1 && pr.t < a.b - 1) bad.push("겹침 보기·열린칸"); });
+  }
+  // 내용이 담은 칸 밖으로 삐져나감(보기 묶음이 본문 칸보다 큼)
+  const bodyEl = q.querySelector(".bdq-body");
+  if (bodyEl) { const br = rel(bodyEl.getBoundingClientRect()); q.querySelectorAll(".bdq-opt").forEach((o) => { const a = rel(o.getBoundingClientRect()); if (a.b > br.b + 1) bad.push("보기가 본문 칸 밖"); }); }
   // 3) 글자 28px
   const tx = q.querySelectorAll(".bdq-passage *, .bdq-opt-txt, .bdq-opt-txt *, .bdq-card-txt, .bdq-card-txt *, .bdq-answer, .bdq-prompt");
   let minFs = 999, minTxt = "";

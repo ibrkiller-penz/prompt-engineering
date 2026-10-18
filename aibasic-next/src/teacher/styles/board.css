@@ -412,23 +412,55 @@ html[data-surface="board"][data-motion="reduce"] .bd-next:active { -webkit-trans
 /* 이어서 안내 줄도 칠판 글자 바닥(28px)을 지켜요 */
 html[data-surface="board"] .bd-cont { font-size: 28px; }
 
-/* 제시문이 있는 문제: 왼쪽 칸(제시문 + 질문) · 오른쪽 칸(보기 + 열린 힌트/정답/풀이)으로 가로 2열.
-   안쪽 스크롤 없이 한 화면(896px)에 들게 하고, 글자는 28px 이상을 지켜요(Chrome 80: flex gap 없이 margin 으로 간격) */
-html[data-surface="board"] .bdq.has-pass .bdq-head { min-height: 44px; }
-html[data-surface="board"] .bdq-cols { flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; margin-top: 8px; }
+/* 제시문이 있는 문제: 왼쪽 칸(제시문 + 질문) · 오른쪽 칸(보기)으로 가로 2열.
+   힌트·정답·풀이가 열리면 두 칸을 신문처럼 이어 흘려서(제시문 → 질문 → 보기 → 열린 상자) 안쪽 스크롤 없이 한 화면(896px)에 담아요.
+   글자는 28px 이상. Chrome 80: flex gap 없이 margin 으로 간격 */
+html[data-surface="board"] .bdq.has-pass .bdq-head { min-height: 40px; }
+html[data-surface="board"] .bdq-cols { flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; margin-top: 6px; }
 html[data-surface="board"] .bdq-left { flex: 0 0 47%; width: 47%; min-width: 0; box-sizing: border-box; padding-right: 20px; display: flex; flex-direction: column; }
 html[data-surface="board"] .bdq-cols > .bdq-mid { flex: 1 1 0; min-width: 0; flex-direction: column; }
 html[data-surface="board"] .bdq-left .bdq-passage { flex: 0 0 auto; }
 html[data-surface="board"] .bdq-left .bdq-passage .ui-qpassage { max-height: none; overflow: visible; margin-bottom: 0; }
-html[data-surface="board"] .bdq-left .bdq-prompt { flex: 0 0 auto; max-height: none; overflow: visible; margin-top: 12px; font-size: 32px; line-height: 1.35; }
-html[data-surface="board"] .bdq.has-pass .bdq-body { margin-top: 0; overflow: visible; }
+html[data-surface="board"] .bdq-left .bdq-prompt { flex: 0 0 auto; max-height: none; overflow: visible; margin-top: 10px; font-size: 32px; line-height: 1.3; }
+html[data-surface="board"] .bdq.has-pass .bdq-body { flex: 0 0 auto; margin-top: 0; overflow: visible; }
 html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long,
-html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(auto, 1fr); grid-gap: 8px; }
-html[data-surface="board"] .bdq.has-pass .bdq-opts .bdq-opt-txt { font-size: 30px; line-height: 1.3; }
-html[data-surface="board"] .bdq.has-pass .bdq-mid.is-split { flex-direction: column; }
-html[data-surface="board"] .bdq.has-pass .bdq-mid.is-split > .bdq-body { overflow: visible; }
-html[data-surface="board"] .bdq.has-pass .bdq-mid.is-split > .bdq-panel { flex: 0 0 auto; margin: 12px 0 0; padding-right: 0; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; grid-gap: 8px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opt { padding: 4px 12px 4px 14px; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts .bdq-opt-txt { font-size: 30px; line-height: 1.25; }
+html[data-surface="board"] .bdq.has-pass .bdq-tally-n { min-width: 96px; }
+html[data-surface="board"] .bdq.has-pass .bdq-tally button { height: 52px; }
+html[data-surface="board"] .bdq.has-pass .bdq-tally-step { width: 52px; }
+html[data-surface="board"] .bdq.has-pass .bdq-tally button.is-plus { width: 60px; height: 60px; font-size: 36px; }
+html[data-surface="board"] .bdq.has-pass .bdq-tally button.is-minus { width: 44px; height: 44px; font-size: 26px; }
+html[data-surface="board"] .bdq.has-pass .bdq-bar { height: 6px; margin-top: 2px; }
+html[data-surface="board"] .bdq.has-pass .bdq-answer-key { font-size: 1.1em; }
+/* 열린 상자가 있을 때: 신문 흐름 2단(안쪽 칸은 모두 블록이라야 단 사이로 나뉘어요) */
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-cols { display: block; -webkit-column-count: 2; column-count: 2; -webkit-column-gap: 24px; column-gap: 24px; -webkit-column-fill: auto; column-fill: auto; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-left,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-cols > .bdq-mid,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-body,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-opts,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-panel { display: block; width: auto; padding: 0; margin: 0; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-passage,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-prompt,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-opt,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-answer,
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-card { -webkit-column-break-inside: avoid; break-inside: avoid; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-opts > .bdq-opt { margin: 0 0 8px; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-panel > * { margin: 0 0 8px; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-panel > * + * { margin-top: 0; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-card { display: block; padding: 8px 16px; font-size: 28px; line-height: 1.3; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-card .bdq-tag { float: left; margin: 2px 12px 0 0; font-size: 22px; line-height: 1.5; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-card-txt { display: block; }
+html[data-surface="board"] .bdq.has-pass.has-panel .bdq-answer { padding: 6px 18px; font-size: 32px; }
 /* 코드 글자는 칠판에서 28px 이상(제시문 코드 블록 · 표 안 인라인 코드) */
 html[data-surface="board"] .bdq-passage .ui-code .ui-code-pre { font-size: 28px; line-height: 1.3; padding: 6px 16px; }
 html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 24px; padding: 2px 16px; }
 html[data-surface="board"] .ui-icode { font-size: 1em; }
+
+/* 수업 끝 QR 카드: 긴 차시 이름도 칸 안에 다 들어가게(세 줄까지, 안 잘려요) */
+html[data-surface="board"] .bd-end-period { font-size: 34px; line-height: 1.25; max-height: none; overflow: visible; }
+
+/* 칠판 개념 표(두 칸짜리): 글자가 넘쳐 글자를 줄이는 단계(is-down)부터 왼쪽 칸을 넓혀 줄 수를 줄여요 → '모두 열기' 뒤에도 제목과 표가 한 장면(896px)에 들어요(글자 28px 그대로) */
+html[data-surface="board"] .kind-concept.is-down .ui-table.is-board th:first-child:nth-last-child(2),
+html[data-surface="board"] .kind-concept.is-down .ui-table.is-board td:first-child:nth-last-child(2) { width: 46%; }

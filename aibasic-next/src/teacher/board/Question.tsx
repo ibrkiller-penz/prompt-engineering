@@ -284,7 +284,16 @@ export function BoardQuestion({ lid, q, r, onStage, label }: BoardQuestionProps)
           <div className="bdq-panel" aria-live="polite">
             {showAns ? (
               <p className="bdq-answer">
-                <span className="bdq-answer-tag">정답:</span> <Rich text={answerText(q)} />
+                <span className="bdq-answer-tag">정답:</span>{" "}
+                {pass && q.type === "choice" ? (
+                  // 제시문 문제는 자리가 모자라서 정답 보기 글을 되풀이하지 않고 번호만 크게(보기 칸에 ✓ 정답 표시가 있어요)
+                  <>
+                    <span className="bdq-answer-key">{CHOICE_KEYS[q.answer] || q.answer + 1}</span>
+                    <span className="sr-only">{" " + (q.choices[q.answer] || "")}</span>
+                  </>
+                ) : (
+                  <Rich text={answerText(q)} />
+                )}
               </p>
             ) : null}
             {hints.map((h, i) =>

@@ -270,3 +270,22 @@ html[data-surface="prep"][data-contrast="more"] .t-res-track { box-shadow: inset
   html[data-surface="prep"] .t-question { font-size: var(--t-md); }
   html[data-surface="prep"] .t-today-head > .btn { margin-top: var(--sp-2); }
 }
+
+/* ════════════════ 머리 글꼴 교체 흔들림 막기 ════════════════
+ * 웹글꼴(S-Core Dream, font-display: swap)이 늦게 오면 대체 글꼴 폭으로 먼저 그렸다가 바뀌어요.
+ * 머리 글자 칸의 '최소 폭'을 em 으로 고정해(글꼴이 바뀌어도 칸 폭이 같게) 줄 수와 단추 자리가 달라지지 않게 해요.
+ * em 이라 글자 크기 설정(작게~아주 크게)에서도 같은 비율로 따라가요. 값은 대체 글꼴·에스코어 드림 중 넓은 쪽이에요.
+ * Chrome 80 에는 size-adjust 가 없어서 폭을 직접 맞춰요. */
+html[data-surface="prep"] .t-head .t-brand-name { min-width: 6.22em; }
+html[data-surface="prep"] .t-head .site-tag { min-width: 4.47em; text-align: center; }
+html[data-surface="prep"] .t-head .t-tab { min-width: 5.46em; -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center; }
+html[data-surface="prep"] .t-head .t-tab:nth-child(4) { min-width: 6.46em; }
+@media (min-width: 761px) {
+  html[data-surface="prep"] .t-head .t-gear { min-width: 8.05em; -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center; }
+}
+html[data-surface="prep"] .t-head .t-klass-plus { min-width: 6.36em; }
+html[data-surface="prep"] .t-head .t-klass-label { min-width: 1.02em; }
+@media (max-width: 760px) {
+  /* 휴대폰: 이름표·설정 단추가 한 줄에 들도록 이름 사이를 조금 좁혀요(글꼴과 상관없이 같은 줄 수) */
+  html[data-surface="prep"] .t-head .t-brand > * + * { margin-left: var(--sp-2); }
+}

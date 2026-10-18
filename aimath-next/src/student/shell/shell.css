@@ -236,7 +236,7 @@ html[data-site="student"] { --s-col: 720px; --s-action-h: 60px; --s-rail-h: 12px
 
 /* 넓은 화면의 카드 제목: 본문(27px)보다 확실히 크게 */
 @media (min-width: 1024px) {
-  html[data-site="student"] .s-deck .h2 { font-size: calc(36px * var(--fs-scale)); }
+  html[data-site="student"] .s-deck .h2, html[data-site="student"] .s-deck h2.s-core-q { font-size: calc(36px * var(--fs-scale)); }
 }
 
 /* 브랜드 표식: 사이트 아이콘(파비콘)과 같은 그림 */
