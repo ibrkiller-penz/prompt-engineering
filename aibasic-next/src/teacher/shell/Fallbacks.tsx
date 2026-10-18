@@ -23,15 +23,26 @@ export function Loading({ label }: { label?: string }) {
   );
 }
 
+/** 받침 있으면 은, 없으면 는 */
+function eunNeun(w: string): string {
+  const c = w.charCodeAt(w.length - 1);
+  if (c >= 0xac00 && c <= 0xd7a3) return (c - 0xac00) % 28 === 0 ? "는" : "은";
+  return "은";
+}
+
 export function Soon({ name }: { name: string }) {
+  const label = NAMES[name] || "이 화면";
   return (
     <section className="page">
-      <div className="card empty">
-        <h1 className="h2">{(NAMES[name] || "이 화면") + "은 준비 중이에요"}</h1>
-        <p className="muted">곧 열려요. 지금은 오늘 수업에서 바로 칠판 수업을 시작할 수 있어요.</p>
-        <p>
+      <div className="card empty t-soon">
+        <h1 className="h2">{label + eunNeun(label) + " 아직 쓸 수 없어요"}</h1>
+        <p className="muted">수업은 오늘 수업에서 바로 시작할 수 있어요. 다른 차시를 보려면 차시 찾기로 가요.</p>
+        <p className="row wrap t-soon-acts">
           <a className="btn btn-primary" href="#/">
             오늘 수업으로 가요
+          </a>
+          <a className="btn btn-ghost" href="#/find">
+            차시 찾기
           </a>
         </p>
       </div>
