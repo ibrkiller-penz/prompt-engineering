@@ -69,7 +69,7 @@ function siteHtml(site: Site): Plugin {
         .replace(/__TITLE__/g, esc(m.title))
         .replace(/__DESC__/g, esc(m.desc))
         .replace(/__THEME_COLOR__/g, m.theme)
-        .replace(/__ICON__/g, site === "teacher" ? "favicon-t.svg" : "favicon-s.svg")
+        .replace(/__ICON__/g, site === "teacher" ? "favicon-t" : "favicon-s")
         .replace(/__ROBOTS__/g, m.robots);
     },
   };
