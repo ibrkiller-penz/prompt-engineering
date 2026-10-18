@@ -30,3 +30,8 @@
 #define WEATHER_LAT ""         // ← 내 값으로 바꾸기 (예: "37.5665")
 #define WEATHER_LON ""         // ← 내 값으로 바꾸기 (예: "126.9780")
 #endif
+
+// 교장실 모드(볼 시간표에서 교장·교감)가 보여 줄 학교 일정 사이트(Google Apps Script 웹앱 주소). 비워 두면 일정 칸에 "설정 필요".
+#ifndef SCHEDULE_URL
+#define SCHEDULE_URL ""
+#endif

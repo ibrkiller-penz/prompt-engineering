@@ -184,50 +184,29 @@ function rebuild() {
     label(wcard, FM, P.D_MUTED, "급식 12:30 · 812 Kcal").style.cssText += `left:${CW / 2 + S(10)}px;top:${S(16) + 26}px`;
     label(wcard, FM, P.D_SUB, "잡곡밥 · 쇠고기미역국 · 제육볶음 · 계란말이 · 배추김치", { w: CW - S(28) }).style.cssText += `left:${S(14)}px;top:${S(12) + 70}px`;
     box(wcard, S(14), wh - S(44), CW - S(28), 1, P.D_LINE);
-    label(wcard, FM, P.D_MUTED, "학교 소식 · 중간고사 D-12 · 2학년 진로 특강 5교시", { w: CW - S(28) }).style.cssText += `left:${S(14)}px;top:${wh - S(32)}px`;
+    { const heat = st.temp >= 33 ? 2 : st.temp >= 31 ? 1 : 0, cold = st.temp <= -5 ? 2 : st.temp <= 0 ? 1 : 0, dl = st.dust >= 3 ? 2 : st.dust >= 2 ? 1 : 0, level = Math.max(dl, heat, cold);
+      const why = level ? [dl ? "미세먼지 " + dustTxt : "", heat ? "폭염" : "", cold ? "한파" : ""].filter(Boolean).join(" · ") : "바깥 활동 문제없음";
+      label(wcard, FM, P.D_MUTED, `<span style="color:${["#34d399","#fbbf24","#f87171"][level]}">● ${["운동장 활동 가능","야외 활동 주의","실내 활동 권장"][level]}</span>  ${why}`, { w: CW - S(28) }).style.cssText += `left:${S(14)}px;top:${wh - S(32)}px`; }
 
-    // 오른쪽
+    // 오른쪽: 학교 일정(일정 사이트) 8줄 + 학사 일정 D-day — 펌웨어 buildPrincipal/renderPrincipal 과 같은 배치
     const RX = CM + LW + CM, RW = W - RX - CM;
     const right = box(view, RX, CM, RW, PH, P.D_PANEL, P.D_LINE, R(16));
-    label(right, "kr16", P.D_TEXT, "오늘 일정").style.cssText += `left:${S(16)}px;top:${S(14)}px`;
-    if (st.show & 32) place(label(right, "kr14", 0xfecaca, "수능 D-33", { bg: 0x7f1d1d, bd: 0xef4444, ph: 10, pv: 2, r: RP(11) }), right, "TR", -S(12), S(11));
-    const SCHED = [["08:20","아침 협의회","교무실"],["10:30","학부모 상담","교장실"],["13:30","2학년 진로 특강","강당"],["14:00","교육청 장학사 방문","교장실"],["16:00","학교운영위원회","회의실"]];
-    const ROW_Y0 = S(44), ROW_X = S(12), ROW_W = RW - 2 * ROW_X, RP_ = S(40), RH_ = RP_ - S(6), TW = S(64);
-    let nextI = SCHED.findIndex(s => toMin(s[0]) > nm);
-    SCHED.forEach((s, i) => {
-      const past = toMin(s[0]) + 50 <= nm, cur = !past && toMin(s[0]) <= nm, nxt = !cur && i === nextI;
-      const row = box(right, ROW_X, ROW_Y0 + i * RP_, ROW_W, RH_, cur ? P.NOW_ROW : P.D_ROW, null, R(8), { boxShadow: `inset 0 0 0 ${nxt ? 2 : 1}px ${hex(cur ? P.NOW_ROW : nxt ? P.NEXT_BD : P.D_LINE)}` });
-      const tb = box(row, S(6) - 1, 4, TW, RH_ - 8, cur ? P.NOW_TAG : P.D_LINE, null, R(6));
-      place(label(tb, "kr16", cur ? P.NOW_TX : (past ? P.D_MUTED : P.D_SUB), s[0]), tb, "MC");
-      place(label(row, "kr16", cur ? P.C_TEXT : past ? P.D_MUTED : P.D_TEXT, s[1]), row, "ML", TW + S(18));
-      place(label(row, FM, cur ? P.C_MUTED : P.D_MUTED, s[2], { w: S(90), align: "right" }), row, "MR", -S(14));
+    label(right, "kr16", P.D_TEXT, "학교 일정 · 교장").style.cssText += `left:${S(16)}px;top:${S(14)}px`;
+    // 실제 사이트(동래고등학교 일정) 10월 자료 모양
+    const SCHED = [["오늘","언어폭력 예방교육주간 운영",""],["오늘","교육과정 협의회","15:30 · 1층 회의실"],["10/20 화","통합교육1,2반 현장체험학습","전일제"],["10/21 수","제16기 제4회 학교운영위원회","15:00 · 1층 회의실"],["10/22 목","학년 협의회",""],["10/25 일","반일창체수업일",""],["10/30 금","교복 학교주관구매 개찰",""],["11/02 월","부장회의","7교시 · 1층 회의실"]];
+    const AH = S(84), ROW_Y0 = S(40), ROW_X = S(12), ROW_W = RW - 2 * ROW_X, RP_ = Math.floor((PH - ROW_Y0 - AH - S(16)) / 8), RH_ = RP_ - S(5), TW = S(70);
+    SCHED.forEach((r, i) => {
+      const today = r[0] === "오늘", cur = i === 1 && nm >= 15 * 60 + 30 && nm < 16 * 60 + 20, nxt = i === 1 && !cur && nm < 15 * 60 + 30;
+      const row = box(right, ROW_X, ROW_Y0 + i * RP_, ROW_W, RH_, cur ? P.NOW_ROW : P.D_ROW, null, st.soft ? 10 : 0, { boxShadow: `inset 0 0 0 ${nxt ? 2 : 1}px ${hex(cur ? P.NOW_ROW : nxt ? P.NEXT_BD : P.D_LINE)}` });
+      const tb = box(row, S(5) - 1, 4, TW, RH_ - 8, today ? P.NOW_TAG : P.D_LINE, null, st.soft ? 10 : 0);
+      place(label(tb, FM, today ? P.NOW_TX : P.D_SUB, r[0]), tb, "MC");
+      const a = label(row, "kr16", cur ? P.C_TEXT : P.D_TEXT, r[1], { w: ROW_W - TW - S(20) - (r[2] ? S(118) : 0) }); place(a, row, "ML", TW + S(14));
+      place(label(row, FM, cur ? P.C_MUTED : P.D_MUTED, r[2], { w: S(114), align: "right" }), row, "MR", -S(10));
     });
-    // 안전 신호등
-    const heat = st.temp >= 33 ? 2 : st.temp >= 31 ? 1 : 0, cold = st.temp <= -5 ? 2 : st.temp <= 0 ? 1 : 0, dl = st.dust >= 3 ? 2 : st.dust >= 2 ? 1 : 0;
-    const level = Math.max(dl, heat, cold), lvCol = [0x34d399, 0xfbbf24, 0xf87171][level];
-    const sy = ROW_Y0 + SCHED.length * RP_ + S(6), sh = S(88);
-    const sc = box(right, ROW_X, sy, ROW_W, sh, P.D_ROW, P.D_LINE, R(14));
-    label(sc, "kr14", P.D_MUTED, "야외 활동 안전").style.cssText += `left:${S(14)}px;top:${S(10)}px`;
-    [["미세먼지", dl, dustTxt], ["더위", heat, heat ? st.temp + "°" : "없음"], ["추위", cold, cold ? st.temp + "°" : "없음"]].forEach(([n, lv, v], i) => {
-      const c = [0x34d399, 0xfbbf24, 0xf87171][lv], on = lv > 0 || level === 0, x = S(16) + i * S(64);
-      box(sc, x, S(34), 34, 34, on ? c : P.D_LINE, null, 17, { boxShadow: lv ? `0 0 14px ${hex(c)}` : "none", opacity: on ? 1 : .6 });
-      const l = label(sc, "kr14", P.D_SUB, n); l.style.left = (x + 17 - l.offsetWidth / 2) + "px"; l.style.top = S(34) + 38 + "px";
-    });
-    const verdict = ["운동장 활동 가능", "야외 활동 주의", "실내 활동 권장"][level];
-    const vx = S(16) + 3 * S(64);
-    label(sc, "kr20", lvCol, verdict, { w: ROW_W - vx - S(12) }).style.cssText += `left:${vx}px;top:${S(32)}px`;
-    label(sc, FM, P.D_MUTED, level ? [dl ? "미세먼지 " + dustTxt : "", heat ? "폭염" : "", cold ? "한파" : ""].filter(Boolean).join(" · ") : "바깥 활동 문제없음").style.cssText += `left:${vx}px;top:${S(32) + 28}px`;
-    // 교장실 상태(손님 맞이)
-    const gy = sy + sh + S(8), gh = PH - S(12) - gy;
-    const gc = box(right, ROW_X, gy, ROW_W, gh, P.D_ROW, P.D_LINE, R(14));
-    label(gc, "kr14", P.D_MUTED, "교장실").style.cssText += `left:${S(14)}px;top:${S(10)}px`;
-    const GS = [["meet","접견 중",0x93c5fd,0x0f1e33],["soon","곧 도착",0xfbbf24,0x2e2208],["free","자유",0x34d399,0x0f2a20]];
-    const gw = Math.floor((ROW_W - 2 * S(12) - 2 * S(8)) / 3), gbh = gh - S(36) - S(10);
-    GS.forEach(([k, n, c, bg], i) => {
-      const on = st.guest === k;
-      const b = box(gc, S(12) + i * (gw + S(8)), S(32), gw, gbh, on ? bg : P.D_PANEL, null, st.soft ? 999 : 0, { boxShadow: `inset 0 0 0 ${on ? 3 : 1}px ${hex(on ? c : P.D_LINE)}`, cursor: "pointer" });
-      place(label(b, on ? "kr20" : "kr16", on ? c : P.D_MUTED, n), b, "MC");
-      b.onclick = e => { e.stopPropagation(); st.guest = k; rebuild(); };
+    const ac = box(right, ROW_X, PH - S(12) - AH, ROW_W, AH, P.D_ROW, P.D_LINE, R(14));
+    label(ac, "kr14", P.D_MUTED, "학사 일정").style.cssText += `left:${S(12)}px;top:${S(8)}px`;
+    [["학평1,2,3  ·  10/20 화  ·  D-1", P.D_TEXT], ["토요휴업일  ·  10/24 토  ·  D-5", P.D_SUB], ["토요휴업일  ·  10/31 토  ·  D-12", P.D_SUB]].forEach(([t, c], i) => {
+      const l = label(ac, FM, c, t, { w: ROW_W - S(24) }); l.style.left = S(12) + "px"; l.style.top = (S(8) + 18 + i * Math.floor((AH - S(8) - 18 - S(6)) / 3)) + "px";
     });
   }
 
