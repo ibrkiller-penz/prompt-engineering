@@ -1,0 +1,26 @@
+// 공용 학습 부품 입구(학생·교사 모두). 저장(store)은 import 하지 않아요 — 기록은 onResult 콜백으로만 넘겨요.
+export { Tex, Rich } from "./tex.tsx";
+export type { RichProps } from "./tex.tsx";
+export { UiSurfaceContext, useUiSurface, useOverflowX } from "./surface.ts";
+export { MathBlock } from "./MathBlock.tsx";
+export { CodeBlock } from "./CodeBlock.tsx";
+export { StackTable } from "./StackTable.tsx";
+export { TermView, TermPopup, TermButton } from "./Term.tsx";
+export { Callout } from "./Callout.tsx";
+export type { CalloutKind } from "./Callout.tsx";
+export { StepReveal, revealTotal } from "./StepReveal.tsx";
+export { Bubbles, Avatar, characterOf } from "./Bubbles.tsx";
+export { WidgetSlot, guideOf } from "./WidgetSlot.tsx";
+export { BlockView, Blocks } from "./BlockView.tsx";
+export type { BlockViewProps, BlocksProps } from "./BlockView.tsx";
+export { QuestionCard, answerText, CHOICE_KEYS, TYPE_LABEL } from "./QuestionCard.tsx";
+export type { QEvent, QuestionCardProps } from "./QuestionCard.tsx";
+export { NumberPad } from "./NumberPad.tsx";
+export { HintLadder } from "./HintLadder.tsx";
+export { Feedback } from "./Feedback.tsx";
+export type { FeedbackKind } from "./Feedback.tsx";
+export { ProgressBar, StepBar } from "./Progress.tsx";
+export { Sheet } from "./Sheet.tsx";
+export { SpeakButton } from "./SpeakButton.tsx";
+export { PrefsPanel } from "./PrefsPanel.tsx";
+export { evalNumeric, hasSymbol } from "./numexpr.ts";

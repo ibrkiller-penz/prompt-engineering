@@ -1,0 +1,531 @@
+{
+  "//": "촬영(scripts/shots.mjs)이 화면을 열기 전에 localStorage 에 넣는 가짜 학습 기록이에요. 개인 정보는 없어요. scripts/gen-fixtures.mjs 로 만들어요. 기준 시각 2026-10-16T00:00:00.000Z",
+  "now": 1792108800000,
+  "storage": {
+    "aibn:s1:q": {
+      "u1_1_1-q1": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q2": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q3": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q4": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1_1_1-q5": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q6": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q7": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q8": {
+        "first": false,
+        "wrong": 2,
+        "hints": 1,
+        "sol": false,
+        "ok": false,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000,
+        "rv": {
+          "step": 0,
+          "due": 1792022400000
+        }
+      },
+      "u1_1_1-q9": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q10": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q11": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q12": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q13": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q14": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q15": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q16": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q17": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q18": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q19": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q20": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q21": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q22": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q23": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q24": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q25": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q26": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q27": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q28": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q29": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q30": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q31": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q32": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q33": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q34": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q35": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q36": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q37": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q38": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q39": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q40": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_1-q41": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_2-q1": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_2-q2": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_2-q3": {
+        "first": false,
+        "wrong": 1,
+        "hints": 1,
+        "sol": false,
+        "ok": true,
+        "lastWrong": 1791936000000,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_2-q4": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_2-q5": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_2-q6": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      },
+      "u1_1_2-q7": {
+        "first": true,
+        "wrong": 0,
+        "hints": 0,
+        "sol": false,
+        "ok": true,
+        "lastWrong": null,
+        "t0": 1791849600000,
+        "t1": 1791936000000
+      }
+    },
+    "aibn:s1:read": {
+      "u1_1_1": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "u1_1_2": [
+        0,
+        1
+      ]
+    },
+    "aibn:s1:pos": {
+      "u1_1_2": {
+        "step": "c2",
+        "card": 2,
+        "ts": 1792022400000
+      }
+    },
+    "aibn:s1:last": {
+      "path": "/l/u1_1_2/s/c2/2",
+      "title": "Ⅰ-1-2 인공지능은 어떻게 움직일까? 활용과 원리",
+      "ts": 1792022400000
+    },
+    "aibn:s1:prefs": {
+      "fs": 1,
+      "theme": "light",
+      "motion": "reduce",
+      "speak": false,
+      "contrast": false
+    },
+    "aibn:s1:prereq": {},
+    "aibn:s1:assigned": {},
+    "aibn:s1:tools": {}
+  }
+}

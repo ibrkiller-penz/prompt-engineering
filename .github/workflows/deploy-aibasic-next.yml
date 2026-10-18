@@ -1,0 +1,35 @@
+# 인공지능 기초 고도화판 배포: 학생용 aibasics.web.app, 교사용 aibasict.web.app
+# main 에 aibasic-next·인공지능 기초 콘텐츠(content/aibasic)가 바뀌어 올라가면 자동, 또는 Actions 에서 수동 실행. 비밀값: AI_STUDY_MATH_TOKEN
+name: Deploy aibasic-next (aibasics·aibasict)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'aibasic-next/**'
+      - 'content/aibasic/**'
+      - '.github/workflows/deploy-aibasic-next.yml'
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 학생용·교사용 두 벌 빌드
+        working-directory: aibasic-next
+        run: npm run build
+      - name: 학생 빌드에 교사 화면이 섞이지 않았는지 확인
+        working-directory: aibasic-next
+        run: |
+          if grep -rl "__AIBN_TEACHER_ONLY__\|aibn:t1" dist-s; then echo "학생 빌드에 교사 자료가 들어 있어요"; exit 1; fi
+      - name: Deploy to aibasics·aibasict
+        working-directory: aibasic-next
+        env:
+          FIREBASE_TOKEN: ${{ secrets.AI_STUDY_MATH_TOKEN }}
+        run: |
+          test -n "$FIREBASE_TOKEN" || { echo "AI_STUDY_MATH_TOKEN 비밀값이 없습니다"; exit 1; }
+          npx --yes firebase-tools@13 deploy --only hosting:aibasics,hosting:aibasict --project ai-study-math --non-interactive

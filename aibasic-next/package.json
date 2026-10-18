@@ -1,0 +1,22 @@
+{
+  "name": "aibasic-next",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "인공지능 기초 고도화판 — 학생용(aibasics)·교사용(aibasict) 두 사이트를 한 코드에서 빌드해요. 의존성은 상위 폴더 node_modules 를 그대로 써요.",
+  "scripts": {
+    "dev:s": "vite --mode student --port 4201",
+    "dev:t": "vite --mode teacher --port 4202",
+    "build": "npm run build:s && npm run build:t",
+    "build:s": "vite build --mode student",
+    "build:t": "vite build --mode teacher",
+    "preview:s": "vite preview --mode student --port 4301 --strictPort",
+    "preview:t": "vite preview --mode teacher --port 4302 --strictPort",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "verify": "node scripts/verify.mjs",
+    "shots": "node scripts/shots.mjs",
+    "gen:plan": "node scripts/gen-plan.mjs",
+    "gen:prep": "node scripts/gen-prep.mjs"
+  }
+}

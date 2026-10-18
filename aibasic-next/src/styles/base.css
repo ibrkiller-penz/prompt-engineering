@@ -1,0 +1,163 @@
+/* aibasic-next 바탕 규칙 (공용). tokens.css 다음에 불러와요. Chrome 80 안전.
+ * 간격은 flex gap 대신 형제 margin(> * + *), 비율은 aspect-ratio 대신 padding-top 상자를 써요.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--t-md);
+  line-height: var(--lh-body);
+  word-break: keep-all;          /* 한국어는 어절 단위로 줄바꿈 */
+  overflow-wrap: break-word;     /* 긴 영어·주소는 넘치지 않게 끊어요 */
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, h4, p, ul, ol, figure, blockquote { margin-top: 0; }
+h1, h2, h3, h4 { line-height: var(--lh-tight); }
+img, svg, video, canvas { max-width: 100%; }
+img, video { height: auto; }
+svg { overflow: visible; }
+
+a { color: var(--accent-ink); text-underline-offset: .15em; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button, [role="button"], a, label, select, summary, input[type="checkbox"], input[type="radio"], input[type="range"] {
+  touch-action: manipulation;    /* 두 번 눌러 확대 지연 없애기 */
+}
+button { cursor: pointer; }
+button[disabled] { cursor: default; }
+[hidden] { display: none !important; }
+
+/* ── 초점: 마우스·터치에는 숨기고, 키보드(html.kbd)일 때만 이중 고리 ── */
+:focus { outline: none; }
+html.kbd :focus {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 calc(var(--focus-w) + 2px) var(--surface);
+}
+
+/* ── 테마를 바꾸는 동안에는 전환 효과를 꺼서 깜빡임을 막아요(바꾸는 쪽이 html.theme-switching 을 잠깐 붙여요) ── */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
+/* ── 움직임 줄이기 ── */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── 보조 ── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.skip-link { position: absolute; left: var(--sp-2); top: -200px; z-index: 100; padding: var(--sp-2) var(--sp-4); background: var(--surface); color: var(--ink); border: var(--border) solid var(--focus); border-radius: var(--radius-s); }
+.skip-link:focus { top: var(--sp-2); }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.nowrap { white-space: nowrap; }
+.muted { color: var(--ink-2); }
+.center { text-align: center; }
+.grow { flex: 1 1 auto; min-width: 0; }
+
+/* ── 간격 유틸(flex gap 대체) ── */
+.row { display: flex; align-items: center; flex-wrap: wrap; }
+.row > * + * { margin-left: var(--sp-2); }
+.row.tight > * + * { margin-left: var(--sp-1); }
+.row.loose > * + * { margin-left: var(--sp-4); }
+.row.nowrap { flex-wrap: nowrap; }
+/* 여러 줄로 감기는 줄: 둘레 margin 으로 간격(첫 줄 들여쓰기 없음) */
+.row.wrap { margin: calc(var(--sp-2) / -2); }
+.row.wrap > * { margin: calc(var(--sp-2) / 2); }
+.row.wrap > * + * { margin-left: calc(var(--sp-2) / 2); }
+.row.between { justify-content: space-between; }
+.row.end { justify-content: flex-end; }
+
+.stack > * + * { margin-top: var(--sp-3); }
+.stack.tight > * + * { margin-top: var(--sp-2); }
+.stack.loose > * + * { margin-top: var(--sp-5); }
+.stack-lg > * + * { margin-top: var(--sp-5); }
+.stack > *, .stack-lg > * { margin-bottom: 0; }
+
+/* grid-gap 은 Chrome 66+ 에서 돼요 */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; grid-gap: var(--sp-4); }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-gap: var(--sp-4); }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(16em, 1fr)); grid-gap: var(--sp-4); }
+html[data-surface="phone"] .grid3 { grid-template-columns: 1fr; }
+
+/* ── 비율 상자(aspect-ratio 대체): <div class="ratio r16x9"><div class="ratio-in">…</div></div> ── */
+.ratio { position: relative; width: 100%; height: 0; padding-top: 56.25%; }
+.ratio.r1x1 { padding-top: 100%; }
+.ratio.r4x3 { padding-top: 75%; }
+.ratio.r3x2 { padding-top: 66.6667%; }
+.ratio.r16x9 { padding-top: 56.25%; }
+.ratio > .ratio-in,
+.ratio > svg,
+.ratio > canvas,
+.ratio > img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+/* ── 가로 스크롤 그림자 힌트(넘칠 때만 그림자가 보여요) ──
+ * 덮개(--cover) 는 바탕과 같은 색이어야 해요. 카드 안에서는 --surface.
+ * local 덮개가 스크롤 끝에 붙어 있다가, 넘친 쪽으로 밀리면 scroll 그림자가 드러나요. */
+.scroll-x {
+  --cover: var(--bg);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  background-image:
+    linear-gradient(to right, var(--cover) 30%, rgba(255, 255, 255, 0)),
+    linear-gradient(to left, var(--cover) 30%, rgba(255, 255, 255, 0)),
+    radial-gradient(farthest-side at 0 50%, var(--scroll-shadow), rgba(0, 0, 0, 0)),
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), rgba(0, 0, 0, 0));
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-repeat: no-repeat;
+  background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+  background-attachment: local, local, scroll, scroll;
+  background-color: var(--cover);
+}
+.card .scroll-x, .callout .scroll-x, .sheet .scroll-x { --cover: var(--surface); }
+/* 넘칠 때만 붙이는 글자 힌트(스크립트가 .is-overflow 를 붙여요) */
+.scroll-hint { display: none; font-size: var(--t-xs); color: var(--ink-2); text-align: right; }
+.is-overflow + .scroll-hint, .is-overflow > .scroll-hint { display: block; }
+
+/* ── KaTeX ── */
+.katex { font-size: var(--math-inline); line-height: 1.2; text-rendering: auto; white-space: nowrap; }
+.katex-display { margin: .6em 0; overflow-x: auto; overflow-y: hidden; padding: .2em 0; }
+.katex-display > .katex { font-size: var(--math-block); white-space: nowrap; }
+.katex .katex-mathml { /* htmlAndMathml: 읽기 도구용 MathML 은 화면에서 감춰요(KaTeX 기본 css 와 같은 값) */
+  position: absolute; clip: rect(1px, 1px, 1px, 1px); padding: 0; border: 0; height: 1px; width: 1px; overflow: hidden;
+}
+/* 줄 안 수식이 들어간 줄은 위아래가 겹치지 않게 조금 더 띄워요 */
+p .katex, li .katex { line-height: 1.2; }
+/* KaTeX 의 svg 글자(\vec·\overrightarrow 화살표, 긴 근호, \widehat 등)는 KaTeX 기본값으로 되돌려요.
+ * 위의 'img, svg { max-width: 100% }'·'svg { overflow: visible }' 가 걸리면 화살표 칸이 폭 0 으로 줄어 사라지고,
+ * 보이지 않는 path 가 옆 단추의 터치를 가로채요. 휴대폰 · 준비 · 칠판 모두에 적용돼요(명시도가 svg 보다 높아요). */
+.katex svg { max-width: none; overflow: hidden; }

@@ -1,0 +1,38 @@
+{
+  "지우": {
+    "name": "지우",
+    "line": "AI랩에 막 들어온 1학년이에요. 궁금한 건 일단 직접 해 보는 이야기의 주인공이에요.",
+    "initial": "지",
+    "shape": "circle",
+    "color": "#4338ca",
+    "ink": "#ffffff",
+    "dark": { "color": "#a5b4fc", "ink": "#0e1218" }
+  },
+  "도윤": {
+    "name": "도윤",
+    "line": "AI랩 친구예요. 코드를 먼저 돌려 보고 결과로 이야기하는 편이에요.",
+    "initial": "도",
+    "shape": "circle",
+    "color": "#0e7490",
+    "ink": "#ffffff",
+    "dark": { "color": "#67e8f9", "ink": "#0e1218" }
+  },
+  "민준": {
+    "name": "민준",
+    "line": "지우 옆자리 친구예요. 번뜩이는 질문을 소곤소곤 던져요.",
+    "initial": "민",
+    "shape": "circle",
+    "color": "#15803d",
+    "ink": "#ffffff",
+    "dark": { "color": "#86efac", "ink": "#0e1218" }
+  },
+  "아라 쌤": {
+    "name": "아라 쌤",
+    "line": "AI랩 지도 선생님이에요. 답을 바로 주기보다 질문으로 길을 열어 줘요.",
+    "initial": "아",
+    "shape": "circle",
+    "color": "#92400e",
+    "ink": "#ffffff",
+    "dark": { "color": "#fcd34d", "ink": "#0e1218" }
+  }
+}

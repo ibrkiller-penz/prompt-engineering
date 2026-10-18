@@ -1,0 +1,77 @@
+/* aibasic-next 움직임(공용). 불러오는 순서: tokens → base → components → visual → motion
+ *
+ * 규칙
+ *  - transform 과 opacity 만 움직여요(배치·그림자를 다시 그리지 않아서 구형 전자칠판에서도 매끄러워요).
+ *  - 길이는 --d-fast / --d-mid / --d-slow 세 가지. tokens.css 의 --dur(표면마다 160~200ms)에 비례해요.
+ *  - 움직임 줄이기(운영체제 설정 prefers-reduced-motion 또는 html[data-motion="reduce"])면 길이가 0 이 되고
+ *    .m-* 애니메이션도 꺼져요. 화면은 끝 상태로 바로 보여요(내용이 사라지지 않게 fill-mode both, 끝 상태 = 원래 모습).
+ *  - JS 는 animationend 를 기다리지 않아요(길이가 0 이면 이벤트가 안 올 수도 있어요). 클래스는 key 를 바꿔 다시 붙여요.
+ * Chrome 80 안전: @keyframes, CSS 변수, calc 만 써요.
+ */
+
+:root {
+  --d-fast: calc(var(--dur) * .75);  /* 120~150ms: 눌림, 작은 표시 */
+  --d-mid: calc(var(--dur) * 1.5);   /* 240~300ms: 카드 넘기기, 공개 */
+  --d-slow: calc(var(--dur) * 2.5);  /* 400~500ms: 큰 화면 전환, 축하 */
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-io: cubic-bezier(.4, 0, .2, 1);
+  --m-shift: 24px;                   /* 카드 넘기기 이동 거리 */
+}
+html[data-surface="board"] { --m-shift: 48px; }
+
+@keyframes aibn-fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes aibn-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aibn-pop { 0% { opacity: 0; transform: scale(.85); } 60% { opacity: 1; transform: scale(1.04); } 100% { opacity: 1; transform: none; } }
+@keyframes aibn-shake { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+@keyframes aibn-slide-l { from { opacity: 0; transform: translateX(var(--m-shift)); } to { opacity: 1; transform: none; } }
+@keyframes aibn-slide-r { from { opacity: 0; transform: translateX(calc(var(--m-shift) * -1)); } to { opacity: 1; transform: none; } }
+@keyframes aibn-beat { 0%, 100% { transform: none; opacity: 1; } 50% { transform: scale(1.08); opacity: .7; } }
+
+/* 다음 카드(오른쪽에서 들어와요) · 이전 카드(왼쪽에서 들어와요) */
+.m-next { animation: aibn-slide-l var(--d-mid) var(--ease-out) both; }
+.m-prev { animation: aibn-slide-r var(--d-mid) var(--ease-out) both; }
+/* 맞았어요: 살짝 커졌다 제자리 · 아쉬워요: 좌우로 짧게 흔들림(한 번) */
+.m-ok { animation: aibn-pop var(--d-mid) var(--ease-out) both; }
+.m-bad { animation: aibn-shake var(--d-mid) var(--ease-io) 1; }
+/* 단계 공개(힌트·정답·풀이·칠판 공개 조각) */
+.m-reveal { animation: aibn-fade-up var(--d-mid) var(--ease-out) both; }
+.m-fade { animation: aibn-fade var(--d-fast) linear both; }
+/* 타이머 끝: 숫자가 세 번 두근 */
+.m-timeup { animation: aibn-beat var(--d-slow) var(--ease-io) 3; }
+
+/* 전환(상태가 바뀔 때 부드럽게). 역시 transform·opacity 만 */
+.t-move { transition: transform var(--d-mid) var(--ease-out), opacity var(--d-mid) var(--ease-out); }
+.t-fade { transition: opacity var(--d-fast) linear; }
+.icon-btn { transition: transform var(--d-fast) var(--ease-out); } /* .btn·.opt 는 components.css 에서 정해요 */
+
+/* 차례로 나타나기(목록): 자식에 --i 를 주면 조금씩 늦게 */
+.m-stagger > * { animation: aibn-fade-up var(--d-mid) var(--ease-out) both; animation-delay: calc(var(--d-fast) * .4 * var(--i, 0)); }
+
+/* ── 움직임 줄이기 ── */
+@media (prefers-reduced-motion: reduce) {
+  :root { --d-fast: 0ms; --d-mid: 0ms; --d-slow: 0ms; }
+  html { scroll-behavior: auto; }
+  .m-next, .m-prev, .m-ok, .m-bad, .m-reveal, .m-fade, .m-timeup, .m-stagger > * { animation: none !important; }
+  .t-move, .t-fade, .icon-btn { transition: none !important; }
+}
+html[data-motion="reduce"] { --d-fast: 0ms; --d-mid: 0ms; --d-slow: 0ms; scroll-behavior: auto; }
+html[data-motion="reduce"] .m-next,
+html[data-motion="reduce"] .m-prev,
+html[data-motion="reduce"] .m-ok,
+html[data-motion="reduce"] .m-bad,
+html[data-motion="reduce"] .m-reveal,
+html[data-motion="reduce"] .m-fade,
+html[data-motion="reduce"] .m-timeup,
+html[data-motion="reduce"] .m-stagger > * { animation: none !important; }
+html[data-motion="reduce"] .t-move,
+html[data-motion="reduce"] .t-fade,
+html[data-motion="reduce"] .icon-btn { transition: none !important; }
+
+/* 남은 지연까지 0: base.css 가 길이를 0 으로 만들지만 지연(delay)은 그대로라,
+   fill-mode both 인 요소가 지연 동안 투명하게 남지 않게 여기서 지연도 없애요(검수 보강). */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after { animation-delay: 0s !important; transition-delay: 0s !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-delay: 0s !important; transition-delay: 0s !important; }
+}

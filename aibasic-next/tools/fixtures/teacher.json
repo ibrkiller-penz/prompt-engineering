@@ -1,0 +1,30 @@
+{
+  "//": "촬영(scripts/shots.mjs)이 화면을 열기 전에 localStorage 에 넣는 가짜 교사 기록이에요. 개인 정보는 없어요. scripts/gen-fixtures.mjs 로 만들어요. 기준 시각 2026-10-16T00:00:00.000Z",
+  "now": 1792108800000,
+  "storage": {
+    "aibn:t1:prefs": {
+      "fs": 1,
+      "theme": "light",
+      "motion": "reduce",
+      "speak": false,
+      "contrast": false
+    },
+    "aibn:t1:last": {
+      "lid": "u1_1_2",
+      "p": 1,
+      "s": 3,
+      "ts": 1792022400000
+    },
+    "aibn:t1:duration": 50,
+    "aibn:t1:progress": {
+      "2-3": {
+        "u1_1_1": "done",
+        "u1_1_2": "part"
+      },
+      "2-4": {
+        "u1_1_1": "done"
+      }
+    },
+    "aibn:t1:results": {}
+  }
+}

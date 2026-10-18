@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "ai-study-math"
+  },
+  "targets": {
+    "ai-study-math": {
+      "hosting": {
+        "aibasics": [
+          "aibasics"
+        ],
+        "aibasict": [
+          "aibasict"
+        ]
+      }
+    }
+  }
+}

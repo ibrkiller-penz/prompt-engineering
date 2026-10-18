@@ -1,0 +1,146 @@
+/* 칠판 리디자인(프랑스 혁명 수업 사이트 풍). 무대 1920×1080 = 위 72 · 본문 896 · 아래 112(키 안내·진행 32 + 도구띠 80).
+ * 본문 크기·넘침 기준(896)은 그대로예요(장면 넘침 검사). 색은 frev.css 의 남색 토큰을 써요.
+ * board.css(뼈대)·styles/board.css(무대 스타일)보다 이기도록 .bd-stage 를 한 번 더 붙여요.
+ * Chrome 80 안전: flex gap·aspect-ratio·:has·:is·:where·:focus-visible·inset·dvh·@layer·oklch·color-mix·중첩 없음.
+ */
+
+/* ════════════════ 머리 72: 브랜드·단원 + 번호 칩 탭 ════════════════ */
+html[data-surface="board"] .bd-stage .bd-head { height: 72px; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: none; }
+html[data-surface="board"] .bd-stage .bd-head-row { height: 72px; padding: 0 48px; }
+html[data-surface="board"] .bd-stage .bd-head-row > * + * { margin-left: 20px; }
+html[data-surface="board"] .bd-stage .bd-flag > i { width: 9px; height: 34px; }
+html[data-surface="board"] .bd-stage .bd-head-lesson { flex: 0 1 auto; max-width: 640px; font-size: 26px; font-weight: 800; color: var(--ink); }
+html[data-surface="board"] .bd-stage .bd-head-lesson::before {
+  content: "인공지능 기초"; margin-right: 18px; padding-right: 18px; border-right: 2px solid var(--line-strong);
+  font-weight: 800; color: var(--ink);
+}
+/* 장면 이름은 본문 제목과 겹치니 보이지 않게 두고 화면 읽기 프로그램에만 알려요 */
+html[data-surface="board"] .bd-stage .bd-head-title {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0;
+}
+html[data-surface="board"] .bd-stage .bd-phases { height: 72px; margin-left: auto; }
+html[data-surface="board"] .bd-stage .bd-phases > li {
+  position: relative; display: flex; align-items: center; height: 72px; padding: 0 14px; border-radius: 0; background: transparent;
+  color: var(--ink-2); font-size: 26px; font-weight: 700; line-height: 1;
+}
+html[data-surface="board"] .bd-stage .bd-phases > li + li { margin-left: 8px; }
+html[data-surface="board"] .bd-stage .bd-ph-n {
+  display: inline-block; width: 36px; height: 36px; margin-right: 10px; box-sizing: border-box; border: 2px solid var(--line-strong); border-radius: 9px;
+  background: var(--surface); color: var(--ink-2); font-size: 22px; font-weight: 800; line-height: 32px; text-align: center;
+}
+html[data-surface="board"] .bd-stage .bd-phases > li.is-past .bd-ph-n { background: var(--surface-2); color: var(--ink); }
+html[data-surface="board"] .bd-stage .bd-phases > li.is-cur { background: transparent; color: var(--tn); font-size: 28px; font-weight: 800; padding: 0 14px; line-height: 1; }
+html[data-surface="board"] .bd-stage .bd-phases > li.is-cur .bd-ph-n { background: var(--tn); border-color: var(--tn); color: var(--tn-on); }
+html[data-surface="board"] .bd-stage .bd-phases > li.is-cur::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--tn); }
+html[data-surface="board"] .bd-stage .bd-head-off { font-size: 22px; }
+html[data-surface="board"] .bd-stage .bd-offbtn { min-height: 48px; background: var(--surface); border: 1px solid var(--line-strong); }
+html[data-surface="board"] .bd-stage .bd-offlist { top: 60px; }
+html[data-surface="board"] .bd-stage .bd-tag { padding: 2px 14px; background: transparent; color: var(--bad); box-shadow: inset 0 0 0 2px var(--bad); font-size: 22px; }
+/* 머리에 구간 칩이 없는 화면(문제 크게 보기 등): 단원 이름 뒤 빈 자리는 오른쪽 '교사용'이 끝까지 밀어요 */
+html[data-surface="board"] .bd-stage .bd-head-row > .bd-tag:last-child { margin-left: auto; }
+html[data-surface="board"] .bd-stage .bd-phases ~ .bd-tag, html[data-surface="board"] .bd-stage .bd-head-off ~ .bd-tag { margin-left: 28px; }
+html[data-surface="board"] .bd-stage .bd-head-off { margin-left: 28px; }
+
+/* ════════════════ 아래: 키 안내·진행 표시(32) + 도구띠(80) ════════════════ */
+html[data-surface="board"] .bd-stage .bd-bar { display: block; height: 112px; padding: 0; border-top: 0; background: var(--tb-bg); }
+html[data-surface="board"] .bd-stage .bd-strip {
+  display: flex; align-items: center; height: 32px; padding: 0 48px; box-sizing: border-box;
+  background: var(--surface); border-top: 1px solid var(--line); color: var(--ink-2); font-size: 22px; line-height: 1; white-space: nowrap;
+}
+html[data-surface="board"] .bd-stage .bd-keyhint { display: flex; align-items: center; font-size: 22px; color: var(--ink-2); }
+html[data-surface="board"] .bd-stage .bd-keyhint > * + * { margin-left: 8px; }
+html[data-surface="board"] .bd-stage .bd-keyhint kbd { min-width: 0; padding: 0 8px; font-size: 20px; line-height: 24px; height: 24px; }
+html[data-surface="board"] .bd-stage .bd-keyhint-sep { margin: 0 4px; }
+html[data-surface="board"] .bd-stage .bd-strip .bd-head-count { margin: 0 0 0 auto; padding: 0; background: transparent; line-height: 1; font-size: 22px; font-weight: 800; color: var(--ink); }
+/* 진행 막대: 장면마다 한 칸, 칸 전체(32px 높이)가 눌려요 */
+html[data-surface="board"] .bd-stage .bd-rail { flex: 0 0 640px; width: 640px; height: 32px; margin: 0 0 0 28px; padding: 0; }
+html[data-surface="board"] .bd-stage .bd-rail > li + li { margin-left: 3px; }
+html[data-surface="board"] .bd-stage .bd-rail button { position: relative; height: 32px; border-radius: 0; background: transparent; box-shadow: none; opacity: 1; }
+html[data-surface="board"] .bd-stage .bd-rail button::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 8px; border-radius: 4px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-strong); }
+html[data-surface="board"] .bd-stage .bd-rail .is-past button::before { background: var(--tn); box-shadow: none; opacity: .5; }
+html[data-surface="board"] .bd-stage .bd-rail .is-cur button::before { top: 8px; height: 16px; background: var(--tn); box-shadow: none; opacity: 1; }
+html[data-surface="board"] .bd-stage .bd-rail .is-cur button { box-shadow: none; }
+
+html[data-surface="board"] .bd-stage .bd-bar-row { display: flex; align-items: center; height: 80px; padding: 0 24px; box-sizing: border-box; background: var(--tb-bg); }
+html[data-surface="board"] .bd-stage .bd-bar-tools > * + * { margin-left: 8px; }
+html[data-surface="board"] .bd-stage .bd-tool {
+  flex-direction: row; min-width: 0; width: auto; height: 72px; padding: 0 18px; border-radius: 12px;
+}
+html[data-surface="board"] .bd-stage .bd-tool svg { width: 34px; height: 34px; }
+html[data-surface="board"] .bd-stage .bd-tool-txt { margin: 0 0 0 10px; font-size: 24px; }
+html[data-surface="board"] .bd-stage .bd-tool-big { font-size: 34px; line-height: 34px; }
+html[data-surface="board"] .bd-stage .bd-tool-dots { height: 34px; width: 34px; }
+html[data-surface="board"] .bd-stage .bd-tool-dots > i { width: 7px; height: 7px; }
+html[data-surface="board"] .bd-stage .bd-tool-dots > i + i { margin-left: 5px; }
+html[data-surface="board"] .bd-stage .bd-tool-dot { top: 8px; right: 8px; width: 12px; height: 12px; }
+html[data-surface="board"] .bd-stage .bd-tool-exit { min-width: 0; }
+html[data-surface="board"] .bd-stage .bd-bar-sep { height: 48px; margin: 0 16px 0 20px; }
+html[data-surface="board"] .bd-stage .bd-more-pop { bottom: 88px; }
+html[data-surface="board"] .bd-stage .bd-exit-ask { bottom: 112px; height: 968px; }
+/* 판서 색 판 */
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens { height: 76px; margin-left: 12px; padding: 0 6px; border-radius: 16px; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens > * + * { margin-left: 4px; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen { flex-direction: row; min-width: 0; height: 64px; padding: 0 12px; border-radius: 12px; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen::after { margin: 0 0 0 8px; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen .ico-svg { width: 30px; height: 30px; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen > i { width: 28px; height: 28px; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-pens .bd-pen.is-on { box-shadow: 0 0 0 2px var(--tb-bg-2), 0 0 0 5px var(--tb-ring); }
+/* 이전·다음 */
+html[data-surface="board"] .bd-stage .bd-bar-nav { margin-left: 12px; }
+html[data-surface="board"] .bd-stage .bd-prev { min-width: 132px; min-height: 72px; font-size: 26px; border-width: 2px; border-radius: 12px; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-next { width: 400px; min-width: 400px; max-width: 400px; min-height: 72px; padding: 0 24px; border-radius: 12px; font-size: 30px; background: var(--tn); border-color: var(--tn); color: var(--tn-on); box-shadow: 0 0 0 2px var(--tb-bg), 0 0 0 4px var(--tn-on); }
+html[data-surface="board"] .bd-stage .bd-next-txt small { font-size: 20px; max-width: 320px; }
+html[data-surface="board"] .bd-stage .bd-bar .bd-next.is-finish { background: var(--ok); border-color: var(--ok); color: var(--bg); box-shadow: 0 0 0 2px var(--tb-bg), 0 0 0 4px var(--ok); }
+html[data-surface="board"] .bd-stage .bd-curtain-btns { top: 96px; }
+
+/* ════════════════ 본문: 제목·카드 ════════════════ */
+html[data-surface="board"] .bd-stage .bd-h { position: relative; margin: 0 0 24px; padding-left: 0; border-left: 0; color: var(--ink); font-size: 56px; letter-spacing: -.02em; }
+html[data-surface="board"] .bd-stage .bd-h::after {
+  content: ""; position: absolute; left: 0; bottom: -16px; width: 112px; height: 6px;
+  background: linear-gradient(90deg, #1f3a6b 0, #1f3a6b 33.3%, #ffffff 33.3%, #ffffff 66.6%, #b9382f 66.6%, #b9382f 100%);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+html[data-surface="board"][data-theme="chalk"] .bd-stage .bd-h { border-left: 0; }
+html[data-surface="board"] .bd-stage .bd-scene b, html[data-surface="board"] .bd-stage .bd-scene strong { color: var(--tn); }
+html[data-surface="board"] .bd-stage .bd-example { border-radius: 14px; box-shadow: inset 0 0 0 1px var(--line); }
+html[data-surface="board"] .bd-stage .bd-example-tag, html[data-surface="board"] .bd-stage .bd-example-ans-tag { background: var(--tn); color: var(--tn-on); }
+html[data-surface="board"] .bd-stage .bd-example-answer { border-top-color: var(--line-strong); }
+html[data-surface="board"] .bd-stage .bd-ex-n { box-shadow: inset 0 0 0 3px var(--tn); color: var(--tn); }
+html[data-surface="board"] .bd-stage .bd-line-no { background: var(--tn); color: var(--tn-on); }
+html[data-surface="board"] .bd-stage .bd-lines.is-summary .bd-line { border-radius: 12px; box-shadow: inset 5px 0 0 var(--tn), inset 0 0 0 1px var(--line); }
+html[data-surface="board"] .bd-stage .bd-concept.is-two .bd-col-side { border-radius: 14px; box-shadow: inset 0 0 0 1px var(--line); }
+html[data-surface="board"] .bd-stage .bd-flip { border-radius: 14px; border-width: 2px; }
+html[data-surface="board"] .bd-stage .bd-flip.is-flipped { border-color: var(--tn); background: var(--tn-soft); }
+html[data-surface="board"] .bd-stage .bd-end-sec { border-radius: 12px; box-shadow: inset 5px 0 0 var(--tn), inset 0 0 0 1px var(--line); }
+html[data-surface="board"] .bd-stage .bd-end-title { color: var(--ink); }
+html[data-surface="board"] .bd-stage .bd-end-qr { border-radius: 16px; box-shadow: 0 0 0 1px var(--line-strong); }
+html[data-surface="board"] .bd-stage .bd-opt, html[data-surface="board"] .bd-stage .bdq-opt { border-radius: 14px; }
+html[data-surface="board"] .bd-stage .bd-story-art img { border-radius: 14px; box-shadow: 0 0 0 1px var(--line-strong); }
+html[data-surface="board"] .bd-stage .bd-eyebrow { background: transparent; padding: 0; }
+
+/* 왼쪽 그림·표·수식 / 오른쪽 설명(12열 격자 느낌: 그림 열 + 설명 열) */
+html[data-surface="board"] .bd-stage .bd-lines.is-story { -webkit-box-orient: horizontal; -webkit-box-direction: reverse; flex-direction: row-reverse; }
+html[data-surface="board"] .bd-stage .bd-story-art { margin: 0 40px 0 0; }
+html[data-surface="board"] .bd-stage .bd-cols { -webkit-box-direction: reverse; flex-direction: row-reverse; }
+html[data-surface="board"] .bd-stage .bd-col-side { margin-left: 0; margin-right: 40px; }
+html[data-surface="board"] .bd-stage .bd-concept.is-two .bd-col-main { padding-right: 0; }
+
+/* ════════════════ 핵심 질문: 적색 세로줄 카드 ════════════════ */
+html[data-surface="board"] .bd-stage .bd-question { align-items: center; text-align: left; padding: 0 40px; }
+html[data-surface="board"] .bd-stage .bd-qcard {
+  width: 100%; max-width: 1500px; box-sizing: border-box; padding: 56px 72px 60px; border-radius: 16px; border-left: 8px solid var(--bad);
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
+}
+html[data-surface="board"] .bd-stage .bd-qcard .bd-eyebrow { display: block; margin: 0 0 24px; color: var(--bad); font-size: 30px; font-weight: 800; letter-spacing: .01em; }
+html[data-surface="board"] .bd-stage .bd-qcard .bd-question-text { font-size: 64px; line-height: 1.35; letter-spacing: -.02em; color: var(--ink); word-break: keep-all; }
+html[data-surface="board"] .bd-stage .bd-question-tip { margin-top: 40px; font-size: 28px; color: var(--ink-2); }
+
+/* ════════════════ 문제 장면 ════════════════ */
+html[data-surface="board"] .bd-stage .bdq-step.is-next, html[data-surface="board"] .bd-stage .bdq-tally button.is-plus { border-color: var(--tn); }
+html[data-surface="board"] .bd-stage .bdq-step.is-next { background: var(--tn); color: var(--tn-on); box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--tn); }
+html[data-surface="board"] .bd-stage .bdq-card.is-hint { box-shadow: inset 5px 0 0 var(--info), inset 0 0 0 1px var(--line); }
+html[data-surface="board"] .bd-stage .bdq-card.is-sol { box-shadow: inset 5px 0 0 var(--aha), inset 0 0 0 1px var(--line); }
+
+/* 칠판 본문 글자는 크니까 에스코어드림 3(Light)로 가볍게. 굵은 글씨(strong)는 그대로 */
+html[data-surface="board"] .bd-stage p { font-weight: 300; }
+html[data-surface="board"] .bd-stage p strong, html[data-surface="board"] .bd-stage p b { font-weight: 700; }

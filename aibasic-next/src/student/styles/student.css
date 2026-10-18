@@ -1,0 +1,587 @@
+/* 학생 사이트(aibasics) 모양 — 휴대폰 375x812. 새 디자인 언어(프랑스 혁명 수업 사이트 풍).
+ * 불러오는 순서: 공용 tokens → base → components → visual → motion → shell/shell.css → 이 파일(student/App.tsx).
+ * 배치 뼈대는 shell.css, 이 파일은 '보이는 모양'(색·모서리·크기·위계)을 맡아요.
+ *
+ * 디자인 언어
+ *   미색 종이 바탕 + 올린 카드(--surface, 1px --line, 둥근 모서리 8~12px, 그림자 없음)
+ *   남색(--site) = 지금 위치·선택·주 단추  /  적색(--bad) = 주의·핵심 질문 줄(왼쪽 4px 세로줄 카드)
+ *   삼색(남·백·적) 짧은 막대는 제목 아래 작은 장식과 브랜드 표식에만
+ *   번호 칩(1 2 3)이 달린 메뉴·목록  /  단원 색은 작은 포인트(아이콘 배지·점·진행 막대)로만
+ *   움직임은 페이드 0.2초 안쪽
+ *
+ * 고정 영역 예산(812px 의 15% = 121.8px 이하):
+ *   카드 넘기기  위 바 48 + 진행 줄 12 + 아래 행동 띠 60 = 120px
+ *   탭 화면      위 바 48 + 아래 번호 탭 56               = 104px
+ *
+ * Chrome 80 안전: flex gap · aspect-ratio · :has · :is · :where · :focus-visible · inset · dvh · @layer · 중첩을 쓰지 않아요.
+ * 간격은 형제 margin 과 grid-gap, 키보드 포커스는 html.kbd 아래 :focus 로 보여요.
+ * 색은 tokens.css 의 변수만 써서 light/dark/대비 높이기에서 함께 바뀌어요(응답 카드 바탕색만 고정 색).
+ */
+
+/* ───────────────────────── 토큰 덮어쓰기(학생 한정) ───────────────────────── */
+/* :root 를 붙여 shell.css 의 같은 변수보다 우선해요 */
+html[data-site="student"]:root {
+  --topbar-h: 48px;
+  --s-action-h: 60px;        /* 아래 행동 띠(주 단추 48 + 위아래 6) */
+  --s-rail-h: 12px;          /* 진행 줄(막대 6 + 위 여백 6) */
+  --radius-s: 8px; --radius-m: 10px; --radius-l: 12px;
+  --navy-soft: #e6ebf4;      /* 남색 옅은 바탕 */
+  --head-fs: calc(32px * var(--fs-scale));
+}
+html[data-site="student"][data-theme="dark"]:root { --navy-soft: #0f1d33; }
+
+/* 선택·현재·주 단추는 남색 하나로. 단원 색은 --pt(작은 포인트)로만 써요.
+ * [data-unit] 이 붙은 목록 칸(홈 단원 카드 등)은 shell.css 가 그 칸 안만 단원 색으로 바꿔 줘요 */
+html[data-site="student"],
+html[data-site="student"][data-unit] {
+  --accent: var(--site); --accent-ink: var(--site); --accent-soft: var(--navy-soft);
+  --pt: var(--site); --pt-ink: var(--site); --pt-soft: var(--navy-soft);
+}
+html[data-site="student"] [data-unit="u1"], html[data-site="student"][data-unit="u1"] { --pt: var(--u1-c); --pt-ink: var(--u1-ink); --pt-soft: var(--u1-soft); }
+html[data-site="student"] [data-unit="u2"], html[data-site="student"][data-unit="u2"] { --pt: var(--u2-c); --pt-ink: var(--u2-ink); --pt-soft: var(--u2-soft); }
+html[data-site="student"] [data-unit="u3"], html[data-site="student"][data-unit="u3"] { --pt: var(--u3-c); --pt-ink: var(--u3-ink); --pt-soft: var(--u3-soft); }
+html[data-site="student"] [data-unit="u4"], html[data-site="student"][data-unit="u4"] { --pt: var(--u4-c); --pt-ink: var(--u4-ink); --pt-soft: var(--u4-soft); }
+/* 목록 칸 안은 단원 색을 그대로 둬요(아이콘 배지·진행 막대) */
+html[data-site="student"] .s-ucard[data-unit],
+html[data-site="student"] li[data-unit] { --accent: var(--pt); --accent-ink: var(--pt-ink); --accent-soft: var(--pt-soft); }
+html[data-site="student"] .s-unit-chip[data-unit] { --accent: var(--site); --accent-ink: var(--site); --accent-soft: var(--navy-soft); }
+
+html[data-site="student"] .btn-primary,
+html[data-site="student"] .btn-primary:visited {
+  background: var(--site); border-color: var(--site); color: var(--on-site);
+}
+html[data-site="student"] .btn-primary[disabled],
+html[data-site="student"] .btn-primary[aria-disabled="true"] {
+  background: var(--disabled-bg); border-color: var(--disabled-line); color: var(--disabled-ink);
+}
+html[data-site="student"] .btn { border-radius: var(--radius-m); }
+html[data-site="student"] .btn-soft { background: var(--navy-soft); color: var(--site); }
+html[data-site="student"] .card { box-shadow: none; border-radius: var(--radius-l); border: 1px solid var(--line); background: var(--surface); }
+html[data-site="student"] body { background: var(--bg); }
+html[data-site="student"] .chip.is-accent { background: var(--navy-soft); color: var(--site); }
+
+/* ───────────────────────── 위 바(TopBar) ───────────────────────── */
+html[data-site="student"] .s-topbar {
+  height: var(--topbar-h); min-height: var(--topbar-h);
+  padding: 0 var(--gutter) 0 var(--sp-2);
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+html[data-site="student"] .s-topbar .s-back { min-width: var(--tap); min-height: var(--tap); padding: 0 var(--sp-2) 0 var(--sp-1); color: var(--ink); }
+html[data-site="student"] .s-topbar .s-back::after { font-size: 14px; font-size: min(var(--t-sm), 16px); }
+html[data-site="student"] .s-topbar .s-back + .s-brand { margin-left: 0; }
+html[data-site="student"] .s-topbar > .s-brand:first-child { margin-left: var(--sp-2); }
+html[data-site="student"] .s-brand-name { font-size: 15px; font-size: min(var(--t-sm), 16px); letter-spacing: -.01em; }
+html[data-site="student"] .s-brand .tri.is-flag { width: 20px; height: 15px; vertical-align: 0; }
+html[data-site="student"] .s-loc-chip { font-size: 13px; font-size: min(var(--t-xs), 15px); height: 24px; min-width: 24px; }
+html[data-site="student"] .s-loc-t { font-size: 14px; font-size: min(var(--t-sm), 16px); }
+/* 오른쪽 작은 단추(읽어 주기·설정 등)는 44 터치 유지 */
+html[data-site="student"] .s-topbar > .btn,
+html[data-site="student"] .s-topbar > .ui-speak .btn { min-width: var(--tap); min-height: var(--tap); }
+html.kbd[data-site="student"] .s-brand:focus { outline: var(--focus-w) solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+/* ───────────────────────── 아래 번호 탭 5칸 ───────────────────────── */
+html[data-site="student"] .s-tabbar {
+  height: calc(var(--tab-h) + env(safe-area-inset-bottom));
+  background: var(--surface); border-top: 1px solid var(--line); box-shadow: none;
+}
+html[data-site="student"] .s-tabbar a { color: var(--ink-2); padding-top: 3px; }
+html[data-site="student"] .s-tabbar a > span:last-child { font-size: 13px; font-size: max(13px, min(calc(14px * var(--fs-scale)), 16px)); line-height: 1.2; font-weight: 700; }
+html[data-site="student"] .s-tab-n { font-size: 13px; font-size: min(var(--t-xs), 15px); width: 26px; height: 26px; min-width: 26px; margin-bottom: 3px; border-radius: 8px; }
+html[data-site="student"] .s-tabbar a[aria-current="page"] { color: var(--site); }
+html[data-site="student"] .s-tabbar a[aria-current="page"]::before { left: 26%; right: 26%; background: var(--site); }
+html[data-site="student"] .s-tabbar a:active .s-tab-n { background: var(--surface-2); }
+
+/* ───────────────────────── 쪽 머리(PageHead) ───────────────────────── */
+html[data-site="student"] .s-head { padding: var(--sp-3) 0 var(--sp-1); }
+html[data-site="student"] .s-head-eyebrow {
+  display: flex; align-items: center; margin: 0 0 var(--sp-2);
+  font-size: var(--t-sm); font-weight: 800; color: var(--bad); letter-spacing: .02em;
+}
+html[data-site="student"] .s-head-eyebrow > * + * { margin-left: 8px; }
+html[data-site="student"] .s-head-title {
+  margin: 0; font-size: var(--head-fs); font-weight: 800; line-height: 1.25; letter-spacing: -.02em;
+  color: var(--ink); word-break: keep-all; overflow-wrap: break-word;
+}
+html[data-site="student"] .s-head-tri { margin-top: var(--sp-3); }
+html[data-site="student"] .s-head-sub { margin: var(--sp-3) 0 0; font-size: var(--t-md); line-height: 1.55; color: var(--ink-2); word-break: keep-all; }
+
+/* 쪽(홈·단원 같은 일반 화면) 공통 */
+html[data-site="student"] .page { padding-top: var(--sp-2); padding-bottom: var(--sp-5); }
+html[data-site="student"] .s-main > .page > * + * { margin-top: var(--sp-5); }
+html[data-site="student"] .s-main > .page > .s-head + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-sec > * + * { margin-top: var(--sp-3); }
+html[data-site="student"] .s-sec-title { margin: 0; font-size: var(--t-lg); font-weight: 800; line-height: 1.3; color: var(--ink); }
+html[data-site="student"] .s-sec-sub { margin: var(--sp-1) 0 0; font-size: var(--t-sm); color: var(--ink-2); }
+html[data-site="student"] .s-sec-title + .s-sec-sub { margin-top: var(--sp-1); }
+html[data-site="student"] .s-foot { margin-top: var(--sp-4); }
+html[data-site="student"] .s-block { display: block; }
+
+/* ───────────────────────── 진행 줄·행동 띠 ───────────────────────── */
+html[data-site="student"] .s-rail { height: var(--s-rail-h); }
+html[data-site="student"] .s-rail-seg > i { background: var(--site); }
+html[data-contrast="more"] .s-rail-seg { box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+html[data-site="student"] .s-actionbar { background: var(--surface); border-top: 1px solid var(--line); box-shadow: none; }
+html[data-site="student"] .s-actionbar-in { height: var(--s-action-h); min-height: 0; padding: 6px var(--gutter); }
+html[data-site="student"] .s-actionbar .btn { min-height: 48px; height: 48px; border-radius: var(--radius-m); font-size: 16px; font-size: min(var(--t-md), 19px); }
+html[data-site="student"] .s-prev { min-width: 52px; padding: 0 var(--sp-3); background: var(--surface); border-color: var(--line-strong); }
+html[data-site="student"] .s-next { min-width: 112px; padding: 0 var(--sp-4); }
+html[data-site="student"] .s-next.btn-primary { background: var(--site); border-color: var(--site); color: var(--on-site); }
+html[data-site="student"] .s-next.btn-soft { background: var(--navy-soft); border-color: var(--site); color: var(--site); }
+/* 비활성: 회색 바탕 + 회색 테두리(그래픽 3:1) + 글자 4.5:1(check-contrast 의 --disabled-* 쌍). 흐리게(opacity) 하지 않아요 */
+html[data-site="student"] .s-next[disabled],
+html[data-site="student"] .s-prev[disabled],
+html[data-site="student"] .s-actionbar .btn[disabled],
+html[data-site="student"] .s-actionbar .btn[aria-disabled="true"],
+html[data-site="student"] .ui-q .btn[disabled],
+html[data-site="student"] .s-know > .btn[disabled],
+html[data-site="student"] .ui-example-ctl > .btn[disabled],
+html[data-site="student"] .ui-pad-key[disabled] {
+  background: var(--disabled-bg); border: var(--border) solid var(--disabled-line); color: var(--disabled-ink);
+  box-shadow: none; opacity: 1; cursor: default; transform: none;
+}
+html[data-site="student"] .s-actionbar .btn[disabled] .ico-svg,
+html[data-site="student"] .ui-q .btn[disabled] .ico-svg { color: var(--disabled-ink); }
+/* 위치 줄 "개념 1 · 2/9" */
+html[data-site="student"] .s-pos { min-width: 0; overflow: hidden; line-height: 1.25; font-size: 14px; color: var(--ink); font-variant-numeric: tabular-nums; }
+html[data-site="student"] .s-pos > * { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-site="student"] .s-pos strong { color: var(--site); font-weight: 800; font-size: 15px; }
+html[data-site="student"] .s-main.has-actionbar { padding-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-5)); }
+html[data-site="student"] .s-deck { padding-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-5)); }
+/* 레슨 개요 아래 한 단추: 진행 줄 없이 */
+html[data-site="student"] .s-actionbar .btn-block { font-weight: 800; }
+
+/* ───────────────────────── 홈 ───────────────────────── */
+html[data-site="student"] .s-home .s-head { padding-top: var(--sp-5); }
+html[data-site="student"] .s-home .s-head-title { font-size: calc(38px * var(--fs-scale)); line-height: 1.2; }
+html[data-site="student"] .s-continue { display: block; padding: var(--sp-4); color: var(--ink); }
+html[data-site="student"] .s-continue > * { display: block; }
+html[data-site="student"] .s-continue > * + * { margin-top: 0; }
+html[data-site="student"] .s-continue-tag {
+  display: inline-block; padding: 3px 10px; border-radius: 7px;
+  background: var(--site); color: var(--on-site); font-size: var(--t-xs); font-weight: 800; letter-spacing: .02em;
+}
+html[data-site="student"] .s-continue-title { margin-top: var(--sp-3); font-size: var(--t-lg); line-height: 1.35; font-weight: 800; color: var(--ink); word-break: keep-all; }
+html[data-site="student"] .s-continue-sub { margin-top: var(--sp-1); font-size: var(--t-sm); color: var(--ink-2); line-height: 1.5; }
+html[data-site="student"] .s-continue-prog { display: flex; align-items: center; margin-top: var(--sp-3); }
+html[data-site="student"] .s-continue-prog .ui-progress { flex: 1 1 auto; min-width: 0; }
+html[data-site="student"] .s-continue-txt { flex: 0 0 auto; margin-left: var(--sp-3); font-size: var(--t-xs); font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+html[data-site="student"] .s-continue-go { margin-top: var(--sp-4); min-height: 56px; font-size: var(--t-md); font-weight: 800; }
+html[data-site="student"] .s-continue-go .ico-svg { margin-left: .35em; }
+html[data-site="student"] .s-continue:active { transform: scale(.995); }
+html.kbd .s-continue:focus { outline: var(--focus-w) solid var(--focus); outline-offset: 3px; }
+
+/* 오늘 할 일: 번호 칩 목록 */
+html[data-site="student"] .s-today { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); padding: 0 var(--sp-4); }
+html[data-site="student"] .s-today > li + li { border-top: 1px solid var(--line); }
+html[data-site="student"] .s-today-row { min-height: 56px; }
+html[data-site="student"] .s-today-row > .grow { line-height: 1.4; }
+html[data-site="student"] .s-today-row > .ico-svg { color: var(--site); }
+html[data-site="student"] .s-today-row .num-chip.is-done { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+
+/* 단원 카드 목록(홈) */
+html[data-site="student"] .s-ucards { list-style: none; margin: var(--sp-3) 0 0; padding: 0; }
+html[data-site="student"] .s-ucards > li + li { margin-top: var(--sp-3); }
+html[data-site="student"] .s-ucard { display: flex; align-items: center; padding: var(--sp-3) var(--sp-4); }
+html[data-site="student"] .s-ucard > * + * { margin-left: var(--sp-3); }
+html[data-site="student"] .s-ucard > .ico-svg { color: var(--ink-2); }
+html[data-site="student"] .s-ucard-body { display: block; min-width: 0; }
+html[data-site="student"] .s-ucard-top { display: flex; align-items: center; margin-bottom: 6px; }
+html[data-site="student"] .s-ucard-top > * + * { margin-left: var(--sp-2); }
+html[data-site="student"] .s-ucard-name { display: block; font-size: var(--t-md); line-height: 1.35; font-weight: 800; color: var(--ink); word-break: keep-all; margin-bottom: var(--sp-2); }
+html[data-site="student"] .s-ucard-sub { display: block; margin-top: 6px; font-size: var(--t-xs); color: var(--ink-2); }
+html[data-site="student"] .s-ucard .num-chip { border-color: var(--pt); color: var(--pt-ink); }
+html[data-site="student"] .s-ucard .num-chip::before { content: ""; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: var(--pt); }
+html[data-site="student"] .s-ucard .unit-badge { width: 44px; height: 44px; }
+html[data-site="student"] .s-ucard .unit-badge .ico-svg { width: 26px; height: 26px; }
+html[data-site="student"] .ui-progress .meter { height: 8px; }
+
+/* ───────────────────────── 단원 화면 ───────────────────────── */
+/* 단원 고르기: 번호 칩 5개(1 Ⅰ · 2 Ⅱ …) */
+html[data-site="student"] .s-unit-tabs { display: grid; grid-template-columns: repeat(5, 1fr); grid-gap: var(--sp-2); background: none; overflow: visible; }
+html[data-site="student"] .s-unit-tabs > * + * { margin-left: 0; }
+html[data-site="student"] .s-unit-chip {
+  display: flex; align-items: center; justify-content: center; min-width: 0; min-height: var(--tap);
+  padding: 0 4px; border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface);
+  color: var(--ink); text-decoration: none; font-weight: 800;
+}
+html[data-site="student"] .s-unit-chip > * + * { margin-left: 6px; }
+html[data-site="student"] .s-unit-chip-t { font-size: var(--t-sm); }
+html[data-site="student"] .s-unit-chip.is-on { background: var(--navy-soft); border-color: var(--site); color: var(--site); box-shadow: inset 0 -3px 0 var(--site); }
+html[data-site="student"] .s-unit-chip .num-chip { width: 24px; min-width: 24px; height: 24px; }
+html.kbd[data-site="student"] .s-unit-chip:focus { outline: var(--focus-w) solid var(--focus); outline-offset: 2px; }
+
+html[data-site="student"] .s-unit-head { padding: var(--sp-4); }
+html[data-site="student"] .s-unit-head-row > * + * { margin-left: var(--sp-3); }
+html[data-site="student"] .s-unit-sub { display: block; margin: 6px 0 0; font-size: var(--t-xs); font-size: max(14px, var(--t-xs)); color: var(--ink-2); }
+html[data-site="student"] .s-unit-next { margin: var(--sp-3) 0 0; font-size: var(--t-sm); color: var(--ink-2); line-height: 1.5; }
+html[data-site="student"] .s-unit-next strong { color: var(--ink); font-weight: 800; }
+html[data-site="student"] .s-unit-go { margin-top: var(--sp-3); min-height: 52px; font-weight: 800; }
+html[data-site="student"] .s-unit-go .ico-svg { margin-left: .35em; }
+html[data-site="student"] .s-unit-head .unit-badge { background: var(--pt-soft); color: var(--pt-ink); }
+
+html[data-site="student"] .s-lessons { list-style: none; margin: var(--sp-3) 0 0; padding: 0; }
+html[data-site="student"] .s-lessons > li + li { margin-top: var(--sp-3); }
+html[data-site="student"] .s-lesson-card { display: block; padding: var(--sp-4); }
+html[data-site="student"] .s-lesson-card > * + * { margin-top: 0; }
+html[data-site="student"] .s-lesson-card > .row { display: flex; }
+html[data-site="student"] .s-lesson-card .num-chip { border-color: var(--pt); color: var(--pt-ink); }
+html[data-site="student"] .s-lesson-card .num-chip::before { content: ""; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: var(--pt); }
+html[data-site="student"] .s-lesson-title { display: block; margin-top: var(--sp-3); font-size: var(--t-lg); line-height: 1.3; font-weight: 800; color: var(--ink); word-break: keep-all; }
+html[data-site="student"] .s-lesson-short { display: block; margin-top: 4px; font-size: var(--t-sm); color: var(--ink-2); line-height: 1.5; }
+html[data-site="student"] .s-lesson-card .ui-progress { margin-top: var(--sp-3); }
+html[data-site="student"] .s-lesson-card .s-unit-sub { margin-top: var(--sp-2); }
+
+html[data-site="student"] .s-challenge { padding: var(--sp-4); border: 1px solid var(--line); border-left: 4px solid var(--bad); background: var(--surface); }
+html[data-site="student"] .s-challenge > * + * { margin-top: var(--sp-3); }
+html[data-site="student"] .s-stars { color: var(--warn); font-size: var(--t-lg); letter-spacing: .05em; white-space: nowrap; }
+html[data-site="student"] .s-stars-big { font-size: calc(var(--t-2xl) * 1.4); margin: 0; }
+
+/* 단원 이야기 · 삽화 */
+html[data-site="student"] .s-story-top { display: block; width: 100%; height: auto; max-height: 160px; object-fit: cover; object-position: center top; border-radius: var(--radius-l); margin: 0; }
+html[data-site="student"] .s-unit-art { margin: 0; border: 1px solid var(--line); }
+html[data-site="student"] .s-story-fold { padding: 0; }
+html[data-site="student"] .s-story-fold > summary { display: flex; align-items: center; min-height: var(--tap); padding: 0 var(--sp-4); cursor: pointer; list-style: none; font-weight: 800; }
+html[data-site="student"] .s-story-fold > summary::-webkit-details-marker { display: none; }
+html[data-site="student"] .s-story-fold > summary::after { content: "▾"; margin-left: auto; color: var(--ink-2); }
+html[data-site="student"] .s-story-fold[open] > summary::after { content: "▴"; }
+html[data-site="student"] .s-story-fold > .s-story-body { padding: 0 var(--sp-4) var(--sp-4); }
+html[data-site="student"] .s-story-fold > .s-story-body > * + * { margin-top: var(--sp-2); }
+html[data-site="student"] .s-story-fold .s-story-top { display: none; }
+html[data-site="student"] .s-unit-page > .stack > * + * { margin-top: var(--sp-3); }
+html[data-site="student"] .s-story-tag { display: inline-block; padding: 2px 10px; margin-bottom: var(--sp-2); border-radius: 7px; background: var(--site); color: var(--on-site); font-weight: 800; font-size: var(--t-sm); }
+html[data-site="student"] .s-story-img.is-block { display: block; float: none; width: 100%; max-width: none; margin: var(--sp-2) 0; }
+html[data-site="student"] .s-story-more { margin-top: var(--sp-2); min-height: var(--tap); }
+html[data-site="student"] .s-story-speak { margin-top: var(--sp-2); }
+html[data-site="student"] .s-stories > * + * { margin-top: var(--sp-3); }
+html[data-site="student"] .s-story-sum > * + * { margin-left: var(--sp-3); }
+html[data-site="student"] .s-story-no { background: var(--site); color: var(--on-site); border-radius: 8px; width: 30px; height: 30px; }
+html[data-site="student"] .s-story-title { font-size: var(--t-md); line-height: 1.35; }
+html[data-site="student"] .s-story-d { padding: 0 var(--sp-4); }
+html[data-site="student"] .s-story-d > .s-story-text { padding-bottom: var(--sp-4); }
+html[data-site="student"] .s-story-sum .eyebrow { color: var(--bad); }
+
+/* ───────────────────────── 레슨 개요 ───────────────────────── */
+html[data-site="student"] .s-lesson-meta { margin-top: var(--sp-3); }
+html[data-site="student"] .s-lesson-last { margin: var(--sp-2) 0 0; font-size: var(--t-sm); color: var(--ink-2); }
+html[data-site="student"] .s-core { padding: var(--sp-4); }
+html[data-site="student"] .s-core .why-label { font-size: var(--t-sm); }
+html[data-site="student"] .s-core-q { margin: var(--sp-1) 0 0; font-size: var(--t-lg); font-weight: 800; line-height: 1.5; color: var(--ink); word-break: keep-all; }
+html[data-site="student"] .s-assign { border-left: 4px solid var(--site); border-radius: var(--radius-m); background: var(--surface); border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+/* 오늘 배울 것: 번호 칩 + 소제목 + › */
+html[data-site="student"] .s-goals { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); }
+html[data-site="student"] .s-goals > li { position: relative; display: flex; align-items: flex-start; padding: 0 var(--sp-4); }
+html[data-site="student"] .s-goals > li + li { margin-top: 0; border-top: 1px solid var(--line); }
+html[data-site="student"] .s-goals > li::before { content: none; }
+html[data-site="student"] .s-goal-n { margin: 14px var(--sp-3) 0 0; }
+html[data-site="student"] .s-goals > li > a {
+  position: relative; display: block; flex: 1 1 auto; min-width: 0; min-height: 52px;
+  padding: 13px 1.6em 13px 0; line-height: 1.45; color: var(--ink); text-decoration: none; font-weight: 700; word-break: keep-all;
+}
+html[data-site="student"] .s-goals > li > a::after {
+  content: "\203A"; position: absolute; right: 0; top: 50%; margin-top: -.55em;
+  font-size: 1.6em; line-height: 1; font-weight: 400; color: var(--site);
+}
+html[data-site="student"] .s-goals > li > a:active { background: var(--surface-2); }
+html[data-site="student"] .s-goals > li > a:hover,
+html.kbd[data-site="student"] .s-goals > li > a:focus { text-decoration: underline; }
+html[data-site="student"] .s-goals > li.is-done > a { color: var(--ink-2); padding-right: 6.6em; }
+html[data-site="student"] .s-goals > li.is-done .s-goal-n { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+html[data-site="student"] .s-goals > li > .verdict { position: absolute; right: calc(var(--sp-4) + 2em); top: 50%; margin: -.7em 0 0; line-height: 1.4; white-space: nowrap; pointer-events: none; }
+
+/* 4단계 */
+html[data-site="student"] .s-stages { list-style: none; margin: var(--sp-3) 0 0; padding: 0; }
+html[data-site="student"] .s-stages > li + li { margin-top: var(--sp-2); }
+html[data-site="student"] .s-stage { display: flex; align-items: center; flex-wrap: nowrap; min-height: 64px; padding: var(--sp-3) var(--sp-4); }
+html[data-site="student"] .s-stage > .grow { flex: 1 1 auto; min-width: 0; }
+html[data-site="student"] .s-stage > .ico-svg, html[data-site="student"] .s-stage > .verdict { flex: 0 0 auto; }
+html[data-site="student"] .s-stage > * + * { margin-left: var(--sp-3); }
+html[data-site="student"] .s-stage-n { width: 32px; height: 32px; border-radius: 9px; font-size: var(--t-sm); }
+html[data-site="student"] .s-stage-name { display: block; font-size: var(--t-md); font-weight: 800; color: var(--ink); }
+html[data-site="student"] .s-stage-note { display: block; margin-top: 2px; font-size: 14px; font-size: max(14px, var(--t-xs)); color: var(--ink-2); line-height: 1.4; }
+html[data-site="student"] .s-stage > .ico-svg:last-child { color: var(--site); }
+html[data-site="student"] .s-checks { list-style: none; margin: var(--sp-2) 0 var(--sp-3); padding: 0; }
+html[data-site="student"] .s-checks > li + li { margin-top: var(--sp-3); }
+html[data-site="student"] .s-checks .tiny { font-size: 14px; font-size: max(14px, var(--t-xs)); color: var(--ink-2); }
+html[data-site="student"] .s-prevnext { margin-top: var(--sp-2); }
+
+/* 문단 끝 홀로 놓인 작은 링크도 44px 터치 */
+html[data-site="student"] .page > p.center > a:only-child { display: inline-block; min-height: var(--tap); padding: 12px var(--sp-3); line-height: 20px; }
+
+/* ───────────────────────── 카드 넘기기: 공통 ───────────────────────── */
+html[data-site="student"] .s-deck { padding-top: var(--sp-4); }
+/* 카드 첫 줄 표식(개념 1 · 이야기 2/5 …)은 남색 번호 칩 */
+html[data-site="student"] .s-deck .eyebrow {
+  display: inline-block; padding: 3px 10px; border-radius: 7px;
+  background: var(--site); color: var(--on-site); font-size: var(--t-xs); font-weight: 800; letter-spacing: .02em;
+}
+html[data-site="student"] .s-deck .why-card .why-label { background: none; color: var(--bad); padding: 0; font-size: var(--t-sm); }
+html[data-site="student"] .s-deck .h2 { font-size: calc(26px * var(--fs-scale)); line-height: 1.35; font-weight: 800; letter-spacing: -.01em; word-break: keep-all; }
+/* 큰 제목 아래 삼색 짧은 막대 */
+html[data-site="student"] .s-deck article > .h2:not(.s-core-q)::after {
+  content: ""; display: block; width: 48px; height: 4px; margin-top: var(--sp-3); border-radius: 2px;
+  background: linear-gradient(90deg, var(--site-student) 0, var(--site-student) 33.4%, var(--surface) 33.4%, var(--surface) 66.6%, var(--bad) 66.6%, var(--bad) 100%);
+  box-shadow: 0 0 0 1px var(--line);
+}
+html[data-site="student"] .s-deck .prose,
+html[data-site="student"] .s-deck .ui-blocks { font-size: var(--t-md); line-height: var(--lh-body); }
+html[data-site="student"] .s-deck .why-card { padding: var(--sp-4); }
+html[data-site="student"] .s-deck .s-core-q { margin: var(--sp-1) 0 0; font-size: var(--t-lg); line-height: 1.5; font-weight: 800; }
+html[data-site="student"] .s-deck .s-core-q::after { content: none; }
+/* 머리 줄·본문 속 굵은 글씨는 가볍게 */
+html[data-site="student"] .s-concept strong, html[data-site="student"] .s-concept b { font-weight: 700; color: var(--ink); }
+html[data-site="student"] .s-concept p > strong:nth-of-type(n+3), html[data-site="student"] .s-concept li > strong:nth-of-type(n+2) { font-weight: inherit; }
+html[data-site="student"] .s-concept .ui-term-name, html[data-site="student"] .s-concept th { font-weight: 800; }
+html[data-site="student"] .s-deck .math-block, html[data-site="student"] .s-deck .katex-display { font-size: 1.2em; }
+html[data-site="student"] .s-deck .math-block .katex, html[data-site="student"] .s-deck .katex-display > .katex { font-size: 1.2em; }
+html[data-site="student"] .s-deck .katex .mfrac, html[data-site="student"] .s-deck .katex .mord.text { font-size: 1.04em; }
+html[data-site="student"] .s-skip { margin-top: var(--sp-4); text-align: center; }
+html[data-site="student"] .s-skip .btn { min-height: var(--tap); }
+
+/* ── 개념 카드: 올린 카드(1px 선), 위쪽 띠 없이 ── */
+html[data-site="student"] .s-concept { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); padding: var(--sp-4); }
+html[data-site="student"] .s-concept.is-example { border-left: 4px solid var(--ok); }
+html[data-site="student"] .s-concept.is-widget { padding-left: var(--sp-3); padding-right: var(--sp-3); }
+html[data-site="student"] .s-concept .s-cont { display: block; background: transparent; padding: 0; color: var(--ink-2); white-space: normal; overflow: visible; text-overflow: clip; font-size: 14px; font-size: max(14px, var(--t-sm)); font-weight: 700; }
+html[data-site="student"] .s-concept .s-cont::before { content: none; }
+html[data-site="student"] .s-concept .ui-blocks > * + * { margin-top: 1em; }
+html[data-site="student"] .s-concept .tiny, html[data-site="student"] .s-concept .muted { font-size: 14px; font-size: max(14px, var(--t-sm)); color: var(--ink-2); }
+html[data-site="student"] .s-sec-end { padding-top: var(--sp-2); border-top: 1px dashed var(--line); }
+html[data-site="student"] .s-widget-card > .chip { margin: 0; }
+html[data-site="student"] .s-card-in .ui-widget { max-width: 100%; }
+
+/* 용어 상자·알림 상자: 왼쪽 4px 세로줄 카드 */
+html[data-site="student"] .ui-term { border: 1px solid var(--line); border-left: 4px solid var(--site); border-radius: var(--radius-m); background: var(--surface); }
+html[data-site="student"] .ui-term-tag { color: var(--site); border-color: var(--site); }
+html[data-site="student"] .callout { border-left-width: 4px; border-radius: var(--radius-m); background: var(--surface); border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+html[data-site="student"] .callout.info, html[data-site="student"] .callout.aha { border-left-color: var(--site); }
+html[data-site="student"] .callout.warn { border-left-color: var(--bad); }
+html[data-site="student"] .callout.ok { border-left-color: var(--ok); }
+html[data-site="student"] .callout.info > b, html[data-site="student"] .callout.info > .callout-title,
+html[data-site="student"] .callout.aha > b, html[data-site="student"] .callout.aha > .callout-title { color: var(--site); }
+html[data-site="student"] .callout.warn > b, html[data-site="student"] .callout.warn > .callout-title { color: var(--bad); }
+html[data-site="student"] .callout.bad { background: var(--surface); }
+
+/* ── 이야기: 말풍선 ── */
+html[data-site="student"] .s-story-body > * + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-narr { padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--line-strong); color: var(--ink-2); line-height: var(--lh-body); }
+html[data-site="student"] .s-say .ui-speaker { display: block; margin: 0 0 4px 2px; font-size: var(--t-sm); font-weight: 700; color: var(--ink-2); }
+html[data-site="student"] .s-say .bubble {
+  position: relative; display: block; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 4px var(--radius-l) var(--radius-l) var(--radius-l);
+  padding: var(--sp-3) var(--sp-4); line-height: var(--lh-body);
+}
+html[data-contrast="more"] .s-say .bubble { border-color: var(--line-strong); }
+html[data-site="student"] .s-cast-chip { background: var(--surface); border: 1px solid var(--line); }
+html[data-site="student"] .s-story .s-cast { display: none; }
+html[data-site="student"] .s-avatar-none { background: var(--surface-2); }
+
+/* 먼저 알고 가요: 알아요 / 헷갈려요 */
+html[data-site="student"] .s-know > .btn[aria-pressed="true"] { background: var(--site); border-color: var(--site); color: var(--on-site); }
+html[data-site="student"] .s-know > .btn[aria-pressed="true"]::before { content: "\2713"; margin-right: .35em; }
+
+/* ── 예제: 단계 공개 ── */
+html[data-site="student"] .s-deck .ui-example { border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface-2); padding: var(--sp-4) var(--sp-3); }
+html[data-site="student"] .ui-example-tag { background: var(--ok); color: #ffffff; border-radius: 7px; }
+html[data-theme="dark"] .ui-example-tag { color: var(--bg); }
+html[data-site="student"] .ui-example-problem { padding: var(--sp-3); border-radius: var(--radius-s); background: var(--surface); border: 1px solid var(--line); }
+html[data-site="student"] .ui-ex-step { border: 0; background: var(--surface); border-radius: var(--radius-s); padding: var(--sp-2) var(--sp-3); color: var(--ink); animation: s-step-in var(--dur) ease-out both; }
+html[data-site="student"] .ui-ex-step + .ui-ex-step { margin-top: var(--sp-2); }
+html[data-site="student"] .ui-ex-n { background: var(--site); color: var(--on-site); border-radius: 7px; font-variant-numeric: tabular-nums; }
+html[data-site="student"] .ui-example-answer { border-left: 4px solid var(--ok); }
+html[data-site="student"] .ui-example-ctl { display: flex; flex-wrap: wrap; }
+html[data-site="student"] .ui-example-ctl > .btn { min-height: var(--tap); }
+html[data-site="student"] .ui-example-ctl > .btn-soft { flex: 1 1 auto; }
+@keyframes s-step-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+html[data-motion="reduce"] .ui-ex-step, html[data-motion="reduce"] .s-card-in { animation: none; }
+html[data-site="student"] .s-card-in { animation-duration: .2s; }
+
+/* 정리 카드: 번호 칩 목록 */
+html[data-site="student"] .s-summary { list-style: none; margin: 0; padding: 0; counter-reset: s-sum; }
+html[data-site="student"] .s-summary > li { position: relative; counter-increment: s-sum; padding: var(--sp-3) var(--sp-3) var(--sp-3) calc(var(--sp-3) + 2.4em); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); line-height: var(--lh-body); }
+html[data-site="student"] .s-summary > li + li { margin-top: var(--sp-2); }
+html[data-site="student"] .s-summary > li::before {
+  content: counter(s-sum); position: absolute; left: var(--sp-3); top: 14px; width: 1.75em; height: 1.75em; line-height: 1.75em; text-align: center;
+  border-radius: 7px; background: var(--site); color: var(--on-site); font-size: var(--t-xs); font-weight: 800; font-variant-numeric: tabular-nums;
+}
+
+/* ───────────────────────── 문제 카드 ───────────────────────── */
+html[data-site="student"] .ui-q.is-phone { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); padding: var(--sp-4); box-shadow: none; }
+html[data-site="student"] .ui-q.is-phone.is-solved { border-color: var(--line-strong); }
+html[data-site="student"] .ui-q.is-phone .ui-q-prompt { font-size: var(--t-md); line-height: var(--lh-body); font-weight: 600; }
+html[data-site="student"] .ui-q-meta > .chip.is-accent { background: var(--site); color: var(--on-site); border-radius: 7px; font-variant-numeric: tabular-nums; }
+html[data-site="student"] .ui-q-meta > .chip { border-radius: 7px; }
+html[data-site="student"] .ui-q-new-tag { color: var(--bad); }
+html[data-site="student"] .ui-q.is-phone .opt { min-height: 52px; border-radius: var(--radius-m); }
+html[data-site="student"] .opt .key { border-radius: 7px; width: 1.75em; height: 1.75em; font-variant-numeric: tabular-nums; }
+html[data-site="student"] .opt[aria-pressed="true"], html[data-site="student"] .opt.is-picked { border-color: var(--site); background: var(--navy-soft); }
+html[data-site="student"] .opt[aria-pressed="true"] .key, html[data-site="student"] .opt.is-picked .key { background: var(--site); color: var(--on-site); }
+html[data-site="student"] .ui-q.is-phone .ui-q-actions .btn-primary { min-height: var(--tap-main); }
+html[data-site="student"] .ui-q.is-phone .ui-q-input { font-size: 20px; font-variant-numeric: tabular-nums; min-height: 52px; }
+html[data-site="student"] .ui-q-check:not([disabled]) { box-shadow: 0 2px 0 rgba(0, 0, 0, .25); }
+html[data-site="student"] .s-q { padding-bottom: var(--sp-3); }
+html[data-site="student"] .s-q-prev { margin: 0 0 var(--sp-2); }
+html[data-site="student"] .s-q-after { margin-top: var(--sp-3); }
+html[data-site="student"] .s-q-diff { margin: var(--sp-2) 0 0; }
+html[data-site="student"] .ui-hint { background: var(--surface); border-color: var(--site); border-style: solid; border-left-width: 4px; }
+html[data-site="student"] .ui-hint .ui-hint-tag { color: var(--site); }
+html[data-site="student"] .ui-hint.is-sol { background: var(--surface-2); border-color: var(--ok); }
+html[data-site="student"] .ui-hint.is-sol .ui-hint-tag { color: var(--ok); }
+html[data-site="student"] .ui-q-after-wrong { margin-bottom: calc(var(--s-action-h) + var(--s-rail-h) + env(safe-area-inset-bottom) + var(--sp-3)); }
+html[data-site="student"] .ui-q-after-wrong .ui-q-concept { background: var(--site); color: var(--on-site); border-color: var(--site); font-weight: 700; min-height: var(--tap-main, 48px); }
+html[data-site="student"] .ui-q-after-wrong .ui-q-peek { min-height: var(--tap-main, 48px); }
+html[data-site="student"] .ui-q-concept { color: var(--site); border-color: var(--site); }
+html[data-site="student"] .ui-fb { border-radius: var(--radius-m); }
+
+/* 계단 문제 결과 줄 */
+html[data-site="student"] .s-result > * + * { margin-top: var(--sp-3); }
+html[data-site="student"] .s-result > .list { padding-top: 0; padding-bottom: 0; }
+html[data-site="student"] .s-result-line { font-size: var(--t-lg); }
+
+/* ── 숫자·기호 줄(NumberPad) ── */
+html[data-site="student"] .ui-pad.is-phone .ui-pad-syms { flex-wrap: wrap; overflow: visible; padding: 2px 0 0; margin-right: 0; }
+html[data-site="student"] .ui-pad.is-phone .ui-pad-key {
+  flex: 0 0 auto; min-width: 44px; min-height: 44px; margin: 0 6px 6px 0; border-radius: var(--radius-s);
+  background: var(--surface); color: var(--ink); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+html[data-site="student"] .ui-pad.is-phone .ui-pad-key:active { background: var(--navy-soft); }
+html[data-site="student"] .ui-pad.is-phone .ui-pad-key.is-back { background: var(--surface-2); }
+html[data-site="student"] .ui-pad.is-phone .ui-pad-digits { max-width: none; display: grid; grid-template-columns: repeat(5, 1fr); grid-gap: 6px; }
+html[data-site="student"] .ui-pad.is-phone .ui-pad-digits .ui-pad-key { width: auto; margin: 0; }
+
+/* ───────────────────────── 오답노트 ───────────────────────── */
+html[data-site="student"] .s-notepage > * + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-notepage > .s-head + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-review-cta { display: flex; align-items: center; flex-wrap: nowrap; min-height: 72px; padding: var(--sp-3) var(--sp-4); }
+html[data-site="student"] .s-review-cta > .grow { flex: 1 1 auto; min-width: 0; }
+html[data-site="student"] .s-review-cta > * + * { margin-left: var(--sp-3); }
+html[data-site="student"] .s-review-cta.has-todo { border-left: 4px solid var(--bad); }
+html[data-site="student"] .s-review-ico { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: var(--navy-soft); color: var(--site); flex: 0 0 auto; }
+html[data-site="student"] .s-review-cta.has-todo .s-review-ico { background: var(--bad-bg); color: var(--bad); }
+html[data-site="student"] .s-review-sub { display: block; margin-top: 2px; font-size: 14px; font-size: max(14px, var(--t-xs)); color: var(--ink-2); }
+html[data-site="student"] .s-review-cta > .ico-svg:last-child { color: var(--site); }
+
+/* 아직 · 복습 중 · 졸업: 번호 탭 */
+html[data-site="student"] .s-seg { display: flex; padding: 0; border: 0; border-radius: 0; background: none; overflow: visible; }
+html[data-site="student"] .s-seg-btn {
+  flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; min-height: 64px; padding: var(--sp-2) 2px;
+  border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface); color: var(--ink-2); white-space: nowrap;
+}
+html[data-site="student"] .s-seg-btn + .s-seg-btn { margin-left: var(--sp-2); border-left: 1px solid var(--line); }
+html[data-site="student"] .s-seg-t { display: block; margin-top: 4px; font-size: var(--t-sm); font-weight: 700; }
+html[data-site="student"] .s-seg-btn .s-count { position: absolute; margin: 0; }
+html[data-site="student"] .s-seg-btn { position: relative; }
+html[data-site="student"] .s-seg-btn .s-count { top: 6px; right: 6px; min-width: 1.5em; background: var(--surface-2); color: var(--ink); }
+html[data-site="student"] .s-seg-btn.is-on { background: var(--navy-soft); border-color: var(--site); color: var(--site); box-shadow: inset 0 -3px 0 var(--site); }
+html[data-site="student"] .s-seg-btn.is-on .s-count { background: var(--site); color: var(--on-site); }
+html[data-contrast="more"] .s-seg-btn { border-color: var(--line-strong); }
+html[data-site="student"] .s-note-tabdesc { margin: 0; font-size: 16px; font-size: max(16px, var(--t-sm)); line-height: 1.6; color: var(--ink); word-break: keep-all; }
+html[data-site="student"] .s-note-tabs-all { margin: 0; padding: var(--sp-3) var(--sp-4); list-style: none; font-size: 15px; font-size: max(15px, var(--t-sm)); color: var(--ink); line-height: 1.6; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); }
+html[data-site="student"] .s-note-tabs-all > li + li { margin-top: var(--sp-2); }
+html[data-site="student"] .s-note-tabs-all > li { word-break: keep-all; }
+html[data-site="student"] .s-note-list { list-style: none; margin: 0; padding: 0; }
+html[data-site="student"] .s-note-list > li + li { margin-top: var(--sp-3); }
+html[data-site="student"] .s-note { padding: var(--sp-4); border-left: 4px solid var(--bad); }
+html[data-site="student"] .s-note.is-reviewing { border-left-color: var(--site); }
+html[data-site="student"] .s-note.is-graduated { border-left-color: var(--ok); }
+html[data-site="student"] .s-note > * + * { margin-top: var(--sp-2); }
+html[data-site="student"] .s-note-where { font-size: var(--t-sm); font-weight: 800; color: var(--site); font-variant-numeric: tabular-nums; }
+html[data-site="student"] .s-note-cnt, html[data-site="student"] .s-note-due { font-size: 14px; font-size: max(14px, var(--t-xs)); color: var(--ink-2); }
+html[data-site="student"] .s-note-sec { margin: 0; font-weight: 700; }
+html[data-site="student"] .s-note-q { margin: 0; line-height: 1.6; }
+html[data-site="student"] .s-note .row.wrap { margin-top: var(--sp-3); }
+
+/* ───────────────────────── 사전 ───────────────────────── */
+html[data-site="student"] .s-dictpage > * + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-search > label { font-size: var(--t-sm); font-weight: 800; }
+html[data-site="student"] .s-search .row > .ico-svg { margin-right: var(--sp-2); color: var(--ink-2); }
+html[data-site="student"] .s-search .input { min-height: 48px; font-size: var(--t-md); border-radius: var(--radius-m); background: var(--surface); }
+html[data-site="student"] .s-hint { margin: var(--sp-2) 0 0; font-size: 14px; font-size: max(14px, var(--t-xs)); color: var(--ink-2); }
+html[data-site="student"] .s-unit-filter { margin: -3px; }
+html[data-site="student"] .s-unit-filter > * { margin: 3px; }
+html[data-site="student"] .s-unit-filter .chip {
+  min-height: 44px; min-width: 44px; padding: 0 1em; justify-content: center; font-size: var(--t-sm);
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--radius-m);
+}
+html[data-site="student"] .s-unit-filter .chip[aria-pressed="true"] { background: var(--site); border-color: var(--site); color: var(--on-site); }
+html[data-site="student"] .s-count-line { margin: 0; font-size: var(--t-sm); color: var(--ink-2); }
+html[data-site="student"] .s-dict { margin: 0; }
+html[data-site="student"] .s-dict > * + * { margin-top: var(--sp-3); }
+html[data-site="student"] .s-dict-item { padding: var(--sp-3) var(--sp-4); border-left: 4px solid var(--site); }
+html[data-site="student"] .s-dict-term { margin: 0 0 var(--sp-1); font-size: var(--t-lg); font-weight: 800; color: var(--site); line-height: 1.3; }
+html[data-site="student"] .s-dict-def { margin: 0; line-height: 1.65; }
+html[data-site="student"] .s-dict-meta { margin-top: var(--sp-2); }
+html[data-site="student"] .s-dict-meta .chip, html[data-site="student"] .s-dict-meta a { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* ───────────────────────── 내 기록 ───────────────────────── */
+html[data-site="student"] .s-mepage > * + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-mepage > .s-head + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-mepage .card > * + * { margin-top: var(--sp-3); }
+html[data-site="student"] .s-stats { margin-top: var(--sp-3); }
+html[data-site="student"] .s-stats > * { padding: var(--sp-3) var(--sp-1); border-radius: var(--radius-m); background: var(--surface-2); }
+html[data-site="student"] .s-stat { color: var(--site); font-variant-numeric: tabular-nums; }
+html[data-site="student"] .s-stats .s-block { font-size: 14px; white-space: nowrap; color: var(--ink); }
+html[data-site="student"] .s-me-unit { padding: var(--sp-3) var(--sp-4); }
+html[data-site="student"] .s-me-unit > summary { cursor: pointer; list-style: none; min-height: var(--tap); }
+html[data-site="student"] .s-me-unit > summary::-webkit-details-marker { display: none; }
+html[data-site="student"] .s-me-sub { font-size: 14px; color: var(--ink-2); }
+html[data-site="student"] .s-me-unit[open] > summary { margin-bottom: var(--sp-2); }
+html[data-site="student"] .s-me-links { margin-top: var(--sp-4); }
+html[data-site="student"] .s-me-links .list-row { padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); }
+html[data-site="student"] .s-me-links .list-row > .ico-svg { color: var(--site); }
+html[data-site="student"] .s-me-links > * + * { margin-top: var(--sp-2); }
+html[data-site="student"] .s-privpage > * + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-cardpage > * + * { margin-top: var(--sp-4); }
+html[data-site="student"] .s-plain-list { margin: 0; padding-left: 1.2em; }
+
+/* ───────────────────────── 응답 카드 ───────────────────────── */
+/* 고르는 칸: 색 + 큰 글자 + 무늬(색을 구분하기 어려워도 알 수 있게) */
+html[data-site="student"] .s-cardbtn { min-height: 104px; border: 2px solid rgba(0, 0, 0, .15); background-repeat: repeat; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); padding: var(--sp-2) var(--sp-2) var(--sp-3); border-radius: var(--radius-l); }
+html[data-site="student"] .s-cardbtn:active { transform: scale(.97); }
+html.kbd .s-cardbtn:focus { outline: var(--focus-w) solid var(--focus); outline-offset: 3px; }
+html[data-site="student"] .s-cardbtn-v { font-size: 44px; line-height: 1.15; }
+html[data-site="student"] .s-cardbtn .tiny { font-size: 15px; margin-top: 6px; }
+html[data-site="student"] .s-bigcard { z-index: 80; background-repeat: repeat; text-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+html[data-site="student"] .s-bigcard-v { font-size: 200px; font-size: min(200px, 52vw, 34vh); line-height: 1.2; font-weight: 900; letter-spacing: -.02em; padding-bottom: .05em; }
+html[data-site="student"] .s-bigcard-l { margin-top: var(--sp-5); padding: 6px 20px; border-radius: var(--radius-pill); background: rgba(0, 0, 0, .28); font-size: 32px; text-shadow: none; }
+html[data-site="student"] .s-bigcard-close { min-height: var(--tap-main); min-width: 160px; text-shadow: none; }
+/* 무늬(흰색 반투명): 1 사선, 2 점, 3 가로줄, 4 세로줄, 5 격자, O 동그라미, X 엇갈린 사선, ? 큰 점 */
+html[data-site="student"] .s-cardbtn.c1, html[data-site="student"] .s-bigcard.c1 { background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, .16) 8px, transparent 8px, transparent 20px); }
+html[data-site="student"] .s-cardbtn.c2, html[data-site="student"] .s-bigcard.c2 { background-image: radial-gradient(rgba(255, 255, 255, .22) 3px, transparent 4px); background-size: 18px 18px; }
+html[data-site="student"] .s-cardbtn.c3, html[data-site="student"] .s-bigcard.c3 { background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, .16) 6px, transparent 6px, transparent 18px); }
+html[data-site="student"] .s-cardbtn.c4, html[data-site="student"] .s-bigcard.c4 { background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, .16) 6px, transparent 6px, transparent 18px); }
+html[data-site="student"] .s-cardbtn.c5, html[data-site="student"] .s-bigcard.c5 {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .14) 0, rgba(255, 255, 255, .14) 3px, transparent 3px, transparent 16px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .14) 0, rgba(255, 255, 255, .14) 3px, transparent 3px, transparent 16px);
+}
+html[data-site="student"] .s-cardbtn.co, html[data-site="student"] .s-bigcard.co { background-image: radial-gradient(circle, transparent 7px, rgba(255, 255, 255, .2) 8px, rgba(255, 255, 255, .2) 10px, transparent 11px); background-size: 28px 28px; }
+html[data-site="student"] .s-cardbtn.cx, html[data-site="student"] .s-bigcard.cx {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .13) 0, rgba(255, 255, 255, .13) 4px, transparent 4px, transparent 16px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, .13) 0, rgba(255, 255, 255, .13) 4px, transparent 4px, transparent 16px);
+}
+html[data-site="student"] .s-cardbtn.cq, html[data-site="student"] .s-bigcard.cq { background-image: radial-gradient(rgba(255, 255, 255, .18) 6px, transparent 7px); background-size: 32px 32px; }
+
+/* ───────────────────────── 키보드 포커스 ───────────────────────── */
+html.kbd[data-site="student"] .s-tabbar a:focus,
+html.kbd[data-site="student"] .s-seg-btn:focus,
+html.kbd[data-site="student"] .s-unit-filter .chip:focus { outline: var(--focus-w) solid var(--focus); outline-offset: -3px; }
+
+/* ───────────────────────── 넓은 화면·아주 좁은 화면·낮은 화면·인쇄 ───────────────────────── */
+@media (max-width: 359px) {
+  html[data-site="student"] .s-back + .s-brand .s-brand-name { display: none; }
+  html[data-site="student"] .s-next { min-width: 0; }
+  html[data-site="student"] .s-pos strong { font-size: 13px; }
+  html[data-site="student"] .s-cardbtn-v { font-size: 40px; }
+  html[data-site="student"] .s-unit-chip-t { display: none; }
+}
+@media (max-height: 480px) {
+  html[data-site="student"]:root { --s-action-h: 56px; }
+  html[data-site="student"] .s-actionbar .btn { height: 44px; min-height: 44px; }
+  html[data-site="student"] .s-pos { display: none; }
+}
+@media print {
+  html[data-site="student"] .s-continue { color: #000; border: 1px solid #000; }
+}
