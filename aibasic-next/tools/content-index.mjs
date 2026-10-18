@@ -29,8 +29,12 @@ export function choseong(/** @type {string} */ s) {
   return out;
 }
 
-/** 화면 번호 표기: "Ⅰ-3" */
-export const screenCode = (/** @type {string} */ roman, /** @type {number} */ n) => roman + "-" + n;
+/**
+ * 화면 번호 표기. 원본 id(origId, 예 "2-1-3")가 있으면 단원 번호를 뺀 나머지를 써서 "Ⅱ-1-3"(활동은 "Ⅱ-A"),
+ * 없으면 단원 안 순서 번호 "Ⅱ-3" 이에요.
+ */
+export const screenCode = (/** @type {string} */ roman, /** @type {number} */ n, /** @type {string | undefined} */ origId) =>
+  roman + "-" + (origId && /^\d+-/.test(origId) ? origId.split("-").slice(1).join("-") : n);
 
 function readJson(/** @type {string} */ file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -131,9 +135,10 @@ export function buildContentIndex(dir = CONTENT_DIR) {
         id: m.id,
         unit: u.id,
         n: i + 1,
-        code: screenCode(u.roman, i + 1),
+        code: screenCode(u.roman, i + 1, l.origId),
         title: l.title,
         short: m.short,
+        chapter: m.chapter || l.chapter || "",
         subtitle: l.subtitle,
         minutes: l.minutes,
         file: fileOf[m.id],
@@ -169,6 +174,7 @@ export function buildContentIndex(dir = CONTENT_DIR) {
       roman: u.roman,
       title: u.title,
       short: u.short,
+      desc: u.desc || "",
       icon: u.icon,
       color: u.color,
       soft: u.soft,

@@ -1,8 +1,9 @@
 // 화면 순서·번호 순수 함수. 순서의 기준은 units.json 의 배열 순서예요(레슨 파일 번호·order 값이 아니에요).
 import type { ContentIndex, LessonIndex, QWhere, UnitIndex } from "../shared/contracts.ts";
 
-/** 레슨 화면 번호 "Ⅰ-3" */
-export const screenCode = (roman: string, n: number) => roman + "-" + n;
+/** 레슨 화면 번호 "Ⅱ-1-3"(원본 id 가 있으면 그 번호, 없으면 단원 안 순서 "Ⅱ-3") */
+export const screenCode = (roman: string, n: number, origId?: string) =>
+  roman + "-" + (origId && /^\d+-/.test(origId) ? origId.split("-").slice(1).join("-") : n);
 
 export function unitByNumber(idx: ContentIndex, n: number): UnitIndex | undefined {
   for (const u of idx.units) if (u.id === n) return u;

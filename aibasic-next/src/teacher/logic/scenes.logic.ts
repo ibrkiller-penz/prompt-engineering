@@ -15,7 +15,7 @@
 // 높이: 모든 장면은 896px(BOARD_BODY_H) 안에 들어가야 해요. 넘치면 글자를 한 단계 줄이고(fsDown=1),
 //   그래도 넘치면 "이어서" 장면으로 나눠요(part). 큰 표는 행을 나눠 머리줄을 다시 붙이고, 긴 예제는 풀이 단계를 나눠요.
 import type { Block, Lesson, PlanLesson, Question, Scene, SceneBlock, SceneKind, SceneStage } from "../../shared/contracts.ts";
-import { BODY_H, BOARD_FS, blockWeight, exampleSceneHeight, isBigTable, linesSceneHeight, qHeight, stackHeight } from "./measure.logic.ts";
+import { BODY_H, BOARD_FS, blockWeight, codeLines, exampleSceneHeight, isBigTable, linesSceneHeight, qHeight, stackHeight } from "./measure.logic.ts";
 import { lessonPeriods, periodQuestion, pickPeriod, recapLines, summaryForPeriod, type PeriodInfo } from "./periods.logic.ts";
 import { pickAll, questionSections, sectionCheckIds, type PickSet } from "./pick.logic.ts";
 
@@ -207,6 +207,13 @@ function splitBlock(b: SceneBlock, fs: number): SceneBlock[] {
     const half = Math.ceil(b.steps.length / 2);
     const a: Block = { t: "example", title: b.title, problem: b.problem, steps: b.steps.slice(0, half), answer: "" };
     const c: Block = { t: "example", title: b.title + " (이어서)", problem: "", steps: b.steps.slice(half), answer: b.answer };
+    return splitBlock(a, fs).concat(splitBlock(c, fs));
+  }
+  if (b.t === "code" && codeLines(b.code) > 1) {
+    const lines = b.code.replace(/\s+$/, "").split("\n");
+    const half = Math.ceil(lines.length / 2);
+    const a: Block = { t: "code", code: lines.slice(0, half).join("\n"), lang: b.lang };
+    const c: Block = { t: "code", code: lines.slice(half).join("\n"), lang: b.lang };
     return splitBlock(a, fs).concat(splitBlock(c, fs));
   }
   if (b.t === "lines" && b.items.length > 1) {
@@ -446,7 +453,7 @@ function conceptDrafts(lesson: L, s: number): { concept: Draft[]; widgets: Draft
     }
     if (cur && cur.w + w > CONCEPT_BUDGET) {
       // 식·표·목록이 넘칠 때 바로 앞 설명 문단을 데려가요(설명과 식이 떨어지지 않게)
-      const glued = b.t === "math" || b.t === "table" || b.t === "list";
+      const glued = b.t === "math" || b.t === "table" || b.t === "list" || b.t === "code";
       const last = cur.blocks[cur.blocks.length - 1];
       if (glued && last && last.t === "p" && cur.blocks.length >= 2) {
         const lw = blockWeight(last as Block);

@@ -12,6 +12,8 @@ export type LBlock =
   | { t: "list"; items: Text[]; ordered?: boolean }
   | { t: "example"; title: Text; problem: Text; steps: Text[]; answer: Text }
   | { t: "dialog"; lines: { who: string; text: Text }[] }
+  | { t: "code"; code: string; lang?: string }
+  | { t: "image"; src: string; alt: string; caption?: Text }
   | { t: "widget"; id: string; caption?: Text };
 
 interface QB {

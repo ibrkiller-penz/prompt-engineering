@@ -46,9 +46,10 @@ export interface LessonIndex {
   id: string; // "u2_1_3"
   unit: number; // 1..4
   n: number; // units.json 배열 순서로 매긴 단원 안 화면 번호(1부터)
-  code: string; // 화면 번호 표기 "Ⅰ-5"
+  code: string; // 화면 번호 표기 "Ⅱ-1-3"(원본 id 기준, 활동은 "Ⅱ-A")
   title: string;
-  short: string; // units.json 의 짧은 제목
+  short: string; // units.json 의 짧은 제목(원본 tagline)
+  chapter: string; // 대단원 안 장 이름(없으면 "")
   subtitle: string;
   minutes: number;
   file: string; // "u1/lesson-3.json" (content/aibasic 기준)
@@ -77,6 +78,7 @@ export interface UnitIndex {
   roman: string;
   title: string;
   short: string;
+  desc: string; // 단원 설명(없으면 "")
   icon: string;
   color: string;
   soft: string;

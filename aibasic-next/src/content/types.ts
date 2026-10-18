@@ -38,6 +38,7 @@ export type Block =
   | { t: "example"; title: Text; problem: Text; steps: Text[]; answer: Text }
   | { t: "dialog"; lines: { who: string; text: Text }[] }
   | { t: "code"; code: string; lang?: "python" }
+  | { t: "image"; src: string; alt: string; caption?: Text } // src 는 content/aibasic 기준 상대 경로(예 img/p136_2.jpg)
   | { t: "widget"; id: WidgetId; caption?: Text };
 
 export interface Section {
@@ -53,6 +54,8 @@ interface QBase {
   group: Text; // 예: '계단 확인 1계단', '단원 마무리'
   prompt: Text;
   new?: Text;
+  /** 제시문(지문). 글(p)·표(table)·그림(image) 블록. 문제 본문 앞에 보여요 */
+  passage?: Block[];
 }
 export type Question =
   | (QBase & { type: "choice"; choices: Text[]; answer: number; hints: [Text, Text]; solution: Text })
@@ -70,6 +73,10 @@ export interface Lesson {
   story: Text[]; // 이야기(등장인물 대화 포함)
   question: Text; // 오늘의 핵심 질문
   goals?: Text[]; // 학습 목표
+  storyTitle?: Text; // 이야기 제목
+  pages?: Text; // 원본 쪽수 안내(화면에는 쓰지 않아요)
+  origId?: string; // 원본 레슨 id(예 "2-1-3")
+  chapter?: Text; // 대단원 안 장 이름(예 "1. 기계학습")
   prereq?: { title: string; intro?: Text; items: { term: string; text: Text }[] };
   sections: Section[]; // 개념 정리(원본 계단 1개 = 소제목 1개)
   terms: { term: string; def: Text }[]; // 용어 카드
@@ -88,6 +95,7 @@ export interface StoryImage {
 
 export interface UnitContent {
   id: number;
+  enrich?: boolean; // true 면 원본에 없어 최소한만 채운 보강 대상
   why: { title: string; paragraphs: Text[] };
   opening: { title: string; paragraphs: Text[]; images?: StoryImage[] };
   stories?: { title: string; kicker?: string; paragraphs: Text[]; images?: StoryImage[] }[];
@@ -104,5 +112,6 @@ export interface UnitMeta {
   icon: string;
   color: string;
   soft: string;
-  lessons: { id: string; title: string; short: string }[];
+  desc?: Text; // 단원 설명
+  lessons: { id: string; title: string; short: string; chapter?: Text }[];
 }

@@ -6,3 +6,4 @@ export * from "./answer.ts";
 export * from "./seeded.ts";
 export * from "./chosung.ts";
 export * from "./inlineMath.ts";
+export * from "./codeHighlight.ts";

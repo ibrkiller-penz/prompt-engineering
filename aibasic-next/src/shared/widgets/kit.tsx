@@ -57,6 +57,7 @@ function renderTokens(ts: InlineToken[], key: string): ReactNode[] {
     const k = key + i;
     if (t.t === "text") return <span key={k}>{t.v}</span>;
     if (t.t === "math") return <Tex key={k} tex={t.v} />;
+    if (t.t === "code") return <code key={k}>{t.v}</code>;
     if (t.t === "br") return <br key={k} />;
     return <strong key={k}>{renderTokens(t.c, k + "-")}</strong>;
   });

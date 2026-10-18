@@ -422,6 +422,7 @@ function NextCard({ lesson, lid }: { lesson: Lesson; lid: string }) {
   const meta = INDEX.lessons[lid];
   const st = statusOf(lid, q);
   const pj = proj[lid];
+  const projSteps = lesson.project ? lesson.project.steps.length : 0;
   return (
     <article className="stack">
       <p className="eyebrow">다음으로</p>
@@ -467,7 +468,7 @@ function NextCard({ lesson, lid }: { lesson: Lesson; lid: string }) {
                 return (
                   <li key={i}>
                     <label className="switch">
-                      <input type="checkbox" checked={on} onChange={() => toggleProjStep(lid, i, lesson.project.steps.length)} />
+                      <input type="checkbox" checked={on} onChange={() => toggleProjStep(lid, i, projSteps)} />
                       <span>
                         <Rich text={s} />
                       </span>

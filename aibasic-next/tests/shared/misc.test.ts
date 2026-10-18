@@ -75,7 +75,7 @@ test("inlineMath: 글자·수식·굵게·줄바꿈", () => {
 test("inlineMath: 20레슨 본문을 분해해도 글자를 잃지 않아요", () => {
   const strip = (s: string) => s.replace(/\*\*/g, "").replace(/\$/g, "");
   const flat = (ts: InlineToken[]): string =>
-    ts.map((t) => (t.t === "text" || t.t === "math" ? t.v : t.t === "br" ? "\n" : flat(t.c))).join("");
+    ts.map((t) => (t.t === "text" || t.t === "math" || t.t === "code" ? t.v : t.t === "br" ? "\n" : flat(t.c))).join("");
   let n = 0;
   const visit = (s: unknown) => {
     if (typeof s !== "string") return;

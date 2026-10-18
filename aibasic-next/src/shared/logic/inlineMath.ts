@@ -1,18 +1,45 @@
-// 콘텐츠 글자 서식 분해: **굵게**, 줄바꿈(\n). 그 밖의 HTML 은 해석하지 않아요.
-//  - 인공지능 기초는 수식(KaTeX)을 쓰지 않아요. $ 는 늘 글자 '$' 예요(가격·변수 이름의 $ 가 수식으로 읽히지 않아요).
-//  - 짝이 없는 ** 나 빈 굵게(****)는 글자 그대로 둬요.
+// 콘텐츠 글자 서식 분해: **굵게**, `코드`, 줄바꿈(\n), \$(글자 $). 그 밖의 HTML 은 해석하지 않아요.
+//  - 인공지능 기초는 수식(KaTeX)을 쓰지 않아요. $ 는 늘 글자 '$' 예요('\$' 로 써도 같아요).
+//  - 인라인 코드는 백틱 한 쌍(`isna()`)이에요. 짝이 없는 백틱·줄이 바뀌는 백틱은 글자 그대로예요.
+//  - 짝이 없는 ** 나 빈 굵게(****)는 글자 그대로 둬요. 코드 안의 ** 는 굵게로 보지 않아요.
 
 export type InlineToken =
   | { t: "text"; v: string }
-  | { t: "math"; v: string }
+  | { t: "math"; v: string } // 쓰지 않아요(옛 형식과 맞추려고 남겼어요)
+  | { t: "code"; v: string }
   | { t: "br" }
   | { t: "bold"; c: InlineToken[] };
 
-type Piece = { t: "text"; v: string } | { t: "math"; v: string } | { t: "mark" };
+type Piece = { t: "text"; v: string } | { t: "code"; v: string } | { t: "mark" };
 
-/** 1단계: 글자 조각 만들기. 인공지능 기초에는 수식이 없어서 $ 는 늘 글자 그대로예요(KaTeX 를 쓰지 않아요) */
-function splitMath(s: string): ({ t: "text"; v: string } | { t: "math"; v: string })[] {
-  return s ? [{ t: "text", v: s }] : [];
+/** 1단계: 코드와 글자 나누기(\$ 는 글자 $) */
+function splitCode(s: string): ({ t: "text"; v: string } | { t: "code"; v: string })[] {
+  const out: ({ t: "text"; v: string } | { t: "code"; v: string })[] = [];
+  let buf = "";
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === "\\" && s[i + 1] === "$") {
+      buf += "$";
+      i += 2;
+      continue;
+    }
+    if (ch === "`") {
+      const j = s.indexOf("`", i + 1);
+      const inner = j > i + 1 ? s.slice(i + 1, j) : "";
+      if (j > i + 1 && inner.indexOf("\n") < 0) {
+        if (buf) out.push({ t: "text", v: buf });
+        buf = "";
+        out.push({ t: "code", v: inner });
+        i = j + 1;
+        continue;
+      }
+    }
+    buf += ch;
+    i++;
+  }
+  if (buf) out.push({ t: "text", v: buf });
+  return out;
 }
 
 function pushText(arr: InlineToken[], v: string) {
@@ -37,8 +64,8 @@ export function parseInline(text: string): InlineToken[] {
   const src = text == null ? "" : String(text);
   // 2단계: 글자 조각 안의 ** 를 표시(mark)로
   const pieces: Piece[] = [];
-  for (const p of splitMath(src)) {
-    if (p.t === "math") {
+  for (const p of splitCode(src)) {
+    if (p.t === "code") {
       pieces.push(p);
       continue;
     }
@@ -91,7 +118,7 @@ export function parseInline(text: string): InlineToken[] {
 export function inlineToPlain(tokens: InlineToken[]): string {
   let s = "";
   for (const t of tokens) {
-    if (t.t === "text" || t.t === "math") s += t.v;
+    if (t.t === "text" || t.t === "math" || t.t === "code") s += t.v;
     else if (t.t === "br") s += "\n";
     else s += inlineToPlain(t.c);
   }

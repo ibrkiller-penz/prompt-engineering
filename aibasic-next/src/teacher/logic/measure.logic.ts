@@ -16,19 +16,13 @@ export const GAP = 24;
 
 /* ─────────── 예산(가중치) ─────────── */
 
-/** 보이는 글자 수: ** 표시는 빼고, $수식$은 TeX 명령을 빼고 대략 셈 */
+/** 보이는 글자 수: ** 와 백틱 표시는 빼고 줄바꿈도 빼요 */
 export function visibleLen(s: string): number {
   if (!s) return 0;
-  let n = 0;
-  const parts = s.replace(/\*\*/g, "").split("$");
-  for (let i = 0; i < parts.length; i++) {
-    if (i % 2 === 1) n += texLen(parts[i]);
-    else n += parts[i].replace(/\n/g, "").length;
-  }
-  return n;
+  return s.replace(/\*\*/g, "").replace(/`/g, "").replace(/\n/g, "").length;
 }
 
-/** TeX 의 보이는 길이 어림(명령 이름·중괄호는 빼요) */
+/** TeX 의 보이는 길이 어림(math 블록이 들어올 때만 써요) */
 export function texLen(tex: string): number {
   const t = tex
     .replace(/\\(left|right|displaystyle|quad|qquad|,|;|!|text|mathrm|mathbf|operatorname)\b/g, " ")
@@ -63,10 +57,38 @@ export function blockWeight(b: Block): number {
       for (const l of b.lines) w += 4 + visibleLen(l.text) / 6;
       return Math.max(6, w);
     }
+    case "code":
+      return 14 + 7 * codeLines(b.code);
+    case "image":
+      return 45 + (b.caption ? 5 : 0);
     case "example":
     case "widget":
       return 100;
   }
+}
+
+/** 칠판에서 그림 한 장의 최대 높이(px, 글자 32 기준) */
+export const IMG_H = 460;
+/** 칠판 코드 글자는 본문의 0.8배 */
+export const CODE_FS = 0.8;
+/** 코드 한 줄이 칠판에서 차지하는 글자 수(가로 1760 - 안쪽 여백 64, 고정폭 0.6em) */
+export function codeCols(fs: number): number {
+  return Math.max(20, Math.floor((BODY_W - 64) / (fs * CODE_FS * 0.6)));
+}
+/** 코드 줄 수(끝 빈 줄은 빼요) */
+export function codeLines(code: string): number {
+  return Math.max(1, code.replace(/\s+$/, "").split("\n").length);
+}
+/** 칠판에서 줄바꿈까지 센 코드 줄 수(한글은 폭 2칸) */
+export function codeRows(code: string, fs: number): number {
+  const cols = codeCols(fs);
+  let n = 0;
+  for (const line of code.replace(/\s+$/, "").split("\n")) {
+    let w = 0;
+    for (const ch of line) w += ch.charCodeAt(0) >= 0x1100 ? 2 : 1;
+    n += Math.max(1, Math.ceil(w / cols));
+  }
+  return n;
 }
 
 /** 표가 혼자 장면을 써야 하나(6행 초과 또는 5열 이상) */
@@ -78,22 +100,15 @@ export function isBigTable(b: Block): boolean {
 
 /* ─────────── 높이(px) ─────────── */
 
-/** 한 줄 글자 폭 어림(em): 한글·한자 1, 영문·숫자 0.56, 수식 글자 0.6 */
+/** 한 줄 글자 폭 어림(em): 한글·한자 1, 영문·숫자 0.56, 공백 0.3 */
 export function textEm(s: string): number {
   if (!s) return 0;
   let em = 0;
-  const parts = s.replace(/\*\*/g, "").split("$");
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (i % 2 === 1) {
-      em += texLen(part) * 0.6;
-      continue;
-    }
-    for (let k = 0; k < part.length; k++) {
-      const c = part.charCodeAt(k);
-      if (c === 10) continue;
-      em += c >= 0x1100 ? 1 : c === 32 ? 0.3 : 0.56;
-    }
+  const part = s.replace(/\*\*/g, "").replace(/`/g, "");
+  for (let k = 0; k < part.length; k++) {
+    const c = part.charCodeAt(k);
+    if (c === 10) continue;
+    em += c >= 0x1100 ? 1 : c === 32 ? 0.3 : 0.56;
   }
   return em;
 }
@@ -176,6 +191,12 @@ export function blockHeight(b: SceneBlock, fs: number): number {
       h += 16 * k + lines("답: " + b.answer, BODY_W - 64);
       return h;
     }
+    case "code":
+      // 이름표 한 줄 + 코드 줄(줄바꿈 포함, 글자 0.8배·줄 높이 1.5) + 상자 안쪽 여백
+      return Math.ceil(fs * 0.8 * 1.2 + 24 * k + codeRows(b.code, fs) * fs * CODE_FS * 1.5);
+    case "image":
+      // 그림은 칠판에서 최대 높이 IMG_H 안에 맞춰 그려요(board.css 의 .ui-image.is-board) + 설명 줄
+      return Math.ceil(IMG_H * k + (b.caption ? lineCount(b.caption, BODY_W, fs * 0.8) * fs * 0.8 * 1.4 + 8 * k : 0));
     case "widget":
       return BODY_H; // 체험 장면은 무대를 통째로 써요
     case "q":

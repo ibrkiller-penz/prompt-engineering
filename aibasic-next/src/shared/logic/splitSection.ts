@@ -19,17 +19,18 @@ export interface SectionCard<B = LBlock> {
   weight: number;
 }
 
+/** 코드 블록의 줄 수(끝 빈 줄은 빼요) */
+export function codeLineCount(code: string): number {
+  return Math.max(1, code.replace(/\s+$/, "").split("\n").length);
+}
+
 export interface SplitSectionOptions {
   /** 카드 한 장의 무게 예산(기본 6) */
   budget?: number;
 }
 
 function textLen(s: string): number {
-  // 수식은 글자 수가 실제 보이는 폭보다 길어서 절반으로 쳐요.
-  let n = 0;
-  const parts = s.split("$");
-  for (let i = 0; i < parts.length; i++) n += i % 2 === 1 ? Math.ceil(parts[i].length / 2) : parts[i].length;
-  return n;
+  return s.length;
 }
 
 function lenWeight(s: string): number {
@@ -49,8 +50,11 @@ export function weightOf(b: LBlock): number {
       return Array.isArray(b.tex) ? Math.max(1, b.tex.length) : 1;
     case "term":
       return textLen(b.def) > 120 ? 2 : 1;
-    case "callout":
-      return 1 + (textLen(b.text) > 120 ? 1 : 0);
+    case "callout": {
+      // 긴 이야기 상자(스토리 보기)는 길이에 따라 무게를 더해요
+      const n = textLen(b.text);
+      return Math.min(6, n <= 120 ? 1 : n <= 260 ? 2 : n <= 420 ? 3 : n <= 640 ? 4 : n <= 900 ? 5 : 6);
+    }
     case "table":
       return Math.min(6, 1 + Math.ceil(b.rows.length / 2));
     case "list": {
@@ -60,6 +64,10 @@ export function weightOf(b: LBlock): number {
     }
     case "dialog":
       return Math.max(1, Math.ceil(b.lines.length / 2));
+    case "code":
+      return Math.min(6, Math.max(1, Math.ceil(codeLineCount(b.code) / 5)));
+    case "image":
+      return 3;
     case "example":
       return 6;
     case "widget":
@@ -69,7 +77,7 @@ export function weightOf(b: LBlock): number {
 
 const isAlone = (b: LBlock) => b.t === "example" || b.t === "widget";
 const isAha = (b: LBlock) => b.t === "callout" && b.kind === "aha";
-const isGlued = (b: LBlock) => b.t === "math" || b.t === "table" || b.t === "list";
+const isGlued = (b: LBlock) => b.t === "math" || b.t === "table" || b.t === "list" || b.t === "code";
 
 export function splitSection<B extends LBlock>(blocks: readonly B[], opts: SplitSectionOptions = {}): SectionCard<B>[] {
   const budget = opts.budget && opts.budget > 0 ? opts.budget : 6;

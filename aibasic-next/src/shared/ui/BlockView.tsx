@@ -1,11 +1,12 @@
 // 콘텐츠 블록 하나를 그려요(학생 카드·칠판 장면·준비 화면·인쇄 공용).
-//   p → 문단(줄 안 KaTeX) · math → MathBlock · table → StackTable · term → TermView
+//   p → 문단 · math → MathBlock · code → CodeBlock · table → StackTable · term → TermView
 //   callout → Callout · example → StepReveal · dialog → Bubbles · widget → WidgetSlot · list → 목록
 // where/path 를 주면 data/overrides/tone.json 의 칩(예: "가상의 예")을 붙여요.
 import type { Block, Surface, WidgetEvent } from "../contracts.ts";
 import { chips as chipsOf } from "../../content/overrides.ts";
 import { Rich } from "./tex.tsx";
 import { MathBlock } from "./MathBlock.tsx";
+import { CodeBlock } from "./CodeBlock.tsx";
 import { StackTable } from "./StackTable.tsx";
 import { TermView } from "./Term.tsx";
 import { Callout } from "./Callout.tsx";
@@ -50,6 +51,8 @@ export function BlockView(props: BlockViewProps) {
       );
     case "math":
       return <MathBlock tex={b.tex} surface={sf} />;
+    case "code":
+      return <CodeBlock code={b.code} lang={b.lang} surface={sf} />;
     case "table":
       return <StackTable head={b.head} rows={b.rows} caption={b.caption} surface={sf} />;
     case "term":

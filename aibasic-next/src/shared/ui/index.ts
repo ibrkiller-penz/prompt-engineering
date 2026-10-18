@@ -3,6 +3,7 @@ export { Tex, Rich } from "./tex.tsx";
 export type { RichProps } from "./tex.tsx";
 export { UiSurfaceContext, useUiSurface, useOverflowX } from "./surface.ts";
 export { MathBlock } from "./MathBlock.tsx";
+export { CodeBlock } from "./CodeBlock.tsx";
 export { StackTable } from "./StackTable.tsx";
 export { TermView, TermPopup, TermButton } from "./Term.tsx";
 export { Callout } from "./Callout.tsx";
