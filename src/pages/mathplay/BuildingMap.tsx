@@ -1,6 +1,6 @@
 import { ART, FLOORS, GAMES, type Floor } from "./games/registry";
 
-/** 첫 화면 그림: 3층짜리 ‘수학 놀이터’ 건물. 층을 누르면 그 층 게임으로 간다. */
+/** 첫 화면 그림: 3층짜리 ‘온라인 수학 체험’ 건물. 층을 누르면 그 층 게임으로 간다. */
 export default function BuildingMap({ onPick, stars }: { onPick: (f: Floor) => void; stars: Record<Floor, [number, number]> }) {
   const order = [...FLOORS].reverse(); // 위에서부터 3층 → 1층
   const W = 420;
@@ -9,7 +9,7 @@ export default function BuildingMap({ onPick, stars }: { onPick: (f: Floor) => v
   const n = FLOORS.length;
   const H = top + n * fh + 56;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full select-none" role="group" aria-label="수학 놀이터 건물. 층을 누르면 그 층 게임으로 가요">
+    <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full select-none" role="group" aria-label="온라인 수학 체험 건물. 층을 누르면 그 층 게임으로 가요">
       <defs>
         {FLOORS.map((f) => (
           <linearGradient key={f.key} id={`bm-${f.key}`} x1="0" y1="0" x2="1" y2="1">
