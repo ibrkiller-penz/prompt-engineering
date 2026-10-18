@@ -428,3 +428,6 @@ html[data-surface="board"] .bdq-passage .ui-code .ui-code-tag { font-size: 22px;
 html[data-surface="board"] .bdq.has-pass.has-panel .bdq-passage .ui-qpassage { max-height: 170px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 /* 아주 긴 제시문(info() 출력 같은 코드 글)은 높이를 가둬요(안에서 스크롤) */
 html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height: 250px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+html[data-surface="board"] .bdq.has-pass .bdq-opts.is-long, html[data-surface="board"] .bdq.has-pass .bdq-opts.is-grid { grid-auto-rows: minmax(52px, 1fr); }
+html[data-surface="board"] .bdq.has-pass .bdq-opt-main { min-height: 40px; }
+html[data-surface="board"] .bdq.has-pass .bdq-passage .ui-qpassage { max-height: 230px; }
