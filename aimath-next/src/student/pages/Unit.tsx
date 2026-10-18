@@ -7,7 +7,7 @@ import { INDEX, unitMeta, useUnit } from "../../content/index.ts";
 import { Icon, UnitIcon } from "../../shared/icons/index.ts";
 import { ProgressBar, Rich } from "../../shared/ui/index.ts";
 import { CardDeck } from "../shell/CardDeck.tsx";
-import { Loading, NotFoundBody, Screen, useDocTitle } from "../shell/Shell.tsx";
+import { Loading, NotFoundBody, PageHead, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { MASTERY_LABEL, countOf, isOk, isTried, lessonPercent, masteryOf, setLast, statusOf, unitStatusOf, useQ, useRead } from "../store/index.ts";
 import { QRun } from "./QRun.tsx";
 import { UnitStories, UnitStoriesAfter } from "./UnitStories.tsx";
@@ -39,84 +39,92 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
   const unitHref = href(STUDENT_ROUTES.unit, { n: num });
 
   return (
-    <Screen title={u.roman + ". " + u.title} eyebrow={"단원 " + u.roman} tab="unit" unitHref={unitHref} backTo="/">
+    <Screen title="단원" code={u.roman} tab="unit" unitHref={unitHref} backTo="/">
       <div className="page s-unit-page">
-        <UnitStories n={num} />
+        <PageHead eyebrow={"단원 " + u.roman} title={u.title} sub={u.short} />
 
         <nav className="s-unit-tabs" aria-label="단원 고르기">
           {INDEX.units.map((x) => (
-            <a key={x.id} className={"chip s-unit-chip" + (x.id === num ? " is-accent" : "")} href={href(STUDENT_ROUTES.unit, { n: x.id })} aria-current={x.id === num ? "page" : undefined}>
-              {x.id}단원
+            <a key={x.id} className={"s-unit-chip" + (x.id === num ? " is-on" : "")} data-unit={x.slug} href={href(STUDENT_ROUTES.unit, { n: x.id })} aria-current={x.id === num ? "page" : undefined} aria-label={x.id + "단원 " + x.title}>
+              <span className="num-chip" aria-hidden="true">
+                {x.id}
+              </span>
+              <span className="s-unit-chip-t">{x.roman}</span>
             </a>
           ))}
         </nav>
 
-        <header className="row nowrap s-unit-head">
-          <UnitIcon unit={num} badge size="lg" />
-          <div className="grow">
-            <p className="h3">{u.short}</p>
-            {st ? <ProgressBar value={st.percent} max={100} label={"단원 진행 " + st.percent + "%"} /> : null}
-            <p className="small s-unit-sub">
-              레슨 {st ? st.done : 0}/{u.lessonIds.length} 완료
-            </p>
-            <p className="small s-unit-next">
-              {nextLid ? (
-                <>
-                  다음 레슨: <strong>{INDEX.lessons[nextLid].code} {INDEX.lessons[nextLid].title}</strong>
-                </>
-              ) : (
-                "이 단원의 레슨을 모두 마쳤어요."
-              )}
-            </p>
-            {nextLid ? (
-              <a className="btn btn-primary s-unit-go" href={href(STUDENT_ROUTES.lesson, { lid: nextLid })}>
-                {nextStarted ? "이어서 공부하기" : "시작하기"}
-              </a>
-            ) : null}
+        <section className="card s-unit-head" aria-label="이 단원의 진행">
+          <div className="row nowrap s-unit-head-row">
+            <UnitIcon unit={num} badge size="lg" />
+            <div className="grow">
+              {st ? <ProgressBar value={st.percent} max={100} label={"단원 진행 " + st.percent + "%"} /> : null}
+              <p className="s-unit-sub">
+                레슨 {st ? st.done : 0}/{u.lessonIds.length} 완료 · 진행 {st ? st.percent : 0}%
+              </p>
+            </div>
           </div>
-        </header>
+          <p className="s-unit-next">
+            {nextLid ? (
+              <>
+                다음 레슨 <strong>{INDEX.lessons[nextLid].code} {INDEX.lessons[nextLid].title}</strong>
+              </>
+            ) : (
+              "이 단원의 레슨을 모두 마쳤어요."
+            )}
+          </p>
+          {nextLid ? (
+            <a className="btn btn-primary btn-block s-unit-go" href={href(STUDENT_ROUTES.lesson, { lid: nextLid })}>
+              <span>{nextStarted ? "이어서 공부하기" : "시작하기"}</span>
+              <Icon name="next" />
+            </a>
+          ) : null}
+        </section>
 
-        <ol className="s-lessons" aria-label="레슨">
-          {u.lessonIds.map((lid) => {
-            const m = INDEX.lessons[lid];
-            const ls = statusOf(lid, q, read);
-            const ms = masteryOf(lid, q, read);
-            const p = ls ? lessonPercent(ls) : 0;
-            return (
-              <li key={lid}>
-                <a className="card card-link s-lesson-card" href={href(STUDENT_ROUTES.lesson, { lid })}>
-                  <div className="row between nowrap">
-                    <span className="eyebrow">{m.code}</span>
-                    <span className={"chip " + MASTERY_CHIP[ms]}>
-                      {ms >= 2 ? "✓ " : ""}
-                      {MASTERY_LABEL[ms]}
+        <section className="s-sec" aria-labelledby="h-lessons">
+          <h2 id="h-lessons" className="s-sec-title">
+            레슨
+          </h2>
+          <ol className="s-lessons" aria-label="레슨">
+            {u.lessonIds.map((lid) => {
+              const m = INDEX.lessons[lid];
+              const ls = statusOf(lid, q, read);
+              const ms = masteryOf(lid, q, read);
+              const p = ls ? lessonPercent(ls) : 0;
+              return (
+                <li key={lid}>
+                  <a className="card card-link s-lesson-card" href={href(STUDENT_ROUTES.lesson, { lid })}>
+                    <div className="row between nowrap">
+                      <span className="num-chip">{m.code}</span>
+                      <span className={"chip " + MASTERY_CHIP[ms]}>
+                        {ms >= 2 ? "✓ " : ""}
+                        {MASTERY_LABEL[ms]}
+                      </span>
+                    </div>
+                    <strong className="s-lesson-title">{m.title}</strong>
+                    <span className="s-lesson-short">{m.short}</span>
+                    <ProgressBar value={p} max={100} label={m.code + " 진행 " + p + "%"} />
+                    <span className="s-unit-sub">
+                      개념 {ls ? ls.sectionsRead : 0}/{m.sections.length} · 기본 문제 {ls ? ls.basic.tried : 0}/{m.basicIds.length} · 약 {m.minutes}분
                     </span>
-                  </div>
-                  <strong className="h3 s-lesson-title">{m.title}</strong>
-                  <span className="small muted">{m.short}</span>
-                  <ProgressBar value={p} max={100} label={m.code + " 진행 " + p + "%"} />
-                  <span className="small s-unit-sub">
-                    개념 {ls ? ls.sectionsRead : 0}/{m.sections.length} · 기본 문제 {ls ? ls.basic.tried : 0}/{m.basicIds.length} · 약 {m.minutes}분
-                  </span>
-                </a>
-              </li>
-            );
-          })}
-        </ol>
-
-        <UnitStoriesAfter n={num} />
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
 
         {u.testIds.length ? (
           <section className="card s-challenge" aria-labelledby="h-chal">
             <div className="row between nowrap">
-              <h2 id="h-chal" className="h3">
+              <h2 id="h-chal" className="s-sec-title">
                 단원 마무리 도전
               </h2>
               <span className="s-stars" role="img" aria-label={"별 3개 중 " + stars + "개"}>
                 {starText(stars)}
               </span>
             </div>
-            <p className="small muted">
+            <p className="small">
               {u.testIds.length}문제 · 풀어 봄 {t.tried} · 맞힘 {t.ok}. 모두 풀고 60% 이상이면 별 하나, 80% 이상이면 둘, 모두 맞히면 셋이에요.
             </p>
             <a className="btn btn-primary btn-block" href={href(STUDENT_ROUTES.unit, { n: num }, { test: firstUntried(u.testIds, q) })}>
@@ -124,6 +132,9 @@ export default function UnitPage({ n, query }: { n: string; query: Record<string
             </a>
           </section>
         ) : null}
+
+        <UnitStories n={num} />
+        <UnitStoriesAfter n={num} />
       </div>
     </Screen>
   );
@@ -155,8 +166,8 @@ function UnitTest({ n, at }: { n: number; at: string }) {
   return (
     <CardDeck
       cardKey={"t" + i}
-      title="단원 마무리 도전"
-      eyebrow={u.roman + ". " + u.short}
+      title="마무리 도전"
+      code={u.roman}
       backTo={back.slice(1)}
       pos={i < ids.length ? i + 1 + " / " + ids.length + "문제" : "결과"}
       onPrev={i > 0 ? () => to(i - 1) : null}

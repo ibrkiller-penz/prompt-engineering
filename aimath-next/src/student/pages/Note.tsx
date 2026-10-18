@@ -6,7 +6,7 @@ import { href } from "../../shared/router/index.ts";
 import { INDEX } from "../../content/index.ts";
 import { Icon } from "../../shared/icons/index.ts";
 import { Rich } from "../../shared/ui/index.ts";
-import { Loading, Screen, useDocTitle } from "../shell/Shell.tsx";
+import { Loading, PageHead, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { daysUntil, isUnitTestQ, lessonOfQ, noteList, reviewToday, useQ, type NoteState } from "../store/index.ts";
 import { QRun } from "./QRun.tsx";
 import { nextReviewText, shortPrompt } from "./student.logic.ts";
@@ -35,25 +35,32 @@ export default function NotePage({ query }: { query: Record<string, string> }) {
 
   return (
     <Screen title="오답노트" noBack tab="note">
-      <div className="page stack">
-        <a className={"card card-link row nowrap s-review-cta" + (rv.length ? " card-hero" : "")} href={href(STUDENT_ROUTES.review)}>
-          <Icon name="review" />
+      <div className="page s-notepage">
+        <PageHead eyebrow="틀린 문제 모음" title="오답노트" sub="다시 풀면서 내 것으로 만들어요." />
+        <a className={"card card-link row nowrap s-review-cta" + (rv.length ? " has-todo" : "")} href={href(STUDENT_ROUTES.review)}>
+          <span className="s-review-ico" aria-hidden="true">
+            <Icon name="review" />
+          </span>
           <span className="grow">
             <strong>오늘의 복습</strong>
-            <span className="tiny muted s-block">{rv.length ? rv.length + "문제가 기다려요(하루 최대 5문제)" : "오늘 복습할 문제가 없어요"}</span>
+            <span className="s-review-sub">{rv.length ? rv.length + "문제가 기다려요(하루 최대 5문제)" : "오늘 복습할 문제가 없어요"}</span>
           </span>
           <Icon name="next" />
         </a>
 
         <div className="s-seg" role="tablist" aria-label="오답노트 칸">
-          {TABS.map((t) => (
+          {TABS.map((t, i) => (
             <a key={t.id} role="tab" aria-selected={tab === t.id} className={"s-seg-btn" + (tab === t.id ? " is-on" : "")} href={href(STUDENT_ROUTES.note, {}, { tab: t.id === "todo" ? undefined : t.id })}>
-              {t.name} <span className="s-count">{count(t.id)}</span>
+              <span className="num-chip s-seg-n" aria-hidden="true">
+                {i + 1}
+              </span>
+              <span className="s-seg-t">{t.name}</span>
+              <span className="s-count">{count(t.id)}</span>
             </a>
           ))}
         </div>
-        <p className="small muted s-note-tabdesc">{TABS.filter((t) => t.id === tab)[0].desc}</p>
-        <ul className="small s-note-tabs-all">
+        <p className="s-note-tabdesc">{TABS.filter((t) => t.id === tab)[0].desc}</p>
+        <ul className="s-note-tabs-all">
           <li>
             <strong>아직</strong> = 다시 맞혀야 하는&nbsp;문제예요
           </li>
@@ -82,17 +89,17 @@ export default function NotePage({ query }: { query: Record<string, string> }) {
               const lm = lid ? INDEX.lessons[lid] : null;
               const secTitle = lm && sec >= 0 && lm.sections[sec] ? "개념 " + (sec + 1) + " · " + stripNum(lm.sections[sec].heading) : "";
               return (
-                <li key={it.id} className="card s-note">
+                <li key={it.id} className={"card s-note is-" + tab}>
                   <div className="row between nowrap">
-                    <span className="eyebrow">{f ? f.where : it.id}</span>
-                    <span className="tiny muted">다시 본 횟수 {it.wrong}</span>
+                    <span className="s-note-where">{f ? f.where : it.id}</span>
+                    <span className="s-note-cnt">다시 본 횟수 {it.wrong}</span>
                   </div>
                   {secTitle ? (
                     <p className="small s-note-sec">
                       <Rich text={secTitle} />
                     </p>
                   ) : null}
-                  <p className="tiny muted s-note-due">{nextReviewText(it.state, it.due ? daysUntil(it.due, now) : -1)}</p>
+                  <p className="s-note-due">{nextReviewText(it.state, it.due ? daysUntil(it.due, now) : -1)}</p>
                   {f ? (
                     isOpen ? (
                       <QRun q={f.q} showNew={false} />

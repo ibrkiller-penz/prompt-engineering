@@ -27,6 +27,7 @@ import "./today/today.css";
 import "./find/find.css";
 import.meta.glob("./styles/board.css", { eager: true });
 import.meta.glob("./styles/print.css", { eager: true });
+import "./styles/frev.css";
 
 markTeacher();
 mountTeacherIcons();

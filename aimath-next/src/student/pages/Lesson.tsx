@@ -7,7 +7,7 @@ import { formatHash, href, navigate } from "../../shared/router/index.ts";
 import { INDEX, lessonMeta, useLesson } from "../../content/index.ts";
 import { Icon } from "../../shared/icons/index.ts";
 import { ProgressBar, Rich } from "../../shared/ui/index.ts";
-import { Loading, NotFoundBody, Screen, useDocTitle } from "../shell/Shell.tsx";
+import { Loading, NotFoundBody, PageHead, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { MASTERY_LABEL, acceptAssignment, corePath, getPos, isTried, masteryOf, sectionChecks, statusOf, useAssigned, useQ, useRead, useSeen } from "../store/index.ts";
 import { buildDeck, firstStepId } from "./deck.logic.ts";
 
@@ -65,8 +65,8 @@ export default function LessonPage({ lid, query }: { lid: string; query: Record<
 
   return (
     <Screen
-      title={meta.title}
-      eyebrow={meta.code}
+      title="레슨"
+      code={meta.code}
       backTo={unitHref.slice(1)}
       unitHref={unitHref}
       action={
@@ -99,34 +99,35 @@ export default function LessonPage({ lid, query }: { lid: string; query: Record<
           </div>
         ) : null}
 
-        <header className="stack tight">
-          <p className="small muted">{meta.subtitle}</p>
-          <div className="row">
-            <span className={"chip" + (ms >= 2 ? " is-ok" : ms === 1 ? " is-warn" : "")}>
-              {ms >= 2 ? "✓ " : ""}
-              {MASTERY_LABEL[ms]}
-            </span>
-            <span className="chip">약 {meta.minutes}분</span>
-          </div>
-          {posLabel ? <p className="small muted">마지막으로 본 곳: {posLabel}</p> : null}
-        </header>
+        <PageHead eyebrow={"레슨 " + meta.code} title={meta.title} sub={meta.subtitle} />
+        <div className="row s-lesson-meta">
+          <span className={"chip" + (ms >= 2 ? " is-ok" : ms === 1 ? " is-warn" : "")}>
+            {ms >= 2 ? "✓ " : ""}
+            {MASTERY_LABEL[ms]}
+          </span>
+          <span className="chip">약 {meta.minutes}분</span>
+        </div>
+        {posLabel ? <p className="s-lesson-last">마지막으로 본 곳: {posLabel}</p> : null}
 
-        <section className="card card-hero" aria-labelledby="h-q">
-          <h2 id="h-q" className="eyebrow">
+        <section className="why-card s-core" aria-labelledby="h-q">
+          <h2 id="h-q" className="why-label">
             오늘의 핵심 질문
           </h2>
-          <p className="h3 s-core-q">
+          <p className="s-core-q">
             <Rich text={meta.question} />
           </p>
         </section>
 
-        <section aria-labelledby="h-goal">
-          <h2 id="h-goal" className="section-title">
+        <section className="s-sec" aria-labelledby="h-goal">
+          <h2 id="h-goal" className="s-sec-title">
             오늘 배울 것
           </h2>
           <ol className="s-goals">
             {meta.sections.map((s, i) => (
               <li key={i} className={readL.indexOf(i) >= 0 ? "is-done" : undefined}>
+                <span className="num-chip s-goal-n" aria-hidden="true">
+                  {i + 1}
+                </span>
                 <a href={href(STUDENT_ROUTES.card, { lid, step: "c" + (i + 1), card: 1 })}>
                   <Rich text={stripNum(s.heading)} />
                 </a>
@@ -136,21 +137,20 @@ export default function LessonPage({ lid, query }: { lid: string; query: Record<
           </ol>
         </section>
 
-        <section aria-labelledby="h-stage">
-          <h2 id="h-stage" className="section-title">
+        <section className="s-sec" aria-labelledby="h-stage">
+          <h2 id="h-stage" className="s-sec-title">
             4단계로 공부해요
           </h2>
           <ol className="s-stages">
             {stages.map((s, i) => (
               <li key={s.key}>
                 <a className="card card-link row nowrap s-stage" href={s.to}>
-                  <span className="s-stage-n" aria-hidden="true">
+                  <span className="num-chip s-stage-n" aria-hidden="true">
                     {i + 1}
                   </span>
-                  <Icon name={s.icon} />
                   <span className="grow">
-                    <strong>{s.name}</strong>
-                    <span className="tiny muted s-block">{s.note}</span>
+                    <strong className="s-stage-name">{s.name}</strong>
+                    <span className="s-stage-note">{s.note}</span>
                   </span>
                   {s.done ? <span className="verdict ok small">끝</span> : <Icon name="next" />}
                 </a>
@@ -160,7 +160,7 @@ export default function LessonPage({ lid, query }: { lid: string; query: Record<
         </section>
 
         <section className="card" aria-labelledby="h-done">
-          <h2 id="h-done" className="h3">
+          <h2 id="h-done" className="s-sec-title">
             완료 조건
           </h2>
           {st ? (
@@ -199,7 +199,7 @@ export default function LessonPage({ lid, query }: { lid: string; query: Record<
             </a>
           ) : null}
         </nav>
-        <p className="tiny muted center">
+        <p className="small center s-foot">
           <a href={formatHash("/l/" + lid + "/q/more")}>더 풀기(실력·도전 문제)</a>
         </p>
       </div>

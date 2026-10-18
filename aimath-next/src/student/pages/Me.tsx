@@ -6,9 +6,10 @@ import { href } from "../../shared/router/index.ts";
 import { INDEX } from "../../content/index.ts";
 import { Icon, UnitIcon } from "../../shared/icons/index.ts";
 import { PrefsPanel, ProgressBar } from "../../shared/ui/index.ts";
-import { Screen, useDocTitle } from "../shell/Shell.tsx";
+import { PageHead, Screen, useDocTitle } from "../shell/Shell.tsx";
 import { MASTERY_LABEL, exportBackup, importBackup, masteryOf, overall, resetAll, unitStatusOf, useQ, useRead, useTools } from "../store/index.ts";
 import { pct } from "./student.logic.ts";
+import { TEACHER_URL } from "../../site.ts";
 
 function download(name: string, text: string): boolean {
   try {
@@ -67,30 +68,31 @@ export default function MePage() {
 
   return (
     <Screen title="내 기록" noBack tab="me">
-      <div className="page stack-lg">
+      <div className="page s-mepage">
+        <PageHead eyebrow="나의 공부" title="내 기록" sub="이 기기에서 공부한 기록이에요." />
         <section className="card" aria-labelledby="h-sum">
-          <h2 id="h-sum" className="h3">
+          <h2 id="h-sum" className="s-sec-title">
             전체 진행
           </h2>
           <ProgressBar value={sum.complete} max={sum.lessons} label={"레슨 " + sum.lessons + "개 중 " + sum.complete + "개 완료"} showText />
           <div className="s-stats">
             <p>
               <span className="bignum s-stat">{pct(sum.complete, sum.lessons)}%</span>
-              <span className="tiny muted s-block">끝낸 레슨</span>
+              <span className="s-block">끝낸 레슨</span>
             </p>
             <p>
               <span className="bignum s-stat">{sum.ok}</span>
-              <span className="tiny muted s-block">맞힌 문제</span>
+              <span className="s-block">맞힌 문제</span>
             </p>
             <p>
               <span className="bignum s-stat">{toolDone}</span>
-              <span className="tiny muted s-block">체험 미션 완료</span>
+              <span className="s-block">체험 미션 완료</span>
             </p>
           </div>
         </section>
 
-        <section aria-labelledby="h-units">
-          <h2 id="h-units" className="section-title">
+        <section className="s-sec" aria-labelledby="h-units">
+          <h2 id="h-units" className="s-sec-title">
             단원별 레슨
           </h2>
           <div className="stack">
@@ -104,7 +106,7 @@ export default function MePage() {
                       <strong>
                         {u.roman}. {u.title}
                       </strong>
-                      <span className="tiny muted s-block">
+                      <span className="s-block s-me-sub">
                         레슨 {st ? st.done : 0}/{u.lessonIds.length} 완료 · 진행 {st ? st.percent : 0}%
                       </span>
                     </span>
@@ -135,7 +137,7 @@ export default function MePage() {
         </section>
 
         <section className="card stack" aria-labelledby="h-file">
-          <h2 id="h-file" className="h3">
+          <h2 id="h-file" className="s-sec-title">
             기록 파일
           </h2>
           <p className="small">기록은 이 기기의 브라우저에만 있어요. 기기를 바꾸거나 브라우저 기록을 지우기 전에 파일로 저장해 두면 안심이에요.</p>
@@ -158,14 +160,14 @@ export default function MePage() {
         </section>
 
         <section className="card" aria-labelledby="h-prefs">
-          <h2 id="h-prefs" className="h3">
+          <h2 id="h-prefs" className="s-sec-title">
             읽기 설정
           </h2>
           <PrefsPanel />
         </section>
 
         <section className="card stack" aria-labelledby="h-reset">
-          <h2 id="h-reset" className="h3">
+          <h2 id="h-reset" className="s-sec-title">
             기록 지우기
           </h2>
           <p className="small">이 기기에 남은 학습 기록과 설정을 모두 지워요. 되돌릴 수 없어요.</p>
@@ -204,6 +206,11 @@ export default function MePage() {
             <Icon name="badge" />
             <span className="grow">응답 카드(수업 중 손들기)</span>
             <Icon name="next" />
+          </a>
+          <a className="list-row" href={TEACHER_URL} rel="noopener">
+            <Icon name="teacher" />
+            <span className="grow">선생님용 사이트</span>
+            <Icon name="link" />
           </a>
         </nav>
       </div>
