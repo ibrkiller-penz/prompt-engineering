@@ -97,7 +97,7 @@ html[data-surface="board"] .bd-stage .bd-curtain-btns { top: 96px; }
 html[data-surface="board"] .bd-stage .bd-h { position: relative; margin: 0 0 24px; padding-left: 0; border-left: 0; color: var(--ink); font-size: 56px; letter-spacing: -.02em; }
 html[data-surface="board"] .bd-stage .bd-h::after {
   content: ""; position: absolute; left: 0; bottom: -16px; width: 112px; height: 6px;
-  background: linear-gradient(90deg, #1f3a6b 0, #1f3a6b 33.3%, #ffffff 33.3%, #ffffff 66.6%, #b9382f 66.6%, #b9382f 100%);
+  background: #1f3a6b;
   box-shadow: 0 0 0 1px var(--line-strong);
 }
 html[data-surface="board"][data-theme="chalk"] .bd-stage .bd-h { border-left: 0; }

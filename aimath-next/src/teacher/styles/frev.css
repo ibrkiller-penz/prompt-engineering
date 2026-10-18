@@ -38,12 +38,12 @@ html[data-site="teacher"] .site-tag { background: transparent; color: var(--bad)
 /* ── 삼색 장식(남·백·적): 깃발 · 제목 아래 짧은 막대 ── */
 .t-flag, .bd-flag { display: inline-flex; flex: 0 0 auto; }
 .t-flag > i, .bd-flag > i { display: block; width: 7px; height: 26px; background: #1f3a6b; }
-.t-flag > i + i, .bd-flag > i + i { background: #ffffff; box-shadow: inset 0 0 0 1px #c9c2ad; }
-.t-flag > i + i + i, .bd-flag > i + i + i { background: #b9382f; box-shadow: none; }
-.t-tribar { display: flex; width: 112px; height: 6px; box-shadow: 0 0 0 1px var(--line); }
+.t-flag > i + i, .bd-flag > i + i { display: none; }
+.t-flag > i + i + i, .bd-flag > i + i + i { display: none; }
+.t-tribar { display: flex; width: 112px; height: 6px; }
 .t-tribar > i { display: block; flex: 1 1 0; background: #1f3a6b; }
-.t-tribar > i + i { background: #ffffff; }
-.t-tribar > i + i + i { background: #b9382f; }
+.t-tribar > i + i { display: none; }
+.t-tribar > i + i + i { display: none; }
 html[data-surface="prep"] .t-find > header .h1::after,
 html[data-surface="prep"] .t-flow-head .h1::after,
 html[data-surface="prep"] .t-pick-head .h1::after,
@@ -53,8 +53,7 @@ html[data-surface="prep"] .t-prog > .h1::after,
 html[data-surface="prep"] .t-res-head .h1::after,
 html[data-surface="prep"] section.page.stack-lg > header .h1::after {
   content: ""; display: block; width: 112px; height: 6px; margin: 16px 0 14px;
-  background: linear-gradient(90deg, #1f3a6b 0, #1f3a6b 33.3%, #ffffff 33.3%, #ffffff 66.6%, #b9382f 66.6%, #b9382f 100%);
-  box-shadow: 0 0 0 1px var(--line);
+  background: #1f3a6b;
 }
 
 /* ════════════════ 위 틀: 72px 얇은 바(브랜드 + 번호 칩 메뉴) ════════════════ */
