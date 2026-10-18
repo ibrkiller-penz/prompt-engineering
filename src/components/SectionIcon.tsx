@@ -218,6 +218,18 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 역사 사건 탐구 — 펼친 책
+  "/history/": {
+    from: "#1f3a6b",
+    to: "#2e7d6b",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 13c6-3 11-3 16 1v22c-5-4-10-4-16-1z" />
+        <path d="M40 13c-6-3-11-3-16 1v22c5-4 10-4 16-1z" />
+        <path d="M13 21h6M13 27h6M29 21h6M29 27h6" strokeWidth="2" />
+      </g>
+    ),
+  },
   // 프랑스 혁명 발표 사이트 — 삼색기 + 연표 점
   "/frev/": {
     from: "#1f3a6b",
