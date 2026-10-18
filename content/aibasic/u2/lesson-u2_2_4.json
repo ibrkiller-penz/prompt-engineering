@@ -295,7 +295,7 @@
             [
               "1단계 **형태소 분석**",
               "문장을 형태소로 나눠요. 단어에 붙은 조사나 접미사 등을 분리해 단어의 기본 형태를 파악해요.",
-              "The / small / dog / quickly / ran / home / to / his / owner / . 로 분리"
+              "The / small / dog / quickly / ran / home / to / his / owner / . 로 분리 (단어 단위로 나눈 예예요. 한국어는 '먹었다' → 먹/었/다처럼 더 잘게 나눠요.)"
             ],
             [
               "2단계 **구문 분석**",
