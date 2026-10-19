@@ -9,14 +9,17 @@
 <meta property="og:url" content="https://aiworld.web.app/submonitor/">
 <title>SUB모니터 제작 레퍼런스</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
+@font-face{font-family:"S-Core Dream";font-weight:400;font-display:swap;src:url("/fonts/S-CoreDream-4Regular.woff") format("woff")}
+@font-face{font-family:"S-Core Dream";font-weight:500;font-display:swap;src:url("/fonts/S-CoreDream-5Medium.woff") format("woff")}
+@font-face{font-family:"S-Core Dream";font-weight:600 700;font-display:swap;src:url("/fonts/S-CoreDream-6Bold.woff") format("woff")}
 /* 레이아웃: 1920×440 스트립 화면을 닮은 가로 띠(헤더 스크린샷) 아래로, 읽는 폭의 본문 + 넓은 표·도식 */
 :root {
   --bg: #f6f4f0; --panel: #ffffff; --ink: #1f2430; --muted: #5d6474; --line: #e2ddd4;
   --accent: #c76a1c; --accent-soft: #f7e6d3; --code-bg: #f1ede6; --ok: #2f7d4f;
-  --f-display: "IBM Plex Sans KR", "Noto Sans KR", "Malgun Gothic", sans-serif;
-  --f-body: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --f-display: "S-Core Dream", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --f-body: "S-Core Dream", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
