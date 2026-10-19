@@ -2787,24 +2787,36 @@ void loop() {
     // 그래서 ① 15초 사이 70mV 넘게 뛰면 '꽂음'으로 보고 그 뛴 만큼(off)을 빼서 계산하고, ② 70mV 넘게 떨어지면 '뺌'.
     // ③ 켤 때부터 꽂혀 있던 경우는 10분 동안 30mV 넘게 오르면 충전 중으로 보고 off 를 보통 값(150mV)으로 둔다.
     // ④ 충전 중 4.15V 이상(보정 전)에서 10분 동안 거의 그대로면 '충전 완료'(100%).
-    static int prev = -1, off = 0, st = 0, shown = -1;           // st: 0 방전 · 1 충전 중 · 2 충전 완료
-    static int hist[11]; static int hn = 0; static uint32_t lastHist = 0;
-    if (!have) { prev = -1; hn = 0; st = 0; off = 0; shown = -1; }
+    static int prev = -1, cand = 0, off = 0, st = 0, shown = -1;   // st: 0 방전 · 1 충전 중 · 2 충전 완료
+    static int hist[21]; static int hn = 0; static uint32_t lastHist = 0;
+    // 와이파이를 켜면 전기를 많이 써서 전압이 내려갔다가, 끄면(또는 화면 불이 꺼지면) 다시 올라온다.
+    // 이것을 '꽂음'으로 잘못 보던 문제(2026-10-19: 안 꽂았는데 충전 중) → 받는 중·끝난 뒤 45초·화면 불이 바뀐 뒤 45초는 판단하지 않는다.
+    static uint32_t calmAt = 0; static bool lastBlOff = false;
+    if (s_sync != SYNC_IDLE || s_blOff != lastBlOff) { calmAt = ms + 45000; lastBlOff = s_blOff; }
+    const bool calm = (int32_t)(ms - calmAt) >= 0;
+    if (!have) { prev = -1; cand = 0; hn = 0; st = 0; off = 0; shown = -1; }
+    else if (!calm) { prev = -1; cand = 0; }                       // 흔들리는 동안은 비교 기준을 버린다
     else {
-      if (prev > 0) {
+      if (cand) {                                                // 지난번에 뛰었다 → 이번에도 높게 남아 있어야 꽂음
+        if (mv - prev >= -20) { st = 1; off = cand; hn = 0; Serial.printf("battery: plugged (+%dmV)\n", cand); }
+        cand = 0;
+      } else if (prev > 0) {
         const int d = mv - prev;
-        if (st == 0 && d >= 70) { st = 1; off = d; hn = 0; Serial.printf("battery: plugged (+%dmV)\n", d); }
+        if (st == 0 && d >= 70) cand = d;
         else if (st != 0 && d <= -70) { st = 0; off = 0; hn = 0; shown = -1; Serial.printf("battery: unplugged (%dmV)\n", d); }
       }
       prev = mv;
-      if (lastHist == 0 || ms - lastHist >= 60000) {             // 1분마다 기록(10분 비교용)
+      if (lastHist == 0 || ms - lastHist >= 60000) {             // 1분마다 기록(10·20분 비교용)
         lastHist = ms;
-        if (hn < 11) hist[hn++] = mv; else { memmove(hist, hist + 1, 10 * sizeof(int)); hist[10] = mv; }
-        if (hn >= 11) {
-          const int d10 = hist[10] - hist[0];
-          if (st == 0 && d10 >= 30) { st = 1; off = 150; }       // 켤 때부터 꽂혀 있었다
-          else if (st == 1 && mv >= 4150 && d10 > -10 && d10 < 15) st = 2;
+        if (hn < 21) hist[hn++] = mv; else { memmove(hist, hist + 1, 20 * sizeof(int)); hist[20] = mv; }
+        const int n = hn;
+        if (n >= 11) {
+          const int a = hist[n - 11], m = hist[n - 6], b = hist[n - 1];
+          // 켤 때부터 꽂혀 있었다: 앞 5분·뒤 5분 모두 꾸준히 올라야(쉬고 난 뒤 잠깐 회복되는 것과 구별)
+          if (st == 0 && m - a >= 15 && b - m >= 15) { st = 1; off = 150; Serial.println("battery: charging (trend)"); }
+          else if (st == 1 && mv >= 4150 && b - a > -10 && b - a < 15) st = 2;
         }
+        if (n >= 21 && st == 1 && hist[20] - hist[0] <= -20) { st = 0; off = 0; shown = -1; Serial.println("battery: not charging (falling)"); }   // 충전 중인데 20분 동안 내려가면 잘못 본 것
       }
     }
     int pct = -1;
