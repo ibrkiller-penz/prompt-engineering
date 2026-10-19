@@ -40,9 +40,9 @@ static const char *FW_VERSION = "0.1.0";
 // 화면 꾸밈: 1 이면 둥근 모서리·그라데이션, 0 이면 각진 모서리·단색(메뉴를 바꿀 때 다시 그리기가 빨라진다)
 #define UI_FANCY 0
 // UI_SOFT: 딱딱하지 않게(2026-10-17 디자인팀 안). 따뜻한 어두운 색 · 큰 카드만 둥근 모서리 · 알약 꼬리표 · 탭 밑줄 · 노란 '지금' 칸.
-// 둥근 모서리는 다시 그리기를 느리게 하므로 반경 10 이상인 큰 면에만 준다(줄·칸·찾기 단추는 각진 채). 7B(1024) 빌드에서 켠다.
+// 둥근 모서리는 다시 그리기를 느리게 하므로 반경 10 이상인 큰 면에만 준다(줄·칸·찾기 단추는 각진 채). 두 보드 모두 켠다.
 #ifndef UI_SOFT
-#define UI_SOFT BOARD_7B
+#define UI_SOFT 1   // 2026-10-19: 800 보드도 켠다(사용자 요청). 글꼴 크기는 big() 이 따로 정한다
 #endif
 static inline int R(int r) { return UI_FANCY ? r : (UI_SOFT && r >= 10 ? r : 0); }
 static inline int RP(int r) { return UI_SOFT ? LV_RADIUS_CIRCLE : R(r); }   // 작은 꼬리표는 알약 모양
