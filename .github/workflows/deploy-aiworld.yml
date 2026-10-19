@@ -1,0 +1,23 @@
+# AI 허브 배포: https://aiworld.web.app
+# main 에 ai-study-hub/aiworld 가 바뀌어 올라가면 자동, 또는 Actions 에서 수동 실행. 비밀값: AI_STUDY_MATH_TOKEN
+name: Deploy aiworld hub
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ai-study-hub/aiworld/**'
+      - 'ai-study-hub/firebase.aiworld.json'
+      - '.github/workflows/deploy-aiworld.yml'
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to aiworld
+        working-directory: ai-study-hub
+        env:
+          FIREBASE_TOKEN: ${{ secrets.AI_STUDY_MATH_TOKEN }}
+        run: |
+          test -n "$FIREBASE_TOKEN" || { echo "AI_STUDY_MATH_TOKEN 비밀값이 없습니다"; exit 1; }
+          npx --yes firebase-tools@13 deploy --only hosting --config firebase.aiworld.json --project ai-study-math --non-interactive
