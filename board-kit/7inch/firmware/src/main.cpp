@@ -2778,24 +2778,51 @@ void loop() {
 
   // 배터리: 켠 뒤 5초, 그 뒤 1분마다 읽는다. 글자는 값이 바뀔 때만 바꾼다(다시 그리기 줄이기). 3.0V 밑이면 배터리 없음으로 보고 숨긴다.
   static uint32_t lastBat = 0;
-  if (BOARD_7B && ms > 5000 && (lastBat == 0 || ms - lastBat > 60000)) {
+  if (BOARD_7B && ms > 5000 && (lastBat == 0 || ms - lastBat > 15000)) {
     lastBat = ms;
     const int mv = ioexp_battery_mv();
-    const int pct = (mv >= 3000 && mv <= 4500) ? batteryPct(mv) : -1;
-    // 충전 여부: 이 보드는 충전 신호(CHRG)를 읽을 수 없다(충전 칩 CS8501 은 LED 만 켠다). 그래서 1분마다 잰 전압을
-    // 10분 전과 비교해 짐작한다. 30mV 넘게 오르면 '충전 중', 4.17V 이상에서 10분 동안 거의 그대로면 '충전 완료'.
-    static int hist[11]; static int hn = 0;
-    if (pct >= 0) { if (hn < 11) hist[hn++] = mv; else { memmove(hist, hist + 1, 10 * sizeof(int)); hist[10] = mv; } } else hn = 0;
-    int chg = 0;   // 0 모름·방전 · 1 충전 중 · 2 충전 완료
-    if (hn >= 11) { const int d = hist[10] - hist[0]; if (d >= 30) chg = 1; else if (mv >= 4170 && d > -15) chg = 2; }
-    Serial.printf("battery %dmV -> %d%% (%s)\n", mv, pct, chg == 1 ? "charging" : chg == 2 ? "full" : "-");
+    const bool have = mv >= 3000 && mv <= 4500;
+    // 충전 여부: 이 보드는 충전 신호(CHRG)를 읽을 수 없다(충전 칩 CS8501 은 LED 만 켠다).
+    // 충전기를 꽂으면 충전 전류 때문에 전압이 0.1~0.3V 뛰어 %가 실제보다 크게 나온다(2026-10-19: 빼면 24%, 꽂으면 60%).
+    // 그래서 ① 15초 사이 70mV 넘게 뛰면 '꽂음'으로 보고 그 뛴 만큼(off)을 빼서 계산하고, ② 70mV 넘게 떨어지면 '뺌'.
+    // ③ 켤 때부터 꽂혀 있던 경우는 10분 동안 30mV 넘게 오르면 충전 중으로 보고 off 를 보통 값(150mV)으로 둔다.
+    // ④ 충전 중 4.15V 이상(보정 전)에서 10분 동안 거의 그대로면 '충전 완료'(100%).
+    static int prev = -1, off = 0, st = 0, shown = -1;           // st: 0 방전 · 1 충전 중 · 2 충전 완료
+    static int hist[11]; static int hn = 0; static uint32_t lastHist = 0;
+    if (!have) { prev = -1; hn = 0; st = 0; off = 0; shown = -1; }
+    else {
+      if (prev > 0) {
+        const int d = mv - prev;
+        if (st == 0 && d >= 70) { st = 1; off = d; hn = 0; Serial.printf("battery: plugged (+%dmV)\n", d); }
+        else if (st != 0 && d <= -70) { st = 0; off = 0; hn = 0; shown = -1; Serial.printf("battery: unplugged (%dmV)\n", d); }
+      }
+      prev = mv;
+      if (lastHist == 0 || ms - lastHist >= 60000) {             // 1분마다 기록(10분 비교용)
+        lastHist = ms;
+        if (hn < 11) hist[hn++] = mv; else { memmove(hist, hist + 1, 10 * sizeof(int)); hist[10] = mv; }
+        if (hn >= 11) {
+          const int d10 = hist[10] - hist[0];
+          if (st == 0 && d10 >= 30) { st = 1; off = 150; }       // 켤 때부터 꽂혀 있었다
+          else if (st == 1 && mv >= 4150 && d10 > -10 && d10 < 15) st = 2;
+        }
+      }
+    }
+    int pct = -1;
+    if (have) {
+      pct = st == 2 ? 100 : batteryPct(mv - (st ? off : 0));
+      if (st == 1 && shown >= 0 && pct < shown) pct = shown;     // 충전 중에는 내려가지 않는다
+      if (st == 0 && shown >= 0 && pct > shown && pct < shown + 5) pct = shown;   // 방전 중 1~4% 흔들림은 무시
+      shown = pct;
+    }
+    const int chg = st;
+    Serial.printf("battery %dmV off %d -> %d%% (%s)\n", mv, st ? off : 0, pct, chg == 1 ? "charging" : chg == 2 ? "full" : "-");
     static int lastChg = -1;
     if ((pct != s_batPct || chg != lastChg) && s_bat) {
       s_batPct = pct; lastChg = chg;
       const char *ic = pct >= 88 ? LV_SYMBOL_BATTERY_FULL : pct >= 63 ? LV_SYMBOL_BATTERY_3 : pct >= 38 ? LV_SYMBOL_BATTERY_2 : pct >= 13 ? LV_SYMBOL_BATTERY_1 : LV_SYMBOL_BATTERY_EMPTY;
       char t[48];
       if (chg == 1) snprintf(t, sizeof t, LV_SYMBOL_CHARGE " %d%% 충전 중", pct);
-      else if (chg == 2) snprintf(t, sizeof t, LV_SYMBOL_CHARGE " %d%% 충전 완료", pct);
+      else if (chg == 2) snprintf(t, sizeof t, LV_SYMBOL_CHARGE " 충전 완료");
       else snprintf(t, sizeof t, "%s %d%%", ic, pct);
       const uint32_t col = chg ? 0x34d399 : pct <= 20 ? 0xfb923c : D_MUTED;
       lock();
