@@ -15,6 +15,16 @@
     ],
     "redirects": [
       {
+        "source": "/history",
+        "destination": "https://penedu-history.web.app/",
+        "type": 301
+      },
+      {
+        "source": "/history/**",
+        "destination": "https://penedu-history.web.app/",
+        "type": 301
+      },
+      {
         "source": "/aimath",
         "destination": "https://ai-study-math.web.app/aimath/",
         "type": 301
