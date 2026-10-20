@@ -32,6 +32,13 @@ export default function Buy() {
           <p className="mt-3 text-sm text-muted">
             제품 설명서: <Ext href="https://docs.waveshare.com/ESP32-S3-Touch-LCD-7">Waveshare 문서</Ext>
           </p>
+          <Callout tone="info" title="해상도가 더 높은 7인치 B도 돼요">
+            <p>
+              <b>ESP32-S3-Touch-LCD-7B</b>는 같은 7인치에 <b>1024×600</b>이라 글자·시계가 한 단계 커요. 배터리 남은 양과 충전 중도 화면에 보여 줘요.
+              같은 키트에서 빌드할 때 보드 종류(<code>board7b</code>)만 고르면 돼요. 두 보드는 화면 부품이 달라서{" "}
+              <b>서로의 프로그램을 바꿔 넣으면 화면이 깨져요</b>.
+            </p>
+          </Callout>
         </section>
 
         <section className="rounded-card border border-line bg-surface p-5">

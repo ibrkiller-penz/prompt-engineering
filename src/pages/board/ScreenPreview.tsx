@@ -2,50 +2,50 @@
 export default function ScreenPreview() {
   const row = (y: number, a: string, b: string, c: string, hot = false) => (
     <g key={y}>
-      <rect x="440" y={y} width="348" height="42" rx="8" fill={hot ? "#f8fafc" : "#1e293b"} stroke={hot ? "#f8fafc" : "#334155"} />
-      <text x="456" y={y + 28} fontSize="20" fontWeight="700" fill={hot ? "#0f172a" : "#94a3b8"}>
+      <rect x="440" y={y} width="348" height="42" rx="8" fill={hot ? "#fff4e0" : "#342c26"} stroke={hot ? "#fbbf24" : "#4a4038"} />
+      <text x="456" y={y + 28} fontSize="20" fontWeight="700" fill={hot ? "#1c1714" : "#b8ab9c"}>
         {a}
       </text>
-      <text x="520" y={y + 28} fontSize="20" fontWeight="700" fill={hot ? "#0f172a" : "#e2e8f0"}>
+      <text x="520" y={y + 28} fontSize="20" fontWeight="700" fill={hot ? "#1c1714" : "#e2d8cc"}>
         {b}
       </text>
-      <text x="772" y={y + 28} fontSize="18" textAnchor="end" fill={hot ? "#334155" : "#94a3b8"}>
+      <text x="772" y={y + 28} fontSize="18" textAnchor="end" fill={hot ? "#4a4038" : "#b8ab9c"}>
         {c}
       </text>
     </g>
   );
   return (
     <figure className="mx-auto w-full max-w-md">
-      <svg viewBox="0 0 800 480" role="img" aria-label="시계 화면 예시: 큰 시계, 날씨, 오늘 시간표" className="w-full rounded-card border-4 border-[#0b1220] bg-[#0b1220] shadow-lg">
-        <rect width="800" height="480" fill="#0f172a" />
-        <rect x="12" y="12" width="416" height="456" rx="14" fill="#111c33" stroke="#1e293b" />
+      <svg viewBox="0 0 800 480" role="img" aria-label="시계 화면 예시: 큰 시계, 날씨, 오늘 시간표" className="w-full rounded-card border-4 border-[#120e0c] bg-[#120e0c] shadow-lg">
+        <rect width="800" height="480" fill="#1c1714" />
+        <rect x="12" y="12" width="416" height="456" rx="14" fill="#26201c" stroke="#342c26" />
         <text x="220" y="120" fontSize="104" fontWeight="800" textAnchor="middle" fill="#f8fafc" letterSpacing="2">
           10:25
         </text>
-        <text x="220" y="156" fontSize="22" fontWeight="600" textAnchor="middle" fill="#cbd5e1">
+        <text x="220" y="156" fontSize="22" fontWeight="600" textAnchor="middle" fill="#e2d8cc">
           10월 6일 화요일
         </text>
-        <rect x="32" y="170" width="376" height="86" rx="12" fill="#1e293b" />
-        <text x="52" y="204" fontSize="18" fill="#94a3b8">
+        <rect x="32" y="170" width="376" height="86" rx="12" fill="#342c26" />
+        <text x="52" y="204" fontSize="18" fill="#b8ab9c">
           오늘
         </text>
         <text x="52" y="240" fontSize="32" fontWeight="800" fill="#f8fafc">
           ☀ 21°
         </text>
-        <text x="232" y="204" fontSize="18" fill="#94a3b8">
+        <text x="232" y="204" fontSize="18" fill="#b8ab9c">
           내일
         </text>
         <text x="232" y="240" fontSize="32" fontWeight="800" fill="#f8fafc">
           ⛅ 24°
         </text>
-        <rect x="32" y="268" width="376" height="100" rx="12" fill="#1e293b" />
-        <text x="52" y="298" fontSize="18" fill="#94a3b8">
+        <rect x="32" y="268" width="376" height="100" rx="12" fill="#342c26" />
+        <text x="52" y="298" fontSize="18" fill="#b8ab9c">
           오늘 할 일
         </text>
-        <text x="52" y="328" fontSize="20" fill="#e2e8f0">
+        <text x="52" y="328" fontSize="20" fill="#e2d8cc">
           급식지도 12:30
         </text>
-        <text x="52" y="354" fontSize="20" fill="#e2e8f0">
+        <text x="52" y="354" fontSize="20" fill="#e2d8cc">
           점심 · 잡곡밥, 미역국
         </text>
         <rect x="32" y="384" width="376" height="62" rx="10" fill="#dc2626" />
@@ -62,7 +62,7 @@ export default function ScreenPreview() {
         {row(256, "5", "국어", "301")}
         {row(304, "6", "지도", "자습")}
         {row(352, "7", "동아리", "도서관")}
-        <text x="788" y="466" fontSize="15" textAnchor="end" fill="#475569">
+        <text x="788" y="466" fontSize="15" textAnchor="end" fill="#8a7d70">
           샘플 자료 · 가짜 이름
         </text>
       </svg>

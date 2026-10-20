@@ -38,7 +38,22 @@ export default function Help() {
           [
             "월~목만 보이고 금요일이 잘려요",
             "화면 크기 설정이 보드와 안 맞음",
-            <>7인치는 <b>800×480</b>이에요. 펌웨어의 해상도 설정(<code>ESP_PANEL_USE_1024_600_LCD</code>)이 0인지 확인해요. 4인치는 480×480 고정이에요.</>,
+            <>7인치는 <b>800×480</b>이에요. 펌웨어의 해상도 설정(<code>ESP_PANEL_USE_1024_600_LCD</code>)이 0인지 확인해요. 7인치 B(1024×600)는 빌드 환경 <code>board7b</code> 로 빌드해요. 4인치는 480×480 고정이에요.</>,
+          ],
+          [
+            "비밀번호를 모르는 와이파이를 잘못 골랐어요",
+            "—",
+            <>비밀번호 창의 <b>[취소]</b>를 누르거나, 창 바깥 어두운 곳을 누르거나, 빈 칸으로 입력을 눌러요. 빈 비밀번호는 저장하지 않아요.</>,
+          ],
+          [
+            <>와이파이가 <code>ESP_ERR_NO_MEM</code> 으로 아예 안 켜져요 (7인치 B)</>,
+            "화면 물체가 늘어 칩 안쪽 RAM이 조각남",
+            <>키트의 <code>lv_psram_alloc.h</code> 처럼 화면 물체(LVGL)를 PSRAM에서 받게 해요. 키트에 이미 반영돼 있어요.</>,
+          ],
+          [
+            "새 화면을 넣었더니 몇십 초마다 다시 켜져요",
+            <>기록에 <code>Stack canary watchpoint triggered (loopTask)</code> — 작업 공간(스택) 넘침</>,
+            <>큰 배열을 함수 안에 두지 말고 <code>static</code> 으로, 필요하면 <code>SET_LOOP_TASK_STACK_SIZE(16 * 1024)</code>. 키트에 이미 반영돼 있어요.</>,
           ],
           [
             <>HTTPS가 <code>SSL - Memory allocation failed</code> 로 모두 실패해요</>,

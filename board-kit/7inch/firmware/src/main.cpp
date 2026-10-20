@@ -62,7 +62,7 @@ static const lv_font_t *FTEMP() { return big() ? &num44 : &num36; }        // �
 static const char *PERIOD_START[7] = {"08:40", "09:40", "10:40", "11:40", "13:30", "14:40", "15:40"};
 static const char *DOW[5] = {"월", "화", "수", "목", "금"};
 
-// ── 색 ── (UI_SOFT 이면 차가운 남색·회색 대신 따뜻한 갈색·크림. 동래 주색·종류색은 그대로)
+// ── 색 ── (UI_SOFT 이면 차가운 남색·회색 대신 따뜻한 갈색·크림. 학교 주색·종류색은 그대로)
 #if UI_SOFT
 #define C_PRIMARY 0xdc2626
 #define C_PRIMARY50 0xfef2f2
