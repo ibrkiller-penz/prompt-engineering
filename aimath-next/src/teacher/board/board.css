@@ -518,7 +518,7 @@ html.kbd .bd-end-morebtn:focus { outline: 6px solid var(--focus, #1d4ed8); outli
 /* 정답·힌트·풀이 칸은 머리 아래부터 공개 단추 줄 위까지 세로로 다 쓰고, 너비는 넘치면 자동으로 넓어져요(Question.tsx PANEL_W) */
 .bdq-mid.is-split > .bdq-panel { flex: 0 0 var(--bdq-pw, 38%); max-height: none; margin: 12px 0 0 20px; padding-right: 0; box-sizing: border-box; }
 .bdq.is-split .bdq-opts.is-grid, .bdq.is-split .bdq-opts.is-long { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); grid-gap: 10px; }
-.bdq.is-split .bdq-opt { padding: 6px 14px 8px 16px; border-radius: 18px; }
+.bdq.is-split .bdq-opt { padding: 6px 8px 8px 10px; border-radius: 18px; }
 .bdq.is-split .bdq-opt-main { flex-wrap: nowrap; min-height: 0; }
 .bdq.is-split .bdq-opt-main > * + * { margin-left: 12px; }
 .bdq.is-split .bdq-opts .bdq-opt-txt { flex: 1 1 0; font-size: calc(28px * var(--fs-scale, 1)); line-height: 1.25; }
