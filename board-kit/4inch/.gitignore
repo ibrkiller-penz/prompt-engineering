@@ -4,3 +4,4 @@ firmware/sdkconfig*
 firmware/CMakeLists.txt
 firmware/.dummy/
 __pycache__/
+firmware/include/board_config.local.h

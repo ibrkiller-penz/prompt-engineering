@@ -1514,7 +1514,7 @@ static void deckPoll(uint32_t ms) {
     const char c = (char)Serial.read();
     if (c == '\n' || c == '\r') {
       buf[n] = 0;
-      if (!strcmp(buf, "@pc on")) { s_pcLast = ms ? ms : 1; s_usbSeen = true; }
+      if (!strcmp(buf, "@pc on")) { s_pcLast = ms ? ms : 1; s_usbSeen = true; Serial.println("@board ok"); }   // 도우미가 알림판 포트를 가려내는 답
       n = 0;
     } else if (n < sizeof buf - 1) buf[n++] = c;
     else n = 0;

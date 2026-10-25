@@ -39,15 +39,19 @@ function Open-App($key) {
   } catch { Log "열기 실패: $key ($($_.Exception.Message))" }
 }
 
-# CH343/CH340(알림판 보드의 UART 칩) 포트 찾기
+# 알림판일 수 있는 포트: 7인치(CH343/CH340, VID 1A86) · 4인치(칩 내장 USB, VID 303A)
+# 303A 는 다른 ESP32(예: 시계)일 수도 있어서, 열어 보고 '@board ok' 로 답하는 포트만 쥔다(아니면 놓고 10분 쉰다).
 function Find-BoardPorts {
   Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -match 'CH34\d' -and $_.Name -match '\((COM\d+)\)' } |
+    Where-Object { $_.DeviceID -match 'VID_1A86|VID_303A' -and $_.Name -match '\((COM\d+)\)' } |
     ForEach-Object { if ($_.Name -match '\((COM\d+)\)') { $Matches[1] } }
 }
 
 $ports = @{}      # COM 이름 → SerialPort
 $bufs = @{}       # COM 이름 → 받다 만 글
+$okp = @{}        # COM 이름 → '@board ok' 를 받았나
+$opened = @{}     # COM 이름 → 연 때
+$skip = @{}       # COM 이름 → 이때까지 다시 열지 않음(알림판이 아닌 포트)
 $lastBeat = [datetime]::MinValue
 $lastScan = [datetime]::MinValue
 Log '도우미 시작'
@@ -61,14 +65,16 @@ while ($true) {
     $lastScan = $now
     foreach ($name in Find-BoardPorts) {
       if ($ports.ContainsKey($name)) { continue }
+      if ($skip.ContainsKey($name) -and $now -lt $skip[$name]) { continue }
       try {
         $sp = New-Object System.IO.Ports.SerialPort $name, 115200
         $sp.DtrEnable = $false; $sp.RtsEnable = $false   # 켤 때 보드가 다시 시작되지 않게
         $sp.ReadTimeout = 50; $sp.WriteTimeout = 500; $sp.NewLine = "`n"
         $sp.Encoding = [System.Text.Encoding]::UTF8
         $sp.Open()
-        $ports[$name] = $sp; $bufs[$name] = ''
-        Log "포트 잡음: $name"
+        $ports[$name] = $sp; $bufs[$name] = ''; $okp[$name] = $false; $opened[$name] = $now
+        $sp.Write("@pc on`n")
+        Log "포트 열어 봄: $name"
       } catch { }
     }
   }
@@ -76,6 +82,11 @@ while ($true) {
     $lastBeat = $now
     foreach ($p in @($ports.Keys)) {
       try { $ports[$p].Write("@pc on`n") } catch { try { $ports[$p].Close() } catch {}; $ports.Remove($p); Log "포트 끊김: $p" }
+    }
+  }
+  foreach ($p in @($ports.Keys)) {                  # 15초 안에 답이 없으면 알림판이 아니다 → 놓기
+    if (-not $okp[$p] -and ($now - $opened[$p]).TotalSeconds -ge 15) {
+      try { $ports[$p].Close() } catch {}; $ports.Remove($p); $skip[$p] = $now.AddMinutes(10); Log "알림판 아님(답 없음): $p"
     }
   }
   foreach ($p in @($ports.Keys)) {                  # 보드가 보낸 줄 읽기
@@ -87,7 +98,8 @@ while ($true) {
           $k = $bufs[$p].IndexOf("`n")
           $line = $bufs[$p].Substring(0, $k).Trim()
           $bufs[$p] = $bufs[$p].Substring($k + 1)
-          if ($line.StartsWith('@deck ')) { Open-App $line.Substring(6).Trim() }
+          if ($line -eq '@board ok') { if (-not $okp[$p]) { $okp[$p] = $true; Log "알림판 확인: $p" } }
+          elseif ($line.StartsWith('@deck ')) { $okp[$p] = $true; Open-App $line.Substring(6).Trim() }
         }
         if ($bufs[$p].Length -gt 4096) { $bufs[$p] = '' }
       }

@@ -5,6 +5,15 @@
 
 > 이 문서는 컴퓨터가 낯선 선생님도 따라 하도록 쉬운 말로 썼습니다. 모르는 말은 그 자리에서 한 줄로 풀어 두었습니다.
 
+## 두 가지 길 — AI 사용량(토큰)에 맞춰 고르세요
+| | 프로용 (토큰 적게) | 맥스용 (자세히) |
+|---|---|---|
+| 시작 | PowerShell 에서 `powershell -ExecutionPolicy Bypass -File 4inch\tools\quick_start.ps1` | 이 폴더에서 AI를 열고 "맥스로 하자" |
+| 누가 일하나 | 스크립트가 설치 확인·자료 올리기·내 값·빌드·굽기를 차례로. AI는 막혔을 때 빨간 줄만 보고 고친다 | AI가 단계마다 실행·확인 |
+| 지시서 | `docs/지시서_프로.md` | `docs/지시서_맥스.md` |
+
+AI는 이 폴더의 짧은 `CLAUDE.md`(안내판)를 먼저 읽고 "프로로 할까요, 맥스로 할까요?"를 묻습니다.
+
 ## 1. 준비물
 
 | 준비물 | 설명 |
@@ -39,6 +48,7 @@ pip install platformio pyserial
 | `WEATHER_LAT`, `WEATHER_LON` | 학교 위치(위도·경도). 지도 앱에서 학교를 길게 누르면 나옵니다. | 날씨·미세먼지 안 받음 |
 | `BOARD_PERIOD_START` | 1~7교시 시작 시각 | (기본: 08:40 시작, 점심 12:30~13:30) |
 
+`tools\quick_start.ps1` 을 쓰면 내 값을 물어서 `board_config.local.h`(내 컴퓨터에만 두는 파일)에 적어 줍니다. 이 파일이 있으면 `board_config.h` 보다 먼저 씁니다.
 비밀번호나 열쇠(API 키)는 **이 파일에 적지 않습니다.** 와이파이 비밀번호는 보드 화면에서 직접 입력하고, 보드 안에만 저장됩니다.
 
 ## 4. 만들어서 보드에 넣기
@@ -97,7 +107,8 @@ powershell -ExecutionPolicy Bypass -File tools\build_board.ps1
 ```
 4inch/
 ├─ README.md            이 문서
-├─ CLAUDE.md            AI 코딩 도우미(Claude Code 등)에게 주는 작업지시서
+├─ CLAUDE.md            AI 코딩 도우미(Claude Code 등)가 먼저 읽는 짧은 안내판
+├─ docs/                지시서_프로.md(토큰 적게) · 지시서_맥스.md(자세히)
 ├─ firmware/            보드 프로그램(PlatformIO 프로젝트)
 │  ├─ platformio.ini    보드·라이브러리·화면 안정화 설정
 │  ├─ default_16MB.csv  플래시 16MB 나누기표
@@ -107,7 +118,8 @@ powershell -ExecutionPolicy Bypass -File tools\build_board.ps1
 │  ├─ lib/GFX_Library_for_Arduino/  Arduino GFX 1.5.3 (Waveshare 가 고친 사본, 레지스트리판은 빌드 실패 — PATCH_NOTE.txt)
 │  └─ fonts/            한글 글꼴 만드는 스크립트(build_fonts.cjs, Pretendard)
 └─ tools/
-   ├─ build_board.ps1   만들기 + 업로드(+ -NoUpload, -Port)
+   ├─ quick_start.ps1   한 번에 하기(프로용): 설치 확인 → 샘플 자료 → Firebase → 내 값 → 빌드 → 굽기
+   ├─ build_board.ps1   만들기 + 업로드(+ -NoUpload, -Port, -Full). 화면엔 결과만, 전체 기록은 빌드 폴더 build.log
    └─ serial_log.py     보드 로그 읽기(읽기만 함)
 ```
 그 밖의 라이브러리(LVGL 8.4.0, SensorLib 0.2.6, ArduinoJson)는 첫 빌드 때 PlatformIO 가 인터넷에서 자동으로 받아 옵니다.
