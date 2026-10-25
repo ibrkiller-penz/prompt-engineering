@@ -128,6 +128,6 @@ if (-not $Port) {
 Ok "보드: $Port (ESP32-S3)"
 if (Yes "$Port 보드에 올릴까요? (저장한 와이파이는 지워지지 않아요)") {
   & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build_board.ps1') -Port $Port
-  if ($LASTEXITCODE -ne 0) { Bad '굽기 실패 — 위의 빨간 줄을 AI에게 붙여 넣으세요' } else { Ok '보드에 올렸어요. 화면 ⑤ 설정 → 찾기에서 와이파이를 넣으세요.' }
+  if ($LASTEXITCODE -ne 0) { Bad '굽기 실패 — 위의 빨간 줄을 AI에게 붙여 넣으세요' } else { Ok '보드에 올렸어요. 화면 ⑥ 설정 → 찾기에서 와이파이를 넣으세요.' }
 }
 Write-Host ""; Write-Host "끝! 막히면 빨간 X 줄만 AI에게 붙여 넣으세요." -ForegroundColor Yellow

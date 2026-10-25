@@ -62,13 +62,15 @@ if (-not $NoUpload) {
   if ($Port) { $pioArgs += @('--upload-port', $Port) }
 }
 Write-Host ("실행: python " + ($pioArgs -join ' '))
-if ($Full) { & python @pioArgs; exit $LASTEXITCODE }
+if (-not $NoUpload) { $stop = Join-Path $env:TEMP 'deck_helper.stop'; if (-not (Test-Path $stop)) { New-Item -ItemType File $stop | Out-Null; $paused = $true; Start-Sleep 2 } }   # 단축키 도우미가 포트를 쥐고 있으면 잠깐 놓게
+if ($Full) { & python @pioArgs; $c = $LASTEXITCODE; if ($paused) { Remove-Item (Join-Path $env:TEMP 'deck_helper.stop') -ErrorAction SilentlyContinue }; exit $c }
 # 기록은 파일로(영문 경로라 cmd 로 넘겨도 안전), 화면에는 요약만
 $log = Join-Path $dst 'build.log'
 Write-Host "빌드 중… (처음이면 25~45분, 그 뒤로 1~7분) 기록: $log"
 $quoted = ($pioArgs | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }) -join ' '
 cmd /c "python $quoted > `"$log`" 2>&1"
 $code = $LASTEXITCODE
+if ($paused) { Remove-Item (Join-Path $env:TEMP 'deck_helper.stop') -ErrorAction SilentlyContinue }   # 도우미 다시 잡기
 $lines = Get-Content $log -Encoding UTF8 -ErrorAction SilentlyContinue
 $errs = $lines | Where-Object { $_ -match '(error:|Error:|\*\*\* \[|FAILED|No serial data|could not open port|Fatal)' -and $_ -notmatch 'error_capture|cborerror|OTA_STATUS_FAILED|errorstr' } | Select-Object -First 15
 $sum = $lines | Where-Object { $_ -match '^(RAM:|Flash:)|Hard resetting|^(board|board7b)\s+(SUCCESS|FAILED)' }

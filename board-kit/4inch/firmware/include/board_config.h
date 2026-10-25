@@ -1,4 +1,9 @@
 #pragma once
+// 내 보드의 실제 값은 board_config.local.h 에 두면 그것을 먼저 쓴다(git·키트에 들어가지 않는다 — tools/quick_start.ps1 이 만든다).
+// 그 파일이 없으면 아래 ①~⑥ 값을 쓴다. 키트를 받은 선생님은 아래 값만 바꿔도 된다.
+#if __has_include("board_config.local.h")
+#include "board_config.local.h"
+#else
 // ── 내 보드에 맞게 바꾸는 값은 이 파일에만 있습니다 ──
 // "← 내 값으로 바꾸기" 가 붙은 줄만 고치면 됩니다. 고친 뒤 다시 빌드·업로드(README 참고).
 // 값을 비워 두면("") 그 기능은 꺼지고, 화면은 그대로 정상 동작합니다.
@@ -33,6 +38,15 @@
 #define WEATHER_LAT "37.5665"
 #define WEATHER_LON "126.9780"
 
+#endif
+
+// 교장실·교감실 모드(볼 시간표에서 교장·교감)가 받을 학교 일정 사이트(Google Apps Script 웹앱 주소). 비워 두면 일정 칸에 안내만 보인다.
+#ifndef SCHEDULE_URL
+#define SCHEDULE_URL ""
+#endif
+
 // ⑦ 교시 시작 시간(1~7교시). 한 교시는 50분으로 계산합니다.                  ← 내 값으로 바꾸기
 //   점심시간은 12:30~13:30 으로 고정입니다(main.cpp 의 "12:30", "13:30" 을 찾아 바꾸세요).
+#ifndef BOARD_PERIOD_START
 #define BOARD_PERIOD_START { "08:40", "09:40", "10:40", "11:40", "13:30", "14:40", "15:40" }
+#endif
