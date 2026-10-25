@@ -20,7 +20,7 @@ $Apps = [ordered]@{
   kakao      = 'C:\Program Files\Kakao\KakaoTalk\KakaoTalk.exe'
   excel      = 'excel'
   ppt        = 'powerpnt'
-  word       = 'winword'
+  close      = '#altf4'
   hwp        = 'C:\Program Files (x86)\Hnc\Office 2024\HOffice130\Bin\Hwp.exe'
   desktop    = '#desktop'
 }
@@ -33,6 +33,7 @@ function Open-App($key) {
   if (-not $t) { Log "모르는 단추: $key"; return }
   try {
     if ($t -eq '#desktop') { (New-Object -ComObject Shell.Application).ToggleDesktop() }
+    elseif ($t -eq '#altf4') { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('%{F4}') }   # 맨 앞 창 닫기
     else { Start-Process $t }
     Log "열기: $key"
   } catch { Log "열기 실패: $key ($($_.Exception.Message))" }

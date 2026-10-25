@@ -15,9 +15,9 @@ PREVIEW = os.path.join(HERE, "deck_icons_preview.png")
 FONT = os.path.join(HERE, "..", "firmware", "fonts", "src", "Pretendard-SemiBold.otf")
 SHEET = ["explorer", "claude", "terminal", "cmd", "powershell", "web", "naver", "youtube",
          "coolmsg", "kakao", "office", "excel", "ppt", "word", "hwp", "desktop"]   # 표의 칸 차례
-# 보드에 넣는 차례(2026-10-25: 웹→나이스, 오피스·터미널 빼고 제미나이·GPT)
+# 보드에 넣는 차례(2026-10-25: 웹→나이스, 오피스·터미널 빼고 제미나이·GPT, 워드 → 창닫기)
 ORDER = ["explorer", "claude", "gemini", "gpt", "cmd", "powershell", "neis", "naver",
-         "youtube", "coolmsg", "kakao", "excel", "ppt", "word", "hwp", "desktop"]
+         "youtube", "coolmsg", "kakao", "excel", "ppt", "close", "hwp", "desktop"]
 X0, DX, Y = 232, 92, 588          # 첫 칸 가운데, 칸 간격, 4번째 줄 가운데
 K = 4                             # 4배로 그린 뒤 줄여 테두리를 매끈하게
 N = SIZE * K
@@ -107,6 +107,16 @@ star = star.filter(ImageFilter.GaussianBlur(G * 0.012))
 icons["gemini"] = tile((124, 108, 246), FILL, glowing(star, (140, 170, 255)))
 # GPT: 초록 테두리 + 'GPT'
 icons["gpt"] = tile((16, 163, 127), FILL, glowing(text_shape("GPT", 0.46), (60, 210, 160)))
+
+# 창닫기(Alt+F4): 빨간 테두리 + 굵은 ✕
+xs = Image.new("L", (G, G), 0)
+dx = ImageDraw.Draw(xs)
+a0, a1, wd = G * 0.30, G * 0.70, int(G * 0.11)
+dx.line((a0, a0, a1, a1), fill=255, width=wd)
+dx.line((a0, a1, a1, a0), fill=255, width=wd)
+for (px, py) in [(a0, a0), (a1, a1), (a0, a1), (a1, a0)]:          # 끝을 둥글게
+    dx.ellipse((px - wd / 2, py - wd / 2, px + wd / 2, py + wd / 2), fill=255)
+icons["close"] = tile((229, 72, 77), FILL, glowing(xs.filter(ImageFilter.GaussianBlur(G * 0.008)), (255, 110, 110)))
 
 sheet = Image.new("RGBA", (SIZE * 16 + 15 * 8, SIZE), (28, 23, 20, 255))
 for i, name in enumerate(ORDER):
