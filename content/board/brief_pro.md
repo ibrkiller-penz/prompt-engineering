@@ -13,6 +13,7 @@
    powershell -ExecutionPolicy Bypass -File C:\dev\board-kit\7inch\tools\quick_start.ps1
    ```
    스크립트가 차례로 물어보며 진행해요: 프로그램 확인 → 보드 종류(7인치 / 7인치 B) → 샘플 자료 → Firebase 올리기(로그인은 직접) → 내 값(학교 코드·위치) → 빌드(처음 25~45분) → 보드 찾기 → 굽기 → 단축키 도우미(선택).
+   **4인치 보드**라면 `penedu-board-4inch-starter.zip` 을 풀고, 보드의 USB-C 단자(하나뿐)에 꽂은 뒤 `C:\dev\board-kit\4inch\tools\quick_start.ps1` 을 같은 방법으로 실행해요(보드 종류는 묻지 않아요, 첫 빌드 35~45분).
 4. 보드 화면 **[설정] → [찾기]** 에서 학교 와이파이(2.4GHz)를 고르고 비밀번호를 직접 넣어요.
 5. 멈추면 화면의 **빨간 X 줄 몇 개만** AI에게 붙여 넣고 "고쳐 줘"라고 해요. 다른 설명은 길게 하지 않아도 돼요.
 
