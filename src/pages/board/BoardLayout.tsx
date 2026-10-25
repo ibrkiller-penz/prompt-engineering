@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { BOARD_NAME, HUB_NAME } from "../../site";
 import { BOARD_PAGES } from "./kit";
+import { BoardModeProvider, ModeSwitch } from "./mode";
 
 export default function BoardLayout() {
   useEffect(() => {
@@ -9,6 +10,7 @@ export default function BoardLayout() {
   }, []);
 
   return (
+    <BoardModeProvider>
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:p-3">
         본문으로 건너뛰기
@@ -21,7 +23,10 @@ export default function BoardLayout() {
             </span>
             <span className="truncate text-[0.95rem] sm:text-base">{BOARD_NAME}</span>
           </Link>
-          <Link to="/" className="ml-auto flex min-h-[44px] shrink-0 items-center text-sm font-semibold text-muted hover:text-ink">
+          <div className="ml-auto">
+            <ModeSwitch />
+          </div>
+          <Link to="/" className="hidden min-h-[44px] shrink-0 items-center text-sm font-semibold text-muted hover:text-ink sm:flex">
             교육자료 첫 화면
           </Link>
         </div>
@@ -65,5 +70,6 @@ export default function BoardLayout() {
         </div>
       </footer>
     </div>
+    </BoardModeProvider>
   );
 }

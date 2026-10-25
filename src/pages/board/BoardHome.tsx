@@ -4,6 +4,7 @@ import { BoardChip, Callout, H2, H3, PageTitle, Table } from "./kit";
 import ScreenPreview from "./ScreenPreview";
 import ScreenPreview4 from "./ScreenPreview4";
 import PrincipalPreview from "./PrincipalPreview";
+import { ProPath, useBoardMode } from "./mode";
 
 function mb(bytes: number) {
   if (!bytes) return "";
@@ -20,6 +21,7 @@ const FLOW = [
 ];
 
 export default function BoardHome() {
+  const { mode } = useBoardMode();
   return (
     <>
       <PageTitle
@@ -28,7 +30,15 @@ export default function BoardHome() {
         lead="교무실 벽이나 교실 책상에 두는 작은 터치 화면이에요. 시계·날씨·미세먼지·급식과 내 수업 시간표를 한눈에 보여 주고, 와이파이로 자료를 받아 와요. 부품은 보드 한 장과 USB 케이블이 전부예요."
       />
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+      {mode === "pro" && <ProPath />}
+      {mode === "max" && (
+        <p className="mt-2 max-w-3xl rounded-card border border-line bg-surface p-4">
+          <b>맥스용</b>으로 보고 있어요. 아래 <a href="#flow" className="font-semibold text-accent underline">순서</a>대로 한 쪽씩 읽으며, 마지막 쪽의{" "}
+          <Link to="/board/brief" className="font-semibold text-accent underline">맥스용 작업지시서</Link>를 AI에게 주면 AI가 한 단계씩 같이 해요.
+        </p>
+      )}
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_22rem]">
         <section>
           <ul className="grid gap-3 sm:grid-cols-2">
             {[
@@ -140,7 +150,7 @@ export default function BoardHome() {
         </p>
       </Callout>
 
-      <H2>순서</H2>
+      <H2 id="flow">{mode === "pro" ? "자세히 알고 싶을 때 (맥스용 순서)" : "순서"}</H2>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {FLOW.map((f) => (
           <li key={f.to}>

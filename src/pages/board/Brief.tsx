@@ -3,6 +3,7 @@ import brief from "../../../content/board/brief.md?raw";
 import briefPro from "../../../content/board/brief_pro.md?raw";
 import { Button, CopyButton } from "../../components/ui";
 import { Callout, H2, PageNav, PageTitle, Steps, Table } from "./kit";
+import { useBoardMode } from "./mode";
 
 function download(text: string, name: string) {
   const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
@@ -22,7 +23,8 @@ const KINDS = {
 } as const;
 
 export default function Brief() {
-  const [kind, setKind] = useState<keyof typeof KINDS>("pro");
+  const { mode } = useBoardMode();
+  const [kind, setKind] = useState<keyof typeof KINDS>(mode ?? "pro");   // 처음에 고른 길로 연다
   const k = KINDS[kind];
   return (
     <>

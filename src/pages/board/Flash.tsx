@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BoardChip, Callout, Check, Code, H2, PageNav, PageTitle, Steps, Table } from "./kit";
+import { useBoardMode, ProPath } from "./mode";
 
 type Board = "7" | "4";
 
 export default function Flash() {
+  const { mode } = useBoardMode();
   const [b, setB] = useState<Board>("7");
   const seven = b === "7";
   return (
@@ -14,6 +16,12 @@ export default function Flash() {
         title="프로그램을 보드에 넣기"
         lead="‘굽는다’는 프로그램을 보드의 저장 공간(플래시)에 쓰는 일이에요. 처음에는 오래 걸리지만 한 번만 그래요."
       />
+      {mode === "pro" && (
+        <>
+          <p className="max-w-3xl font-semibold">프로용이면 이 쪽은 읽지 않아도 돼요. 키트의 스크립트가 빌드와 굽기를 줘요. 아래는 원리가 궁금하거나 막혔을 때 보세요.</p>
+          <ProPath compact />
+        </>
+      )}
 
       <div className="flex gap-2" role="tablist" aria-label="보드 고르기">
         {(["7", "4"] as const).map((x) => (

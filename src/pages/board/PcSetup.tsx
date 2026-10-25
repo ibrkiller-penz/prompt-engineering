@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { Callout, Check, Code, Ext, H2, PageNav, PageTitle, Steps } from "./kit";
+import { useBoardMode, ProPath } from "./mode";
 
 export default function PcSetup() {
+  const { mode } = useBoardMode();
   return (
     <>
       <PageTitle
@@ -9,6 +11,12 @@ export default function PcSetup() {
         title="프로그램 설치와 로그인"
         lead="보드에 프로그램을 넣으려면 PC에 도구 몇 가지가 필요해요. 키트 안의 설치 스크립트가 한 번에 깔아 주고, 아래 명령을 하나씩 입력해도 같아요."
       />
+      {mode === "pro" && (
+        <>
+          <p className="max-w-3xl font-semibold">프로용이면 이 쪽은 읽지 않아도 돼요. 키트의 스크립트가 설치를 확인하고 없는 것을 깔아 줘요. 아래는 원리가 궁금하거나 막혔을 때 보세요.</p>
+          <ProPath compact />
+        </>
+      )}
 
       <Callout tone="bad" title="작업 폴더는 영문·숫자만, 빈칸 없이">
         <p>
