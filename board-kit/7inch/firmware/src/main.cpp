@@ -1264,7 +1264,7 @@ static void onForget(lv_event_t *e) {   // 실수로 지우지 않게: 3초 안�
 }
 
 // 화면: 0 주간 시간표 · 1 설정 · 2 시계 모드 · 3 선생님 찾기
-enum View { V_WEEK = 0, V_SET = 1, V_CLOCK = 2, V_FIND = 3 };
+enum View { V_WEEK = 0, V_SET = 1, V_CLOCK = 2, V_FIND = 3, V_DECK = 4 };
 static View s_view = V_CLOCK;   // 켜면 시계 화면(교장 모드면 교장 화면)
 
 // ── 선생님 찾기 (board/where.json: 선생님 전체 × 오늘부터 수업일 10일) ──
@@ -1471,6 +1471,88 @@ static void tabStyle(lv_obj_t *tab, bool on) {
 //   ① goog.script.init(" … ", " 사이 ② JS 이스케이프 풀기 ③ "userHtml":" 문자열 ④ JSON 이스케이프 풀기 ⑤ init-data JSON
 // (tools/sched_extract.py 로 같은 순서를 PC 에서 검증했다)
 static void showView(View v);
+
+// ── 단축키(스트림덱처럼, 2026-10-25 사용자 요청) ──
+// 보드는 UART 선(CH343, 굽기·기록에 쓰는 단자)으로 컴퓨터와 이어져 있다. 단추를 누르면 그 선으로 '@deck 이름' 한 줄을 보내고,
+// 컴퓨터의 도우미(tools/deck_helper.ps1)가 받아 프로그램·사이트를 연다. 도우미는 5초마다 '@pc on' 을 보내 준다
+// → 15초 넘게 안 오면 '컴퓨터 꺼짐'으로 본다(화면 불 규칙에도 쓴다).
+// USB 키보드(TinyUSB) 방식은 이 빌드(custom_sdkconfig 로 ESP-IDF 를 다시 컴파일)에 TinyUSB 부품이 빠져 있어 쓰지 못했다.
+// 어떤 프로그램을 열지는 컴퓨터 쪽 도우미 표에서 정한다(학교 컴퓨터마다 경로가 달라서).
+extern const lv_img_dsc_t deck_explorer, deck_claude, deck_terminal, deck_cmd, deck_powershell, deck_web, deck_naver, deck_youtube,
+    deck_coolmsg, deck_kakao, deck_office, deck_excel, deck_ppt, deck_word, deck_hwp, deck_desktop;
+struct DeckItem { const char *label; const lv_img_dsc_t *icon; const char *key; };   // key: 도우미에게 보내는 이름(영문)
+static const DeckItem DECK[16] = {
+  {"탐색기", &deck_explorer, "explorer"}, {"Claude", &deck_claude, "claude"}, {"터미널", &deck_terminal, "terminal"}, {"CMD", &deck_cmd, "cmd"},
+  {"파워셸", &deck_powershell, "powershell"}, {"웹", &deck_web, "web"}, {"네이버", &deck_naver, "naver"}, {"유튜브", &deck_youtube, "youtube"},
+  {"쿨메신저", &deck_coolmsg, "coolmsg"}, {"카카오톡", &deck_kakao, "kakao"}, {"오피스", &deck_office, "office"}, {"엑셀", &deck_excel, "excel"},
+  {"PPT", &deck_ppt, "ppt"}, {"워드", &deck_word, "word"}, {"한글", &deck_hwp, "hwp"}, {"바탕화면", &deck_desktop, "desktop"},
+};
+static lv_obj_t *s_viewDeck = nullptr, *s_tabDeck = nullptr, *s_deckState = nullptr;
+static volatile bool s_usbOn = false;   // 컴퓨터 도우미가 살아 있나('@pc on' 이 15초 안에 왔나)
+static volatile bool s_usbSeen = false; // 켠 뒤 한 번이라도 도우미 신호를 받았나 → 화면 불은 컴퓨터를 따른다
+static uint32_t s_pcLast = 0;           // 마지막 '@pc on' 받은 때(millis)
+static void onDeck(lv_event_t *e) {
+  const int i = (int)(intptr_t)lv_event_get_user_data(e);
+  if (i < 0 || i >= 16) return;
+  if (!s_usbOn) {
+    if (s_deckState) lv_label_set_text(s_deckState, "컴퓨터 도우미와 연결되지 않았습니다 · UART 선과 컴퓨터의 도우미 프로그램을 확인하세요");
+    return;
+  }
+  Serial.printf("\n@deck %s\n", DECK[i].key);   // 앞의 줄바꿈: 다른 기록 줄과 섞이지 않게
+}
+static void deckStateText() {
+  if (!s_deckState) return;
+  lv_label_set_text(s_deckState, s_usbOn ? LV_SYMBOL_OK "  컴퓨터와 연결됨 · 단추를 누르면 프로그램이 열립니다"
+                                         : LV_SYMBOL_WARNING "  컴퓨터 도우미를 기다리는 중 · UART 선을 꽂고 컴퓨터에서 도우미를 켜 주세요");
+  lv_obj_set_style_text_color(s_deckState, lv_color_hex(s_usbOn ? 0x34d399 : D_MUTED), 0);
+}
+// UART 로 들어온 줄 읽기(loop 에서). '@pc on' 이면 컴퓨터가 켜져 있다.
+static void deckPoll(uint32_t ms) {
+  static char buf[32]; static uint8_t n = 0;
+  while (Serial.available()) {
+    const char c = (char)Serial.read();
+    if (c == '\n' || c == '\r') {
+      buf[n] = 0;
+      if (!strcmp(buf, "@pc on")) { s_pcLast = ms ? ms : 1; s_usbSeen = true; }
+      n = 0;
+    } else if (n < sizeof buf - 1) buf[n++] = c;
+    else n = 0;
+  }
+  s_usbOn = s_pcLast && ms - s_pcLast < 15000;
+}
+static void buildDeck(lv_obj_t *scr, int top) {
+  const bool small = s_W <= 800;
+  const int M = small ? 10 : 16, VH = s_H - top;
+  s_viewDeck = box(scr, D_BG, 0, 0);
+  lv_obj_set_size(s_viewDeck, s_W, VH); lv_obj_set_pos(s_viewDeck, 0, top);
+  lv_obj_add_flag(s_viewDeck, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_t *panel = box(s_viewDeck, D_PANEL, D_LINE, 16);
+  const int PW = s_W - 2 * M, PH = VH - 2 * M;
+  lv_obj_set_size(panel, PW, PH); lv_obj_set_pos(panel, M, M);
+  lv_obj_clear_flag(panel, LV_OBJ_FLAG_CLICKABLE);
+  // 8칸 × 2줄. 칸 하나 = 아이콘(72) + 이름
+  const int COLS = 8, CW = (PW - 2 * M) / COLS, CH = small ? 118 : 150, GY = small ? 18 : 40;
+  const int gridH = 2 * CH + GY, y0 = (PH - 40 - gridH) / 2;
+  for (int i = 0; i < 16; i++) {
+    const int c = i % COLS, r = i / COLS;
+    lv_obj_t *cell = box(panel, D_PANEL, 0, 14);
+    lv_obj_set_size(cell, CW - 6, CH); lv_obj_set_pos(cell, M + c * CW + 3, y0 + r * (CH + GY));
+    lv_obj_set_style_bg_color(cell, lv_color_hex(D_ROW), LV_STATE_PRESSED);   // 누르는 동안 밝게
+    lv_obj_add_flag(cell, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(cell, onDeck, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+    lv_obj_t *img = lv_img_create(cell);
+    lv_img_set_src(img, DECK[i].icon);
+    lv_obj_align(img, LV_ALIGN_TOP_MID, 0, small ? 10 : 18);
+    lv_obj_clear_flag(img, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_t *l = label(cell, small ? &kr14 : &kr16, D_SUB, DECK[i].label);
+    lv_obj_align(l, LV_ALIGN_BOTTOM_MID, 0, small ? -8 : -14);
+  }
+  s_deckState = label(panel, small ? &kr14 : &kr16, D_MUTED, "");
+  lv_obj_set_width(s_deckState, PW - 2 * M); lv_label_set_long_mode(s_deckState, LV_LABEL_LONG_DOT);
+  lv_obj_set_style_text_align(s_deckState, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align(s_deckState, LV_ALIGN_BOTTOM_MID, 0, -M);
+  deckStateText();
+}
 static void onSchedRow(lv_event_t *e);
 static void onTeachOpen(lv_event_t *e);
 static void renderSchedList();
@@ -2168,11 +2250,14 @@ static void showView(View v) {
   vis(s_viewClock, v == V_CLOCK && !s_principal);
   if (s_viewPrin) vis(s_viewPrin, v == V_CLOCK && s_principal);
   vis(s_viewFind, v == V_FIND);
+  if (s_viewDeck) vis(s_viewDeck, v == V_DECK);
   if (s_pickView) vis(s_pickView, false);   // 다른 탭으로 가면 '볼 시간표' 판은 닫는다
   tabStyle(s_tabTT, v == V_WEEK);
   tabStyle(s_tabSet, v == V_SET);
   tabStyle(s_tabClock, v == V_CLOCK);
   tabStyle(s_tabFind, v == V_FIND);
+  if (s_tabDeck) tabStyle(s_tabDeck, v == V_DECK);
+  if (v == V_DECK) deckStateText();
   if (v != V_FIND) s_findFromTeach = false;
   if (s_findBack) vis(s_findBack, v == V_FIND && s_findFromTeach && s_principal);
   if (v == V_FIND) { if (s_findGridDirty) fillFinderGrid(); renderFinder(); }
@@ -2280,10 +2365,10 @@ static void buildUI() {
   lv_label_set_long_mode(s_title, LV_LABEL_LONG_DOT);
   lv_obj_align(s_title, LV_ALIGN_LEFT_MID, M + LOGO + 8, 0);
 
-  // 탭 넷: 시간표 · 시계 · 찾기 · 설정
-  const int TABW = small ? 72 : 100, TABH = TOP - 14;
+  // 탭 다섯: 시간표 · 시계 · 단축키 · 찾기 · 설정(2026-10-25 사용자 지정 순서)
+  const int TABW = small ? 66 : 86, TABH = TOP - 14;
   lv_obj_t *tabs = box(s_top, D_ROW, D_LINE, 10);
-  lv_obj_set_size(tabs, TABW * 4 + 3 * 2 + 8, TOP - 6); lv_obj_align(tabs, LV_ALIGN_LEFT_MID, small ? 178 : 250, 0);
+  lv_obj_set_size(tabs, TABW * 5 + 4 * 2 + 8, TOP - 6); lv_obj_align(tabs, LV_ALIGN_LEFT_MID, small ? 178 : 250, 0);
   auto mkTab = [&](const char *txt, int i, bool on, lv_event_cb_t cb) {
     lv_obj_t *b = button(tabs, txt, TABW, TABH, on ? D_LINE : D_ROW, on ? D_TEXT : D_MUTED);
     lv_obj_set_pos(b, 4 + i * (TABW + 2), 3);
@@ -2293,12 +2378,13 @@ static void buildUI() {
   };
   s_tabTT = mkTab("시간표", 0, true, onTabTT);
   s_tabClock = mkTab("시계", 1, false, onTabClock);
-  s_tabFind = mkTab("찾기", 2, false, onTabFind);
-  s_tabSet = mkTab("설정", 3, false, onTabSet);
+  s_tabDeck = mkTab("단축키", 2, false, [](lv_event_t *) { showView(V_DECK); });
+  s_tabFind = mkTab("찾기", 3, false, onTabFind);
+  s_tabSet = mkTab("설정", 4, false, onTabSet);
 
 
   s_wifiLbl = label(s_top, &kr14, C_ROSE, LV_SYMBOL_WIFI " 연결 안 됨");
-  lv_obj_set_width(s_wifiLbl, small ? 150 : 200);
+  lv_obj_set_width(s_wifiLbl, small ? 130 : 160);
   lv_label_set_long_mode(s_wifiLbl, LV_LABEL_LONG_DOT);
   lv_obj_set_style_text_align(s_wifiLbl, LV_TEXT_ALIGN_RIGHT, 0);
   lv_obj_align(s_wifiLbl, LV_ALIGN_RIGHT_MID, small ? -118 : -156, 0);   // 12시간 모드 "오후 3:40" 자리까지
@@ -2594,6 +2680,7 @@ static void buildUI() {
 
   layoutClock();                                     // 시계 화면 자리 잡기(설정 '보이기' 반영)
   buildFinder(scr, TOP);
+  buildDeck(scr, TOP);   // 단축키 화면(숨김)
 
   // 비밀번호 입력 (위쪽 창 + 화면 아래 키보드)
   buildPrincipal(scr);   // 교장실 모드 화면(숨김)
@@ -2961,14 +3048,24 @@ void loop() {
   }
   // 밤(22:00~07:00)·주말·휴일에는 2분 동안 터치가 없으면 화면 불을 끈다. 만지면 켜진다(사용자 지시 2026-09-30).
   static uint32_t lastBl = 0;
-  if (ms - lastBl > 2000 && blReady() && timeValid()) {
+  // 컴퓨터에 연결해 쓰는 보드(켠 뒤 컴퓨터 도우미 신호를 한 번이라도 받은 보드)는 다르다(사용자 지시 2026-10-25):
+  //   컴퓨터가 켜져 있는 동안은 화면을 끄지 않고, 컴퓨터가 꺼지거나 절전에 들어가면(도우미 신호가 끊기고 10초 뒤) 끈다.
+  if (ms - lastBl > 2000 && blReady() && (s_usbSeen || timeValid())) {
     lastBl = ms;
-    time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
-    const int m = tm.tm_hour * 60 + tm.tm_min;
-    bool quiet = m < 7 * 60 || m >= 22 * 60;   // 22:00~07:00(사용자 지시 2026-10-01)
+    bool off;
     lock();
-    if (!quiet) quiet = isOffDay(nullptr);      // 주말·휴일(교장 모드는 학사 일정의 '휴')
-    bool off = quiet && lv_disp_get_inactive_time(NULL) > 2UL * 60 * 1000;
+    const uint32_t idle = lv_disp_get_inactive_time(NULL);
+    if (s_usbSeen) {
+      static uint32_t gone = 0;
+      if (s_usbOn) gone = 0; else if (!gone) gone = ms;
+      off = !s_usbOn && ms - gone > 10000 && idle > 2UL * 60 * 1000;   // 컴퓨터가 꺼진 뒤 만지면 2분 동안은 켜 둔다
+    } else {
+      time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
+      const int m = tm.tm_hour * 60 + tm.tm_min;
+      bool quiet = m < 7 * 60 || m >= 22 * 60;   // 22:00~07:00(사용자 지시 2026-10-01)
+      if (!quiet) quiet = isOffDay(nullptr);      // 주말·휴일(교장 모드는 학사 일정의 '휴')
+      off = quiet && idle > 2UL * 60 * 1000;
+    }
     unlock();
     if (off != s_blOff) {
       s_blOff = off;
@@ -2988,6 +3085,15 @@ void loop() {
     if (tm.tm_hour == 3 && s_blOff && s_sync == SYNC_IDLE && ms > 3600000UL && (big < 40000 || s_failCount >= 4)) {
       Serial.printf("health restart (internal largest %u, fails %d)\n", big, s_failCount);
       delay(100); ESP.restart();
+    }
+  }
+
+  {
+    static bool lastUsb = false; static uint32_t lastUsbChk = 0;
+    if (ms - lastUsbChk > 200) {   // 받은 줄은 자주 읽고, 상태 글은 바뀔 때만
+      lastUsbChk = ms;
+      deckPoll(ms);
+      if (lastUsb != s_usbOn) { lastUsb = s_usbOn; Serial.printf("pc helper %s\n", s_usbOn ? "on" : "off"); lock(); deckStateText(); unlock(); }
     }
   }
 
