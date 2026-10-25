@@ -4,6 +4,7 @@ import { BoardChip, Callout, H2, H3, PageTitle, Table } from "./kit";
 import ScreenPreview from "./ScreenPreview";
 import ScreenPreview4 from "./ScreenPreview4";
 import PrincipalPreview from "./PrincipalPreview";
+import ThemePreview from "./ThemePreview";
 import { ProPath, useBoardMode } from "./mode";
 
 function mb(bytes: number) {
@@ -96,7 +97,8 @@ export default function BoardHome() {
           ["단축키", "위쪽 [단축키] 탭 — 8칸 × 2줄", "넷째 장 — 4칸 × 4줄"],
           ["교장실 모드", <>볼 시간표에서 <b>[교장]·[교감]</b>을 고르면 학교 일정 화면으로 바뀌어요 — 아래 ‘교장실 모드’</>, "있음 — 시계 장이 교장 화면(일정 5줄), 주간 장이 학교 일정 목록"],
           ["받은 자료가 오래되면", "‘자료 갱신 안 됨 · 10/16 기준’처럼 주황 글씨로 알려 줘요 (껐다 켜도 마지막 받은 때를 기억)", "같음"],
-          ["화면 꾸밈", "따뜻한 어두운 색 · 둥근 큰 카드 · 지금 교시는 호박색 칸 · 다음 수업은 노란 테두리", "같은 따뜻한 색"],
+          ["화면 색", <>설정 → <b>화면 색</b>에서 5가지 중 고르기(따뜻함 · 남색밤 · 밝은종이 · 고대비 · 숲초록) — 아래 견본</>, "따뜻한 색 한 가지"],
+          ["방과 후", "16시 30분이 지나면 ‘내일 시간표’, 야자 감독은 18시 30분까지 맨 앞에", "같음"],
           ["화면 넘기는 법", "위쪽 탭을 눌러요 (시간표 · 시계 · 찾기 · 설정)", "화면을 옆으로 밀어요 (아래 점이 몇 번째인지 알려 줘요)"],
           ["화면 수", "주간 시간표 · 시계 · 선생님 찾기 · 설정", "시계 · 오늘 · 주간 · 선생님 찾기 · 설정 (다섯 장)"],
           ["오늘 시간표", "시계 화면 오른쪽에 교시별 줄로 — 지금 교시는 호박색 칸에 ‘N분 남음’","있음 — 교시별 줄로 크게, 급식지도·당겨옴 표시"],
@@ -115,6 +117,12 @@ export default function BoardHome() {
       <p className="mt-2 max-w-3xl text-sm text-muted">
         표는 직접 만들어 쓰며 확인한 동작을 적은 거예요. 시작 프로젝트의 버전에 따라 조금 달라질 수 있어요.
       </p>
+
+      <H3>색 테마 5가지 (7인치·7인치 B)</H3>
+      <p className="mt-2 max-w-3xl text-[0.95rem] text-muted">
+        설정 → <b>화면 색</b>에서 고르면 보드가 1초쯤 뒤 다시 켜지며 바뀌어요. 다섯 가지 모두 3m 거리에서 읽히도록 글자 명암비를 맞췄고, 빨강은 결강·경고에만 써요. 견본의 시간표는 지어낸 거예요.
+      </p>
+      <ThemePreview />
 
       <H3>4인치 화면 예시</H3>
       <ScreenPreview4 />
