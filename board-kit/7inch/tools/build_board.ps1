@@ -10,6 +10,8 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_board.ps1 -Port COM5      # 보드 COM 번호를 직접 지정
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_board.ps1 -NoUpload       # 빌드만(보드 없이도 된다)
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_board.ps1 -Env board7b -Port COM9   # 1024x600(7B) 보드
+#   ... -Full                                                                       # 빌드 기록을 화면에 모두 보이기
+# 화면에는 결과 몇 줄(RAM·Flash·성공/실패·오류)만 보이고, 전체 기록은 빌드 폴더의 build.log 에 남는다(AI 토큰 절약, 2026-10-25).
 #
 # COM 번호는 -Port 로 주거나, 환경변수 PIO_PORT 에 넣어 둔다. 둘 다 없으면 USB 시리얼 칩(CH343/CH340 등)을 찾아 본다.
 # 처음 한 번은 25~45분 걸린다(ESP-IDF 를 화면 흔들림 방지 설정으로 다시 컴파일한다). 두 번째부터 1~2분.
@@ -17,7 +19,8 @@
 param(
   [switch]$NoUpload,
   [string]$Port = '',
-  [string]$Env = 'board'     # board = 800x480(기존), board7b = 1024x600(7B)
+  [string]$Env = 'board',    # board = 800x480(기존), board7b = 1024x600(7B)
+  [switch]$Full              # 빌드 기록을 화면에 모두 보이기
 )
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
@@ -59,5 +62,19 @@ if (-not $NoUpload) {
   if ($Port) { $pioArgs += @('--upload-port', $Port) }
 }
 Write-Host ("실행: python " + ($pioArgs -join ' '))
-& python @pioArgs
-exit $LASTEXITCODE
+if ($Full) { & python @pioArgs; exit $LASTEXITCODE }
+# 기록은 파일로(영문 경로라 cmd 로 넘겨도 안전), 화면에는 요약만
+$log = Join-Path $dst 'build.log'
+Write-Host "빌드 중… (처음이면 25~45분, 그 뒤로 1~7분) 기록: $log"
+$quoted = ($pioArgs | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }) -join ' '
+cmd /c "python $quoted > `"$log`" 2>&1"
+$code = $LASTEXITCODE
+$lines = Get-Content $log -Encoding UTF8 -ErrorAction SilentlyContinue
+$errs = $lines | Where-Object { $_ -match '(error:|Error:|\*\*\* \[|FAILED|No serial data|could not open port|Fatal)' -and $_ -notmatch 'error_capture|cborerror|OTA_STATUS_FAILED|errorstr' } | Select-Object -First 15
+$sum = $lines | Where-Object { $_ -match '^(RAM:|Flash:)|Hard resetting|^(board|board7b)\s+(SUCCESS|FAILED)' }
+$sum | Select-Object -Last 4 | ForEach-Object { Write-Host "  $_" }
+if ($code -ne 0) {
+  Write-Host "X 빌드/업로드 실패 (아래 줄을 AI에게 붙여 넣으세요)" -ForegroundColor Red
+  if ($errs) { $errs | ForEach-Object { Write-Host "  $_" -ForegroundColor Red } } else { $lines | Select-Object -Last 12 | ForEach-Object { Write-Host "  $_" -ForegroundColor Red } }
+} else { Write-Host "O 성공" -ForegroundColor Green }
+exit $code
