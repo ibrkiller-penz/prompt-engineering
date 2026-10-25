@@ -8,3 +8,6 @@ build.log
 backup/
 firmware/include/board_config.local.h
 _site/
+
+# 실제 보드 화면 찍은 그림(실명·실제 시간표가 보임 — 공개 저장소에 올리지 않는다)
+tools/sim/shots/7B_*/

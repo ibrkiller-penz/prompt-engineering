@@ -28,15 +28,18 @@ $StopFile = Join-Path $env:TEMP 'deck_helper.stop'
 $LogFile = Join-Path $env:TEMP 'deck_helper.log'
 function Log($m) { try { Add-Content -Path $LogFile -Value ("{0:MM-dd HH:mm:ss} {1}" -f (Get-Date), $m) -Encoding UTF8 } catch {} }
 
+# 열었으면 $true, 못 열었으면(모르는 단추·프로그램 없음) $false — 보드에 '@deck ok 키' / '@deck fail 키' 로 알려 준다
 function Open-App($key) {
   $t = $Apps[$key]
-  if (-not $t) { Log "모르는 단추: $key"; return }
+  if (-not $t) { Log "모르는 단추: $key"; return $false }
+  $ok = $false
   try {
-    if ($t -eq '#desktop') { (New-Object -ComObject Shell.Application).ToggleDesktop() }
+    if ($t -eq '#desktop') { [void](New-Object -ComObject Shell.Application).ToggleDesktop() }
     elseif ($t -eq '#altf4') { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('%{F4}') }   # 맨 앞 창 닫기
-    else { Start-Process $t }
-    Log "열기: $key"
+    else { Start-Process $t -ErrorAction Stop }
+    Log "열기: $key"; $ok = $true
   } catch { Log "열기 실패: $key ($($_.Exception.Message))" }
+  return $ok
 }
 
 # 알림판일 수 있는 포트: 7인치(CH343/CH340, VID 1A86) · 4인치(칩 내장 USB, VID 303A)
@@ -99,7 +102,20 @@ while ($true) {
           $line = $bufs[$p].Substring(0, $k).Trim()
           $bufs[$p] = $bufs[$p].Substring($k + 1)
           if ($line -eq '@board ok') { if (-not $okp[$p]) { $okp[$p] = $true; Log "알림판 확인: $p" } }
-          elseif ($line.StartsWith('@deck ')) { $okp[$p] = $true; Open-App $line.Substring(6).Trim() }
+          elseif ($line.StartsWith('@deck ')) {
+            $okp[$p] = $true
+            $key = $line.Substring(6).Trim()
+            $r = @(Open-App $key)[-1]                   # 결과를 보드에 돌려준다(보드 화면에 '열었습니다' / '열지 못했습니다')
+            try { $ports[$p].Write($(if ($r -eq $true) { "@deck ok $key`n" } else { "@deck fail $key`n" })) } catch {}
+          }
+          elseif ($line -match '^(sync|reset reason|health|download|index|where|schedule|weather|meal|air|heap|pc helper|backlight|restart)') {
+            # 보드 기록 중 중요한 줄만 %TEMP%\board_COMx.log 에 남긴다('어젯밤에 무슨 일이 있었나'). 1MB 넘으면 .old 로 바꾼다
+            try {
+              $bl = Join-Path $env:TEMP "board_$p.log"
+              if ((Test-Path $bl) -and (Get-Item $bl).Length -gt 1MB) { Move-Item $bl "$bl.old" -Force }
+              Add-Content -Path $bl -Value ("{0:MM-dd HH:mm:ss} {1}" -f (Get-Date), $line) -Encoding UTF8
+            } catch {}
+          }
         }
         if ($bufs[$p].Length -gt 4096) { $bufs[$p] = '' }
       }

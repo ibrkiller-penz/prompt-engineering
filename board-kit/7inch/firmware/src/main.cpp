@@ -15,6 +15,8 @@
 #include <time.h>
 #include <esp_sntp.h>
 #include <esp_lcd_panel_rgb.h>
+#include <esp_task_wdt.h>
+#include <esp_system.h>
 #include "esp_lv_adapter_arduino.h"
 #include "ioexp.h"
 #ifndef BOARD_7B
@@ -36,7 +38,7 @@ LV_FONT_DECLARE(num44);    // 1024x600 기온
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
 
-static const char *FW_VERSION = "0.1.0";
+static const char *FW_VERSION = "0.2.0";
 // 화면 꾸밈: 1 이면 둥근 모서리·그라데이션, 0 이면 각진 모서리·단색(메뉴를 바꿀 때 다시 그리기가 빨라진다)
 #define UI_FANCY 0
 // UI_SOFT: 딱딱하지 않게(2026-10-17 디자인팀 안). 따뜻한 어두운 색 · 큰 카드만 둥근 모서리 · 알약 꼬리표 · 탭 밑줄 · 노란 '지금' 칸.
@@ -83,12 +85,17 @@ static const char *DOW[5] = {"월", "화", "수", "목", "금"};
 #define D_TEXT 0xfaf5ee
 #define D_SUB 0xe2d8cc
 #define D_MUTED 0xb8ab9c
+#define D_MUTED_S "b8ab9c"    // recolor 글(#색 글#)에 쓰는 같은 색
 #define D_RED 0xb91c1c
 #define NOW_ROW 0xfff4e0      // 지금 교시 줄(따뜻한 크림)
 #define NOW_TAG 0xfbbf24      // 지금 교시 칸(호박색) — 빨강은 결강·시험처럼 읽혀서 쓰지 않는다
 #define NOW_TX 0x2a2320
 #define NEXT_BD 0xfacc15      // 다음 수업 줄 테두리
+#define C_SEL NOW_TAG         // 고른 단추·켜진 단추(호박색). 빨강(C_PRIMARY)은 지우기·경고에만 쓴다
+#define C_SEL_TX NOW_TX
 #else
+#define C_SEL C_PRIMARY
+#define C_SEL_TX 0xffffff
 #define C_PRIMARY 0xdc2626
 #define C_PRIMARY50 0xfef2f2
 #define C_TEXT 0x0f172a
@@ -109,6 +116,7 @@ static const char *DOW[5] = {"월", "화", "수", "목", "금"};
 #define D_TEXT 0xffffff
 #define D_SUB 0xcbd5e1
 #define D_MUTED 0x94a3b8
+#define D_MUTED_S "94a3b8"
 #define D_RED 0xb91c1c      // 지금 교시 칸. 흰 글자와 명암비 6.5:1(전 0xef4444 는 3.8:1)
 #define NOW_ROW 0xf1f5f9
 #define NOW_TAG D_RED
@@ -142,10 +150,34 @@ static JsonDocument s_tt(&s_alloc);
 static bool s_ttLoaded = false;
 static int s_ttCode = 0;         // 마지막 시간표 받기의 HTTP 응답 번호(404 면 주소 확인)
 // 같은 글이면 다시 그리지 않는다(작은 글자 하나 바꿔도 그 칸을 다시 그린다)
-static void setTextIf(lv_obj_t *o, const char *t) { if (o && strcmp(lv_label_get_text(o), t)) lv_label_set_text(o, t); }
+static bool setTextIf(lv_obj_t *o, const char *t) { if (o && strcmp(lv_label_get_text(o), t)) { lv_label_set_text(o, t); return true; } return false; }
+// 색·테두리·크기도 값이 다를 때만 바꾼다(LVGL 8.3 은 같은 값이어도 다시 그릴 표시를 한다 → 1분마다 그리는 넓이를 줄인다)
+static void setBgIf(lv_obj_t *o, uint32_t c) { if (lv_obj_get_style_bg_color(o, 0).full != lv_color_hex(c).full) lv_obj_set_style_bg_color(o, lv_color_hex(c), 0); }
+static void setBorderIf(lv_obj_t *o, uint32_t c) { if (lv_obj_get_style_border_color(o, 0).full != lv_color_hex(c).full) lv_obj_set_style_border_color(o, lv_color_hex(c), 0); }
+static void setBorderWIf(lv_obj_t *o, int w) { if (lv_obj_get_style_border_width(o, 0) != w) lv_obj_set_style_border_width(o, w, 0); }
+static void setTextColIf(lv_obj_t *o, uint32_t c) { if (lv_obj_get_style_text_color(o, 0).full != lv_color_hex(c).full) lv_obj_set_style_text_color(o, lv_color_hex(c), 0); }
+static void setWidthIf(lv_obj_t *o, lv_coord_t w) { if (lv_obj_get_style_width(o, 0) != w) lv_obj_set_width(o, w); }
+static void showIf(lv_obj_t *o, bool on) { if (!o) return; if (on == lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN)) { if (on) lv_obj_clear_flag(o, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN); } }
+static bool setTextFmtIf(lv_obj_t *o, const char *fmt, ...) {   // 형식 글도 같으면 그대로
+  char b[160]; va_list ap; va_start(ap, fmt); vsnprintf(b, sizeof b, fmt, ap); va_end(ap);
+  return setTextIf(o, b);
+}
 static int s_week = -1;          // 보고 있는 주 (0부터)
 static String s_ttFile = "t/001.json";   // 목록(index.json)을 받기 전에 쓰는 기본 파일(목록의 첫 시간표)
 static String s_ttName = "";
+static bool s_offToday = false;   // 오늘 쉬는 날인가(주말·휴일). 분이 바뀔 때 한 번 계산한다(isOffDay 는 일정 JSON 을 훑어 무겁다)
+static String s_offName;          // 쉬는 까닭(주말·휴일 이름). s_offToday 와 함께 계산
+static bool s_principal = false;   // 교장실 모드: s_pickName 이 '@교장'·'@교감' 이면 켜진다
+static bool s_pickMissing = false; // 고른 '볼 시간표' 이름이 목록(index.json)에 없다 → 다시 고르라고 알린다
+static bool s_ttSame = false;     // 마지막 시간표 받기가 304(바뀌지 않음)였나
+static bool s_weekDirty = false;  // 주간표를 다시 그려야 하나(숨어 있을 때는 미뤘다가 열 때 그린다)
+// 점검표: 항목마다 마지막으로 받은 시각과 마지막 결과(0 아직 · 1 성공 · -1 실패)
+enum { OK_WIFI, OK_TIME, OK_TT, OK_WHR, OK_WX, OK_AIR, OK_MEAL, OK_SCH, OK_N };
+static char s_okHM[OK_N][6];
+static int8_t s_okRes[OK_N];
+static const char *s_okFail[OK_N];   // 실패 이유(정해 둔 글만 가리킨다)
+static const char *s_resetWhy = "-";  // 지난번 다시 켜진 이유(설정 버전 줄 · 기록)
+static int s_crashN = 0;              // 멈춤·오류·전압 부족으로 다시 켜진 횟수(prefs "crashN", [다시 켜기]로 0)
 
 static Preferences s_prefs;
 
@@ -180,6 +212,13 @@ static void clockText(const struct tm &tm, char *out, size_t n, const char **amp
   else { *ampm = ""; snprintf(out, n, "%02d:%02d", h, tm.tm_min); }
 }
 static lv_obj_t *s_row[8], *s_rowP[8], *s_rowA[8], *s_rowB[8], *s_rowTag[8];
+static lv_obj_t *s_rowRem[8] = {};    // 1024: 지금 줄 교시 칸 아래의 큰 '45분'(평소 숨김)
+static bool s_rowRemOn[8] = {};
+static int s_rowW = 0, s_rowPW = 0, s_rightW = 0;   // 오늘 시간표 줄 폭 · 교시 칸 폭 · 오른쪽 칸 폭(buildUI 에서)
+static bool s_ttLayoutDirty = true;   // 제목·꼬리표·D-day 자리를 다시 계산해야 하나
+static uint32_t s_ttGen = 0;          // 시간표를 새로 읽을 때마다 1 오른다(D-day 계산을 그때만 한다)
+static int SC(int v) { return (int)lroundf(v * s_W / 800.0f); }   // 800 기준 값을 화면 비율대로
+static int textW(const char *t, const lv_font_t *f) { lv_point_t p; lv_txt_get_size(&p, t, f, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE); return p.x; }
 static lv_obj_t *s_guide = nullptr;   // 시간표가 없을 때 오른쪽 칸에 띄우는 할 일 안내
 static lv_obj_t *s_stale = nullptr;   // 시계 화면 날짜 바로 아래: '자료 갱신 안 됨 · 10/16 기준'(받기가 계속 실패할 때만)
 static lv_obj_t *s_pBat = nullptr;    // 교장 화면의 배터리 표시(같은 글)
@@ -367,7 +406,13 @@ static lv_obj_t *button(lv_obj_t *parent, const char *txt, int w, int h, uint32_
   if (!inited) { lv_style_transition_dsc_init(&noTrans, NO_PROPS, lv_anim_path_linear, 0, 0, nullptr); inited = true; }
   lv_obj_set_style_transition(b, &noTrans, 0);
   lv_obj_set_style_transition(b, &noTrans, LV_STATE_PRESSED);
+  // 글자색은 단추에 두고 이름표가 물려받는다 → 누를 수 없는(DISABLED) 상태는 바탕 D_PANEL · 글자 D_MUTED 로 한 번에
+  lv_obj_set_style_text_color(b, lv_color_hex(fg), 0);
+  lv_obj_set_style_bg_color(b, lv_color_hex(D_PANEL), LV_STATE_DISABLED);
+  lv_obj_set_style_text_color(b, lv_color_hex(D_MUTED), LV_STATE_DISABLED);
+  lv_obj_set_style_border_color(b, lv_color_hex(D_LINE), LV_STATE_DISABLED);
   lv_obj_t *l = label(b, &kr16, fg, txt);
+  lv_obj_remove_local_style_prop(l, LV_STYLE_TEXT_COLOR, 0);
   lv_obj_center(l);
   return b;
 }
@@ -381,6 +426,11 @@ static String todayIso() {
 }
 static int nowMin() { time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm); return tm.tm_hour * 60 + tm.tm_min; }
 static int toMin(const char *hm) { return atoi(hm) * 60 + atoi(hm + 3); }
+static String isoAddDays(const String &iso, int n) {   // "2026-10-25" + n일
+  struct tm t = {}; t.tm_year = iso.substring(0, 4).toInt() - 1900; t.tm_mon = iso.substring(5, 7).toInt() - 1; t.tm_mday = iso.substring(8, 10).toInt() + n; t.tm_hour = 12;
+  mktime(&t); char b[11]; strftime(b, sizeof b, "%Y-%m-%d", &t); return String(b);
+}
+static bool afterSchool() { return timeValid() && nowMin() >= toMin("16:30"); }   // 수업이 끝난 뒤(내일 시간표를 보인다)
 
 // ── 시간표 (오늘 하루) ──
 // 교실 칠판에는 주간표보다 오늘 시간표와 큰 시계가 잘 보여, 시계 모드가 기본이다(20분 무입력이면 자동).
@@ -396,18 +446,29 @@ static int currentWeek() {
   }
   return best;
 }
-static JsonObject findDay(bool &isToday) {
+// 수업이 끝난 뒤(16:30~)와 휴일에는 오늘 대신 다음 수업일을 돌려준다. 다음 날 자료가 없으면 오늘.
+// skipped: 돌려준 날이 오늘보다 뒤(방과 후·주말·휴일 미리보기). todayOut: 건너뛴 오늘 칸(있으면)
+static JsonObject findDay(bool &isToday, bool *skipped = nullptr, JsonObject *todayOut = nullptr) {
   String t = todayIso();
   isToday = false;
-  JsonObject next, last;
+  if (skipped) *skipped = false;
+  if (todayOut) *todayOut = JsonObject();
+  const bool after = afterSchool();
+  JsonObject next, last, today;
   for (JsonObject w : s_tt["weeks"].as<JsonArray>())
     for (JsonObject d : w["days"].as<JsonArray>()) {
       const char *ds = d["date"] | "";
       last = d;
-      if (t.length() && t == ds) { isToday = true; return d; }
+      if (t.length() && t == ds) {
+        if (!after && strcmp(d["type"] | "", "holiday")) { isToday = true; return d; }
+        today = d; continue;                                   // 방과 후·휴일: 다음 날을 찾는다
+      }
       if (t.length() && next.isNull() && strcmp(ds, t.c_str()) > 0) next = d;
     }
-  return !next.isNull() ? next : last;
+  if (todayOut) *todayOut = today;
+  if (!next.isNull()) { if (skipped) *skipped = true; return next; }
+  if (!today.isNull()) { isToday = true; return today; }
+  return last;
 }
 // 줄 차례: 1~4교시, 점심, 5~7교시
 static int periodOfRow(int r) { return r < 4 ? r : (r == 4 ? -1 : r - 1); }
@@ -422,18 +483,32 @@ static int s_failCount = 0;   // 잇따라 실패한 횟수
 //  FK_NOTFOUND: 시간표 주소에 파일이 없음(404·403) → 6시간 뒤 또는 [지금 받기]
 //  FK_NET     : 와이파이·인터넷 실패 → 2·4·8·16·32분, 그 뒤로 60분마다
 //  FK_PARTIAL : 시간표는 못 받았지만 시간·날씨·급식 중 일부는 받음 → 1시간 주기 유지
-enum FailKind { FK_NONE, FK_NOTFOUND, FK_NET, FK_PARTIAL };
+//  FK_AUTH    : 와이파이 비밀번호가 맞지 않음(이유 202 잇따라 2번, 15·204 잇따라 3번 — 신호가 약해도 나서) → 6시간 뒤
+//               (아침 07:00~07:10 에 한 번 더) 또는 새 와이파이·[지금 받기]. 한 번이라도 붙은 비밀번호(prefs pwok)면 걸지 않는다
+//  FK_NOAP    : 공유기를 찾지 못함(잇따라 2번, 밤에 공유기를 끄는 학교) → FK_NET 과 같은 간격(2·4·8…60분)
+enum FailKind { FK_NONE, FK_NOTFOUND, FK_NET, FK_PARTIAL, FK_AUTH, FK_NOAP };
 static FailKind s_failKind = FK_NONE;
+static int s_wifiFails = 0;          // 같은 이유(비밀번호·공유기 없음)로 잇따라 실패한 횟수
+static int s_lastWifiKind = 0;       // 지난번 실패 이유 묶음(1: 202 · 3: 15·204 · 2: 201)
+static bool s_pwOk = false;          // 저장한 비밀번호로 한 번이라도 붙었나(prefs "pwok")
+static String s_authRetryDay;        // FK_AUTH 아침 재시도를 한 날
+static uint32_t s_wifiOnAt = 0;      // 와이파이를 켠 때(받기 전체 시간 기록용)
+static bool s_coreRetry = false;     // 시간 초과로 모드의 핵심 자료(교장: 학교 일정, 교사: 시간표)를 못 받음 → 10분 뒤 한 번 더
 static char s_lastOkHM[8] = "";      // 마지막으로 성공한 시각
 static time_t s_lastOkT = 0;         // 마지막으로 성공한 때(prefs "lastok" — 껐다 켜도 남는다)
 // 받은 자료가 오래됐으면 글을 만들어 참을 돌려준다(잇따라 2번 실패 또는 마지막 성공이 6시간 넘음)
 static bool staleText(char *buf, size_t n) {
+  if (s_failKind == FK_AUTH) { snprintf(buf, n, "와이파이 비밀번호를 확인하세요"); return true; }
+  if (s_failKind == FK_NOAP) { snprintf(buf, n, "와이파이 공유기를 찾지 못했습니다"); return true; }
   if (!timeValid()) return false;
   const time_t now = time(nullptr);
-  if (!s_lastOkT) { if (s_failCount >= 2) { snprintf(buf, n, "아직 자료를 받지 못했습니다"); return true; } return false; }
+  // 까닭 한 토막(설정을 열지 않아도 무엇이 문제인지 보이게)
+  const char *why = s_pickMissing && !s_principal ? " · 시간표 다시 고르기" : s_failKind == FK_NOTFOUND ? " · 시간표 파일 없음"
+                  : s_failKind == FK_NET ? " · 인터넷" : s_failKind == FK_PARTIAL ? " · 일부만 받음" : "";
+  if (!s_lastOkT) { if (s_failCount >= 2) { snprintf(buf, n, "아직 자료를 받지 못했습니다%s", why); return true; } return false; }
   if (s_failCount < 2 && now - s_lastOkT < 6 * 3600) return false;
   struct tm tm; localtime_r(&s_lastOkT, &tm);
-  snprintf(buf, n, "자료 갱신 안 됨 · %d/%d %02d:%02d 기준", tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min);
+  snprintf(buf, n, "자료 갱신 안 됨 · %d/%d %02d:%02d%s", tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, why);
   return true;
 }
 // 위쪽 막대용 '받음' 시각: 오늘이면 08:12, 아니면 10/16 08:12
@@ -454,55 +529,119 @@ static void renderToday() {
   if (!s_ttLoaded) {
     const bool noWifi = !s_prefs.getString("ssid", "").length();
     setTextIf(s_dayTitle, urlUnset() ? "시간표 주소가 없습니다" : noWifi ? "설정에서 와이파이를 연결하세요"
+              : s_pickMissing ? "볼 시간표를 다시 고르세요"
               : (s_triedOnce && !s_lastOk) ? (s_failKind == FK_NOTFOUND ? "시간표 파일을 찾지 못했습니다" : "시간표를 받지 못했습니다 · 곧 다시 받습니다")
-              : "시간표를 받는 중…");
-    if (s_guide && (urlUnset() || noWifi)) {
+              : "시간표를 받는 중...");
+    if (s_guide && (urlUnset() || noWifi || s_pickMissing)) {
       setTextIf(s_guide, noWifi
         ? "시간표를 아직 불러오지 못했습니다\n\n1. [설정] → [찾기]에서 학교 와이파이를 고르세요\n2. 계속 안 되면 정보 담당 선생님께 알려 주세요\n\n시계는 지금도 정상입니다"
-        : "시간표 주소가 아직 없습니다\n\n정보 담당 선생님의 확인이 필요합니다\n\n시계·날씨·급식은 지금도 정상입니다");
-      lv_obj_clear_flag(s_guide, LV_OBJ_FLAG_HIDDEN);
+        : urlUnset() ? "시간표 주소가 아직 없습니다\n\n정보 담당 선생님의 확인이 필요합니다\n\n시계·날씨·급식은 지금도 정상입니다"
+        : "고른 시간표 이름이 목록에 없습니다\n\n[설정] → [볼 시간표]에서 다시 고르세요\n\n시계·날씨·급식은 지금도 정상입니다");
+      showIf(s_guide, true);
     }
     return;
   }
-  if (s_guide) lv_obj_add_flag(s_guide, LV_OBJ_FLAG_HIDDEN);
-  bool isToday;
-  JsonObject day = findDay(isToday);
+  showIf(s_guide, false);
+  bool isToday, skipped;
+  JsonObject todayObj;                                               // 건너뛴 오늘 칸(방과 후·휴일)
+  JsonObject day = findDay(isToday, &skipped, &todayObj);
   const char *date = day["date"] | "", *dow = day["dow"] | "", *tag = day["tag"] | "";
-  // 오늘 날짜는 왼쪽 아래에 이미 있으므로 제목에 다시 쓰지 않는다(중복 없이). 다음 수업일일 때만 날짜를 쓴다.
-  if (isToday) lv_label_set_text(s_dayTitle, "오늘 시간표");
-  else lv_label_set_text_fmt(s_dayTitle, "다음 수업일 · %d월 %d일 (%s)", atoi(date + 5), atoi(date + 8), dow);
-  lv_label_set_text(s_dayTag, tag);
-  if (*tag) {                                                        // 휴일·행사 꼬리표는 제목 바로 뒤에
-    lv_obj_clear_flag(s_dayTag, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_update_layout(s_dayTitle);
-    lv_obj_align_to(s_dayTag, s_dayTitle, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
-  } else lv_obj_add_flag(s_dayTag, LV_OBJ_FLAG_HIDDEN);
-  // 수능 D-day: 당일은 D-DAY, 다음 날부터 숨긴다(board_config.h 의 SUNEUNG_DATE)
+  const String td = todayIso();
+  const bool tomorrow = !isToday && td.length() && isoAddDays(td, 1) == date;
+  const bool todayHoliday = !todayObj.isNull() && !strcmp(todayObj["type"] | "", "holiday");
+  const char *dty = day["type"] | "";
+  const char *tagShow = todayHoliday ? "오늘 휴일" : tag;            // 휴일에는 다음 수업일을 보이고 꼬리표로 알린다
+  // D-day: 수능(board_config.h 의 SUNEUNG_DATE) 당일까지. 오늘이 시험 날이면 'N일째', 아니면 시간표의 다음 시험(연속된 시험은 첫날).
+  // 날짜가 바뀌거나 시간표를 새로 받았을 때만 계산한다(1분마다 일정을 훑지 않게).
+  static String ddKey; static char dd[64] = ""; static bool ddOn = false, ddHot = false;
+  bool ddChg = false;
   {
-    String td = todayIso();
-    if (td.length() && strlen(SUNEUNG_DATE) == 10) {   // 날짜를 비워 두면(설정 안 함) 숨겨 둔 채로 둔다
+    const String key = td + "#" + String(s_ttGen);
+    if (key != ddKey) {
+      ddKey = key; ddOn = ddHot = false; dd[0] = 0; ddChg = true;
       auto dayNo = [](const char *iso) { struct tm tm = {}; tm.tm_year = atoi(iso) - 1900; tm.tm_mon = atoi(iso + 5) - 1; tm.tm_mday = atoi(iso + 8); tm.tm_hour = 12; return (long)(mktime(&tm) / 86400); };
-      long left = dayNo(SUNEUNG_DATE) - dayNo(td.c_str());
-      if (left > 0) lv_label_set_text_fmt(s_dday, "수능 D-%ld", left);
-      else if (left == 0) lv_label_set_text(s_dday, "수능 D-DAY");
-      if (left >= 0 && (s_show & SH_DDAY)) lv_obj_clear_flag(s_dday, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(s_dday, LV_OBJ_FLAG_HIDDEN);
+      if (td.length()) {
+        int run = 0, todayRun = 0; bool prevEx = false; const char *prevTag = ""; char todayTag[48] = "";
+        for (JsonObject w : s_tt["weeks"].as<JsonArray>())
+          for (JsonObject d : w["days"].as<JsonArray>()) {
+            const char *ds = d["date"] | "", *tg = d["tag"] | "";
+            const bool ex = !strcmp(d["type"] | "", "exam");
+            run = ex ? ((prevEx && !strcmp(prevTag, tg)) ? run + 1 : 1) : 0;
+            if (td == ds) { todayRun = run; snprintf(todayTag, sizeof todayTag, "%s", tg); }
+            prevEx = ex; prevTag = tg;
+          }
+        long left = -1;
+        if (strlen(SUNEUNG_DATE) == 10) left = dayNo(SUNEUNG_DATE) - dayNo(td.c_str());
+        if (left == 0) { snprintf(dd, sizeof dd, "수능 D-DAY"); ddOn = ddHot = true; }
+        else if (todayRun > 0) { snprintf(dd, sizeof dd, "%s %d일째", *todayTag ? todayTag : "시험", todayRun); ddOn = ddHot = true; }
+        else if (left > 0) { snprintf(dd, sizeof dd, "수능 D-%ld", left); ddOn = true; ddHot = left <= 7; }
+        else {
+          prevEx = false; prevTag = "";
+          for (JsonObject w : s_tt["weeks"].as<JsonArray>()) {
+            for (JsonObject d : w["days"].as<JsonArray>()) {
+              const char *ds = d["date"] | "", *tg = d["tag"] | "";
+              const bool ex = !strcmp(d["type"] | "", "exam");
+              if (ex && strcmp(ds, td.c_str()) > 0 && !(prevEx && !strcmp(prevTag, tg))) {
+                const long l2 = dayNo(ds) - dayNo(td.c_str());
+                snprintf(dd, sizeof dd, "%s D-%ld", *tg ? tg : "시험", l2); ddOn = true; ddHot = l2 <= 7; break;
+              }
+              prevEx = ex; prevTag = tg;
+            }
+            if (ddOn) break;
+          }
+        }
+      }
     }
+    if (ddOn && setTextIf(s_dday, dd)) ddChg = true;
+    setBgIf(s_dday, ddHot ? NOW_TAG : D_ROW);                        // 7일 안으로 다가오면 호박색으로 눈에 띄게
+    setTextColIf(s_dday, ddHot ? NOW_TX : 0xfcd34d);
+  }
+  // 제목: 오늘 날짜는 왼쪽에 이미 있으므로 다시 쓰지 않는다. 다음 수업일일 때만 짧게 날짜를 쓴다(16:30~ 는 내일 시간표).
+  bool tchg;
+  if (isToday) tchg = setTextIf(s_dayTitle, "오늘 시간표");
+  else if (tomorrow) tchg = setTextIf(s_dayTitle, "내일 시간표");
+  else tchg = setTextFmtIf(s_dayTitle, "%d/%d(%s) 시간표", atoi(date + 5), atoi(date + 8), dow);
+  const bool gchg = setTextIf(s_dayTag, tagShow);
+  const int tagKind = (todayHoliday || !strcmp(dty, "holiday")) ? 1 : !strcmp(dty, "exam") ? 2 : 0;   // 1 휴일 · 2 시험
+  setBgIf(s_dayTag, tagKind == 1 ? D_LINE : tagKind == 2 ? D_ROW : 0xfee2e2);
+  setTextColIf(s_dayTag, tagKind == 1 ? D_SUB : tagKind == 2 ? 0xfcd34d : 0x991b1b);
+  setBorderWIf(s_dayTag, tagKind == 2 ? 1 : 0);
+  {   // 제목·꼬리표·D-day 가 겹치지 않게: 제목 폭 상한을 정하고, 그래도 좁으면 D-day 를 숨긴다(글이 바뀔 때만 계산)
+    static bool crowded = false;
+    const bool tagWas = lv_obj_has_flag(s_dayTag, LV_OBJ_FLAG_HIDDEN) == (bool)*tagShow;
+    const bool wantDD = ddOn && (s_show & SH_DDAY);
+    if (tchg || gchg || ddChg || tagWas || s_ttLayoutDirty) {
+      s_ttLayoutDirty = false;
+      const int avail = s_rightW - SC(16) - SC(12);
+      const int tagW = *tagShow ? textW(tagShow, FM()) + 16 + 8 : 0;
+      int ddW = wantDD ? textW(dd, FM()) + 22 + 8 : 0;
+      crowded = wantDD && avail - ddW - tagW < SC(100);
+      if (crowded) ddW = 0;
+      const lv_coord_t mw = max(SC(80), avail - ddW - tagW);
+      if (lv_obj_get_style_max_width(s_dayTitle, 0) != mw) lv_obj_set_style_max_width(s_dayTitle, mw, 0);
+      showIf(s_dayTag, *tagShow);
+      if (*tagShow) { lv_obj_update_layout(s_dayTitle); lv_obj_align_to(s_dayTag, s_dayTitle, LV_ALIGN_OUT_RIGHT_MID, 8, 0); }
+    }
+    showIf(s_dday, wantDD && !crowded);
   }
 
+  const char *ty = day["type"] | "";
+  const bool holiday = !strcmp(ty, "holiday"), exam = !strcmp(ty, "exam");   // 휴일: '지금' 표시 없음 · 시험: '분 남음' 대신 '시험'
   const bool teacher = strcmp(s_tt["kind"] | "teacher", "teacher") == 0;
   const int nm = timeValid() ? nowMin() : -1;
   int nowP = -1, nextP = -1;
-  if (isToday) {
+  if (isToday && !holiday) {
     for (int p = 0; p < 7; p++) {
       int st = toMin(PERIOD_START[p]);
       if (nm >= st && nm < st + 50) nowP = p;
       if (nextP < 0 && st > nm) nextP = p;
     }
   }
-  const bool lunchNow = isToday && nm >= toMin("12:30") && nm < toMin("13:30");
+  const bool lunchNow = isToday && !holiday && nm >= toMin("12:30") && nm < toMin("13:30");
   JsonArray cells = day["cells"].as<JsonArray>();
 
   // 지금 교시 줄은 밝은 칸(옅은 회색 + 검은 글씨)으로 눈에 띄게(사용자 지시). 종류 색은 테두리로만.
+  // 값이 바뀐 것만 다시 쓴다(1분마다 같은 값을 쓰면 그 칸을 다시 그린다)
   for (int r = 0; r < 8; r++) {
     int p = periodOfRow(r);
     bool now = (p >= 0 && p == nowP) || (p < 0 && lunchNow);
@@ -513,7 +652,7 @@ static void renderToday() {
       bool duty = teacher && *lunch;
       textA = duty ? "급식지도" : "점심시간";
       textB = teacher ? "12:30 ~ 13:30" : lunch;
-      if (duty) { border = 0xf59e0b; colA = 0xfcd34d; } else colA = D_MUTED;
+      if (duty) { border = NEXT_BD; colA = 0xfcd34d; } else colA = D_MUTED;
       colB = D_MUTED;
     } else {
       JsonArray c = cells[p];
@@ -523,75 +662,111 @@ static void renderToday() {
       textTag = c[3] | "";
       if (*t) border = styleOf(*t).border; else { colA = D_MUTED; colB = D_MUTED; }
     }
-    const bool past = isToday && nm >= 0 && !now && (p >= 0 ? nm >= toMin(PERIOD_START[p]) + 50 : nm >= toMin("13:30"));
-    if (past) { colA = D_MUTED; colB = D_MUTED; }
+    const bool past = isToday && !holiday && nm >= 0 && !now && (p >= 0 ? nm >= toMin(PERIOD_START[p]) + 50 : nm >= toMin("13:30"));
+    if (past) { colA = colB = D_MUTED; border = D_LINE; }            // 지난 교시는 테두리 색도 끈다
     const bool next = UI_SOFT && !now && p >= 0 && p == nextP && nm >= 0;
     if (now) { border = NOW_ROW; colA = C_TEXT; colB = C_MUTED; }
     if (next) border = NEXT_BD;
-    lv_obj_set_style_bg_color(s_row[r], lv_color_hex(now ? NOW_ROW : D_ROW), 0);
-    lv_obj_set_style_border_color(s_row[r], lv_color_hex(border), 0);
-    lv_obj_set_style_border_width(s_row[r], next ? 2 : 1, 0);
-    lv_label_set_text(s_rowA[r], textA);
-    lv_label_set_text(s_rowB[r], textB);
-    lv_obj_set_style_text_color(s_rowA[r], lv_color_hex(colA), 0);
-    lv_obj_set_style_text_color(s_rowB[r], lv_color_hex(colB), 0);
-    lv_label_set_text(s_rowTag[r], textTag);
-    if (*textTag) {
-      lv_obj_clear_flag(s_rowTag[r], LV_OBJ_FLAG_HIDDEN);
-      lv_obj_update_layout(s_rowA[r]);                                  // 과목 글 폭이 정해진 뒤 그 뒤에 붙인다
-      lv_obj_align_to(s_rowTag[r], s_rowA[r], LV_ALIGN_OUT_RIGHT_MID, 8, 0);
-    } else lv_obj_add_flag(s_rowTag[r], LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_style_bg_color(s_rowP[r], lv_color_hex(now ? NOW_TAG : D_LINE), 0);
+    setBgIf(s_row[r], now ? NOW_ROW : D_ROW);
+    setBorderIf(s_row[r], border);
+    setBorderWIf(s_row[r], next ? 2 : 1);
+    const bool ca = setTextIf(s_rowA[r], textA);
+    const bool cb = setTextIf(s_rowB[r], textB);
+    setTextColIf(s_rowA[r], colA);
+    setTextColIf(s_rowB[r], colB);
+    const bool cg = setTextIf(s_rowTag[r], textTag);
+    const bool tagWas = lv_obj_has_flag(s_rowTag[r], LV_OBJ_FLAG_HIDDEN) == (bool)*textTag;
+    showIf(s_rowTag[r], *textTag);
+    if (ca || cb || cg || tagWas) {                                   // 글이 바뀐 줄만: 과목 폭 상한(꼬리표·교실 글 자리를 남긴다) → 꼬리표를 과목 뒤에
+      const int tagW = *textTag ? textW(textTag, FM()) + 2 * (big() ? 8 : 5) + 8 : 0;
+      const int bW = *textB ? min(textW(textB, FM()), SC(110)) : 0;
+      const lv_coord_t mw = max(SC(40), min(SC(150), s_rowW - s_rowPW - SC(18) - tagW - bW - SC(24)));
+      if (lv_obj_get_style_max_width(s_rowA[r], 0) != mw) lv_obj_set_style_max_width(s_rowA[r], mw, 0);
+      if (*textTag) { lv_obj_update_layout(s_rowA[r]); lv_obj_align_to(s_rowTag[r], s_rowA[r], LV_ALIGN_OUT_RIGHT_MID, 8, 0); }
+    }
+    setBgIf(s_rowP[r], now ? NOW_TAG : D_LINE);
     lv_obj_t *pl = lv_obj_get_child(s_rowP[r], 0);
-    lv_obj_set_style_text_color(pl, lv_color_hex(now ? NOW_TX : D_SUB), 0);
-    // 교시 칸: 평소에는 시작 시각, 지금 교시(점심)에는 남은 시간 — 한눈에 '지금 어디쯤인지' 보이게
-    if (p < 0) { if (now) lv_label_set_text_fmt(pl, "점심\n%d분 남음", toMin("13:30") - nm); else lv_label_set_text(pl, "점심"); }
-    else if (now) lv_label_set_text_fmt(pl, "%d교시\n%d분 남음", p + 1, toMin(PERIOD_START[p]) + 50 - nm);
-    else lv_label_set_text_fmt(pl, "%d교시\n%s", p + 1, PERIOD_START[p]);
+    setTextColIf(pl, now ? NOW_TX : D_SUB);
+    // 교시 칸: 평소에는 시작 시각, 지금 교시(점심)에는 남은 시간 — 한눈에 '지금 어디쯤인지' 보이게(시험 날은 '시험')
+    if (s_rowRem[r]) {   // 1024: 지금 줄은 위 '3교시'(작게) 아래 '45분'(크게) — 가장 중요한 숫자를 가장 크게
+      if (now) {
+        if (p < 0) setTextIf(pl, "점심"); else setTextFmtIf(pl, "%d교시", p + 1);
+        if (p < 0) setTextFmtIf(s_rowRem[r], "%d분", toMin("13:30") - nm);
+        else if (exam) setTextIf(s_rowRem[r], "시험");
+        else setTextFmtIf(s_rowRem[r], "%d분", toMin(PERIOD_START[p]) + 50 - nm);
+      } else if (p < 0) setTextIf(pl, "점심");
+      else setTextFmtIf(pl, "%d교시\n%s", p + 1, PERIOD_START[p]);
+      if (now != s_rowRemOn[r]) {
+        s_rowRemOn[r] = now;
+        showIf(s_rowRem[r], now);
+        if (now) lv_obj_align(pl, LV_ALIGN_TOP_MID, 0, 2); else lv_obj_center(pl);
+      }
+    } else if (p < 0) { if (now) setTextFmtIf(pl, "점심\n%d분 남음", toMin("13:30") - nm); else setTextIf(pl, "점심"); }
+    else if (now && exam) setTextFmtIf(pl, "%d교시\n시험", p + 1);
+    else if (now) setTextFmtIf(pl, "%d교시\n%d분 남음", p + 1, toMin(PERIOD_START[p]) + 50 - nm);
+    else setTextFmtIf(pl, "%d교시\n%s", p + 1, PERIOD_START[p]);
   }
-  // 할 일: 급식지도 · 공강지도 · 보강 · 야자 감독 (오늘만)
+  // 할 일: 급식지도 · 공강지도 · 보강 · 야자 감독 · 바뀐 수업(당겨옴·결강·시험 감독·창체·행사, 교실까지).
+  // 오늘(방과 후·주말·휴일에는 다음 수업일), 3개 넘으면 '외 N건'(시험 날은 7개까지 모두).
+  // 방과 후여도 오늘 저녁 야자 감독은 18:30 전까지 맨 앞에 남긴다(16:30 부터 사라지던 문제).
   {
-    String duty;
-    auto add = [&](const String &s) { if (duty.length()) duty += "  ·  "; duty += s; };
-    if (isToday) {
+    String duty; int cnt = 0;
+    const int cap = exam ? 7 : 3;
+    auto add = [&](const String &s) { if (++cnt > cap) return; if (duty.length()) duty += "  ·  "; duty += s; };
+    auto roomOf = [](const char *b) { String room = b; int dot = room.indexOf(" · "); if (dot > 0) room = room.substring(0, dot); room.trim(); return room; };
+    const bool showDay = isToday || skipped;
+    const String me = String((const char *)(s_tt["name"] | ""));
+    const bool tonight = skipped && teacher && !todayObj.isNull() && me.length() && me == (const char *)(todayObj["night"] | "")
+                         && nm >= 0 && nm < toMin("18:30");
+    if (showDay) {
       if (teacher && *(const char *)(day["lunch"] | "")) add("급식지도 12:30");
       for (int p = 0; p < 7; p++) {
         JsonArray c = cells[p];
-        const char *t = c[0] | "", *b = c[2] | "", *g = c[3] | "";
-        if (*t != 'j') continue;
-        String room = b; int dot = room.indexOf(" · "); if (dot > 0) room = room.substring(0, dot);
-        if (!strcmp(g, "지도")) add(String(p + 1) + "교시 공강지도 " + room);
-        else if (!strcmp(g, "보강")) add(String(p + 1) + "교시 보강 " + room);
+        const char *t = c[0] | "", *a = c[1] | "", *b = c[2] | "", *g = c[3] | "";
+        const String pn = String(p + 1) + "교시 ";
+        const String room = roomOf(b), rs = room.length() ? " " + room : String();
+        const char *ga = *g ? g : a;
+        if (*t == 'j') {
+          if (!strcmp(g, "지도")) add(pn + "공강지도" + rs);
+          else if (!strcmp(g, "보강")) add(pn + "보강" + rs);
+        } else if (*t == 'd') add(pn + "당겨옴 " + a + rs);
+        else if (*t == 'x') add(pn + "결강");
+        else if (*t == 'e') { if (teacher && room.length()) add(pn + "감독 " + room); else if (*ga) add(pn + ga + rs); }
+        else if ((*t == 'c' || *t == 'f') && (*ga || room.length())) add(pn + ga + rs);
       }
-      String me = String((const char *)(s_tt["name"] | ""));
       if (teacher && me.length() && me == (const char *)(day["night"] | "")) add("야자 감독 18:30");
+      if (cnt > cap) duty += "  ·  외 " + String(cnt - cap) + "건";
+      if (duty.length() && !isToday) duty = (tomorrow ? String("내일 · ") : String(dow) + "요일 · ") + duty;
     }
-    lv_label_set_text(s_duty, duty.length() ? duty.c_str() : (isToday ? "오늘은 따로 맡은 일이 없습니다" : "-"));
-    lv_obj_set_style_text_color(s_duty, lv_color_hex(duty.length() ? 0xfcd34d : D_MUTED), 0);
+    if (tonight) duty = String("오늘 야자 감독 18:30") + (duty.length() ? "  ·  " + duty : String());
+    setTextIf(s_duty, duty.length() ? duty.c_str() : isToday ? "오늘은 따로 맡은 일이 없습니다" : showDay ? "따로 맡은 일이 없습니다" : "-");
+    setTextColIf(s_duty, duty.length() ? 0xfcd34d : D_MUTED);
   }
-  // 다음 수업 알림: 수업 시작 10분 전부터(다음이 공강이면 띄우지 않는다). 그동안 날짜 대신 보인다.
+  // 다음 수업 알림: 수업 시작 10분 전부터(다음이 공강이면 띄우지 않는다. 휴일·시험 날은 띄우지 않는다).
+  // 잘려도 '몇 분 뒤'가 남도록 시간을 앞에 둔다.
   {
     int soonP = -1;
-    if (isToday && nowP < 0)
+    if (isToday && nowP < 0 && !holiday && !exam)
       for (int p = 0; p < 7; p++) { int d = toMin(PERIOD_START[p]) - nm; if (d > 0 && d <= 10) { soonP = p; break; } }
     JsonArray sc = soonP >= 0 ? cells[soonP].as<JsonArray>() : JsonArray();
-    if (soonP >= 0 && *(const char *)(sc[0] | "")) {
-      const char *a = sc[1] | "", *b = sc[2] | "";
-      int left = toMin(PERIOD_START[soonP]) - nm;
-      lv_label_set_text_fmt(s_noticeLbl, "다음 %d교시  %s%s%s  ·  %d분 뒤", soonP + 1, a, *b ? " · " : "", b, left);
-      lv_obj_clear_flag(s_notice, LV_OBJ_FLAG_HIDDEN);
-    } else lv_obj_add_flag(s_notice, LV_OBJ_FLAG_HIDDEN);
     const bool on = soonP >= 0 && *(const char *)(sc[0] | "");
+    if (on) {
+      const char *a = sc[1] | "", *b = sc[2] | "";
+      setTextFmtIf(s_noticeLbl, "%d분 뒤  ·  %d교시 %s%s%s", toMin(PERIOD_START[soonP]) - nm, soonP + 1, a, *b ? " · " : "", b);
+    }
+    showIf(s_notice, on);
     if (on != s_noticeOn) { s_noticeOn = on; layoutClock(); }       // 띠가 생기거나 사라지면 카드 자리를 다시 잡는다
   }
   (void)nextP;   // '지금/다음' 글은 두지 않는다 — 오른쪽의 밝은 줄과 '남은 시간', 아래 '다음 수업' 띠가 그 역할을 한다
 }
 
 // ── 주간 시간표 ──
+// 1분마다 다시 부르므로 값이 바뀐 칸만 다시 쓴다. 숨어 있으면 부르지 않는다(s_weekDirty).
 static void renderWeek() {
+  s_weekDirty = false;
   if (!s_ttLoaded) {
-    lv_label_set_text(s_weekLbl, "시간표 없음");
-    lv_label_set_text(s_ttSub, s_prefs.getString("ssid", "").length() ? "시간표를 받는 중…" : "설정에서 와이파이를 연결하세요");
+    setTextIf(s_weekLbl, "시간표 없음");
+    setTextIf(s_ttSub, s_prefs.getString("ssid", "").length() ? "시간표를 받는 중..." : "설정에서 와이파이를 연결하세요");
     return;
   }
   JsonArray weeks = s_tt["weeks"].as<JsonArray>();
@@ -604,19 +779,21 @@ static void renderWeek() {
   for (int p = 0; p < 7; p++) if (nm >= toMin(PERIOD_START[p]) && nm < toMin(PERIOD_START[p]) + 50) nowP = p;
 
   const char *d0 = days[0]["date"] | "", *d4 = days[days.size() - 1]["date"] | "";
-  lv_label_set_text_fmt(s_weekLbl, "%d주차  %d/%d ~ %d/%d", wk["n"].as<int>(), atoi(d0 + 5), atoi(d0 + 8), atoi(d4 + 5), atoi(d4 + 8));
+  setTextFmtIf(s_weekLbl, "%d주차  %d/%d ~ %d/%d", wk["n"].as<int>(), atoi(d0 + 5), atoi(d0 + 8), atoi(d4 + 5), atoi(d4 + 8));
   const char *kind = s_tt["kind"] | "teacher";
-  if (strcmp(kind, "teacher") == 0) lv_label_set_text_fmt(s_ttSub, "주당 %s시간 · 담임 %s", (const char *)(s_tt["hours"] | "-"), (const char *)(s_tt["home"] | "-"));
-  else lv_label_set_text(s_ttSub, "교실 시간표");
+  if (strcmp(kind, "teacher") == 0) setTextFmtIf(s_ttSub, "주당 %s시간 · 담임 %s", (const char *)(s_tt["hours"] | "-"), (const char *)(s_tt["home"] | "-"));
+  else setTextIf(s_ttSub, "교실 시간표");
 
   for (int d = 0; d < 5; d++) {
     JsonObject day = days[d];
     const char *date = day["date"] | "";
     bool isToday = today.length() && today == date;
+    const bool holiday = !strcmp(day["type"] | "", "holiday");
     const char *tag = day["tag"] | "";
-    lv_label_set_text_fmt(lv_obj_get_child(s_hd[d], 0), "%s %d/%d%s%s", DOW[d], atoi(date + 5), atoi(date + 8), *tag ? "  " : "", tag);
-    lv_obj_set_style_bg_color(s_hd[d], lv_color_hex(isToday ? 0x3f1d24 : D_PANEL), 0);
-    lv_obj_set_style_text_color(lv_obj_get_child(s_hd[d], 0), lv_color_hex(isToday ? 0xfca5a5 : D_SUB), 0);
+    lv_obj_t *hl = lv_obj_get_child(s_hd[d], 0);
+    setTextFmtIf(hl, "%s %d/%d%s%s", DOW[d], atoi(date + 5), atoi(date + 8), *tag ? "  " : "", tag);
+    setBgIf(s_hd[d], isToday ? D_LINE : D_PANEL);                    // 오늘 = 호박색 글자(빨강은 결강·휴일 뜻이라 쓰지 않는다)
+    setTextColIf(hl, isToday ? NOW_TAG : D_SUB);
 
     JsonArray cells = day["cells"].as<JsonArray>();
     for (int p = 0; p < 7; p++) {
@@ -625,32 +802,35 @@ static void renderWeek() {
       CellStyle st = styleOf(*t);
       lv_obj_t *o = s_cell[d][p];
       // 어두운 바탕: 종류 색은 테두리로만
-      const bool nowCell = isToday && p == nowP;   // 지금 교시는 흰 칸으로 눈에 띄게(사용자 지시)
-      lv_obj_set_style_bg_color(o, lv_color_hex(nowCell ? NOW_ROW : (*t ? D_ROW : D_PANEL)), 0);
-      lv_obj_set_style_border_color(o, lv_color_hex(nowCell ? NOW_ROW : (*t ? st.border : D_LINE)), 0);
-      lv_obj_set_style_border_width(o, isToday && p == nowP ? 3 : 1, 0);
-      lv_label_set_text(s_cellA[d][p], a);
-      lv_label_set_text(s_cellB[d][p], b);
-      lv_label_set_text(s_cellTag[d][p], g);
-      lv_obj_set_style_text_color(s_cellA[d][p], lv_color_hex(nowCell ? C_TEXT : D_TEXT), 0);
-      lv_obj_set_style_text_color(s_cellB[d][p], lv_color_hex(nowCell ? C_MUTED : D_SUB), 0);
-      if (*g) lv_obj_clear_flag(s_cellTag[d][p], LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(s_cellTag[d][p], LV_OBJ_FLAG_HIDDEN);
+      const bool nowCell = isToday && !holiday && p == nowP;   // 지금 교시는 흰 칸으로 눈에 띄게(사용자 지시)
+      setBgIf(o, nowCell ? NOW_ROW : (*t ? D_ROW : D_PANEL));
+      setBorderIf(o, nowCell ? NOW_ROW : (*t ? st.border : D_LINE));
+      setBorderWIf(o, nowCell ? 3 : 1);
+      setTextIf(s_cellA[d][p], a);
+      setTextIf(s_cellB[d][p], b);
+      setTextIf(s_cellTag[d][p], g);
+      setTextColIf(s_cellA[d][p], nowCell ? C_TEXT : D_TEXT);
+      setTextColIf(s_cellB[d][p], nowCell ? C_MUTED : D_SUB);
+      showIf(s_cellTag[d][p], *g);
     }
     const char *lunch = day["lunch"] | "";
     bool duty = strcmp(kind, "teacher") == 0 && *lunch;
-    lv_obj_set_style_bg_color(s_lunch[d], lv_color_hex(D_ROW), 0);
-    lv_obj_set_style_border_color(s_lunch[d], lv_color_hex(duty ? 0xf59e0b : D_LINE), 0);
-    lv_label_set_text(lv_obj_get_child(s_lunch[d], 0), duty ? "급식지도" : (*lunch ? lunch : "점심"));
-    lv_obj_set_style_text_color(lv_obj_get_child(s_lunch[d], 0), lv_color_hex(duty ? 0xfcd34d : D_MUTED), 0);
+    lv_obj_t *ll = lv_obj_get_child(s_lunch[d], 0);
+    setBgIf(s_lunch[d], D_ROW);
+    setBorderIf(s_lunch[d], duty ? NEXT_BD : D_LINE);
+    setTextIf(ll, duty ? "급식지도" : (*lunch ? lunch : "점심"));
+    setTextColIf(ll, duty ? 0xfcd34d : D_MUTED);
   }
+  bool todayHoliday = false;
+  for (int d = 0; d < 5; d++) if (today == (const char *)(days[d]["date"] | "") && !strcmp(days[d]["type"] | "", "holiday")) todayHoliday = true;
   for (int p = 0; p < 7; p++) {
-    bool now = p == nowP;
-    lv_obj_set_style_bg_color(s_pl[p], lv_color_hex(now ? NOW_TAG : D_PANEL), 0);
-    lv_obj_set_style_text_color(lv_obj_get_child(s_pl[p], 0), lv_color_hex(now ? NOW_TX : D_SUB), 0);
+    bool now = p == nowP && !todayHoliday;
+    setBgIf(s_pl[p], now ? NOW_TAG : D_PANEL);
+    setTextColIf(lv_obj_get_child(s_pl[p], 0), now ? NOW_TX : D_SUB);
   }
 }
 
-static void renderTT() { renderToday(); renderWeek(); }
+static void renderTT();   // 아래(화면 종류 뒤)에 있다
 
 // 파일을 '/x.tmp' 에 다 쓴 뒤 이름을 바꾼다(쓰는 도중 전원이 끊겨도 예전 파일이 남는다)
 static bool saveAtomic(const char *path, const String &a, const String &b = String()) {
@@ -670,29 +850,60 @@ static bool loadTTFromFile() {
   JsonDocument tmp(&s_alloc);
   DeserializationError e = deserializeJson(tmp, f);
   f.close();
-  if (e) { Serial.printf("tt.json parse: %s\n", e.c_str()); return false; }
+  if (e) { Serial.printf("tt.json parse: %s\n", e.c_str()); if (s_prefs.isKey("et_tt")) s_prefs.remove("et_tt"); return false; }   // 다음엔 처음부터 받는다
   lock(); s_tt = std::move(tmp); unlock();   // 화면(LVGL)이 읽는 중에 바꾸지 않게
   s_ttName = String((const char *)(s_tt["name"] | ""));
   if (strcmp(s_tt["kind"] | "", "teacher") == 0) s_ttName += " 선생님";
   s_ttLoaded = true;
+  s_ttGen++; s_ttLayoutDirty = true;   // D-day·제목 자리를 새로 계산
   return true;
 }
 
+/// ── 받기 공통 ──
+// 암호 연결 인사(TLS) 10초 · 연결 5초 상한. 전에는 인사 시간을 정하지 않아(기본 약 120초) 받기가 오래 멈출 수 있었다.
+// budget: 이번 받기에 남은 시간(ms). 60초 마감을 넘지 않게 연결·인사·읽기 상한을 그 안으로 줄인다
+static void netPrep(NetworkClientSecure &c, uint32_t budget) { c.setInsecure(); c.setHandshakeTimeout(max<uint32_t>(1, min<uint32_t>(10, budget / 1000))); }
+static void httpLimits(HTTPClient &http, uint32_t budget) { http.setConnectTimeout(min<uint32_t>(5000, budget)); http.setTimeout((uint16_t)min<uint32_t>(15000, budget)); }
+static float secs(uint32_t t0) { return (millis() - t0) / 1000.0f; }
+// ETag: 바뀌지 않은 파일은 다시 받지 않는다(304). 저장한 파일이 있을 때만 묻는다.
+static void etagAsk(HTTPClient &http, const char *key, const char *path) {
+  static const char *keys[] = {"ETag"};
+  http.collectHeaders(keys, 1);
+  if (!LittleFS.exists(path)) return;
+  String et = s_prefs.getString(key, "");
+  if (et.length()) http.addHeader("If-None-Match", et);
+}
+static void etagKeep(HTTPClient &http, const char *key) {   // 200 으로 받아 저장한 뒤에만 부른다
+  String et = http.header("ETag");
+  if (et.length()) { if (s_prefs.getString(key, "") != et) s_prefs.putString(key, et); }
+  else if (s_prefs.isKey(key)) s_prefs.remove(key);
+}
+static void etagForget(const char *key) { if (s_prefs.isKey(key)) s_prefs.remove(key); }
+
 // 시간표 파일을 받아 LittleFS 에 둔다. (인증서 확인은 아직 하지 않는다 — TODO: 루트 인증서 묶음)
-static bool downloadTT() {
+// 304(바뀌지 않음)이면 참을 돌려주고 s_ttSame 을 세운다(다시 읽지 않는다).
+static bool downloadTT(uint32_t budget = 60000) {
+  s_ttSame = false;
   if (!WiFi.isConnected()) return false;
-  NetworkClientSecure client; client.setInsecure();
+  lock(); const String file = s_ttFile; unlock();   // 설정 화면이 바꾸는 중일 수 있어 한 번만 옮겨 쓴다
+  if (!file.length()) return false;
+  const uint32_t t0 = millis();
+  NetworkClientSecure client; netPrep(client, budget);
   HTTPClient http;
-  String url = String(BASE_URL) + s_ttFile;
+  String url = String(BASE_URL) + file;
   if (!http.begin(client, url)) return false;
   // Firebase 는 조각(chunked)으로 보내는데, 조각 사이에서 읽기 시간 초과(-11)로 끊긴 적이 있다.
   // HTTP/1.0 으로 청해 한 덩어리(Content-Length)로 받고, 기다리는 시간도 늘린다.
   http.useHTTP10(true);
-  http.setTimeout(15000);
+  httpLimits(http, budget);
+  etagAsk(http, "et_tt", "/tt.json");
   int code = http.GET();
-  s_ttCode = code;
+  s_ttCode = code == 304 ? 200 : code;
   bool ok = false;
-  if (code == 200) {
+  // 받는 사이에 설정에서 다른 시간표를 골랐으면 받은 것을 버리고 곧바로 새 파일을 받는다(옛 사람 시간표가 저장되지 않게)
+  auto moved = [&]() { lock(); const bool m = s_ttFile != file; unlock(); if (m) { Serial.println("download: picked another, retry"); s_syncReq = true; } return m; };
+  if (code == 304) { if (!moved()) { ok = true; s_ttSame = true; } }
+  else if (code == 200) {
     // 받다가 끊기면 반쪽 파일이 남는다 → 크기와 JSON 을 확인한 뒤에만 저장본을 바꾼다
     int want = http.getSize();
     File f = LittleFS.open("/tt.tmp", "w");
@@ -705,11 +916,12 @@ static bool downloadTT() {
       whole = r && !deserializeJson(probe, r);
       if (r) r.close();
     }
-    if (whole) { LittleFS.remove("/tt.json"); LittleFS.rename("/tt.tmp", "/tt.json"); ok = true; }
+    if (whole && moved()) LittleFS.remove("/tt.tmp");
+    else if (whole) { LittleFS.remove("/tt.json"); LittleFS.rename("/tt.tmp", "/tt.json"); ok = true; etagKeep(http, "et_tt"); }
     else { LittleFS.remove("/tt.tmp"); Serial.printf("download incomplete: %d/%d\n", got, want); }
   }
   http.end();
-  Serial.printf("download %s -> %d\n", url.c_str(), code);
+  Serial.printf("download %s -> %d (%.1fs)\n", url.c_str(), code, secs(t0));
   return ok;
 }
 
@@ -717,10 +929,15 @@ static bool downloadTT() {
 // 설정의 '볼 시간표'를 채우고, 고른 이름으로 파일(board/t/NNN.json)을 찾는다. 고른 것은 이름으로 저장한다(목록 차례가 바뀌어도 유지).
 static JsonDocument s_index(&s_alloc);
 static String s_pickName = BOARD_DEFAULT_TT;
+static bool s_ttFileKnown = false;   // prefs 에 지난번 받던 파일(ttfile)이 있나
+static void setTTFile(const String &f) {   // 다른 파일이면 처음부터 받고, 껐다 켜도 알 수 있게 저장한다
+  if (!f.length() || f == s_ttFile) return;
+  s_ttFile = f; etagForget("et_tt");
+  s_prefs.putString("ttfile", f); s_ttFileKnown = true;
+}
 // '볼 시간표' 고르기: 펼침 목록(스크롤·애니메이션이 느리고 88개를 위로 밀어 고르기 힘들었다) 대신
 // 단추 판(한 쪽 30개, 6×5)을 쪽으로 넘긴다. 단추는 처음에 한 번만 만들고 글자만 바꾼다(2026-10-18 사용자 요청).
 static lv_obj_t *s_pickView = nullptr, *s_pickBtn[30], *s_pickTab[2], *s_pickPage = nullptr;
-static bool s_principal = false;   // 교장실 모드: s_pickName 이 '@교장'·'@교감' 이면 켜진다
 // 위쪽 막대 왼쪽 제목: 교장실 모드면 '교장실'·'교감실'(전에 보던 선생님 이름이 남지 않게, 2026-10-18 사용자 요청)
 static void setTopTitle() {
   if (!s_title) return;
@@ -749,10 +966,10 @@ static void renderPicker() {
   if (s_pickPg >= pages) s_pickPg = pages - 1;
   for (int t = 0; t < 2; t++) {
     const bool on = t == s_pickKind;
-    lv_obj_set_style_bg_color(s_pickTab[t], lv_color_hex(on ? C_PRIMARY : C_ALT), 0);
+    lv_obj_set_style_bg_color(s_pickTab[t], lv_color_hex(on ? C_SEL : C_ALT), 0);
     lv_obj_t *l = lv_obj_get_child(s_pickTab[t], 0);
     lv_label_set_text_fmt(l, "%s %d", t ? "학급·특별실" : "선생님", cnt[t]);
-    lv_obj_set_style_text_color(l, lv_color_hex(on ? 0xffffff : C_MUTED), 0);
+    lv_obj_set_style_text_color(l, lv_color_hex(on ? C_SEL_TX : C_MUTED), 0);
   }
   for (int b = 0; b < 30; b++) {
     const int k = s_pickPg * 30 + b;
@@ -764,19 +981,23 @@ static void renderPicker() {
     const bool sel = special ? s_pickName == sname : s_pickName == (const char *)(it["name"] | "");
     lv_obj_clear_flag(btn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_user_data(btn, (void *)(intptr_t)idx[k]);
-    lv_obj_set_style_bg_color(btn, lv_color_hex(sel ? C_PRIMARY : special ? 0xfff4e0 : C_SURF), 0);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(sel ? C_SEL : special ? 0xfff4e0 : C_SURF), 0);
     lv_obj_t *l = lv_obj_get_child(btn, 0);
     lv_label_set_text(l, special ? sname + 1 : pickLabel(it));
-    lv_obj_set_style_text_color(l, lv_color_hex(sel ? 0xffffff : C_TEXT), 0);
+    lv_obj_set_style_text_color(l, lv_color_hex(sel ? C_SEL_TX : C_TEXT), 0);
   }
   lv_label_set_text_fmt(s_pickPage, "%d / %d", s_pickPg + 1, pages);
 }
 static void setPrincipalTitles();
+static lv_obj_t *s_showLbl = nullptr;   // 설정 '보이기' 제목(교장 모드에서는 단추 6개와 함께 숨긴다 — 교장 화면에는 영향이 없다)
 static void fillPicker() {
   s_principal = s_pickName.startsWith("@");
   setTopTitle();
-  if (s_tabTT) lv_label_set_text(lv_obj_get_child(s_tabTT, 0), s_principal ? "학교 일정" : "시간표");
+  if (s_tabTT) setTextIf(lv_obj_get_child(s_tabTT, 0), s_principal ? "학교 일정" : "시간표");
+  showIf(s_showLbl, !s_principal);
+  for (int i = 0; i < 6; i++) if (s_showBtn[i]) showIf(s_showBtn[i], !s_principal);
   if (s_principal && s_ttPick) {
+    s_pickMissing = false;
     lv_label_set_text_fmt(lv_obj_get_child(s_ttPick, 0), "%s · 학교 일정  " LV_SYMBOL_RIGHT, s_pickName.c_str() + 1);
     setPrincipalTitles();
     renderPicker();
@@ -784,13 +1005,28 @@ static void fillPicker() {
   }
   JsonArray items = s_index["items"].as<JsonArray>();
   if (items.isNull() || !s_ttPick) return;
-  for (JsonObject it : items)
-    if (s_pickName == (const char *)(it["name"] | "")) {
-      s_ttFile = (const char *)(it["file"] | "");
-      const char *lb = it["label"] | "";
-      lv_label_set_text_fmt(lv_obj_get_child(s_ttPick, 0), "%s  " LV_SYMBOL_RIGHT, *lb ? lb : (const char *)(it["name"] | ""));
-      s_pickKind = strcmp(it["kind"] | "teacher", "teacher") ? 1 : 0;
-    }
+  JsonObject hit;
+  for (JsonObject it : items) if (s_pickName == (const char *)(it["name"] | "")) { hit = it; break; }
+  if (hit.isNull() && s_ttFileKnown)   // (가) 이름만 바뀐 경우: 지금 받고 있는 파일과 같은 항목을 쓰고 새 이름으로 저장
+    for (JsonObject it : items)
+      if (s_ttFile == (const char *)(it["file"] | "")) {
+        hit = it; s_pickName = (const char *)(it["name"] | "");
+        s_prefs.putString("ttname", s_pickName);
+        Serial.printf("picker: renamed -> %s\n", s_pickName.c_str());
+        break;
+      }
+  if (hit.isNull() && !s_prefs.isKey("ttname") && items.size()) {   // (나) 처음 쓰는 보드(기본 이름이 목록에 없음): 첫 항목
+    hit = items[0]; s_pickName = (const char *)(hit["name"] | "");
+  }
+  const bool found = !hit.isNull();
+  if (found) {
+    setTTFile((const char *)(hit["file"] | ""));
+    const char *lb = hit["label"] | "";
+    lv_label_set_text_fmt(lv_obj_get_child(s_ttPick, 0), "%s  " LV_SYMBOL_RIGHT, *lb ? lb : (const char *)(hit["name"] | ""));
+    s_pickKind = strcmp(hit["kind"] | "teacher", "teacher") ? 1 : 0;
+  }
+  s_pickMissing = !found;   // 그래도 없으면 옛 파일을 받지 않고 다시 고르라고 알린다
+  if (!found) lv_label_set_text_fmt(lv_obj_get_child(s_ttPick, 0), "%s (목록에 없음)  " LV_SYMBOL_RIGHT, s_pickName.c_str());
   renderPicker();
 }
 static bool parseIndex(const String &body) {
@@ -799,28 +1035,35 @@ static bool parseIndex(const String &body) {
   lock(); s_index = std::move(d); unlock();
   return true;
 }
-static bool downloadIndex() {
+static bool s_idxSame = false;   // 마지막 목록 받기가 304(바뀌지 않음)였나 → 단추 판을 다시 채우지 않는다
+static String s_idxDay;          // 목록을 받은 날(목록은 거의 바뀌지 않아 하루 한 번 · [볼 시간표]를 열었을 때만 묻는다)
+static bool s_idxReq = false;    // [볼 시간표] 판을 열었다 → 다음 받기 때 목록도 묻는다
+static bool downloadIndex(uint32_t budget = 60000) {
+  s_idxSame = false;
   if (!WiFi.isConnected()) return false;
-  NetworkClientSecure client; client.setInsecure();
+  const uint32_t t0 = millis();
+  NetworkClientSecure client; netPrep(client, budget);
   HTTPClient http;
   if (!http.begin(client, String(BASE_URL) + "index.json")) return false;
   http.useHTTP10(true);
-  http.setTimeout(15000);
+  httpLimits(http, budget);
+  etagAsk(http, "et_idx", "/index.json");
   int code = http.GET();
-  bool ok = false;
+  bool ok = code == 304;   // 바뀌지 않음: 켤 때 읽은 목록을 그대로 쓴다
+  s_idxSame = ok;
   if (code == 200) {
     String body = http.getString();
-    if (parseIndex(body)) { saveAtomic("/index.json", body); ok = true; }
+    if (parseIndex(body)) { ok = true; if (saveAtomic("/index.json", body)) etagKeep(http, "et_idx"); }
   }
   http.end();
-  Serial.printf("index -> %d %s\n", code, ok ? "ok" : "fail");
+  Serial.printf("index -> %d %s (%.1fs)\n", code, ok ? "ok" : "fail", secs(t0));
   return ok;
 }
 static void loadIndexFromFile() {
   File f = LittleFS.open("/index.json", "r");
   if (!f) return;
   String body = f.readString(); f.close();
-  parseIndex(body);
+  if (!parseIndex(body)) etagForget("et_idx");
 }
 // ── 급식 (나이스 교육정보 개방 포털, 인증키 없이 하루치. 교육청·학교 코드는 board_config.h) ──
 // 13:30 전에는 점심, 그 뒤에는 저녁(야자) 메뉴를 보인다. 받은 원문은 /meal.json 에 날짜와 함께 둔다.
@@ -861,16 +1104,20 @@ static bool parseMeal(const String &body, const String &date) {
   }
   return true;                              // 급식이 없는 날(주말)도 '받음'으로 본다
 }
-static bool downloadMeal() {
+static bool s_mealCached = false;   // 마지막 급식 받기가 '오늘 이미 받음'이었나(받지 않았으니 점검표 시각을 새로 찍지 않는다)
+static bool downloadMeal(uint32_t budget = 60000) {
   if (!HAS_MEAL) return false;               // 학교 코드를 안 넣었으면 받지 않는다
   String date = todayIso();
   if (!WiFi.isConnected() || !date.length()) return false;
+  s_mealCached = false;
+  if (s_mealDate == date && (s_mLunch.length() || s_mDinner.length())) { Serial.println("meal: today already"); s_mealCached = true; return true; }   // 오늘 메뉴는 하루 한 번만(점검표 시각은 그대로)
   String ymd = date; ymd.replace("-", "");
-  NetworkClientSecure client; client.setInsecure();
+  const uint32_t t0 = millis();
+  NetworkClientSecure client; netPrep(client, budget);
   HTTPClient http;
   if (!http.begin(client, String(MEAL_URL) + ymd)) return false;
   http.useHTTP10(true);
-  http.setTimeout(15000);
+  httpLimits(http, budget);
   int code = http.GET();
   bool ok = false;
   if (code == 200) {
@@ -881,7 +1128,7 @@ static bool downloadMeal() {
     }
   }
   http.end();
-  Serial.printf("meal %s -> %d %s\n", ymd.c_str(), code, ok ? "ok" : "fail");
+  Serial.printf("meal %s -> %d %s (%.1fs)\n", ymd.c_str(), code, ok ? "ok" : "fail", secs(t0));
   return ok;
 }
 static void loadMealFromFile() {
@@ -948,13 +1195,14 @@ static bool parseWeather(const String &body) {
   s_wxOk = s_wx[0].code >= 0;
   return s_wxOk;
 }
-static bool downloadWeather() {
+static bool downloadWeather(uint32_t budget = 60000) {
   if (!HAS_WX || !WiFi.isConnected()) return false;
-  NetworkClientSecure client; client.setInsecure();
+  const uint32_t t0 = millis();
+  NetworkClientSecure client; netPrep(client, budget);
   HTTPClient http;
   if (!http.begin(client, WX_URL)) return false;
   http.useHTTP10(true);
-  http.setTimeout(15000);
+  httpLimits(http, budget);
   int code = http.GET();
   bool ok = false;
   if (code == 200) {
@@ -965,7 +1213,7 @@ static bool downloadWeather() {
     }
   }
   http.end();
-  Serial.printf("weather -> %d %s\n", code, ok ? "ok" : "fail");
+  Serial.printf("weather -> %d %s (%.1fs)\n", code, ok ? "ok" : "fail", secs(t0));
   return ok;
 }
 static void loadWeatherFromFile() {
@@ -980,24 +1228,25 @@ static void renderWeather() {
     WxCard &k = s_card[i];
     const WxDay &w = s_wx[i];
     const char *day = i == 0 ? "오늘" : "내일";
+    // 같은 글·같은 그림이면 다시 쓰지 않는다(1시간마다 날씨 카드 전체를 다시 그리지 않게)
     if (!s_wxOk) {
-      lv_obj_add_flag(k.img, LV_OBJ_FLAG_HIDDEN);
-      lv_label_set_text(k.desc, day);
-      lv_label_set_text(k.temp, "--");
-      lv_label_set_text(k.hilo, HAS_WX ? "날씨 받는 중" : "위치 설정 필요");
+      showIf(k.img, false);
+      setTextIf(k.desc, day);
+      setTextIf(k.temp, "--");
+      setTextIf(k.hilo, HAS_WX ? "날씨 받는 중" : "위치 설정 필요");
       continue;
     }
     // 오늘은 지금 날씨·지금 기온, 내일은 하루 날씨·최고 기온을 크게. 윗줄에 최고/최저, 아랫줄에 날씨·비
     const int code = (i == 0 && s_wxNowCode >= 0) ? s_wxNowCode : w.code;
     const float big = i == 0 && !isnan(s_wxNow) ? s_wxNow : w.tmax;
-    lv_obj_clear_flag(k.img, LV_OBJ_FLAG_HIDDEN);
-    lv_img_set_src(k.img, wxIcon(code));
-    if (isnan(w.tmax) || isnan(w.tmin)) lv_label_set_text(k.desc, day);
-    else lv_label_set_text_fmt(k.desc, "%s  %d°/%d°", day, (int)lroundf(w.tmax), (int)lroundf(w.tmin));
-    if (isnan(big)) lv_label_set_text(k.temp, "--");
-    else lv_label_set_text_fmt(k.temp, "%d°", (int)lroundf(big));
-    if (w.pop < 0) lv_label_set_text(k.hilo, wxName(code));
-    else lv_label_set_text_fmt(k.hilo, "%s · #%s 비 %d%%#", wxName(code), w.pop >= 40 ? "60a5fa" : "94a3b8", w.pop);
+    showIf(k.img, true);
+    if (lv_img_get_src(k.img) != (const void *)wxIcon(code)) lv_img_set_src(k.img, wxIcon(code));
+    if (isnan(w.tmax) || isnan(w.tmin)) setTextIf(k.desc, day);
+    else setTextFmtIf(k.desc, "%s  %d°/%d°", day, (int)lroundf(w.tmax), (int)lroundf(w.tmin));
+    if (isnan(big)) setTextIf(k.temp, "--");
+    else setTextFmtIf(k.temp, "%d°", (int)lroundf(big));
+    if (w.pop < 0) setTextIf(k.hilo, wxName(code));
+    else setTextFmtIf(k.hilo, "%s · #%s 비 %d%%#", wxName(code), w.pop >= 40 ? "60a5fa" : D_MUTED_S, w.pop);
   }
 }
 
@@ -1013,13 +1262,14 @@ static bool parseAir(const String &body) {
   s_pm25 = d["current"]["pm2_5"] | NAN;
   return !isnan(s_pm10) || !isnan(s_pm25);
 }
-static bool downloadAir() {
+static bool downloadAir(uint32_t budget = 60000) {
   if (!HAS_WX || !WiFi.isConnected()) return false;
-  NetworkClientSecure client; client.setInsecure();
+  const uint32_t t0 = millis();
+  NetworkClientSecure client; netPrep(client, budget);
   HTTPClient http;
   if (!http.begin(client, AIR_URL)) return false;
   http.useHTTP10(true);
-  http.setTimeout(15000);
+  httpLimits(http, budget);
   int code = http.GET();
   bool ok = false;
   if (code == 200) {
@@ -1027,7 +1277,7 @@ static bool downloadAir() {
     if (parseAir(body)) { saveAtomic("/air.json", body); ok = true; }
   }
   http.end();
-  Serial.printf("air -> %d %s\n", code, ok ? "ok" : "fail");
+  Serial.printf("air -> %d %s (%.1fs)\n", code, ok ? "ok" : "fail", secs(t0));
   return ok;
 }
 static void loadAirFromFile() {
@@ -1038,14 +1288,14 @@ static void loadAirFromFile() {
 }
 static void renderAir() {
   if (!s_dust) return;
-  if (!HAS_WX) { lv_label_set_text(s_dust, "#94a3b8 미세먼지: 위치 설정 필요#"); return; }
-  if (isnan(s_pm10) && isnan(s_pm25)) { lv_label_set_text(s_dust, "#94a3b8 미세먼지 정보를 받는 중#"); return; }
+  if (!HAS_WX) { setTextIf(s_dust, "#" D_MUTED_S " 미세먼지: 위치 설정 필요#"); return; }
+  if (isnan(s_pm10) && isnan(s_pm25)) { setTextIf(s_dust, "#" D_MUTED_S " 미세먼지 정보를 받는 중#"); return; }
   int g10 = isnan(s_pm10) ? 0 : s_pm10 <= 30 ? 0 : s_pm10 <= 80 ? 1 : s_pm10 <= 150 ? 2 : 3;
   int g25 = isnan(s_pm25) ? 0 : s_pm25 <= 15 ? 0 : s_pm25 <= 35 ? 1 : s_pm25 <= 75 ? 2 : 3;
   int g = g10 > g25 ? g10 : g25;
   static const char *NAME[4] = {"좋음", "보통", "나쁨", "매우 나쁨"};
   static const char *COLOR[4] = {"60a5fa", "34d399", "fb923c", "ef4444"};
-  lv_label_set_text_fmt(s_dust, "#%s ● 미세먼지 %s#  #94a3b8 · PM10 %d · 초미세 %d#", COLOR[g], NAME[g],
+  setTextFmtIf(s_dust, "#%s ● 미세먼지 %s#  #" D_MUTED_S " · PM10 %d · 초미세 %d#", COLOR[g], NAME[g],
                         isnan(s_pm10) ? 0 : (int)lroundf(s_pm10), isnan(s_pm25) ? 0 : (int)lroundf(s_pm25));
 }
 
@@ -1070,7 +1320,7 @@ static void renderMeal() {
 static void setStatus(const char *s) { setTextIf(s_status, s); }
 // 수업 중인가(평일, 교시 시작 1분 전 ~ 끝). 수업 중에는 받기를 쉬는 시간으로 미룬다(받을 때 화면이 잠깐 깜빡이므로).
 static bool inClassNow() {
-  if (!timeValid()) return false;
+  if (!timeValid() || s_offToday) return false;   // 주말·휴일은 수업이 없다
   time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
   if (tm.tm_wday == 0 || tm.tm_wday == 6) return false;
   const int nm = tm.tm_hour * 60 + tm.tm_min;
@@ -1083,34 +1333,56 @@ static bool quietNow() {   // 밤(22:00~07:00)·주말: 2시간마다만 받는�
   return tm.tm_wday == 0 || tm.tm_wday == 6 || tm.tm_hour < 7 || tm.tm_hour >= 22;
 }
 static bool s_mealRetry = false;   // 오늘 급식을 못 받았을 때 10분 뒤 한 번 더(하루 한 번)
+static bool s_renderPending = false;   // 화면 불이 꺼진 동안 받은 자료 → 켤 때 그린다
+static time_t s_wxAt = 0, s_airAt = 0, s_whrAt = 0;   // 날씨·미세먼지·선생님 위치를 마지막으로 받은 때(밤·주말 건너뛰기 판단)
 static uint32_t syncWaitMs() {
-  if (s_mealRetry) return 10 * 60000UL;
-  if (s_triedOnce && !timeValid()) return 60000UL;   // 시각을 모르면 시계·일정이 다 틀린다 → 1분마다 다시
+  if (s_mealRetry || s_coreRetry) return 10 * 60000UL;
+  if (s_triedOnce && !timeValid() && s_failKind != FK_AUTH && s_failKind != FK_NOAP) return 60000UL;   // 시각을 모르면 시계·일정이 다 틀린다 → 1분마다 다시
   if (s_lastOk || s_failKind == FK_PARTIAL) return quietNow() ? 2 * 3600UL * 1000 : SYNC_EVERY_MS;
-  if (s_failKind == FK_NOTFOUND) return 6 * 3600UL * 1000;
+  if (s_failKind == FK_AUTH && timeValid()) {   // 비밀번호 잠김이어도 아침(07:00~07:10)에 한 번은 다시 해 본다(새벽 사고가 낮까지 가지 않게)
+    time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
+    if (tm.tm_hour == 7 && tm.tm_min < 10 && s_authRetryDay != todayIso()) return 0;
+  }
+  if (s_failKind == FK_NOTFOUND || s_failKind == FK_AUTH) return 6 * 3600UL * 1000;   // 사람이 고쳐야 하는 실패(공유기 없음은 아래 간격으로)
   static const uint8_t BACKOFF_MIN[] = {2, 4, 8, 16, 32, 60};
   int i = s_failCount > 0 ? s_failCount - 1 : 0; if (i > 5) i = 5;
   return BACKOFF_MIN[i] * 60000UL;
+}
+// 점검표 칸 하나: "O 08:12" / "아직" / 실패 이유 / "설정 없음"
+static void okMark(int i, bool ok, const char *why = "실패") {
+  if (ok) {
+    s_okRes[i] = 1;
+    if (timeValid()) { time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm); snprintf(s_okHM[i], sizeof s_okHM[i], "%02d:%02d", tm.tm_hour, tm.tm_min); }
+  } else { s_okRes[i] = -1; s_okFail[i] = why; }
+}
+static String okCell(int i, bool cfg = true) {
+  if (!cfg) return "설정 없음";
+  if (s_okRes[i] < 0) return s_okFail[i] ? s_okFail[i] : "실패";
+  if (s_okHM[i][0]) return String("O ") + s_okHM[i];
+  return s_okRes[i] > 0 ? "O" : "아직";
 }
 static void refreshWifiLabel() {
   String ssid = s_prefs.getString("ssid", "");
   if (!ssid.length()) {
     setTextIf(s_wifiLbl, "와이파이 없음");
-    lv_obj_set_style_text_color(s_wifiLbl, lv_color_hex(C_ROSE), 0);
-    lv_label_set_text(s_wifiInfo, "저장한 와이파이가 없습니다. [찾기]를 누르고 목록에서 고르세요.");
+    setTextColIf(s_wifiLbl, C_ROSE);
+    setTextIf(s_wifiInfo, "저장한 와이파이가 없습니다. [찾기]를 누르고 목록에서 고르세요.");
     return;
   }
   if (s_sync != SYNC_IDLE) {
-    setTextIf(s_wifiLbl, "받는 중…");
-    lv_obj_set_style_text_color(s_wifiLbl, lv_color_hex(0xb45309), 0);
-    lv_label_set_text_fmt(s_wifiInfo, "'%s'에 잠깐 연결해 시간과 시간표를 받는 중입니다.", ssid.c_str());
+    setTextIf(s_wifiLbl, "받는 중...");
+    setTextColIf(s_wifiLbl, 0xb45309);
+    setTextFmtIf(s_wifiInfo, "'%s'에 잠깐 연결해 시간과 시간표를 받는 중입니다.", ssid.c_str());
     return;
   }
   // 위쪽 막대: 한 번 실패는 조용히 넘긴다(마지막 성공 시각 그대로). 잇따라 2번째 실패부터 주황.
   const bool noUrl = urlUnset() && s_triedOnce && s_lastOk;   // 시간은 맞췄지만 시간표 주소가 없다
   char top[48]; uint32_t col = C_EMERALD;
   if (!s_triedOnce) snprintf(top, sizeof top, "대기");
+  else if (s_failKind == FK_AUTH) { snprintf(top, sizeof top, "와이파이 비밀번호 확인"); col = C_ROSE; }
+  else if (s_failKind == FK_NOAP) { snprintf(top, sizeof top, "공유기를 찾지 못함"); col = 0xfb923c; }
   else if (noUrl) { snprintf(top, sizeof top, "시간표 주소 없음"); col = D_MUTED; }
+  else if (s_pickMissing && !s_principal) { snprintf(top, sizeof top, "시간표 다시 고르기"); col = 0xfb923c; }
   else if (s_lastOk) snprintf(top, sizeof top, "%s 받음", s_lastHM);
   else if (s_failKind == FK_NOTFOUND) { snprintf(top, sizeof top, "시간표 주소 확인"); col = 0xfb923c; }
   else if (s_failCount < 2 && (s_lastOkHM[0] || s_lastOkT)) { char st[16]; okStamp(st, sizeof st); snprintf(top, sizeof top, "%s 받음", st);
@@ -1118,27 +1390,44 @@ static void refreshWifiLabel() {
   else if (s_failCount < 2) { snprintf(top, sizeof top, "대기"); }
   else { snprintf(top, sizeof top, "%s 연결 안 됨", s_lastHM); col = 0xfb923c; }
   setTextIf(s_wifiLbl, top);
-  lv_obj_set_style_text_color(s_wifiLbl, lv_color_hex(col), 0);
-  // 설정 화면: 준비 상태 점검표 + 다음 받기 시각
+  setTextColIf(s_wifiLbl, col);
+  // 설정 화면: 준비 상태 점검표(모드에 맞게) + 다음 받기 시각
   char next[24] = "";
   if (s_triedOnce && timeValid()) {
     const uint32_t w = syncWaitMs(), gone = millis() - s_lastSync;
     time_t t = time(nullptr) + (time_t)((gone < w ? w - gone : 0) / 1000);
     struct tm tm; localtime_r(&t, &tm); snprintf(next, sizeof next, "%02d:%02d", tm.tm_hour, tm.tm_min);
   }
-  const char *tt = urlUnset() ? "주소 없음" : s_ttLoaded ? "O" : s_failKind == FK_NOTFOUND ? "파일 없음" : "아직";
-  char info[320];
-  snprintf(info, sizeof info,
-           "'%s' 저장됨. 잠깐 연결해 받고 바로 끕니다(수업 중에는 쉬는 시간에 받습니다).\n"
-           "와이파이 %s · 시간 %s · 날씨 %s · 급식 %s · 시간표 %s\n"
-           "마지막 받음 %s%s%s%s",
-           ssid.c_str(), s_lastOkHM[0] ? "O" : (s_triedOnce ? "실패" : "아직"), timeValid() ? "O" : "아직",
-           !HAS_WX ? "설정 없음" : s_wxOk ? "O" : "아직", !HAS_MEAL ? "설정 없음" : s_mealOk ? "O" : "아직", tt,
-           s_lastOkHM[0] ? s_lastOkHM : (s_lastOkT ? "전에 받음" : "-"), next[0] ? " · 다음 받기 " : "", next,
-           s_batPct >= 0 ? (String(" · 배터리 ") + s_batPct + "%").c_str() : "");
+  // 점검표: 문제(실패·아직·설정 없음)만 첫 줄에 모으고, 정상인 것은 '나머지 정상' 한 줄로. 와이파이 이름·배터리는 맨 뒤 줄
+  // (전에는 7개 항목 시각을 다 늘어놓아 4~5줄이 되고 끝쪽의 실패 이유가 잘렸다)
+  struct Item { const char *name; String cell; bool bad; };
+  auto item = [](const char *nm, int i, bool cfg) { Item it{nm, okCell(i, cfg), !cfg || s_okRes[i] < 0 || (s_triedOnce && s_okRes[i] == 0 && !s_okHM[i][0])}; return it; };
+  Item its[8]; int ni = 0;
+  its[ni++] = item("와이파이", OK_WIFI, true);
+  if (!timeValid()) its[ni++] = item("시간", OK_TIME, true);
+  if (s_principal) its[ni++] = item("학교 일정", OK_SCH, cfgSet(SCHEDULE_URL));
+  else {
+    Item t = item("시간표", OK_TT, true);
+    if (urlUnset()) { t.cell = "주소 없음"; t.bad = true; } else if (s_pickMissing) { t.cell = "목록에 없음"; t.bad = true; }
+    its[ni++] = t;
+  }
+  { Item w = item("선생님 위치", OK_WHR, true); if (urlUnset()) { w.cell = "주소 없음"; w.bad = true; } its[ni++] = w; }
+  its[ni++] = item("날씨", OK_WX, HAS_WX);
+  if (!s_principal) its[ni++] = item("미세먼지", OK_AIR, HAS_WX);
+  its[ni++] = item("급식", OK_MEAL, HAS_MEAL);
+  String bad;
+  for (int i = 0; i < ni; i++) if (its[i].bad) { if (bad.length()) bad += " · "; bad += String(its[i].name) + ": " + its[i].cell; }
+  const char *last = s_lastOkHM[0] ? s_lastOkHM : (s_lastOkT ? "전에" : "-");
+  char ok2[64];
+  if (!s_triedOnce) snprintf(ok2, sizeof ok2, "아직 받기 전입니다");
+  else snprintf(ok2, sizeof ok2, "%s · %s 받음%s%s", bad.length() ? "나머지 정상" : "모두 정상", last, next[0] ? " · 다음 " : "", next);
+  char bat[24] = "";
+  if (s_batPct >= 0) snprintf(bat, sizeof bat, " · 배터리 %d%%", s_batPct);
+  char info[400];
+  if (bad.length()) snprintf(info, sizeof info, "%s\n%s\n'%s' 저장됨%s", bad.c_str(), ok2, ssid.c_str(), bat);
+  else snprintf(info, sizeof info, "%s\n'%s' 저장됨%s", ok2, ssid.c_str(), bat);
   setTextIf(s_wifiInfo, info);
 }
-
 static void wifiOff() { if (WiFi.getMode() == WIFI_OFF) return; WiFi.disconnect(true, false); WiFi.mode(WIFI_OFF); }
 
 // 연결이 끊긴 이유(ESP-IDF 이유 코드). 실패하면 설정 화면과 기록에 사람 말로 남긴다.
@@ -1172,20 +1461,22 @@ static void startSync() {
                  ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   }
   s_sync = SYNC_CONNECTING;      // '받는 중' 글자를 박자를 낮추기 전에 그린다(느린 박자 동안 다시 그리지 않게)
-  lock(); refreshWifiLabel(); setStatus("연결하는 중…"); unlock();
+  lock(); refreshWifiLabel(); setStatus("연결하는 중..."); unlock();
   lcdSlow(true);                 // 받는 동안 화면 박자를 낮춘다(매뉴얼)
   WiFi.persistent(false);        // Arduino 의 자체 저장본은 쓰지 않는다(설정 저장본 하나만)
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(false);
   s_wifiReason = 0; s_retried = false;
+  s_coreRetry = false;                                       // 10분 뒤 한 번 더는 이번 받기로 다 썼다
+  if (s_failKind == FK_AUTH && timeValid()) s_authRetryDay = todayIso();   // 아침 재시도는 하루 한 번
   wifiBegin();
-  s_sync = SYNC_CONNECTING; s_syncStart = millis();
+  s_sync = SYNC_CONNECTING; s_syncStart = s_wifiOnAt = millis();
   Serial.printf("sync: connecting %s (internal free %u, largest %u)\n", ssid.c_str(),
                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
 }
 static void setPrincipalTitles();
 static void refreshStale() {   // 동기화가 끝날 때·분이 바뀔 때만 부른다
-  char b[64]; const bool st = staleText(b, sizeof b);
+  char b[128]; const bool st = staleText(b, sizeof b);   // 한글(3바이트)과 까닭 토막이 들어가도 잘리지 않게 128
   if (s_stale) { if (st) { setTextIf(s_stale, b); lv_obj_clear_flag(s_stale, LV_OBJ_FLAG_HIDDEN); } else if (!lv_obj_has_flag(s_stale, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(s_stale, LV_OBJ_FLAG_HIDDEN); }
   setPrincipalTitles();
 }
@@ -1203,20 +1494,26 @@ static void finishSync(bool ok, const char *msg) {
   }
   if (ok && timeValid()) { s_lastOkT = time(nullptr); s_prefs.putULong("lastok", (uint32_t)s_lastOkT); }   // 성공할 때 한 번만 쓴다
   if (!ok) Serial.printf("sync fail #%d: %s\n", s_failCount, msg);
-  Serial.printf("heap: internal free %u, largest %u\n", (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
+  Serial.printf("heap: internal free %u, largest %u, min %u, up %luh\n", (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+                (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL), (unsigned)heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
+                (unsigned long)(millis() / 3600000UL));
   wifiOff();
   lcdSlow(false);                // 되돌리고 박자를 다시 맞춘다
   s_sync = SYNC_IDLE;
-  Serial.printf("sync: %s (%s)\n", ok ? "ok" : "fail", msg);
+  Serial.printf("sync: %s (%lus) %s\n", ok ? "ok" : "fail", (unsigned long)((millis() - s_wifiOnAt) / 1000), msg);   // 와이파이가 켜져 있던 전체 시간(10~20초 규칙)
   lock(); refreshWifiLabel(); setStatus(msg); refreshStale(); unlock();
 }
 
 // 설정에서 와이파이를 고르면 저장하고 바로 한 번 받아 온다
+// 화면(LVGL) 작업에서는 값만 적고 깃발만 세운다. 저장·와이파이 끄기는 loop 가 받기와 부딪히지 않을 때 한다
+// (전에는 loop 가 받는 중에 화면 쪽에서 와이파이를 꺼 버릴 수 있었다).
+static volatile bool s_wifiApplyReq = false, s_forgetReq = false, s_rebootReq = false;
+static String s_reqSsid, s_reqPw;
 static void connectWifi(const String &ssid, const String &pw, bool save) {
-  if (save) { s_prefs.putString("ssid", ssid); s_prefs.putString("pw", pw); }
-  if (s_sync != SYNC_IDLE) wifiOff();
-  s_sync = SYNC_IDLE;
-  s_syncReq = true;
+  s_reqSsid = ssid; s_reqPw = save ? pw : String();
+  s_wifiApplyReq = true;
+  s_wifiFails = 0;
+  if (s_sync != SYNC_IDLE) setStatus("받기가 끝난 뒤 적용합니다");
 }
 static void onPwOk(lv_event_t *e);
 static void pwShow(bool on) {   // 비밀번호 창·자판·뒤 막을 함께 열고 닫는다
@@ -1228,6 +1525,9 @@ static void pwCancel(lv_event_t *) {   // 비밀번호를 모르는 와이파이
   pwShow(false);
   lv_label_set_text(s_wifiInfo, "취소했습니다. 목록에서 다른 와이파이를 고르세요.");
 }
+static void pwBgTap(lv_event_t *e) {   // 뒤 막을 스쳤을 때: 아직 아무것도 안 쳤을 때만 닫는다(친 글자가 날아가지 않게. 닫기는 [취소]·자판 닫기)
+  if (!*lv_textarea_get_text(s_pwTa)) pwCancel(e);
+}
 static void onSsidPick(lv_event_t *e) {
   lv_obj_t *btn = lv_event_get_target(e);
   s_pickSsid = String(lv_list_get_btn_text(s_wifiList, btn));
@@ -1235,7 +1535,7 @@ static void onSsidPick(lv_event_t *e) {
   if (sp > 0) s_pickSsid = s_pickSsid.substring(0, sp);
   // 비밀번호 없는(개방형) 와이파이는 묻지 않고 바로 연결한다
   if ((intptr_t)lv_obj_get_user_data(btn) == 1) {
-    lv_label_set_text_fmt(s_wifiInfo, "'%s'에 연결하는 중… (비밀번호 없음)", s_pickSsid.c_str());
+    lv_label_set_text_fmt(s_wifiInfo, "'%s'에 연결하는 중... (비밀번호 없음)", s_pickSsid.c_str());
     connectWifi(s_pickSsid, "", true);
     return;
   }
@@ -1249,23 +1549,50 @@ static void onPwOk(lv_event_t *e) {
     String pw = lv_textarea_get_text(s_pwTa);
     if (!pw.length()) { pwCancel(e); return; }   // 빈 채로 입력을 누르면 취소(빈 비밀번호를 저장하지 않는다)
     pwShow(false);
-    lv_label_set_text_fmt(s_wifiInfo, "'%s'에 연결하는 중…", s_pickSsid.c_str());
+    lv_label_set_text_fmt(s_wifiInfo, "'%s'에 연결하는 중...", s_pickSsid.c_str());
     connectWifi(s_pickSsid, pw, true);
   } else if (code == LV_EVENT_CANCEL) pwCancel(e);   // 자판의 닫기 단추
 }
 static volatile bool s_scanReq = false;
-static void onScan(lv_event_t *e) { s_scanReq = true; lv_obj_clean(s_wifiList); lv_list_add_text(s_wifiList, "찾는 중…"); }
-static void onForget(lv_event_t *e) {   // 실수로 지우지 않게: 3초 안에 한 번 더 눌러야 지운다
-  static uint32_t armed = 0;
+static void onScan(lv_event_t *e) {
+  lv_obj_clean(s_wifiList);
+  if (s_sync != SYNC_IDLE) { lv_list_add_text(s_wifiList, "받는 중입니다. 잠시 뒤 다시 누르세요"); return; }   // 받는 중에는 찾지 않는다
+  s_scanReq = true; lv_list_add_text(s_wifiList, "찾는 중...");
+}
+// 실수로 누르지 않게: 3초 안에 한 번 더 눌러야 한다. 3초가 지나면 단추 글이 돌아온다(loop).
+static uint32_t s_forgetArmed = 0, s_rebootArmed = 0;
+static lv_obj_t *s_forgetBtn = nullptr, *s_rebootBtn = nullptr;
+static const char *FORGET_TXT = "저장한 와이파이 지우기", *REBOOT_TXT = "다시 켜기";
+static void onForget(lv_event_t *e) {
   lv_obj_t *b = lv_event_get_current_target(e);
-  if (!armed || millis() - armed > 3000) { armed = millis(); lv_label_set_text(lv_obj_get_child(b, 0), "한 번 더 누르면 지웁니다"); return; }
-  armed = 0; lv_label_set_text(lv_obj_get_child(b, 0), "저장한 와이파이 지우기");
-  s_prefs.remove("ssid"); s_prefs.remove("pw"); wifiOff(); s_sync = SYNC_IDLE; refreshWifiLabel();
+  if (!s_forgetArmed || millis() - s_forgetArmed > 3000) { s_forgetArmed = millis(); lv_label_set_text(lv_obj_get_child(b, 0), "한 번 더 누르면 지웁니다"); return; }
+  s_forgetArmed = 0; lv_label_set_text(lv_obj_get_child(b, 0), FORGET_TXT);
+  s_forgetReq = true;
+  if (s_sync != SYNC_IDLE) setStatus("받기가 끝난 뒤 지웁니다");
+}
+static void onReboot(lv_event_t *e) {
+  lv_obj_t *b = lv_event_get_current_target(e);
+  if (!s_rebootArmed || millis() - s_rebootArmed > 3000) { s_rebootArmed = millis(); lv_label_set_text(lv_obj_get_child(b, 0), "한 번 더 누르세요"); return; }
+  s_rebootArmed = 0; lv_label_set_text(lv_obj_get_child(b, 0), "다시 켜는 중");
+  s_rebootReq = true;
+}
+static void disarmButtons() {   // loop 에서: 3초 지난 '한 번 더' 글을 되돌린다(바뀔 때 한 번만 그린다)
+  if (s_forgetArmed && millis() - s_forgetArmed > 3000) { s_forgetArmed = 0; if (s_forgetBtn) lv_label_set_text(lv_obj_get_child(s_forgetBtn, 0), FORGET_TXT); }
+  if (s_rebootArmed && millis() - s_rebootArmed > 3000) { s_rebootArmed = 0; if (s_rebootBtn) lv_label_set_text(lv_obj_get_child(s_rebootBtn, 0), REBOOT_TXT); }
 }
 
 // 화면: 0 주간 시간표 · 1 설정 · 2 시계 모드 · 3 선생님 찾기
 enum View { V_WEEK = 0, V_SET = 1, V_CLOCK = 2, V_FIND = 3, V_DECK = 4 };
 static View s_view = V_CLOCK;   // 켜면 시계 화면(교장 모드면 교장 화면)
+static View s_backView = V_WEEK; // 시계 화면을 누르면 돌아갈 탭(자동 전환 전에 보던 시간표·단축키)
+// 주간표는 보일 때만 그리고, 숨어 있으면 표시만 해 두었다가 열 때 그린다
+// 오늘 시간표(시계 화면)도 보일 때만 그린다. 다른 탭·교장 모드에서는 표시만 해 두었다가 시계 화면을 열 때 그린다.
+static bool s_todayDirty = false;
+static void renderTT() {
+  setTopTitle();                                                     // 위쪽 막대 제목은 어느 탭에서나 보인다
+  if (s_view == V_CLOCK && !s_principal) { s_todayDirty = false; renderToday(); } else s_todayDirty = true;
+  if (s_view == V_WEEK && !s_principal) renderWeek(); else s_weekDirty = true;
+}
 
 // ── 선생님 찾기 (board/where.json: 선생님 전체 × 오늘부터 수업일 10일) ──
 // 이름을 누르면 지금 어디 계신지(교실·과목 / 공강 / 수업 끝)와 다음 수업, 오늘 시간표를 보인다.
@@ -1280,60 +1607,83 @@ static bool parseWhere(const String &body) {
   lock(); s_where = std::move(d); unlock();
   return true;
 }
-static bool downloadWhere() {
+static bool s_whereSame = false;   // 마지막 받기가 304(바뀌지 않음)였나 → 다시 그리지 않는다
+static bool downloadWhere(uint32_t budget = 60000) {
+  s_whereSame = false;
   if (!WiFi.isConnected()) return false;
-  NetworkClientSecure client; client.setInsecure();
+  const uint32_t t0 = millis();
+  NetworkClientSecure client; netPrep(client, budget);
   HTTPClient http;
   if (!http.begin(client, String(BASE_URL) + "where.json")) return false;
   http.useHTTP10(true);
-  http.setTimeout(20000);
+  httpLimits(http, budget);
+  etagAsk(http, "et_whr", "/where.json");
   int code = http.GET();
   bool ok = false;
-  if (code == 200) {
+  if (code == 304) { ok = true; s_whereSame = true; }
+  else if (code == 200) {
     String body = http.getString();
-    if (parseWhere(body)) { saveAtomic("/where.json", body); ok = true; }
+    if (parseWhere(body)) { ok = true; if (saveAtomic("/where.json", body)) etagKeep(http, "et_whr"); }
   }
   http.end();
-  Serial.printf("where -> %d %s\n", code, ok ? "ok" : "fail");
+  Serial.printf("where -> %d %s (%.1fs)\n", code, ok ? "ok" : "fail", secs(t0));
   return ok;
 }
 static void loadWhereFromFile() {
   File f = LittleFS.open("/where.json", "r");
   if (!f) return;
   String body = f.readString(); f.close();
-  parseWhere(body);
+  if (!parseWhere(body)) etagForget("et_whr");
 }
 // "n:102 수학" → 종류 'n', 글 "102 수학"
 static char whereKind(const char *s) { return (s && s[0] && s[1] == ':') ? s[0] : 0; }
 static const char *whereText(const char *s) { return (s && s[0] && s[1] == ':') ? s + 2 : ""; }
 
+static bool s_findScrollPending = false;   // 교장 '선생님 판'에서 이름을 눌러 왔다 → 그 단추가 보이게 한 번 굴린다
+static void markFinderPick() {   // 고른 선생님 단추를 호박색으로(누구를 보고 있는지 보이게). 바뀐 단추만 다시 그린다
+  if (!s_findGrid) return;
+  const uint32_t n = lv_obj_get_child_cnt(s_findGrid);
+  for (uint32_t i = 0; i < n; i++) {
+    lv_obj_t *b = lv_obj_get_child(s_findGrid, i), *l = lv_obj_get_child(b, 0);
+    if (!l) continue;
+    const bool sel = s_findSel.length() && s_findSel == lv_label_get_text(l);
+    setBgIf(b, sel ? NOW_TAG : D_ROW);
+    setTextColIf(l, sel ? NOW_TX : D_TEXT);
+    if (sel && s_findScrollPending) { s_findScrollPending = false; lv_obj_update_layout(s_findGrid); lv_obj_scroll_to_view(b, LV_ANIM_OFF); }
+  }
+  s_findScrollPending = false;
+}
 static void renderFinder() {
   if (!s_viewFind) return;
+  markFinderPick();
   JsonArray dates = s_where["dates"].as<JsonArray>();
   JsonObject who;
   for (JsonObject t : s_where["teachers"].as<JsonArray>()) if (s_findSel == (const char *)(t["n"] | "")) { who = t; break; }
   if (who.isNull()) {
-    lv_label_set_text(s_findName, dates.isNull() ? "자료를 받는 중" : "선생님을 고르세요");
-    lv_label_set_text(s_findHome, ""); lv_label_set_text(s_findNowT, ""); lv_label_set_text(s_findNow, "");
-    lv_label_set_text(s_findNext, ""); lv_label_set_text(s_findDay, "");
-    for (int p = 0; p < 7; p++) lv_obj_add_flag(s_findRow[p], LV_OBJ_FLAG_HIDDEN);
+    setTextIf(s_findName, dates.isNull() ? "자료를 받는 중" : "선생님을 고르세요");
+    setTextIf(s_findHome, ""); setTextIf(s_findNowT, ""); setTextIf(s_findNow, "");
+    setTextIf(s_findNext, ""); setTextIf(s_findDay, "");
+    for (int p = 0; p < 7; p++) showIf(s_findRow[p], false);
     return;
   }
-  lv_label_set_text_fmt(s_findName, "%s 선생님", s_findSel.c_str());
+  setTextFmtIf(s_findName, "%s 선생님", s_findSel.c_str());
   const char *home = who["h"] | "";
-  lv_label_set_text(s_findHome, *home ? (String("담임 ") + home).c_str() : "");
+  setTextIf(s_findHome, *home ? (String("담임 ") + home).c_str() : "");
 
-  // 오늘(없으면 다음 수업일)
+  // 오늘(없으면 다음 수업일). 수업이 끝난 뒤(16:30~)에는 다음 수업일 시간표를 보인다(시계 화면과 같은 규칙)
   String today = todayIso();
-  int di = -1; bool isToday = false;
+  const bool after = afterSchool();
+  int di = -1; bool isToday = false, todayIn = false;
   for (int i = 0; i < (int)dates.size(); i++) {
     const char *d = dates[i] | "";
-    if (today == d) { di = i; isToday = true; break; }
-    if (di < 0 && strcmp(d, today.c_str()) > 0) di = i;
+    if (today == d) { todayIn = true; if (!after) { di = i; isToday = true; break; } continue; }
+    if (di < 0 && strcmp(d, today.c_str()) > 0) { di = i; break; }
   }
-  if (di < 0) di = 0;
+  if (di < 0) { di = 0; for (int i = 0; i < (int)dates.size(); i++) if (today == (const char *)(dates[i] | "")) { di = i; isToday = true; } }
   const char *date = dates[di] | "";
-  lv_label_set_text_fmt(s_findDay, isToday ? "오늘 시간표" : "다음 수업일 %d/%d 시간표", atoi(date + 5), atoi(date + 8));
+  if (isToday) setTextIf(s_findDay, "오늘 시간표");
+  else if (today.length() && isoAddDays(today, 1) == date) setTextIf(s_findDay, "내일 시간표");
+  else setTextFmtIf(s_findDay, "다음 수업일 %d/%d 시간표", atoi(date + 5), atoi(date + 8));
   JsonArray day = who["d"][di].as<JsonArray>();
 
   const int nm = timeValid() ? nowMin() : -1;
@@ -1344,28 +1694,29 @@ static void renderFinder() {
       if (nm >= st && nm < st + 50) nowP = p;
       if (nextP < 0 && st > nm && whereKind(day[p] | "")) nextP = p;
     }
-  if (!isToday) { lv_label_set_text(s_findNowT, "오늘"); lv_label_set_text(s_findNow, "수업이 없는 날입니다"); }
+  if (!isToday && todayIn && after) { setTextIf(s_findNowT, "지금"); setTextIf(s_findNow, "수업 끝"); }
+  else if (!isToday) { setTextIf(s_findNowT, "오늘"); setTextIf(s_findNow, "수업이 없는 날입니다"); }
   else if (nowP >= 0) {
     const char *c = day[nowP] | "";
-    lv_label_set_text_fmt(s_findNowT, "지금 · %d교시 %s", nowP + 1, PERIOD_START[nowP]);
-    lv_label_set_text(s_findNow, whereKind(c) ? whereText(c) : "공강 (교무실)");
-  } else if (nm >= toMin("12:30") && nm < toMin("13:30")) { lv_label_set_text(s_findNowT, "지금"); lv_label_set_text(s_findNow, "점심시간"); }
-  else if (nm < toMin("08:40")) { lv_label_set_text(s_findNowT, "지금"); lv_label_set_text(s_findNow, "수업 전"); }
-  else if (nm >= toMin("16:30")) { lv_label_set_text(s_findNowT, "지금"); lv_label_set_text(s_findNow, "수업 끝"); }
-  else { lv_label_set_text(s_findNowT, "지금"); lv_label_set_text(s_findNow, "쉬는 시간 (교무실)"); }
-  if (nextP >= 0) lv_label_set_text_fmt(s_findNext, "다음  %d교시 %s · %s", nextP + 1, PERIOD_START[nextP], whereText(day[nextP] | ""));
-  else lv_label_set_text(s_findNext, isToday ? "오늘 남은 수업 없음" : "");
+    setTextFmtIf(s_findNowT, "지금 · %d교시 %s", nowP + 1, PERIOD_START[nowP]);
+    setTextIf(s_findNow, whereKind(c) ? whereText(c) : "공강 (교무실)");
+  } else if (nm >= toMin("12:30") && nm < toMin("13:30")) { setTextIf(s_findNowT, "지금"); setTextIf(s_findNow, "점심시간"); }
+  else if (nm < toMin("08:40")) { setTextIf(s_findNowT, "지금"); setTextIf(s_findNow, "수업 전"); }
+  else if (nm >= toMin("16:30")) { setTextIf(s_findNowT, "지금"); setTextIf(s_findNow, "수업 끝"); }
+  else { setTextIf(s_findNowT, "지금"); setTextIf(s_findNow, "쉬는 시간 (교무실)"); }
+  if (nextP >= 0) setTextFmtIf(s_findNext, "다음  %d교시 %s · %s", nextP + 1, PERIOD_START[nextP], whereText(day[nextP] | ""));
+  else setTextIf(s_findNext, isToday ? "오늘 남은 수업 없음" : "");
 
   for (int p = 0; p < 7; p++) {
     const char *c = day[p] | "";
     char k = whereKind(c);
     bool now = isToday && p == nowP;
-    lv_obj_clear_flag(s_findRow[p], LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_style_bg_color(s_findRow[p], lv_color_hex(now ? NOW_ROW : D_ROW), 0);
-    lv_obj_set_style_border_color(s_findRow[p], lv_color_hex(now ? NOW_ROW : (k ? styleOf(k).border : D_LINE)), 0);
-    lv_obj_set_style_text_color(s_findRowP[p], lv_color_hex(now ? C_MUTED : D_MUTED), 0);
-    lv_label_set_text(s_findRowT[p], k ? whereText(c) : "공강");
-    lv_obj_set_style_text_color(s_findRowT[p], lv_color_hex(now ? C_TEXT : (k ? D_TEXT : D_MUTED)), 0);
+    showIf(s_findRow[p], true);
+    setBgIf(s_findRow[p], now ? NOW_ROW : D_ROW);
+    setBorderIf(s_findRow[p], now ? NOW_ROW : (k ? styleOf(k).border : D_LINE));
+    setTextColIf(s_findRowP[p], now ? C_MUTED : D_MUTED);
+    setTextIf(s_findRowT[p], k ? whereText(c) : "공강");
+    setTextColIf(s_findRowT[p], now ? C_TEXT : (k ? D_TEXT : D_MUTED));
   }
 }
 static void onFindPick(lv_event_t *e) {
@@ -1381,7 +1732,7 @@ static void fillFinderGrid() {
   lv_obj_clean(s_findGrid);
   for (JsonObject t : s_where["teachers"].as<JsonArray>()) {
     lv_obj_t *b = lv_btn_create(s_findGrid);
-    lv_obj_set_size(b, 96, 40);
+    lv_obj_set_size(b, big() ? (lv_obj_get_style_width(s_findGrid, 0) - 8 - 4 * 8) / 5 : 96, big() ? 48 : 40);   // 1024: 한 줄 5개, 손가락 크기
     lv_obj_set_style_bg_color(b, lv_color_hex(D_ROW), 0);
     lv_obj_set_style_border_width(b, 1, 0);
     lv_obj_set_style_border_color(b, lv_color_hex(D_LINE), 0);
@@ -1398,18 +1749,23 @@ static void fillFinderGrid() {
 static lv_obj_t *s_findGridParent = nullptr;
 static void buildFinder(lv_obj_t *scr, int top) {
   const int M = 12, H = s_H - top;
+  const float K = s_W / 800.0f;
+  auto S = [&](int v) { return (int)lroundf(v * K); };
+  const bool B = big();
+  const lv_font_t *fRow = B ? &kr16 : &kr14;                         // 1024 는 한 단계 큰 글자
   s_viewFind = box(scr, D_BG, 0, 0);
   lv_obj_set_size(s_viewFind, s_W, H); lv_obj_set_pos(s_viewFind, 0, top);
   lv_obj_add_flag(s_viewFind, LV_OBJ_FLAG_HIDDEN);
-  const int LW = 440, PH = H - 2 * M + 4;
+  const int LW = B ? S(440) : 440, PH = H - 2 * M + 4;               // 1024 는 비율대로 넓힌다
   lv_obj_t *left = box(s_viewFind, D_PANEL, D_LINE, 16);
   lv_obj_set_size(left, LW, PH); lv_obj_set_pos(left, M, M - 4);
-  lv_obj_set_pos(label(left, &kr14, D_MUTED, "선생님을 고르세요"), 16, 12);
+  lv_obj_set_pos(label(left, fRow, D_MUTED, "선생님을 고르세요"), 16, B ? 16 : 12);
   s_findGridParent = left;
   s_findGrid = lv_obj_create(left);
   lv_obj_clear_flag(s_findGrid, LV_OBJ_FLAG_SCROLL_MOMENTUM | LV_OBJ_FLAG_SCROLL_ELASTIC);
   lv_obj_remove_style_all(s_findGrid);
-  lv_obj_set_size(s_findGrid, LW - 20, PH - 44); lv_obj_set_pos(s_findGrid, 10, 36);
+  const int GY = B ? 52 : 36;
+  lv_obj_set_size(s_findGrid, LW - 20, PH - GY - 8); lv_obj_set_pos(s_findGrid, 10, GY);
   lv_obj_set_flex_flow(s_findGrid, LV_FLEX_FLOW_ROW_WRAP);
   lv_obj_set_style_pad_gap(s_findGrid, 8, 0);
   lv_obj_set_style_pad_all(s_findGrid, 4, 0);
@@ -1421,31 +1777,33 @@ static void buildFinder(lv_obj_t *scr, int top) {
   lv_obj_set_size(right, RW, PH); lv_obj_set_pos(right, RX, M - 4);
   s_findName = label(right, &kr20, D_TEXT, "");
   lv_obj_set_pos(s_findName, 16, 14);
-  s_findHome = label(right, &kr14, D_MUTED, "");
+  s_findHome = label(right, fRow, D_MUTED, "");
   lv_obj_align(s_findHome, LV_ALIGN_TOP_RIGHT, -16, 18);
-  lv_obj_t *nowBox = box(right, C_PRIMARY, 0, 12);
-  lv_obj_set_style_bg_grad_color(nowBox, lv_color_hex(0x3730a3), 0);
-  lv_obj_set_style_bg_grad_dir(nowBox, UI_FANCY ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_NONE, 0);
-  lv_obj_set_size(nowBox, RW - 24, 64); lv_obj_set_pos(nowBox, 12, 46);
-  s_findNowT = label(nowBox, &kr14, 0xfecaca, "");
-  lv_obj_set_pos(s_findNowT, 14, 9);
-  s_findNow = label(nowBox, &kr20, 0xffffff, "");
+  const int NOW_Y = 46, NOW_H = B ? S(64) : 64;
+  lv_obj_t *nowBox = box(right, NOW_ROW, 0, 12);                    // '지금' = 밝은 크림 칸(시계 화면의 지금 교시 줄과 같은 뜻. 빨강은 경고에만)
+  lv_obj_set_size(nowBox, RW - 24, NOW_H); lv_obj_set_pos(nowBox, 12, NOW_Y);
+  s_findNowT = label(nowBox, fRow, C_MUTED, "");
+  lv_obj_set_pos(s_findNowT, 14, B ? 12 : 9);
+  s_findNow = label(nowBox, &kr20, C_TEXT, "");
   lv_obj_set_width(s_findNow, RW - 52); lv_label_set_long_mode(s_findNow, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(s_findNow, 14, 31);
-  s_findNext = label(right, &kr14, D_SUB, "");
+  lv_obj_set_pos(s_findNow, 14, B ? 42 : 31);
+  const int NEXT_Y = NOW_Y + NOW_H + 10, DAY_Y = NEXT_Y + (B ? 28 : 26), ROW_Y = DAY_Y + (B ? 26 : 22);
+  s_findNext = label(right, fRow, D_SUB, "");
   lv_obj_set_width(s_findNext, RW - 32); lv_label_set_long_mode(s_findNext, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(s_findNext, 16, 120);
-  s_findDay = label(right, &kr14, D_MUTED, "");
-  lv_obj_set_pos(s_findDay, 16, 146);
+  lv_obj_set_pos(s_findNext, 16, NEXT_Y);
+  s_findDay = label(right, fRow, D_MUTED, "");
+  lv_obj_set_pos(s_findDay, 16, DAY_Y);
+  const int RP_ = B ? (PH - ROW_Y - 10) / 7 : 34, RH = RP_ - 4;     // 1024: 남은 높이를 7줄이 나눠 쓴다
   for (int p = 0; p < 7; p++) {
     s_findRow[p] = box(right, D_ROW, D_LINE, 6);
-    lv_obj_set_size(s_findRow[p], RW - 24, 30); lv_obj_set_pos(s_findRow[p], 12, 168 + p * 34);
-    s_findRowP[p] = label(s_findRow[p], &kr14, D_MUTED, "");
+    lv_obj_set_size(s_findRow[p], RW - 24, RH); lv_obj_set_pos(s_findRow[p], 12, ROW_Y + p * RP_);
+    s_findRowP[p] = label(s_findRow[p], fRow, D_MUTED, "");
     lv_label_set_text_fmt(s_findRowP[p], "%d교시", p + 1);
     lv_obj_align(s_findRowP[p], LV_ALIGN_LEFT_MID, 10, 0);
-    s_findRowT[p] = label(s_findRow[p], &kr14, D_TEXT, "");
-    lv_obj_set_width(s_findRowT[p], RW - 24 - 72); lv_label_set_long_mode(s_findRowT[p], LV_LABEL_LONG_DOT);
-    lv_obj_align(s_findRowT[p], LV_ALIGN_LEFT_MID, 62, 0);
+    const int TX = B ? 72 : 62;
+    s_findRowT[p] = label(s_findRow[p], fRow, D_TEXT, "");
+    lv_obj_set_width(s_findRowT[p], RW - 24 - TX - 10); lv_label_set_long_mode(s_findRowT[p], LV_LABEL_LONG_DOT);
+    lv_obj_align(s_findRowT[p], LV_ALIGN_LEFT_MID, TX, 0);
     lv_obj_add_flag(s_findRow[p], LV_OBJ_FLAG_HIDDEN);
   }
 }
@@ -1489,25 +1847,70 @@ static const DeckItem DECK[16] = {
   {"PPT", &deck_ppt, "ppt"}, {"창닫기", &deck_close, "close"}, {"한글", &deck_hwp, "hwp"}, {"바탕화면", &deck_desktop, "desktop"},
 };
 static lv_obj_t *s_viewDeck = nullptr, *s_tabDeck = nullptr, *s_deckState = nullptr;
+static lv_obj_t *s_deckImg[16];         // 아이콘(도우미가 꺼져 있으면 흐리게)
 static volatile bool s_usbOn = false;   // 컴퓨터 도우미가 살아 있나('@pc on' 이 15초 안에 왔나)
 static volatile bool s_usbSeen = false; // 켠 뒤 한 번이라도 도우미 신호를 받았나 → 화면 불은 컴퓨터를 따른다
 static uint32_t s_pcLast = 0;           // 마지막 '@pc on' 받은 때(millis)
+static uint32_t s_deckSentAt = 0;       // 마지막으로 보내거나 답을 받은 때(60초 뒤 안내 글로 되돌린다)
+static int s_deckWaitKey = -1;          // 보내고 답을 기다리는 단추(5초 안에 답이 없으면 알린다)
+static uint32_t s_deckWaitAt = 0;
 static void onDeck(lv_event_t *e) {
   const int i = (int)(intptr_t)lv_event_get_user_data(e);
   if (i < 0 || i >= 16) return;
   if (!s_usbOn) {
-    if (s_deckState) lv_label_set_text(s_deckState, "컴퓨터 도우미와 연결되지 않았습니다 · UART 선과 컴퓨터의 도우미 프로그램을 확인하세요");
+    if (s_deckState) {
+      lv_label_set_text(s_deckState, "컴퓨터 도우미와 연결되지 않았습니다 · UART 선과 컴퓨터의 도우미 프로그램을 확인하세요");
+      lv_obj_set_style_text_color(s_deckState, lv_color_hex(0xfbbf24), 0);
+    }
+    s_deckSentAt = millis();                            // 1분 뒤 안내 글로 돌아간다
     return;
   }
+  static uint32_t lastMs = 0; static int lastI = -1;
+  if (i == lastI && millis() - lastMs < 2000) {         // 2초 안에 같은 단추를 또 누르면 보내지 않는다(창이 두 개 열리지 않게) — 대신 알린다
+    if (s_deckState) lv_label_set_text_fmt(s_deckState, "'%s' 이미 보냈습니다 · 잠시 기다리세요", DECK[i].label);
+    return;
+  }
+  lastI = i; lastMs = millis();
   Serial.printf("\n@deck %s\n", DECK[i].key);   // 앞의 줄바꿈: 다른 기록 줄과 섞이지 않게
+  if (s_deckState) {
+    lv_label_set_text_fmt(s_deckState, "'%s' 보냈습니다 · 여는 중", DECK[i].label);
+    lv_obj_set_style_text_color(s_deckState, lv_color_hex(0x34d399), 0);
+  }
+  s_deckSentAt = millis();
+  s_deckWaitKey = i; s_deckWaitAt = millis();
 }
 static void deckStateText() {
   if (!s_deckState) return;
-  lv_label_set_text(s_deckState, s_usbOn ? LV_SYMBOL_OK "  컴퓨터와 연결됨 · 단추를 누르면 프로그램이 열립니다"
-                                         : LV_SYMBOL_WARNING "  컴퓨터 도우미를 기다리는 중 · UART 선을 꽂고 컴퓨터에서 도우미를 켜 주세요");
-  lv_obj_set_style_text_color(s_deckState, lv_color_hex(s_usbOn ? 0x34d399 : D_MUTED), 0);
+  setTextIf(s_deckState, s_usbOn ? LV_SYMBOL_OK "  컴퓨터와 연결됨 · 단추를 누르면 프로그램이 열립니다"
+                                 : LV_SYMBOL_WARNING "  컴퓨터 도우미를 기다리는 중 · UART 선을 꽂고 컴퓨터에서 도우미를 켜 주세요");
+  setTextColIf(s_deckState, s_usbOn ? 0x34d399 : D_MUTED);   // 기다리는 것은 문제가 아니다(노랑은 '지금'·문제에만)
 }
-// UART 로 들어온 줄 읽기(loop 에서). '@pc on' 이면 컴퓨터가 켜져 있다.
+static void deckIconsDim() {   // 도우미가 꺼져 있으면 아이콘을 흐리게(누를 수 없다는 뜻)
+  for (int i = 0; i < 16; i++) if (s_deckImg[i]) lv_obj_set_style_img_opa(s_deckImg[i], s_usbOn ? LV_OPA_COVER : LV_OPA_50, 0);
+}
+static const char *deckLabel(const char *key) { for (int i = 0; i < 16; i++) if (!strcmp(DECK[i].key, key)) return DECK[i].label; return key; }
+// UART 로 들어온 줄 읽기(loop 에서). '@pc on' 이면 컴퓨터가 켜져 있다. '@deck ok 키' / '@deck fail 키' 는 도우미의 답.
+// 화면 찍기(tools/screenshot.py): '@shot' 을 받으면 지금 화면(프레임 버퍼, RGB565)을 [개수 1~255][값 작은끝 2바이트] 묶음으로 보내고
+// 개수 0 으로 끝낸다. 보내는 동안(약 10~30초) 화면 그리기를 잠가 찍는 사이 바뀌지 않게 한다. '@view 번호' 는 화면을 바꾼다.
+static void screenShot() {
+  esp_lcd_panel_handle_t p = panelHandle(); void *fb = nullptr;
+  if (!p || esp_lcd_rgb_panel_get_frame_buffer(p, 1, &fb) != ESP_OK || !fb) { Serial.println("@shot fail"); return; }
+  lock();
+  const uint16_t *px = (const uint16_t *)fb; const uint32_t n = (uint32_t)s_W * s_H;
+  Serial.printf("\n@shot %d %d\n", s_W, s_H); Serial.flush();
+  static uint8_t out[3 * 256]; int o = 0;
+  for (uint32_t i = 0; i < n; ) {
+    const uint16_t v = px[i]; uint32_t j = i + 1;
+    while (j < n && px[j] == v && j - i < 255) j++;
+    out[o++] = (uint8_t)(j - i); out[o++] = v & 0xff; out[o++] = v >> 8;
+    if (o >= (int)sizeof out - 3) { Serial.write(out, o); o = 0; }
+    i = j;
+  }
+  out[o++] = 0; Serial.write(out, o); Serial.flush();
+  unlock();
+  Serial.println("\n@shot end");
+}
+static void showView(View v);
 static void deckPoll(uint32_t ms) {
   static char buf[32]; static uint8_t n = 0;
   while (Serial.available()) {
@@ -1515,6 +1918,19 @@ static void deckPoll(uint32_t ms) {
     if (c == '\n' || c == '\r') {
       buf[n] = 0;
       if (!strcmp(buf, "@pc on")) { s_pcLast = ms ? ms : 1; s_usbSeen = true; Serial.println("@board ok"); }   // 도우미가 알림판 포트를 가려내는 답
+      else if (!strcmp(buf, "@shot")) screenShot();
+      else if (!strncmp(buf, "@view ", 6)) { const int v = atoi(buf + 6); if (v >= 0 && v <= 4) { lock(); showView((View)v); lv_disp_trig_activity(NULL); unlock(); } }
+      else if (!strncmp(buf, "@deck ok ", 9) && s_deckState) {
+        s_deckWaitKey = -1;
+        lock(); lv_label_set_text_fmt(s_deckState, LV_SYMBOL_OK "  '%s' 열었습니다", deckLabel(buf + 9));
+        lv_obj_set_style_text_color(s_deckState, lv_color_hex(0x34d399), 0); unlock();
+        s_deckSentAt = ms ? ms : 1;
+      } else if (!strncmp(buf, "@deck fail ", 11) && s_deckState) {
+        s_deckWaitKey = -1;
+        lock(); lv_label_set_text_fmt(s_deckState, LV_SYMBOL_WARNING "  '%s' 열지 못했습니다 · 컴퓨터 도우미 설정을 확인하세요", deckLabel(buf + 11));
+        lv_obj_set_style_text_color(s_deckState, lv_color_hex(0xfbbf24), 0); unlock();
+        s_deckSentAt = ms ? ms : 1;
+      }
       n = 0;
     } else if (n < sizeof buf - 1) buf[n++] = c;
     else n = 0;
@@ -1531,17 +1947,18 @@ static void buildDeck(lv_obj_t *scr, int top) {
   const int PW = s_W - 2 * M, PH = VH - 2 * M;
   lv_obj_set_size(panel, PW, PH); lv_obj_set_pos(panel, M, M);
   lv_obj_clear_flag(panel, LV_OBJ_FLAG_CLICKABLE);
-  // 8칸 × 2줄. 칸 하나 = 아이콘(72) + 이름
+  // 8칸 × 2줄. 칸 하나 = 아이콘(72) + 이름. 칸은 판보다 밝은 단추 모양(누를 수 있게 보이도록)
   const int COLS = 8, CW = (PW - 2 * M) / COLS, CH = small ? 118 : 150, GY = small ? 18 : 40;
   const int gridH = 2 * CH + GY, y0 = (PH - 40 - gridH) / 2;
   for (int i = 0; i < 16; i++) {
     const int c = i % COLS, r = i / COLS;
-    lv_obj_t *cell = box(panel, D_PANEL, 0, 14);
+    lv_obj_t *cell = box(panel, D_ROW, D_LINE, 14);
+    lv_obj_set_style_border_width(cell, 1, 0);
     lv_obj_set_size(cell, CW - 6, CH); lv_obj_set_pos(cell, M + c * CW + 3, y0 + r * (CH + GY));
-    lv_obj_set_style_bg_color(cell, lv_color_hex(D_ROW), LV_STATE_PRESSED);   // 누르는 동안 밝게
+    lv_obj_set_style_bg_color(cell, lv_color_hex(D_LINE), LV_STATE_PRESSED);   // 누르는 동안 밝게
     lv_obj_add_flag(cell, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(cell, onDeck, LV_EVENT_CLICKED, (void *)(intptr_t)i);
-    lv_obj_t *img = lv_img_create(cell);
+    lv_obj_t *img = s_deckImg[i] = lv_img_create(cell);
     lv_img_set_src(img, DECK[i].icon);
     lv_obj_align(img, LV_ALIGN_TOP_MID, 0, small ? 10 : 18);
     lv_obj_clear_flag(img, LV_OBJ_FLAG_CLICKABLE);
@@ -1553,6 +1970,7 @@ static void buildDeck(lv_obj_t *scr, int top) {
   lv_obj_set_style_text_align(s_deckState, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(s_deckState, LV_ALIGN_BOTTOM_MID, 0, -M);
   deckStateText();
+  deckIconsDim();
 }
 static void onSchedRow(lv_event_t *e);
 static void onTeachOpen(lv_event_t *e);
@@ -1560,7 +1978,7 @@ static void renderSchedList();
 static JsonDocument s_sched(&s_alloc);              // {"items":[[날짜, 끝날짜, 시간, 제목, 장소, 부서, 담당, 내용], …], "acad":[[날짜, 이름, 종류], …]}
 static lv_obj_t *s_viewPrin = nullptr, *s_pClock, *s_pDate, *s_pNowA, *s_pNowB, *s_pNowC, *s_pNowN, *s_pRing, *s_pWx, *s_pWx2, *s_pMeal, *s_pNews;
 static const int P_ROWS = 8;   // 학교 일정 줄 수(오늘부터 다가오는 날까지)
-static lv_obj_t *s_pRow[P_ROWS], *s_pRowT[P_ROWS], *s_pRowA[P_ROWS], *s_pRowB[P_ROWS], *s_pAcad[3], *s_pTitle;
+static lv_obj_t *s_pRow[P_ROWS], *s_pRowT[P_ROWS], *s_pRowA[P_ROWS], *s_pRowB[P_ROWS], *s_pAcad[3], *s_pAcadD[3], *s_pTitle;
 
 // JS/JSON 이스케이프 풀기: \xNN(글자 0~255) \uNNNN \n \r \t, 그 밖은 다음 글자 그대로. stopAtQuote 면 따옴표에서 멈춘다.
 static void unescJs(const char *s, size_t n, String &out, bool stopAtQuote) {
@@ -1602,15 +2020,31 @@ static String cutUtf8(const char *s, size_t maxB) {   // UTF-8 글자 경계에�
   while (maxB > 0 && ((uint8_t)s[maxB] & 0xC0) == 0x80) maxB--;
   return String(s).substring(0, maxB) + "...";
 }
-static bool downloadSchedule() {
+static bool downloadSchedule(uint32_t budget = 60000) {
   if (!WiFi.isConnected() || !cfgSet(SCHEDULE_URL) || !timeValid()) return false;   // 오늘 날짜를 모르면 거를 수 없다
-  NetworkClientSecure client; client.setInsecure();
+  const uint32_t t0 = millis();
+  NetworkClientSecure client; netPrep(client, budget);
   HTTPClient http;
-  if (!http.begin(client, SCHEDULE_URL)) return false;
-  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);   // script.google.com → script.googleusercontent.com
-  http.useHTTP10(true);
-  http.setTimeout(20000);
-  const int code = http.GET();
+  // script.google.com → script.googleusercontent.com 주소 이동을 직접 따라간다(두 번째 연결 전에 멈춤 감시를 쓰다듬고 남은 시간을 다시 잰다)
+  static const char *LOC[] = {"Location"};
+  String url = SCHEDULE_URL;
+  int code = -1;
+  for (int hop = 0; hop < 3; hop++) {
+    const uint32_t used = millis() - t0;
+    if (hop && used + 3000 > budget) break;                   // 남은 시간이 없으면 그만
+    if (hop) esp_task_wdt_reset();
+    if (!http.begin(client, url)) return false;
+    http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
+    http.collectHeaders(LOC, 1);
+    http.useHTTP10(true);
+    httpLimits(http, budget - min(used, budget));
+    code = http.GET();
+    if (code != 301 && code != 302 && code != 303 && code != 307 && code != 308) break;
+    const String next = http.header("Location");
+    http.end();
+    if (!next.length()) break;
+    url = next;
+  }
   bool ok = false;
   if (code == 200) {
     String raw = http.getString();                            // 약 150KB(PSRAM)
@@ -1663,7 +2097,7 @@ static bool downloadSchedule() {
     }
   }
   http.end();
-  Serial.printf("schedule -> %d %s (%d items)\n", code, ok ? "ok" : "fail", (int)s_sched["items"].size());
+  Serial.printf("schedule -> %d %s (%d items, %.1fs)\n", code, ok ? "ok" : "fail", (int)s_sched["items"].size(), secs(t0));
   return ok;
 }
 
@@ -1688,7 +2122,12 @@ static bool isOffDay(String *name) {
     }
     return false;
   }
-  if (s_ttLoaded) { bool isToday; JsonObject d = findDay(isToday); if (isToday && !strcmp(d["type"] | "", "holiday")) { if (name) *name = "휴일"; return true; } }
+  if (s_ttLoaded) {   // 오늘 날짜 칸의 종류를 직접 본다(findDay 는 휴일에 다음 수업일을 돌려준다)
+    const String td = todayIso();
+    for (JsonObject w : s_tt["weeks"].as<JsonArray>())
+      for (JsonObject d : w["days"].as<JsonArray>())
+        if (td == (const char *)(d["date"] | "")) { if (!strcmp(d["type"] | "", "holiday")) { if (name) *name = "휴일"; return true; } return false; }
+  }
   return false;
 }
 
@@ -1711,39 +2150,56 @@ static int schedEnd(const char *t, int st) {
 }
 
 static lv_obj_t *s_pAmPm = nullptr;
+// 오늘 시험 날인가(학사 일정의 이름에 '고사'·'시험'). 교장 화면의 '학교 지금'에 쓴다
+static bool examTodayAcad() {
+  if (!timeValid()) return false;
+  const String td = todayIso();
+  for (JsonArray a : s_sched["acad"].as<JsonArray>()) {
+    if (td != (const char *)(a[0] | "")) continue;
+    const char *nm = a[1] | "", *ty = a[2] | "";
+    if (strstr(nm, "고사") || strstr(nm, "시험") || strstr(ty, "시험")) return true;
+  }
+  return false;
+}
+// 1분마다 다시 부르므로 값이 바뀐 것만 다시 쓴다(setTextIf·set*If)
 static void renderPrincipal() {
   if (!s_viewPrin) return;
   const bool tv = timeValid();
   const int nm = tv ? nowMin() : -1;
   // 시계·날짜는 시계 화면과 같은 글을 쓴다
-  lv_label_set_text(s_pClock, lv_label_get_text(s_big));
-  lv_label_set_text(s_pDate, lv_label_get_text(s_bigDate));
+  const bool clkChg = setTextIf(s_pClock, lv_label_get_text(s_big));
+  setTextIf(s_pDate, lv_label_get_text(s_bigDate));
   if (s_pAmPm) {   // 12시간제면 '오후'를 숫자 왼쪽 아래에(시계 화면과 같게)
     const char *ap = lv_label_get_text(s_bigAmPm);
     if (*ap && !lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN)) {
-      lv_label_set_text(s_pAmPm, ap); lv_obj_clear_flag(s_pAmPm, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_update_layout(s_pClock); lv_obj_align_to(s_pAmPm, s_pClock, LV_ALIGN_OUT_LEFT_BOTTOM, -8, -14);
-    } else lv_obj_add_flag(s_pAmPm, LV_OBJ_FLAG_HIDDEN);
+      const bool was = lv_obj_has_flag(s_pAmPm, LV_OBJ_FLAG_HIDDEN);
+      const bool chg = setTextIf(s_pAmPm, ap); showIf(s_pAmPm, true);
+      if (chg || clkChg || was) { lv_obj_update_layout(s_pClock); lv_obj_align_to(s_pAmPm, s_pClock, LV_ALIGN_OUT_LEFT_BOTTOM, -8, -14); }
+    } else showIf(s_pAmPm, false);
   }
   // 학교 지금
   int nowP = -1, nextP = -1;
   for (int p = 0; p < 7; p++) { const int st = toMin(PERIOD_START[p]); if (nm >= st && nm < st + 50) nowP = p; if (nextP < 0 && st > nm) nextP = p; }
   const bool lunch = nm >= toMin("12:30") && nm < toMin("13:30");
-  time_t tt0 = time(nullptr); struct tm tmn; localtime_r(&tt0, &tmn);
-  String offName; const bool weekend = isOffDay(&offName);   // 주말·휴업일
-  (void)tmn;
+  const String &offName = s_offName; const bool weekend = s_offToday;   // 주말·휴업일(분이 바뀔 때 계산해 둔 값)
+  const bool exam = !weekend && examTodayAcad();               // 시험 날: 링·'분 남음' 대신 '시험 기간'
   int ring = 0;   // 0~100
-  if (!tv) { lv_label_set_text(s_pNowA, "시각을 맞추는 중"); lv_label_set_text(s_pNowB, ""); lv_label_set_text(s_pNowN, "-"); }
-  else if (weekend) { lv_label_set_text(s_pNowA, offName == "주말" ? "주말" : "휴업일"); lv_label_set_text(s_pNowB, offName == "주말" ? "수업 없음" : offName.c_str()); lv_label_set_text(s_pNowN, "-"); }
+  if (!tv) { setTextIf(s_pNowA, "시각을 맞추는 중"); setTextIf(s_pNowB, ""); setTextIf(s_pNowN, "-"); }
+  else if (weekend) { setTextIf(s_pNowA, offName == "주말" ? "주말" : "휴업일"); setTextIf(s_pNowB, offName == "주말" ? "수업 없음" : offName.c_str()); setTextIf(s_pNowN, "-"); }
+  else if (exam && (nowP >= 0 || lunch || nextP >= 0)) {
+    setTextIf(s_pNowA, "시험 기간");
+    if (nowP >= 0) setTextFmtIf(s_pNowB, "%d교시 진행 중", nowP + 1); else setTextFmtIf(s_pNowB, "%d교시 %s", nextP >= 0 ? nextP + 1 : 5, nextP >= 0 ? PERIOD_START[nextP] : "13:30");
+    setTextFmtIf(s_pNowN, "%d", nowP >= 0 ? nowP + 1 : nextP >= 0 ? nextP + 1 : 5);
+  }
   else if (nowP >= 0) {
     const int end = toMin(PERIOD_START[nowP]) + 50; ring = (end - nm) * 100 / 50;
-    lv_label_set_text_fmt(s_pNowA, "%d교시 수업 중", nowP + 1);
-    if (nextP >= 0) lv_label_set_text_fmt(s_pNowB, "%d분 남음 · %d교시 %s", end - nm, nextP + 1, PERIOD_START[nextP]);
-    else lv_label_set_text_fmt(s_pNowB, "%d분 남음 · 마지막 교시", end - nm);
-    lv_label_set_text_fmt(s_pNowN, "%d", nowP + 1);
-  } else if (lunch) { ring = (toMin("13:30") - nm) * 100 / 60; lv_label_set_text(s_pNowA, "점심시간"); lv_label_set_text_fmt(s_pNowB, "%d분 남음 · 5교시 13:30", toMin("13:30") - nm); lv_label_set_text(s_pNowN, "점"); }
-  else if (nextP >= 0) { ring = 100; lv_label_set_text(s_pNowA, nm < toMin(PERIOD_START[0]) ? "수업 전" : "쉬는 시간"); lv_label_set_text_fmt(s_pNowB, "%d교시 %s 시작", nextP + 1, PERIOD_START[nextP]); lv_label_set_text_fmt(s_pNowN, "%d", nextP + 1); }
-  else { lv_label_set_text(s_pNowA, "수업 끝"); lv_label_set_text(s_pNowB, "방과 후"); lv_label_set_text(s_pNowN, "-"); }
+    setTextFmtIf(s_pNowA, "%d교시 수업 중", nowP + 1);
+    if (nextP >= 0) setTextFmtIf(s_pNowB, "%d분 남음 · %d교시 %s", end - nm, nextP + 1, PERIOD_START[nextP]);
+    else setTextFmtIf(s_pNowB, "%d분 남음 · 마지막 교시", end - nm);
+    setTextFmtIf(s_pNowN, "%d", nowP + 1);
+  } else if (lunch) { ring = (toMin("13:30") - nm) * 100 / 60; setTextIf(s_pNowA, "점심시간"); setTextFmtIf(s_pNowB, "%d분 남음 · 5교시 13:30", toMin("13:30") - nm); setTextIf(s_pNowN, "점"); }
+  else if (nextP >= 0) { ring = 100; setTextIf(s_pNowA, nm < toMin(PERIOD_START[0]) ? "수업 전" : "쉬는 시간"); setTextFmtIf(s_pNowB, "%d교시 %s 시작", nextP + 1, PERIOD_START[nextP]); setTextFmtIf(s_pNowN, "%d", nextP + 1); }
+  else { setTextIf(s_pNowA, "수업 끝"); setTextIf(s_pNowB, "방과 후"); setTextIf(s_pNowN, "-"); }
   lv_arc_set_value(s_pRing, ring);
   // 수업 중인 선생님 수(where.json 의 오늘 칸에서 셈 — 이름은 쓰지 않는다)
   {
@@ -1756,10 +2212,10 @@ static void renderPrincipal() {
       total++;
       if (di >= 0 && bp >= 0 && teachingCell(t["d"][di][bp] | "")) inClass++;
     }
-    if (total && di >= 0 && nowP >= 0 && !weekend) lv_label_set_text_fmt(s_pNowC, "수업 중 %d명 · 수업 없음 %d명  " LV_SYMBOL_RIGHT, inClass, total - inClass);
-    else if (total && di >= 0 && bp >= 0) lv_label_set_text_fmt(s_pNowC, "다음 %d교시 수업 %d명  " LV_SYMBOL_RIGHT, bp + 1, inClass);
-    else if (total) lv_label_set_text_fmt(s_pNowC, "선생님 %d명 · 눌러서 명단  " LV_SYMBOL_RIGHT, total);
-    else lv_label_set_text(s_pNowC, "");
+    if (total && di >= 0 && nowP >= 0 && !weekend) setTextFmtIf(s_pNowC, "수업 중 %d명 · 수업 없음 %d명  " LV_SYMBOL_RIGHT, inClass, total - inClass);
+    else if (total && di >= 0 && bp >= 0) setTextFmtIf(s_pNowC, "다음 %d교시 수업 %d명  " LV_SYMBOL_RIGHT, bp + 1, inClass);
+    else if (total) setTextFmtIf(s_pNowC, "선생님 %d명 · 눌러서 명단  " LV_SYMBOL_RIGHT, total);
+    else setTextIf(s_pNowC, "");
   }
   // 날씨·미세먼지·급식
   int g = -1;
@@ -1771,11 +2227,11 @@ static void renderPrincipal() {
   static const char *GN[4] = {"좋음", "보통", "나쁨", "매우 나쁨"};
   static const char *GC[4] = {"60a5fa", "34d399", "fb923c", "ef4444"};
   const float tnow = !isnan(s_wxNow) ? s_wxNow : s_wx[0].tmax;
-  if (!isnan(tnow)) lv_label_set_text_fmt(s_pWx, "%d° %s", (int)lroundf(tnow), wxName(s_wxNowCode >= 0 ? s_wxNowCode : s_wx[0].code));
-  else lv_label_set_text(s_pWx, HAS_WX ? "날씨 받는 중" : "날씨 설정 필요");
-  if (g >= 0 && !isnan(s_wx[0].tmax)) lv_label_set_text_fmt(s_pWx2, "최고 %d° 최저 %d° · #%s 미세먼지 %s#", (int)lroundf(s_wx[0].tmax), (int)lroundf(s_wx[0].tmin), GC[g], GN[g]);
-  else lv_label_set_text(s_pWx2, "");
-  lv_label_set_text(s_pMeal, s_mLunch.length() ? s_mLunch.c_str() : (HAS_MEAL ? "오늘은 급식이 없습니다" : "급식 설정 필요"));
+  if (!isnan(tnow)) setTextFmtIf(s_pWx, "%d° %s", (int)lroundf(tnow), wxName(s_wxNowCode >= 0 ? s_wxNowCode : s_wx[0].code));
+  else setTextIf(s_pWx, HAS_WX ? "날씨 받는 중" : "날씨 설정 필요");
+  if (g >= 0 && !isnan(s_wx[0].tmax)) setTextFmtIf(s_pWx2, "최고 %d° 최저 %d° · #%s 미세먼지 %s#", (int)lroundf(s_wx[0].tmax), (int)lroundf(s_wx[0].tmin), GC[g], GN[g]);
+  else setTextIf(s_pWx2, "");
+  setTextIf(s_pMeal, s_mLunch.length() ? s_mLunch.c_str() : (HAS_MEAL ? "오늘은 급식이 없습니다" : "급식 설정 필요"));
   // 학교 일정(일정 사이트): 오늘 진행 중인 것부터 다가오는 날 차례로 8줄(2026-10-18: 교장실 상태 칸을 빼고 일정 위주로)
   static const char *DW[7] = {"일", "월", "화", "수", "목", "금", "토"};
   auto dowOf = [](const String &iso) { struct tm t = {}; t.tm_year = iso.substring(0, 4).toInt() - 1900; t.tm_mon = iso.substring(5, 7).toInt() - 1; t.tm_mday = iso.substring(8, 10).toInt(); t.tm_hour = 12; mktime(&t); return t.tm_wday; };
@@ -1785,7 +2241,6 @@ static void renderPrincipal() {
     // 정렬은 정수 키(날짜*10000+분)로 한다(String 을 맞바꾸면 내부 RAM 이 조각난다). 큰 배열은 static(스택 16KB)
     struct C { int idx; long long key; int m, e; bool today; };
     static C cand[64]; int c = 0;
-    const long tdN = td.length() ? td.substring(0, 4).toInt() * 10000L + td.substring(5, 7).toInt() * 100 + td.substring(8, 10).toInt() : 0;
     int ii = -1;
     for (JsonArray r : s_sched["items"].as<JsonArray>()) {
       ii++;
@@ -1802,24 +2257,26 @@ static void renderPrincipal() {
     }
     for (int x = 1; x < c; x++) { C v = cand[x]; int y = x - 1; while (y >= 0 && cand[y].key > v.key) { cand[y + 1] = cand[y]; y--; } cand[y + 1] = v; }
     const int n = min(c, P_ROWS);
-    (void)tdN;
     int nextI = -1;
     for (int i = 0; i < n; i++) if (cand[i].today && cand[i].m > nm && cand[i].m < 24 * 60 && nextI < 0) nextI = i;
     JsonArray its = s_sched["items"].as<JsonArray>();
     for (int i = 0; i < P_ROWS; i++) {
-      if (i >= n) { lv_obj_add_flag(s_pRow[i], LV_OBJ_FLAG_HIDDEN); continue; }
-      lv_obj_clear_flag(s_pRow[i], LV_OBJ_FLAG_HIDDEN);
+      if (i >= n) { showIf(s_pRow[i], false); continue; }
+      showIf(s_pRow[i], true);
       const C &q = cand[i];
       JsonArray r = its[q.idx];
       const char *sd = r[0] | "", *ed = r[1] | "";
       const bool cur = q.today && q.m >= 0 && q.e > 0 && q.m <= nm && nm < q.e;
       const bool past = q.today && q.e > 0 && q.e <= nm;
       const bool nxt = i == nextI && !cur;
-      lv_label_set_text(s_pRowT[i], q.today ? "오늘" : mdOf(String(sd)).c_str());
+      setTextIf(s_pRowT[i], q.today ? "오늘" : mdOf(String(sd)).c_str());
       lv_obj_set_user_data(s_pRow[i], (void *)(intptr_t)q.idx);   // 누르면 자세히
-      lv_label_set_long_mode(s_pRowA[i], q.today ? LV_LABEL_LONG_WRAP : LV_LABEL_LONG_DOT);   // 오늘 일정은 두 줄까지
-      lv_obj_set_height(s_pRowA[i], q.today ? 2 * lv_font_get_line_height(lv_obj_get_style_text_font(s_pRowA[i], 0)) + 2 : LV_SIZE_CONTENT);
-      lv_label_set_text(s_pRowA[i], r[3] | "");
+      const bool two = q.today && !big();   // 오늘 일정은 두 줄까지(800). 1024 는 큰 글자(kr20) 한 줄 — 두 줄은 줄 높이에 들어가지 않는다
+      const lv_label_long_mode_t lm = two ? LV_LABEL_LONG_WRAP : LV_LABEL_LONG_DOT;
+      if (lv_label_get_long_mode(s_pRowA[i]) != lm) lv_label_set_long_mode(s_pRowA[i], lm);
+      const lv_coord_t h = two ? 2 * lv_font_get_line_height(lv_obj_get_style_text_font(s_pRowA[i], 0)) + 2 : LV_SIZE_CONTENT;
+      if (lv_obj_get_style_height(s_pRowA[i], 0) != h) lv_obj_set_height(s_pRowA[i], h);
+      setTextIf(s_pRowA[i], r[3] | "");
       String sub = (const char *)(r[2] | "");
       const char *pl = r[4] | "";
       if (*pl) { if (sub.length()) sub += " · "; sub += pl; }
@@ -1828,27 +2285,27 @@ static void renderPrincipal() {
         sub += "~" + String(String(ed).substring(5, 7).toInt()) + "/" + String(ed).substring(8, 10).toInt();
       }
       if (!sub.length()) sub = (const char *)(r[5] | "");          // 시간·장소가 없으면 부서(사이트의 [부서] 표시)
-      lv_label_set_text(s_pRowB[i], sub.c_str());
-      {   // 시간·장소가 없으면 제목이 줄 끝까지 쓴다
+      setTextIf(s_pRowB[i], sub.c_str());
+      {   // 시간·장소가 없으면 제목이 줄 끝까지 쓴다(오른쪽 끝 '>' 자리 18 은 비운다)
         lv_obj_t *tb = lv_obj_get_parent(s_pRowT[i]);
-        const int full = lv_obj_get_width(s_pRow[i]) - lv_obj_get_width(tb) - 30;
-        lv_obj_set_width(s_pRowA[i], sub.length() ? full - lv_obj_get_width(s_pRowB[i]) - 6 : full);
+        const int full = lv_obj_get_width(s_pRow[i]) - lv_obj_get_width(tb) - 30 - 18;
+        setWidthIf(s_pRowA[i], sub.length() ? full - lv_obj_get_width(s_pRowB[i]) - 6 : full);
       }
-      lv_obj_set_style_bg_color(s_pRow[i], lv_color_hex(cur ? NOW_ROW : D_ROW), 0);
-      lv_obj_set_style_border_color(s_pRow[i], lv_color_hex(cur ? NOW_ROW : nxt ? NEXT_BD : D_LINE), 0);
-      lv_obj_set_style_border_width(s_pRow[i], nxt ? 2 : 1, 0);
-      lv_obj_set_style_bg_color(lv_obj_get_parent(s_pRowT[i]), lv_color_hex(q.today ? NOW_TAG : D_LINE), 0);
-      lv_obj_set_style_text_color(s_pRowT[i], lv_color_hex(q.today ? NOW_TX : D_SUB), 0);
-      lv_obj_set_style_text_color(s_pRowA[i], lv_color_hex(cur ? C_TEXT : past ? D_MUTED : D_TEXT), 0);
-      lv_obj_set_style_text_color(s_pRowB[i], lv_color_hex(cur ? C_MUTED : D_MUTED), 0);
+      setBgIf(s_pRow[i], cur ? NOW_ROW : D_ROW);
+      setBorderIf(s_pRow[i], cur ? NOW_ROW : nxt ? NEXT_BD : D_LINE);
+      setBorderWIf(s_pRow[i], nxt ? 2 : 1);
+      setBgIf(lv_obj_get_parent(s_pRowT[i]), q.today ? NOW_TAG : D_LINE);
+      setTextColIf(s_pRowT[i], q.today ? NOW_TX : D_SUB);
+      setTextColIf(s_pRowA[i], cur ? C_TEXT : past ? D_MUTED : D_TEXT);
+      setTextColIf(s_pRowB[i], cur ? C_MUTED : D_MUTED);
     }
     if (!n) {
-      lv_obj_clear_flag(s_pRow[0], LV_OBJ_FLAG_HIDDEN);
-      lv_label_set_text(s_pRowT[0], "-");
-      lv_label_set_text(s_pRowA[0], cfgSet(SCHEDULE_URL) ? "다가오는 학교 일정이 없습니다" : "학교 일정 주소가 없습니다 · 관리자 확인");
-      lv_label_set_text(s_pRowB[0], "");
+      showIf(s_pRow[0], true);
+      setTextIf(s_pRowT[0], "-");
+      setTextIf(s_pRowA[0], cfgSet(SCHEDULE_URL) ? "다가오는 학교 일정이 없습니다" : "학교 일정 주소가 없습니다 · 관리자 확인");
+      setTextIf(s_pRowB[0], "");
     }
-    // 학사 일정 D-day(시험·행사·휴일, 오늘부터 3개)
+    // 학사 일정 D-day(시험·행사·휴일, 오늘부터 3개). 'D-3'은 오른쪽에 따로 크게(이름이 길어도 잘리지 않게)
     int k = 0;
     auto dayNo = [](const String &iso) { struct tm t = {}; t.tm_year = iso.substring(0, 4).toInt() - 1900; t.tm_mon = iso.substring(5, 7).toInt() - 1; t.tm_mday = iso.substring(8, 10).toInt(); t.tm_hour = 12; return (long)(mktime(&t) / 86400); };
     JsonArray ac = s_sched["acad"].as<JsonArray>();
@@ -1861,13 +2318,15 @@ static void renderPrincipal() {
       const long left = dayNo(dt) - dayNo(td);
       String when = mdOf(dt);
       if (endD != dt) when += "~" + String(endD.substring(5, 7).toInt()) + "/" + endD.substring(8, 10).toInt();
-      String line = String(nmA) + "  ·  " + when + "  ·  " + (left == 0 ? String("오늘") : String("D-") + left);
-      lv_label_set_text(s_pAcad[k], line.c_str());
-      lv_obj_set_style_text_color(s_pAcad[k], lv_color_hex(left == 0 ? NOW_TAG : left <= 3 ? D_TEXT : D_SUB), 0);
-      lv_obj_clear_flag(s_pAcad[k], LV_OBJ_FLAG_HIDDEN);
+      const String line = String(nmA) + "  ·  " + when;
+      setTextIf(s_pAcad[k], line.c_str());
+      setTextColIf(s_pAcad[k], D_SUB);
+      if (left == 0) setTextIf(s_pAcadD[k], "오늘"); else setTextFmtIf(s_pAcadD[k], "D-%ld", left);
+      setTextColIf(s_pAcadD[k], left == 0 ? NOW_TAG : left <= 3 ? D_TEXT : D_SUB);
+      showIf(s_pAcad[k], true); showIf(s_pAcadD[k], true);
       k++;
     }
-    for (; k < 3; k++) lv_obj_add_flag(s_pAcad[k], LV_OBJ_FLAG_HIDDEN);
+    for (; k < 3; k++) { showIf(s_pAcad[k], false); showIf(s_pAcadD[k], false); }
   }
   // 야외 활동 안전: 왼쪽 날씨 칸 맨 아래 한 줄(미세먼지 나쁨 · 최고 31° 이상 · 최저 0° 이하)
   {
@@ -1882,8 +2341,8 @@ static void renderPrincipal() {
     if (dl) why += String("미세먼지 ") + GN[g];
     if (heat) { if (why.length()) why += " · "; why += "폭염"; }
     if (cold) { if (why.length()) why += " · "; why += "한파"; }
-    if (g < 0 && isnan(hi)) lv_label_set_text(s_pNews, "#94a3b8 야외 활동: 날씨를 받는 중#");
-    else lv_label_set_text_fmt(s_pNews, "#%s ● %s#  #94a3b8 %s#", LCx[level], VD[level], why.length() ? why.c_str() : "바깥 활동 문제없음");
+    if (g < 0 && isnan(hi)) setTextIf(s_pNews, "#" D_MUTED_S " 야외 활동: 날씨를 받는 중#");
+    else setTextFmtIf(s_pNews, "#%s ● %s#  #" D_MUTED_S " %s#", LCx[level], VD[level], why.length() ? why.c_str() : "바깥 활동 문제없음");
   }
 }
 
@@ -1936,49 +2395,63 @@ static void buildPrincipal(lv_obj_t *scr) {
   const int RX = CM + LW + CM, RW = s_W - RX - CM;
   lv_obj_t *right = box(s_viewPrin, D_PANEL, D_LINE, 16);
   lv_obj_set_size(right, RW, PH); lv_obj_set_pos(right, RX, CM); lv_obj_clear_flag(right, LV_OBJ_FLAG_CLICKABLE);
-  s_pTitle = label(right, &kr16, D_TEXT, "학교 일정"); lv_label_set_recolor(s_pTitle, true); lv_obj_set_pos(s_pTitle, S(16), S(14));
-  {   // 오른쪽 위 단추: [30일 일정 ›] [설정]
-    const int BH = big() ? 40 : 34, BW1 = big() ? 150 : 124, BW2 = big() ? 84 : 70;
-    lv_obj_t *b1 = button(right, "30일 일정  " LV_SYMBOL_RIGHT, BW1, BH, D_ROW, D_SUB);
-    lv_obj_set_style_border_color(b1, lv_color_hex(D_LINE), 0); lv_obj_set_style_border_width(b1, 1, 0);
-    lv_obj_align(b1, LV_ALIGN_TOP_RIGHT, -S(12) - BW2 - 8, S(6));
+  s_pTitle = label(right, big() ? &kr20 : &kr16, D_TEXT, "학교 일정"); lv_label_set_recolor(s_pTitle, true); lv_obj_set_pos(s_pTitle, S(16), S(14));   // 1024: 교사 화면 제목과 같은 크기
+  {   // 오른쪽 위 단추: [단축키](1024 만) [30일 일정 ›] [설정] — 제목보다 물러난 '보조 단추'(어두운 바탕·흐린 글자). 1024 는 손가락 크기
+    const int BH = big() ? 46 : 34, BW0 = big() ? 96 : 0, BW1 = big() ? 140 : 124, BW2 = big() ? 80 : 70, G = big() ? 12 : 8;
+    auto sub = [&](const char *t, int w) { lv_obj_t *b = button(right, t, w, BH, D_PANEL, D_MUTED); lv_obj_set_style_border_color(b, lv_color_hex(D_LINE), 0); lv_obj_set_style_border_width(b, 1, 0); return b; };
+    if (BW0) {   // 800 은 자리가 좁아 두지 않는다(위쪽 탭의 [단축키]로 간다)
+      lv_obj_t *b0 = sub("단축키", BW0);
+      lv_obj_align(b0, LV_ALIGN_TOP_RIGHT, -S(12) - BW2 - G - BW1 - G, S(6));
+      lv_obj_add_event_cb(b0, [](lv_event_t *) { showView(V_DECK); }, LV_EVENT_CLICKED, nullptr);
+    }
+    lv_obj_t *b1 = sub("30일 일정  " LV_SYMBOL_RIGHT, BW1);
+    lv_obj_align(b1, LV_ALIGN_TOP_RIGHT, -S(12) - BW2 - G, S(6));
     lv_obj_add_event_cb(b1, [](lv_event_t *) { showView(V_WEEK); }, LV_EVENT_CLICKED, nullptr);
-    lv_obj_t *b2 = button(right, "설정", BW2, BH, D_ROW, D_SUB);
-    lv_obj_set_style_border_color(b2, lv_color_hex(D_LINE), 0); lv_obj_set_style_border_width(b2, 1, 0);
+    lv_obj_t *b2 = sub("설정", BW2);
     lv_obj_align(b2, LV_ALIGN_TOP_RIGHT, -S(12), S(6));
     lv_obj_add_event_cb(b2, [](lv_event_t *) { showView(V_SET); }, LV_EVENT_CLICKED, nullptr);
-    lv_obj_set_width(s_pTitle, RW - S(16) - BW1 - BW2 - S(12) - 24); lv_label_set_long_mode(s_pTitle, LV_LABEL_LONG_DOT);
+    // 제목 폭 = 칸 폭 - 왼쪽 여백 - (단추들 + 사이 간격 + 오른쪽 여백) - 제목과 단추 사이 여유
+    lv_obj_set_width(s_pTitle, RW - S(16) - (S(12) + BW2 + G + BW1 + (BW0 ? G + BW0 : 0)) - (BW0 ? 12 : 16)); lv_label_set_long_mode(s_pTitle, LV_LABEL_LONG_DOT);
   }
   const int AH = S(84);                                        // 아래 학사 일정 칸
-  const int ROW_Y0 = S(40), ROW_X = S(12), ROW_W = RW - 2 * ROW_X, RP_ = (PH - ROW_Y0 - AH - S(16)) / P_ROWS, RH_ = RP_ - S(5), TW = S(70);
+  const int ROW_Y0 = S(40) + (big() ? 8 : 0), ROW_X = S(12), ROW_W = RW - 2 * ROW_X, RP_ = (PH - ROW_Y0 - AH - S(16)) / P_ROWS, RH_ = RP_ - S(5), TW = S(70);
   for (int i = 0; i < P_ROWS; i++) {
     s_pRow[i] = box(right, D_ROW, D_LINE, UI_SOFT ? 10 : 8);
     lv_obj_set_size(s_pRow[i], ROW_W, RH_); lv_obj_set_pos(s_pRow[i], ROW_X, ROW_Y0 + i * RP_);
     lv_obj_add_flag(s_pRow[i], LV_OBJ_FLAG_CLICKABLE); lv_obj_add_event_cb(s_pRow[i], onSchedRow, LV_EVENT_CLICKED, nullptr);
+    lv_obj_set_style_bg_color(s_pRow[i], lv_color_hex(D_LINE), LV_STATE_PRESSED);   // 누를 수 있다는 표시: 눌림 색 + 오른쪽 끝 '>'
     lv_obj_t *tb = box(s_pRow[i], D_LINE, 0, UI_SOFT ? 10 : 6);
     lv_obj_set_size(tb, TW, RH_ - 8); lv_obj_align(tb, LV_ALIGN_LEFT_MID, S(5) - 1, 0);
     s_pRowT[i] = label(tb, FM(), D_SUB, ""); lv_obj_center(s_pRowT[i]);
-    s_pRowA[i] = label(s_pRow[i], &kr16, D_TEXT, ""); lv_obj_set_width(s_pRowA[i], ROW_W - TW - S(20) - S(118)); lv_label_set_long_mode(s_pRowA[i], LV_LABEL_LONG_DOT);
+    s_pRowA[i] = label(s_pRow[i], big() ? &kr20 : &kr16, D_TEXT, "");   // 1024: 3m 에서 읽히게 한 단계 크게(한 줄) lv_obj_set_width(s_pRowA[i], ROW_W - TW - S(20) - S(118) - 18); lv_label_set_long_mode(s_pRowA[i], LV_LABEL_LONG_DOT);
     lv_obj_align(s_pRowA[i], LV_ALIGN_LEFT_MID, TW + S(14), 0);
-    s_pRowB[i] = label(s_pRow[i], FM(), D_MUTED, ""); lv_obj_set_width(s_pRowB[i], S(114)); lv_label_set_long_mode(s_pRowB[i], LV_LABEL_LONG_DOT);
-    lv_obj_set_style_text_align(s_pRowB[i], LV_TEXT_ALIGN_RIGHT, 0); lv_obj_align(s_pRowB[i], LV_ALIGN_RIGHT_MID, -S(10), 0);
+    s_pRowB[i] = label(s_pRow[i], FM(), D_MUTED, ""); lv_obj_set_width(s_pRowB[i], S(114) - 18); lv_label_set_long_mode(s_pRowB[i], LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_align(s_pRowB[i], LV_TEXT_ALIGN_RIGHT, 0); lv_obj_align(s_pRowB[i], LV_ALIGN_RIGHT_MID, -S(10) - 18, 0);
+    lv_obj_align(label(s_pRow[i], FM(), D_MUTED, LV_SYMBOL_RIGHT), LV_ALIGN_RIGHT_MID, -S(10), 0);
     lv_obj_add_flag(s_pRow[i], LV_OBJ_FLAG_HIDDEN);
   }
   lv_obj_t *ac = box(right, D_ROW, D_LINE, 14);
   lv_obj_set_size(ac, ROW_W, AH); lv_obj_set_pos(ac, ROW_X, PH - S(12) - AH); lv_obj_clear_flag(ac, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_pos(label(ac, &kr14, D_MUTED, "학사 일정"), S(12), S(8));
+  lv_obj_set_pos(label(ac, FM(), D_MUTED, "학사 일정"), S(12), S(8));
   for (int i = 0; i < 3; i++) {
+    const int y = S(8) + 18 + i * ((AH - S(8) - 18 - S(6)) / 3);
     s_pAcad[i] = label(ac, FM(), D_SUB, "");
-    lv_obj_set_width(s_pAcad[i], ROW_W - S(24)); lv_label_set_long_mode(s_pAcad[i], LV_LABEL_LONG_DOT);
-    lv_obj_set_pos(s_pAcad[i], S(12), S(8) + 18 + i * ((AH - S(8) - 18 - S(6)) / 3));
+    lv_obj_set_width(s_pAcad[i], ROW_W - S(24) - S(70)); lv_label_set_long_mode(s_pAcad[i], LV_LABEL_LONG_DOT);
+    lv_obj_set_pos(s_pAcad[i], S(12), y);
     lv_obj_add_flag(s_pAcad[i], LV_OBJ_FLAG_HIDDEN);
+    s_pAcadD[i] = label(ac, big() ? &kr20 : &kr16, D_SUB, "");    // 'D-3' 은 오른쪽에 따로 크게
+    lv_obj_set_width(s_pAcadD[i], S(70)); lv_obj_set_style_text_align(s_pAcadD[i], LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_align(s_pAcadD[i], LV_ALIGN_TOP_RIGHT, -S(12), y - 2);
+    lv_obj_add_flag(s_pAcadD[i], LV_OBJ_FLAG_HIDDEN);
   }
 }
 static void setPrincipalTitles() {   // 제목에 누구 책상인지(교장·교감)
   if (!s_pTitle) return;
-  char b[64]; const bool st = staleText(b, sizeof b);
-  if (st) lv_label_set_text_fmt(s_pTitle, "학교 일정 · %s   #fb923c %s#", s_pickName == "@교감" ? "교감" : "교장", b);
-  else lv_label_set_text_fmt(s_pTitle, "학교 일정 · %s", s_pickName == "@교감" ? "교감" : "교장");
+  char b[128]; const bool st = staleText(b, sizeof b);
+  char t[200];   // 글을 먼저 만들고 같으면 다시 쓰지 않는다(1분마다 refreshStale 이 부른다)
+  if (st) snprintf(t, sizeof t, "학교 일정 · %s   #fb923c %s#", s_pickName == "@교감" ? "교감" : "교장", b);
+  else snprintf(t, sizeof t, "학교 일정 · %s", s_pickName == "@교감" ? "교감" : "교장");
+  setTextIf(s_pTitle, t);
 }
 
 // ── 교장실 모드 더하기(2026-10-18 사용자 요청) ──
@@ -2017,9 +2490,19 @@ static String schedDay(const String &sd, const String &ed) {   // "10/21 수" ·
   return (ed.length() && ed != sd) ? one(sd) + " ~ " + one(ed) : one(sd);
 }
 
+static int s_detailIdx = -1;                                   // 자세히 창에 보이는 일정(s_sched["items"] 번호)
+static lv_obj_t *s_dScroll = nullptr, *s_dPrev = nullptr, *s_dNext = nullptr;
 static void showSchedDetail(int i) {
   JsonArray r = s_sched["items"][i];
   if (r.isNull() || !s_pDetail) return;
+  s_detailIdx = i;
+  {   // [이전 일정]·[다음 일정]: 목록 차례(schedSorted)의 앞뒤. 끝이면 누를 수 없는 모양(DISABLED)으로
+    static int idx[64]; const int n = schedSorted(idx, 64);
+    int pos = -1; for (int k = 0; k < n; k++) if (idx[k] == i) pos = k;
+    auto en = [](lv_obj_t *b, bool on) { if (!b) return; if (on) lv_obj_clear_state(b, LV_STATE_DISABLED); else lv_obj_add_state(b, LV_STATE_DISABLED); };
+    en(s_dPrev, pos > 0);
+    en(s_dNext, pos >= 0 && pos + 1 < n);
+  }
   const String sd = r[0] | "", ed = r[1] | "";
   {   // 날짜 줄 끝에 오늘·내일·D-n
     auto dn = [](const String &iso) { struct tm t = {}; t.tm_year = iso.substring(0, 4).toInt() - 1900; t.tm_mon = iso.substring(5, 7).toInt() - 1; t.tm_mday = iso.substring(8, 10).toInt(); t.tm_hour = 12; return (long)(mktime(&t) / 86400); };
@@ -2034,10 +2517,19 @@ static void showSchedDetail(int i) {
   line("시간", r[2] | ""); line("장소", r[4] | ""); line("부서", r[5] | ""); line("담당", r[6] | ""); line("내용", r[7] | "");
   if (!info.length()) info = "자세한 내용이 없습니다";
   lv_label_set_text(s_dInfo, info.c_str());
+  if (s_dScroll) lv_obj_scroll_to_y(s_dScroll, 0, LV_ANIM_OFF);   // 새 일정은 맨 위부터
   lv_obj_clear_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_foreground(s_pDetail);
 }
 static void onSchedRow(lv_event_t *e) { showSchedDetail((int)(intptr_t)lv_obj_get_user_data(lv_event_get_current_target(e))); }
+static void onDetailStep(lv_event_t *e) {   // 자세히 창의 [이전 일정]·[다음 일정]
+  const int d = (int)(intptr_t)lv_event_get_user_data(e);
+  static int idx[64]; const int n = schedSorted(idx, 64);
+  int pos = -1; for (int k = 0; k < n; k++) if (idx[k] == s_detailIdx) pos = k;
+  const int to = pos + d;
+  if (pos < 0 || to < 0 || to >= n) return;
+  showSchedDetail(idx[to]);
+}
 
 static void renderSchedList() {
   if (!s_viewSched) return;
@@ -2101,11 +2593,11 @@ static void renderTeach() {
   }
   for (int t = 0; t < 2; t++) {
     const bool on = t == s_tKind;
-    lv_obj_set_style_bg_color(s_tTab[t], lv_color_hex(on ? C_PRIMARY : C_ALT), 0);
+    lv_obj_set_style_bg_color(s_tTab[t], lv_color_hex(on ? C_SEL : C_ALT), 0);
     lv_obj_t *l = lv_obj_get_child(s_tTab[t], 0);
     if (none) lv_label_set_text(l, t ? "수업 없음 -" : "수업 중 -");
     else lv_label_set_text_fmt(l, "%s %d", t ? "수업 없음" : inClass || lbl.length() ? "수업 중" : "수업 있음", cnt[t]);
-    lv_obj_set_style_text_color(l, lv_color_hex(on ? 0xffffff : C_MUTED), 0);
+    lv_obj_set_style_text_color(l, lv_color_hex(on ? C_SEL_TX : C_MUTED), 0);
   }
   const int pages = max(1, (n + 29) / 30);
   if (s_tPg >= pages) s_tPg = pages - 1;
@@ -2128,7 +2620,7 @@ static void onTeachPage(lv_event_t *e) { s_tPg = max(0, s_tPg + (int)(intptr_t)l
 static lv_obj_t *s_findBack = nullptr;
 static bool s_findFromTeach = false;
 static void onTeachName(lv_event_t *e) {   // 이름 → '찾기' 화면에 그 선생님 하루
-  s_findFromTeach = true;
+  s_findFromTeach = true; s_findScrollPending = true;
   s_findSel = lv_label_get_text(lv_obj_get_child(lv_event_get_current_target(e), 0));
   lv_obj_add_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN);
   showView(V_FIND);
@@ -2137,12 +2629,12 @@ static void onTeachName(lv_event_t *e) {   // 이름 → '찾기' 화면에 그 
 // 화면 만들기(buildUI 에서 한 번)
 static void buildPrincipalMore(lv_obj_t *scr, int top) {
   if (s_findGridParent) {
-    s_findBack = button(s_findGridParent, LV_SYMBOL_LEFT "  지금 선생님", 150, 32, D_ROW, D_SUB);
+    s_findBack = button(s_findGridParent, LV_SYMBOL_LEFT "  지금 선생님", big() ? 170 : 150, big() ? 44 : 32, D_ROW, D_SUB);
     lv_obj_set_style_border_color(s_findBack, lv_color_hex(D_LINE), 0); lv_obj_set_style_border_width(s_findBack, 1, 0);
-    lv_obj_align(s_findBack, LV_ALIGN_TOP_RIGHT, -10, 2);
+    lv_obj_align(s_findBack, LV_ALIGN_TOP_RIGHT, -10, big() ? 4 : 2);
     lv_obj_add_flag(s_findBack, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_event_cb(s_findBack, [](lv_event_t *) {   // 교장 화면으로 돌아가 선생님 판을 다시 연다(고르던 탭은 그대로)
-      showView(V_CLOCK); s_tPg = 0; renderTeach(); lv_obj_clear_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN); lv_obj_move_foreground(s_pTeach);
+    lv_obj_add_event_cb(s_findBack, [](lv_event_t *) {   // 교장 화면으로 돌아가 선생님 판을 다시 연다(고르던 탭·쪽은 그대로)
+      showView(V_CLOCK); renderTeach(); lv_obj_clear_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN); lv_obj_move_foreground(s_pTeach);
     }, LV_EVENT_CLICKED, nullptr);
   }
   const bool small = s_W <= 800;
@@ -2154,18 +2646,34 @@ static void buildPrincipalMore(lv_obj_t *scr, int top) {
   lv_obj_set_size(s_pDetail, s_W, s_H); lv_obj_set_pos(s_pDetail, 0, 0);
   lv_obj_add_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(s_pDetail, [](lv_event_t *) { lv_obj_add_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN); }, LV_EVENT_CLICKED, nullptr);
+  // 1024 는 카드를 크게(86%). 긴 내용은 줄을 바꿔 끝까지 보이고, 넘치면 밀어서(스크롤) 읽는다.
+  const int CWd = big() ? s_W * 86 / 100 : s_W * 7 / 10, CHd = big() ? s_H * 86 / 100 : s_H * 7 / 10, DBH = big() ? 46 : 40;
   lv_obj_t *card = box(s_pDetail, C_SURF, C_BORDER, 16);
-  lv_obj_set_size(card, s_W * 7 / 10, s_H * 7 / 10); lv_obj_center(card); lv_obj_clear_flag(card, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_size(card, CWd, CHd); lv_obj_center(card);
+  lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);                // 카드를 눌러도 닫히지 않게(바깥 덮개만 닫는다)
   s_dDate = label(card, FM(), C_MUTED, ""); lv_obj_set_pos(s_dDate, 24, 20);
-  s_dTitle = label(card, &kr28, C_TEXT, ""); lv_obj_set_width(s_dTitle, s_W * 7 / 10 - 48); lv_label_set_long_mode(s_dTitle, LV_LABEL_LONG_DOT);
-  lv_obj_set_height(s_dTitle, 2 * lv_font_get_line_height(&kr28) + 4); lv_obj_set_pos(s_dTitle, 24, 46);
-  s_dInfo = label(card, &kr20, C_MUTED, ""); lv_obj_set_width(s_dInfo, s_W * 7 / 10 - 48); lv_label_set_long_mode(s_dInfo, LV_LABEL_LONG_WRAP);
-  lv_obj_set_style_text_line_space(s_dInfo, 8, 0); lv_obj_align(s_dInfo, LV_ALIGN_TOP_LEFT, 24, 46 + 29 * 2 + 20);
-  lv_label_set_long_mode(s_dInfo, LV_LABEL_LONG_DOT); lv_obj_set_height(s_dInfo, s_H * 7 / 10 - (46 + 29 * 2 + 20) - 72);   // 내용이 길면 말줄임(넘치지 않게)
-  lv_obj_t *cb = button(card, "닫기", 120, 48, C_PRIMARY, 0xffffff);
-  lv_obj_align(cb, LV_ALIGN_BOTTOM_RIGHT, -16, -12);
+  // [닫기]는 오른쪽 위(선생님 판·볼 시간표 판과 같은 자리). 바깥 덮개를 눌러도 닫힌다
+  lv_obj_t *cb = button(card, "닫기", 120, DBH, D_ROW, D_TEXT);
+  lv_obj_set_style_border_color(cb, lv_color_hex(NOW_TAG), 0);
+  lv_obj_align(cb, LV_ALIGN_TOP_RIGHT, -16, 12);
   lv_obj_add_event_cb(cb, [](lv_event_t *) { lv_obj_add_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN); }, LV_EVENT_CLICKED, nullptr);
-  lv_obj_t *hint = label(card, &kr14, C_LIGHT, "바깥을 눌러도 닫힙니다"); lv_obj_align(hint, LV_ALIGN_BOTTOM_LEFT, 24, -26);
+  s_dTitle = label(card, &kr28, C_TEXT, ""); lv_obj_set_width(s_dTitle, CWd - 48 - 136); lv_label_set_long_mode(s_dTitle, LV_LABEL_LONG_DOT);
+  lv_obj_set_height(s_dTitle, 2 * lv_font_get_line_height(&kr28) + 4); lv_obj_set_pos(s_dTitle, 24, 46);
+  const int IY = 46 + 29 * 2 + 20;
+  s_dScroll = lv_obj_create(card);
+  lv_obj_remove_style_all(s_dScroll);
+  lv_obj_set_size(s_dScroll, CWd - 40, CHd - IY - DBH - 24); lv_obj_set_pos(s_dScroll, 24, IY);
+  lv_obj_add_flag(s_dScroll, LV_OBJ_FLAG_SCROLLABLE); lv_obj_set_scroll_dir(s_dScroll, LV_DIR_VER);
+  lv_obj_clear_flag(s_dScroll, LV_OBJ_FLAG_SCROLL_MOMENTUM | LV_OBJ_FLAG_SCROLL_ELASTIC);   // 딱딱하게(미끄러지지 않게)
+  s_dInfo = label(s_dScroll, &kr20, C_MUTED, ""); lv_obj_set_width(s_dInfo, CWd - 56); lv_label_set_long_mode(s_dInfo, LV_LABEL_LONG_WRAP);
+  lv_obj_set_style_text_line_space(s_dInfo, 8, 0); lv_obj_set_pos(s_dInfo, 0, 0);
+  const int SBW = big() ? 150 : 130;
+  s_dPrev = button(card, LV_SYMBOL_LEFT "  이전 일정", SBW, DBH, C_ALT, C_TEXT);
+  lv_obj_set_style_border_color(s_dPrev, lv_color_hex(C_BORDER), 0); lv_obj_align(s_dPrev, LV_ALIGN_BOTTOM_LEFT, 16, -12);
+  lv_obj_add_event_cb(s_dPrev, onDetailStep, LV_EVENT_CLICKED, (void *)(intptr_t)-1);
+  s_dNext = button(card, "다음 일정  " LV_SYMBOL_RIGHT, SBW, DBH, C_ALT, C_TEXT);
+  lv_obj_set_style_border_color(s_dNext, lv_color_hex(C_BORDER), 0); lv_obj_align(s_dNext, LV_ALIGN_BOTTOM_LEFT, 16 + SBW + 8, -12);
+  lv_obj_add_event_cb(s_dNext, onDetailStep, LV_EVENT_CLICKED, (void *)(intptr_t)1);
 
   // 학교 일정 목록(교장실 모드의 [학교 일정] 탭)
   const int VH = s_H - top;
@@ -2179,12 +2687,14 @@ static void buildPrincipalMore(lv_obj_t *scr, int top) {
     lv_obj_set_size(s_sRow[k], s_W - 2 * M, RH - 6); lv_obj_set_pos(s_sRow[k], M, RY + k * RH);
     lv_obj_add_flag(s_sRow[k], LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(s_sRow[k], onSchedRow, LV_EVENT_CLICKED, nullptr);
+    lv_obj_set_style_bg_color(s_sRow[k], lv_color_hex(D_LINE), LV_STATE_PRESSED);   // 눌림 색 + 오른쪽 끝 '>'
+    lv_obj_align(label(s_sRow[k], FM(), D_MUTED, LV_SYMBOL_RIGHT), LV_ALIGN_RIGHT_MID, -10, 0);
     lv_obj_t *tb = box(s_sRow[k], D_LINE, 0, UI_SOFT ? 10 : 6);
     lv_obj_set_size(tb, small ? 70 : 92, RH - 14); lv_obj_align(tb, LV_ALIGN_LEFT_MID, 4, 0); lv_obj_clear_flag(tb, LV_OBJ_FLAG_CLICKABLE);
     s_sRowT[k] = label(tb, FM(), D_SUB, ""); lv_obj_center(s_sRowT[k]);
-    s_sRowA[k] = label(s_sRow[k], fCellA, D_TEXT, ""); lv_obj_set_width(s_sRowA[k], s_W - 2 * M - (small ? 90 : 116)); lv_label_set_long_mode(s_sRowA[k], LV_LABEL_LONG_DOT);
+    s_sRowA[k] = label(s_sRow[k], fCellA, D_TEXT, ""); lv_obj_set_width(s_sRowA[k], s_W - 2 * M - (small ? 90 : 116) - 18); lv_label_set_long_mode(s_sRowA[k], LV_LABEL_LONG_DOT);
     lv_obj_set_pos(s_sRowA[k], small ? 82 : 106, 6);
-    s_sRowB[k] = label(s_sRow[k], FM(), D_MUTED, ""); lv_obj_set_width(s_sRowB[k], s_W - 2 * M - (small ? 90 : 116)); lv_label_set_long_mode(s_sRowB[k], LV_LABEL_LONG_DOT);
+    s_sRowB[k] = label(s_sRow[k], FM(), D_MUTED, ""); lv_obj_set_width(s_sRowB[k], s_W - 2 * M - (small ? 90 : 116) - 18); lv_label_set_long_mode(s_sRowB[k], LV_LABEL_LONG_DOT);
     lv_obj_set_pos(s_sRowB[k], small ? 82 : 106, RH - 6 - 22);
     lv_obj_add_flag(s_sRow[k], LV_OBJ_FLAG_HIDDEN);
   }
@@ -2241,6 +2751,7 @@ static void showView(View v) {
   const View old = s_view;
   s_view = v;
   if (v == V_WEEK && old != V_WEEK) s_sPg = 0;   // [학교 일정]은 들어올 때마다 첫 쪽부터
+  if (v == V_CLOCK && (old == V_WEEK || old == V_DECK)) s_backView = old;   // 시계 화면을 누르면 이 탭으로 돌아간다
   auto vis = [](lv_obj_t *o, bool on) { if (on) lv_obj_clear_flag(o, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN); };
   vis(s_viewTT, v == V_WEEK && !s_principal);
   if (s_viewSched) vis(s_viewSched, v == V_WEEK && s_principal);
@@ -2259,6 +2770,9 @@ static void showView(View v) {
   tabStyle(s_tabFind, v == V_FIND);
   if (s_tabDeck) tabStyle(s_tabDeck, v == V_DECK);
   if (v == V_DECK) deckStateText();
+  if (v == V_WEEK && !s_principal && s_weekDirty) renderWeek();   // 숨어 있는 동안 미뤄 둔 주간표
+  if (v == V_CLOCK && !s_principal && s_todayDirty) { s_todayDirty = false; renderToday(); }   // 미뤄 둔 오늘 시간표
+  if (v == V_SET) disarmButtons();
   if (v != V_FIND) s_findFromTeach = false;
   if (s_findBack) vis(s_findBack, v == V_FIND && s_findFromTeach && s_principal);
   if (v == V_FIND) { if (s_findGridDirty) fillFinderGrid(); renderFinder(); }
@@ -2273,9 +2787,9 @@ static void onTabClock(lv_event_t *e) { showView(V_CLOCK); }
 // ── 설정 '시계 화면' ──
 static int s_lastMin = -1;                           // 시계 글을 분이 바뀔 때만 다시 그린다(loop). -1 이면 곧 다시 그린다
 static void segStyle(lv_obj_t *b, bool on) {
-  lv_obj_set_style_bg_color(b, lv_color_hex(on ? C_PRIMARY : C_ALT), 0);
-  lv_obj_set_style_border_color(b, lv_color_hex(on ? C_PRIMARY : D_LINE), 0);
-  lv_obj_set_style_text_color(lv_obj_get_child(b, 0), lv_color_hex(on ? 0xffffff : C_MUTED), 0);
+  lv_obj_set_style_bg_color(b, lv_color_hex(on ? C_SEL : C_ALT), 0);   // 켜진 것은 호박색(빨강이 줄지어 있으면 오류처럼 보였다)
+  lv_obj_set_style_border_color(b, lv_color_hex(on ? C_SEL : D_LINE), 0);
+  lv_obj_set_style_text_color(lv_obj_get_child(b, 0), lv_color_hex(on ? C_SEL_TX : C_MUTED), 0);
 }
 static void refreshClockSettings() {
   for (int i = 0; i < 2; i++) segStyle(s_fmtBtn[i], (i == 1) == s_h12);
@@ -2296,6 +2810,7 @@ static void onShowPick(lv_event_t *e) {
   s_prefs.putInt("show", s_show);
   refreshShowButtons();
   layoutClock();
+  s_ttLayoutDirty = true;                            // D-day 를 켜고 끄면 제목 자리도 다시
   renderToday();                                     // D-day 등 보이기가 바뀐 것을 반영
 }
 static void onAutoPick(lv_event_t *e) {
@@ -2304,7 +2819,7 @@ static void onAutoPick(lv_event_t *e) {
   refreshClockSettings();
 }
 static void onTabFind(lv_event_t *e) { showView(V_FIND); }
-static void onClockTap(lv_event_t *e) { showView(V_WEEK); }
+static void onClockTap(lv_event_t *e) { showView(s_principal ? V_WEEK : s_backView); }   // 자동 전환 전에 보던 탭(시간표·단축키)으로
 static void onPrev(lv_event_t *e) { if (s_week > 0) { s_week--; renderWeek(); } }
 static void onNext(lv_event_t *e) { if (s_ttLoaded && s_week + 1 < (int)s_tt["weeks"].size()) { s_week++; renderWeek(); } }
 static void onThisWeek(lv_event_t *e) { s_week = currentWeek(); renderWeek(); }static void onPickTT(lv_event_t *e) {   // 단추 판에서 하나를 눌렀다 → 고르고 판을 닫고 바로 받기
@@ -2315,22 +2830,22 @@ static void onThisWeek(lv_event_t *e) { s_week = currentWeek(); renderWeek(); }s
     lv_obj_add_flag(s_pickView, LV_OBJ_FLAG_HIDDEN);
     fillPicker();
     s_syncReq = true;
-    setStatus("학교 일정을 곧 받습니다…");
+    setStatus("학교 일정을 곧 받습니다...");
     return;
   }
   JsonObject it = s_index["items"][i];
   if (!it.isNull()) {
     if (s_pickName != (const char *)(it["name"] | "")) { s_ttLoaded = false; s_ttName = ""; }   // 다른 사람을 고르면 옛 시간표를 보이지 않는다
     s_pickName = (const char *)(it["name"] | "");
-    s_ttFile = (const char *)(it["file"] | "");
+    setTTFile((const char *)(it["file"] | ""));   // 다른 파일은 처음부터 받는다
     s_prefs.putString("ttname", s_pickName);
   }
   lv_obj_add_flag(s_pickView, LV_OBJ_FLAG_HIDDEN);
   fillPicker();
   s_syncReq = true;
-  setStatus("고른 시간표를 곧 받습니다…");
+  setStatus("고른 시간표를 곧 받습니다...");
 }
-static void onPickOpen(lv_event_t *) { s_pickPg = 0; renderPicker(); lv_obj_clear_flag(s_pickView, LV_OBJ_FLAG_HIDDEN); }
+static void onPickOpen(lv_event_t *) { s_idxReq = true; s_pickPg = 0; renderPicker(); lv_obj_clear_flag(s_pickView, LV_OBJ_FLAG_HIDDEN); }
 static void onPickClose(lv_event_t *) { lv_obj_add_flag(s_pickView, LV_OBJ_FLAG_HIDDEN); }
 static void onPickTab(lv_event_t *e) { s_pickKind = (int)(intptr_t)lv_event_get_user_data(e); s_pickPg = 0; renderPicker(); }
 static void onPickPage(lv_event_t *e) { s_pickPg = max(0, s_pickPg + (int)(intptr_t)lv_event_get_user_data(e)); renderPicker(); }
@@ -2356,11 +2871,11 @@ static void buildUI() {
   lv_obj_set_style_border_width(s_top, 1, 0);
   lv_obj_set_style_border_color(s_top, lv_color_hex(D_LINE), 0);
   const int LOGO = TOP - 16;
-  lv_obj_t *logo = box(s_top, C_PRIMARY, 0, 8);
+  lv_obj_t *logo = box(s_top, NOW_TAG, 0, 8);                       // 호박색(빨강은 경고에만 쓴다)
   lv_obj_set_size(logo, LOGO, LOGO); lv_obj_align(logo, LV_ALIGN_LEFT_MID, M, 0);
   lv_obj_set_style_bg_grad_color(logo, lv_color_hex(0x2563eb), 0);
   lv_obj_set_style_bg_grad_dir(logo, UI_FANCY ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_NONE, 0);
-  lv_obj_center(label(logo, fTitle, 0xffffff, "교"));
+  lv_obj_center(label(logo, fTitle, NOW_TX, "교"));
   s_title = label(s_top, fTitle, D_TEXT, BOARD_TITLE);
   lv_obj_set_width(s_title, small ? 116 : 180);
   lv_label_set_long_mode(s_title, LV_LABEL_LONG_DOT);
@@ -2384,14 +2899,14 @@ static void buildUI() {
   s_tabSet = mkTab("설정", 4, false, onTabSet);
 
 
-  s_wifiLbl = label(s_top, &kr14, C_ROSE, LV_SYMBOL_WIFI " 연결 안 됨");
-  lv_obj_set_width(s_wifiLbl, small ? 130 : 160);
+  s_wifiLbl = label(s_top, FM(), D_MUTED, LV_SYMBOL_WIFI " 연결 안 됨");   // 켤 때의 상태(경고가 아니다 → 흐린 글자)
+  lv_obj_set_width(s_wifiLbl, small ? 130 : 168);
   lv_label_set_long_mode(s_wifiLbl, LV_LABEL_LONG_DOT);
   lv_obj_set_style_text_align(s_wifiLbl, LV_TEXT_ALIGN_RIGHT, 0);
   lv_obj_align(s_wifiLbl, LV_ALIGN_RIGHT_MID, small ? -118 : -156, 0);   // 12시간 모드 "오후 3:40" 자리까지
   s_clock = label(s_top, fClock, D_TEXT, "--:--");
   lv_obj_align(s_clock, LV_ALIGN_RIGHT_MID, -M, small ? -7 : -8);
-  s_date = label(s_top, &kr14, D_MUTED, "");
+  s_date = label(s_top, FM(), D_MUTED, "");
   lv_obj_align(s_date, LV_ALIGN_RIGHT_MID, -M, small ? 13 : 16);
 
   {
@@ -2399,23 +2914,23 @@ static void buildUI() {
   const int VH = s_H - TOP;
   s_viewTT = box(scr, D_BG, 0, 0);
   lv_obj_set_size(s_viewTT, s_W, VH); lv_obj_set_pos(s_viewTT, 0, TOP);
-  const int SH = small ? 38 : 46;
+  const int SH = small ? 38 : 54;                                    // 1024: 단추를 손가락 크기(46)로
   lv_obj_t *strip = box(s_viewTT, D_PANEL, D_LINE, 10);
   lv_obj_set_size(strip, s_W - 2 * M, SH); lv_obj_set_pos(strip, M, M / 2 + 2);
   s_ttSub = label(strip, fBody, D_SUB, "");
   lv_obj_set_width(s_ttSub, small ? 300 : 440); lv_label_set_long_mode(s_ttSub, LV_LABEL_LONG_DOT);
   lv_obj_align(s_ttSub, LV_ALIGN_LEFT_MID, 12, 0);
-  const int BH = SH - 8;
-  lv_obj_t *bNow = button(strip, "이번 주", small ? 64 : 74, BH, D_ROW, D_TEXT);
+  const int BH = SH - 8, AW = small ? 40 : 56;
+  lv_obj_t *bNow = button(strip, "이번 주", small ? 64 : 80, BH, D_ROW, D_TEXT);
   lv_obj_align(bNow, LV_ALIGN_RIGHT_MID, -4, 0);
   lv_obj_add_event_cb(bNow, onThisWeek, LV_EVENT_CLICKED, nullptr);
-  lv_obj_t *bNext = button(strip, LV_SYMBOL_RIGHT, 40, BH, D_ROW, D_TEXT);
+  lv_obj_t *bNext = button(strip, LV_SYMBOL_RIGHT, AW, BH, D_ROW, D_TEXT);
   lv_obj_align_to(bNext, bNow, LV_ALIGN_OUT_LEFT_MID, -6, 0);
   lv_obj_add_event_cb(bNext, onNext, LV_EVENT_CLICKED, nullptr);
   s_weekLbl = label(strip, fBody, D_TEXT, "");
   lv_obj_set_width(s_weekLbl, small ? 150 : 190); lv_obj_set_style_text_align(s_weekLbl, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align_to(s_weekLbl, bNext, LV_ALIGN_OUT_LEFT_MID, -4, 0);
-  lv_obj_t *bPrev = button(strip, LV_SYMBOL_LEFT, 40, BH, D_ROW, D_TEXT);
+  lv_obj_t *bPrev = button(strip, LV_SYMBOL_LEFT, AW, BH, D_ROW, D_TEXT);
   lv_obj_align_to(bPrev, s_weekLbl, LV_ALIGN_OUT_LEFT_MID, -4, 0);
   lv_obj_add_event_cb(bPrev, onPrev, LV_EVENT_CLICKED, nullptr);
 
@@ -2447,11 +2962,11 @@ static void buildUI() {
       lv_label_set_long_mode(s_cellA[d][p], LV_LABEL_LONG_DOT); lv_obj_set_width(s_cellA[d][p], CW - 14);
       lv_obj_set_style_text_align(s_cellA[d][p], LV_TEXT_ALIGN_CENTER, 0);
       lv_obj_align(s_cellA[d][p], LV_ALIGN_CENTER, 0, small ? -8 : -9);
-      s_cellB[d][p] = label(c, &kr14, C_LIGHT, "");
+      s_cellB[d][p] = label(c, FM(), C_LIGHT, "");
       lv_label_set_long_mode(s_cellB[d][p], LV_LABEL_LONG_DOT); lv_obj_set_width(s_cellB[d][p], CW - 14);
       lv_obj_set_style_text_align(s_cellB[d][p], LV_TEXT_ALIGN_CENTER, 0);
       lv_obj_align(s_cellB[d][p], LV_ALIGN_CENTER, 0, small ? 10 : 13);
-      s_cellTag[d][p] = label(c, &kr14, 0xffffff, "");
+      s_cellTag[d][p] = label(c, FM(), 0xffffff, "");
       lv_obj_set_style_bg_opa(s_cellTag[d][p], LV_OPA_COVER, 0);
       lv_obj_set_style_bg_color(s_cellTag[d][p], lv_color_hex(0xc2410c), 0);
       lv_obj_set_style_radius(s_cellTag[d][p], RP(6), 0);
@@ -2495,6 +3010,7 @@ static void buildUI() {
   lv_obj_set_style_text_align(s_bigDate, LV_TEXT_ALIGN_CENTER, 0);
   s_stale = label(left, FM(), 0xfb923c, "");                          // 자리는 layoutClock(날짜와 카드 사이 빈 줄)
   lv_obj_set_style_text_align(s_stale, LV_TEXT_ALIGN_CENTER, 0);
+  lv_label_set_long_mode(s_stale, LV_LABEL_LONG_DOT);                 // 한 줄(카드 위로 넘치지 않게)
   lv_obj_add_flag(s_stale, LV_OBJ_FLAG_HIDDEN);
   s_bat = label(left, FM(), D_MUTED, "");                             // "배터리 87%" (배터리를 읽을 수 있을 때만)
   lv_obj_align(s_bat, LV_ALIGN_TOP_RIGHT, -S(14), S(10));
@@ -2533,11 +3049,18 @@ static void buildUI() {
   s_kcal = label(ic, FM(), D_MUTED, "");
 
   // 맨 아래: 수업 10분 전부터 '다음 수업' 띠
+#if UI_SOFT   // '다음' = 노란 테두리(오른쪽 '다음 수업' 줄과 같은 뜻). 빨강 바탕은 경고처럼 읽혀서 쓰지 않는다
+  s_notice = box(left, D_ROW, NEXT_BD, 18);
+  lv_obj_set_style_border_width(s_notice, 2, 0);
+  const uint32_t noticeTx = D_TEXT;
+#else
   s_notice = box(left, C_PRIMARY, 0, 18);
+  const uint32_t noticeTx = 0xffffff;
+#endif
   lv_obj_clear_flag(s_notice, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_style_bg_grad_color(s_notice, lv_color_hex(0x3730a3), 0);
   lv_obj_set_style_bg_grad_dir(s_notice, UI_FANCY ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_NONE, 0);
-  s_noticeLbl = label(s_notice, &kr16, 0xffffff, "");
+  s_noticeLbl = label(s_notice, big() ? &kr20 : &kr16, noticeTx, "");   // 1024: 3m 에서 읽히게 한 단계 크게
   lv_label_set_long_mode(s_noticeLbl, LV_LABEL_LONG_DOT);
   lv_obj_set_style_text_align(s_noticeLbl, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_add_flag(s_notice, LV_OBJ_FLAG_HIDDEN);
@@ -2547,27 +3070,33 @@ static void buildUI() {
   lv_obj_t *right = s_right = box(s_viewClock, D_PANEL, D_LINE, 16);
   lv_obj_clear_flag(right, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_size(right, RW, PH); lv_obj_set_pos(right, RX, CM);
-  s_dayTitle = label(right, &kr16, D_TEXT, "");
+  s_rightW = RW;
+  s_dayTitle = label(right, big() ? &kr20 : &kr16, D_TEXT, "");
+  lv_obj_set_style_max_width(s_dayTitle, RW - S(28), 0);             // 폭 상한은 renderToday 가 꼬리표·D-day 를 보고 다시 정한다
+  lv_label_set_long_mode(s_dayTitle, LV_LABEL_LONG_DOT);
   lv_obj_set_pos(s_dayTitle, S(16), S(14));
-  s_dayTag = label(right, &kr14, 0x991b1b, "");
+  s_dayTag = label(right, FM(), 0x991b1b, "");
+  lv_obj_set_style_border_color(s_dayTag, lv_color_hex(NOW_TAG), 0);   // 시험 꼬리표만 테두리(두께는 renderToday)
+  lv_obj_set_style_border_width(s_dayTag, 0, 0);
   lv_obj_set_style_bg_opa(s_dayTag, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(s_dayTag, lv_color_hex(0xfee2e2), 0);
   lv_obj_set_style_radius(s_dayTag, RP(10), 0);
   lv_obj_set_style_pad_hor(s_dayTag, 8, 0);
   lv_obj_align(s_dayTag, LV_ALIGN_TOP_RIGHT, -S(12), S(12));
   lv_obj_add_flag(s_dayTag, LV_OBJ_FLAG_HIDDEN);
-  s_dday = label(right, &kr14, 0xfecaca, "");                        // 수능 D-day (수능 다음 날부터 숨긴다)
+  s_dday = label(right, FM(), 0xfcd34d, "");                         // 수능·시험 D-day. 짙은 빨강은 '문제 있음'으로 읽혀서 호박색 테두리로
   lv_obj_set_style_bg_opa(s_dday, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(s_dday, lv_color_hex(0x7f1d1d), 0);
+  lv_obj_set_style_bg_color(s_dday, lv_color_hex(D_ROW), 0);
   lv_obj_set_style_border_width(s_dday, 1, 0);
-  lv_obj_set_style_border_color(s_dday, lv_color_hex(0xef4444), 0);
+  lv_obj_set_style_border_color(s_dday, lv_color_hex(NOW_TAG), 0);
   lv_obj_set_style_radius(s_dday, RP(11), 0);
   lv_obj_set_style_pad_hor(s_dday, 10, 0);
   lv_obj_set_style_pad_ver(s_dday, 2, 0);
   lv_obj_align(s_dday, LV_ALIGN_TOP_RIGHT, -S(12), S(11));
   lv_obj_add_flag(s_dday, LV_OBJ_FLAG_HIDDEN);
   const int ROW_Y0 = S(44), ROW_X = S(12), ROW_W = RW - 2 * ROW_X;
-  const int ROW_PITCH = (PH - ROW_Y0 - S(12)) / 8, ROW_H = ROW_PITCH - S(6), PW = S(64);
+  const int ROW_PITCH = (PH - ROW_Y0 - S(12)) / 8, ROW_H = ROW_PITCH - S(6), PW = big() ? S(76) : S(64);   // 1024: 교시 칸을 넓혀 '45분'을 크게
+  s_rowW = ROW_W; s_rowPW = PW;
   for (int r = 0; r < 8; r++) {
     int p = periodOfRow(r);
     s_row[r] = box(right, D_ROW, D_LINE, UI_SOFT ? 10 : 8);   // UI_SOFT: 시계 화면 줄도 둥글게(사각이 날카롭다는 의견, 2026-10-18)
@@ -2580,8 +3109,13 @@ static void buildUI() {
     else lv_label_set_text_fmt(pl, "%d교시\n%s", p + 1, PERIOD_START[p]);
     lv_obj_set_style_text_align(pl, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_center(pl);
+    if (big()) {   // 지금 줄에서만 보이는 큰 남은 시간(위 '3교시' 아래 '45분')
+      s_rowRem[r] = label(s_rowP[r], &kr20, NOW_TX, "");
+      lv_obj_align(s_rowRem[r], LV_ALIGN_BOTTOM_MID, 0, -1);
+      lv_obj_add_flag(s_rowRem[r], LV_OBJ_FLAG_HIDDEN);
+    }
     // 과목은 왼쪽 정렬, 교실은 오른쪽 정렬(세로로 줄이 맞게), 꼬리표는 과목 바로 뒤
-    s_rowA[r] = label(s_row[r], &kr16, D_TEXT, "");
+    s_rowA[r] = label(s_row[r], big() ? &kr20 : &kr16, D_TEXT, "");   // 1024: 과목을 한 단계 크게(3m 에서 읽히게)
     lv_obj_set_width(s_rowA[r], LV_SIZE_CONTENT);
     lv_obj_set_style_max_width(s_rowA[r], S(150), 0);
     lv_label_set_long_mode(s_rowA[r], LV_LABEL_LONG_DOT);
@@ -2590,11 +3124,12 @@ static void buildUI() {
     lv_obj_set_width(s_rowB[r], S(110)); lv_label_set_long_mode(s_rowB[r], LV_LABEL_LONG_DOT);
     lv_obj_set_style_text_align(s_rowB[r], LV_TEXT_ALIGN_RIGHT, 0);
     lv_obj_align(s_rowB[r], LV_ALIGN_RIGHT_MID, -S(14), 0);
-    s_rowTag[r] = label(s_row[r], &kr14, 0xffffff, "");
+    s_rowTag[r] = label(s_row[r], FM(), 0xffffff, "");               // 보강·지도·시험 꼬리표: 3m 에서 읽혀야 해서 1024 는 한 단계 크게
     lv_obj_set_style_bg_opa(s_rowTag[r], LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(s_rowTag[r], lv_color_hex(0xc2410c), 0);   // 흰 글자와 명암비 5.2:1
     lv_obj_set_style_radius(s_rowTag[r], RP(6), 0);
-    lv_obj_set_style_pad_hor(s_rowTag[r], 5, 0);
+    lv_obj_set_style_pad_hor(s_rowTag[r], big() ? 8 : 5, 0);
+    if (big()) lv_obj_set_style_pad_ver(s_rowTag[r], 2, 0);
     lv_obj_add_flag(s_rowTag[r], LV_OBJ_FLAG_HIDDEN);
   }
   s_guide = label(right, &kr16, D_TEXT, "");                         // 시간표 줄들을 덮는 안내(없을 때만 보인다)
@@ -2606,50 +3141,59 @@ static void buildUI() {
   lv_obj_add_flag(s_guide, LV_OBJ_FLAG_HIDDEN);
 
   }
-  // ── 설정 보기 ──
+  /// ── 설정 보기 ──
   const int VH = s_H - TOP;
   s_viewSet = box(scr, C_BG, 0, 0);
   lv_obj_set_size(s_viewSet, s_W, VH); lv_obj_set_pos(s_viewSet, 0, TOP);
   lv_obj_add_flag(s_viewSet, LV_OBJ_FLAG_HIDDEN);
   const int WBW = (s_W - 3 * M) * 50 / 100, OBW = s_W - 3 * M - WBW, BOXH = VH - 2 * M;   // 반반(오른쪽에 시계 설정 단추가 많다)
+  const int BTH = small ? 34 : 46;                                   // 설정 단추 높이(1024 는 손가락 크기)
   lv_obj_t *wbox = box(s_viewSet, C_SURF, C_BORDER, 10);
   lv_obj_set_size(wbox, WBW, BOXH); lv_obj_set_pos(wbox, M, M);
   lv_obj_set_pos(label(wbox, fTitle, C_TEXT, "와이파이"), 12, 10);
-  s_wifiInfo = label(wbox, FM(), C_MUTED, "");
-  lv_obj_set_width(s_wifiInfo, WBW - 130); lv_label_set_long_mode(s_wifiInfo, LV_LABEL_LONG_WRAP);
-  lv_obj_set_pos(s_wifiInfo, 12, small ? 36 : 44);
-  lv_obj_t *bScan = button(wbox, "찾기", small ? 90 : 110, small ? 34 : 40, C_PRIMARY, 0xffffff);
+  lv_obj_t *bScan = button(wbox, "찾기", small ? 90 : 110, BTH, D_ROW, D_TEXT);   // 주단추: 어두운 바탕 + 호박색 테두리(빨강은 지우기·경고에만)
+  lv_obj_set_style_border_color(bScan, lv_color_hex(NOW_TAG), 0);
   lv_obj_align(bScan, LV_ALIGN_TOP_RIGHT, -10, 8); lv_obj_add_event_cb(bScan, onScan, LV_EVENT_CLICKED, nullptr);
-  const int LY = small ? 76 : 90, FH = small ? 30 : 34;
+  // 준비 상태 점검표: 제목·[찾기] 아래 넓게(4줄). 넘치면 잘린다(목록 위로 겹치지 않게)
+  const int IY = 8 + BTH + 6, LY = IY + (small ? 74 : 82) + 6, FH = small ? 30 : 46;
+  s_wifiInfo = label(wbox, FM(), C_MUTED, "");
+  lv_obj_set_size(s_wifiInfo, WBW - 24, LY - IY - 4); lv_label_set_long_mode(s_wifiInfo, LV_LABEL_LONG_WRAP);
+  lv_obj_set_pos(s_wifiInfo, 12, IY);
   s_wifiList = lv_list_create(wbox);
   lv_obj_clear_flag(s_wifiList, LV_OBJ_FLAG_SCROLL_MOMENTUM | LV_OBJ_FLAG_SCROLL_ELASTIC);   // 밀어도 미끄러지지 않게(딱딱)
   lv_obj_set_size(s_wifiList, WBW - 24, BOXH - LY - FH - 16); lv_obj_set_pos(s_wifiList, 12, LY);
   lv_obj_set_style_text_font(s_wifiList, fBody, 0);
-  lv_obj_t *bForget = button(wbox, "저장한 와이파이 지우기", small ? 190 : 220, FH, C_ALT, C_MUTED);
+  lv_obj_t *bForget = s_forgetBtn = button(wbox, FORGET_TXT, small ? 190 : 220, FH, C_ALT, C_MUTED);
   lv_obj_align(bForget, LV_ALIGN_BOTTOM_LEFT, 12, -8); lv_obj_add_event_cb(bForget, onForget, LV_EVENT_CLICKED, nullptr);
+  s_rebootBtn = button(wbox, REBOOT_TXT, small ? 120 : 150, FH, C_ALT, C_MUTED);   // 3초 안에 두 번 누르면 다시 켠다
+  lv_obj_align(s_rebootBtn, LV_ALIGN_BOTTOM_RIGHT, -12, -8); lv_obj_add_event_cb(s_rebootBtn, onReboot, LV_EVENT_CLICKED, nullptr);
 
   lv_obj_t *obox = box(s_viewSet, C_SURF, C_BORDER, 10);
   lv_obj_set_size(obox, OBW, BOXH); lv_obj_set_pos(obox, 2 * M + WBW, M);
   lv_obj_set_pos(label(obox, fTitle, C_TEXT, "볼 시간표"), 12, 10);
-  s_ttPick = button(obox, BOARD_DEFAULT_TT "  " LV_SYMBOL_RIGHT, OBW - 24, small ? 34 : 40, C_SURF, C_TEXT);   // 누르면 단추 판
+  const int PY = small ? 40 : 46;
+  s_ttPick = button(obox, BOARD_DEFAULT_TT "  " LV_SYMBOL_RIGHT, OBW - 24, BTH, C_SURF, C_TEXT);   // 누르면 단추 판
   lv_obj_set_style_border_color(s_ttPick, lv_color_hex(C_BORDER), 0);
-  lv_obj_set_pos(s_ttPick, 12, small ? 40 : 50);
+  lv_obj_set_pos(s_ttPick, 12, PY);
   lv_obj_add_event_cb(s_ttPick, onPickOpen, LV_EVENT_CLICKED, nullptr);
-  lv_obj_t *bSync = button(obox, "지금 받기", OBW - 24, small ? 34 : 40, C_PRIMARY, 0xffffff);
-  lv_obj_set_pos(bSync, 12, small ? 88 : 104);
+  lv_obj_t *bSync = button(obox, "지금 받기", OBW - 24, BTH, D_ROW, D_TEXT);
+  lv_obj_set_style_border_color(bSync, lv_color_hex(NOW_TAG), 0);
+  lv_obj_set_pos(bSync, 12, PY + BTH + (small ? 14 : 8));
   lv_obj_add_event_cb(bSync, [](lv_event_t *) {
     if (!s_prefs.getString("ssid", "").length()) { setStatus("먼저 [찾기]에서 와이파이를 고르세요"); return; }
-    s_syncReq = true; setStatus("곧 연결합니다…"); }, LV_EVENT_CLICKED, nullptr);
+    s_wifiFails = 0; s_lastWifiKind = 0;               // 비밀번호·공유기 실패 횟수도 처음부터
+    if (s_failKind == FK_AUTH || s_failKind == FK_NOAP) s_failKind = FK_NONE;   // 사람이 다시 해 보라고 눌렀다 → 잠김을 푼다
+    s_syncReq = true; setStatus("곧 연결합니다..."); }, LV_EVENT_CLICKED, nullptr);
   s_status = label(obox, FM(), C_MUTED, "");
   lv_obj_set_width(s_status, OBW - 24); lv_label_set_long_mode(s_status, LV_LABEL_LONG_WRAP);
-  lv_obj_set_pos(s_status, 12, small ? 132 : 156);
+  lv_obj_set_pos(s_status, 12, PY + 2 * BTH + (small ? 20 : 14));
   // 시계 화면 설정: 고르는 단추(켜진 것은 빨강). 바꾸면 바로 저장되고 시계에 바로 반영된다.
   {
-    const int SY = small ? 190 : 226, RH2 = small ? 30 : 34, LBW = small ? 66 : 80, BW2 = (OBW - 24 - LBW - 12) / 3;
+    const int SY = small ? 190 : 210, RH2 = small ? 30 : 44, GAP = small ? 6 : 8, LBW = small ? 66 : 92, BW2 = (OBW - 24 - LBW - 12) / 3;
     lv_obj_set_pos(label(obox, fTitle, C_TEXT, "시계 화면"), 12, SY);
-    const int Y1 = SY + (small ? 30 : 36), Y2 = Y1 + RH2 + 8;
-    lv_obj_set_pos(label(obox, &kr14, C_MUTED, "시간 표시"), 12, Y1 + (RH2 - 16) / 2);
-    lv_obj_set_pos(label(obox, &kr14, C_MUTED, "시계로 전환"), 12, Y2 + (RH2 - 16) / 2);
+    const int Y1 = SY + (small ? 30 : 34), Y2 = Y1 + RH2 + GAP + (small ? 2 : 0);
+    lv_obj_set_pos(label(obox, FM(), C_MUTED, "시간 표시"), 12, Y1 + (RH2 - lv_font_get_line_height(FM())) / 2);
+    lv_obj_set_pos(label(obox, FM(), C_MUTED, "시계로 전환"), 12, Y2 + (RH2 - lv_font_get_line_height(FM())) / 2);
     static const char *FMT[2] = {"24시간", "12시간"};
     static const char *AUTO[3] = {"20분 뒤", "5분 뒤", "안 함"};
     for (int i = 0; i < 2; i++) {
@@ -2663,9 +3207,10 @@ static void buildUI() {
       lv_obj_add_event_cb(s_autoBtn[i], onAutoPick, LV_EVENT_CLICKED, (void *)(intptr_t)i);
     }
     refreshClockSettings();
-    // 보이기: 켜진 것은 빨강. 끄면 그 자리를 남은 것이 쓴다.
-    const int Y3 = Y2 + RH2 + 8, Y4 = Y3 + RH2 + 6;
-    lv_obj_set_pos(label(obox, &kr14, C_MUTED, "보이기"), 12, Y3 + (RH2 - 16) / 2);
+    // 보이기: 켜진 것은 빨강. 끄면 그 자리를 남은 것이 쓴다. (교장 모드에서는 숨긴다 — fillPicker)
+    const int Y3 = Y2 + RH2 + GAP + (small ? 2 : 0), Y4 = Y3 + RH2 + GAP;
+    s_showLbl = label(obox, FM(), C_MUTED, "보이기");
+    lv_obj_set_pos(s_showLbl, 12, Y3 + (RH2 - lv_font_get_line_height(FM())) / 2);
     static const char *SHOW[6] = {"날씨", "미세먼지", "할 일", "급식", "시간표", "D-day"};
     for (int i = 0; i < 6; i++) {
       s_showBtn[i] = button(obox, SHOW[i], BW2, RH2, C_ALT, C_MUTED);
@@ -2674,12 +3219,20 @@ static void buildUI() {
     }
     refreshShowButtons();
   }
-  lv_obj_t *ver = label(obox, &kr14, C_LIGHT, "");
-  lv_obj_set_width(ver, OBW - 24); lv_label_set_long_mode(ver, LV_LABEL_LONG_WRAP);
-  lv_label_set_text_fmt(ver, "교실 알림판 v%s · 화면 %dx%d", FW_VERSION, s_W, s_H);
-  lv_obj_align(ver, LV_ALIGN_BOTTOM_LEFT, 12, -10);
+  {   // 버전 줄: 빌드 날짜 · 기기 번호(보드마다 다름) · 화면 크기. 1024 는 지난번 다시 켜진 이유도
+    lv_obj_t *ver = label(obox, &kr14, C_LIGHT, "");
+    lv_obj_set_width(ver, OBW - 24); lv_label_set_long_mode(ver, LV_LABEL_LONG_WRAP);
+    static const char *MON = "JanFebMarAprMayJunJulAugSepOctNovDec";
+    const char *dt = __DATE__;   // "Oct 25 2026"
+    const char *mp = strstr(MON, String(dt).substring(0, 3).c_str());
+    const int mon = mp ? (int)(mp - MON) / 3 + 1 : 0, day = atoi(dt + 4);
+    const unsigned id = (unsigned)((ESP.getEfuseMac() >> 32) & 0xFFFF);
+    if (big()) lv_label_set_text_fmt(ver, "교실 알림판 v%s · %d/%d 빌드 · 기기 %04X · %dx%d\n지난번 다시 켜짐: %s · 멈춘 횟수 %d", FW_VERSION, mon, day, id, s_W, s_H, s_resetWhy, s_crashN);
+    else lv_label_set_text_fmt(ver, "교실 알림판 v%s · %d/%d 빌드 · 기기 %04X · %dx%d", FW_VERSION, mon, day, id, s_W, s_H);
+    lv_obj_align(ver, LV_ALIGN_BOTTOM_LEFT, 12, -10);
+  }
 
-  layoutClock();                                     // 시계 화면 자리 잡기(설정 '보이기' 반영)
+layoutClock();                                     // 시계 화면 자리 잡기(설정 '보이기' 반영)
   buildFinder(scr, TOP);
   buildDeck(scr, TOP);   // 단축키 화면(숨김)
 
@@ -2735,7 +3288,7 @@ static void buildUI() {
   lv_obj_set_size(s_pwBg, s_W, s_H); lv_obj_set_pos(s_pwBg, 0, 0);
   lv_obj_set_style_bg_color(s_pwBg, lv_color_hex(0x000000), 0); lv_obj_set_style_bg_opa(s_pwBg, LV_OPA_50, 0);
   lv_obj_add_flag(s_pwBg, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_event_cb(s_pwBg, pwCancel, LV_EVENT_CLICKED, nullptr);
+  lv_obj_add_event_cb(s_pwBg, pwBgTap, LV_EVENT_CLICKED, nullptr);
   s_pwBox = box(scr, C_SURF, C_BORDER, 12);
   lv_obj_set_size(s_pwBox, s_W - 160, small ? 110 : 130); lv_obj_align(s_pwBox, LV_ALIGN_TOP_MID, 0, TOP + 6);
   lv_obj_set_style_shadow_width(s_pwBox, 30, 0); lv_obj_set_style_shadow_opa(s_pwBox, LV_OPA_30, 0);
@@ -2804,6 +3357,29 @@ void setup() {
   s_autoClkMin = s_prefs.getInt("autoclk", 20);
   s_lastOkT = (time_t)s_prefs.getULong("lastok", 0);
   s_show = s_prefs.getInt("show", SH_ALL);
+  s_ttFileKnown = s_prefs.isKey("ttfile");                               // 지난번 받던 시간표 파일(이름이 바뀌어도 찾는다)
+  if (s_ttFileKnown) s_ttFile = s_prefs.getString("ttfile", s_ttFile);
+  s_pwOk = s_prefs.getBool("pwok", false);
+  {   // 지난번 왜 다시 켜졌나(밤에 다시 켜진 까닭을 설정 화면·기록에서 본다). 스스로 다시 켤 때는 prefs "hr" 에 까닭을 남긴다
+    const esp_reset_reason_t rr = esp_reset_reason();
+    const int hr = s_prefs.isKey("hr") ? s_prefs.getInt("hr", 0) : 0;
+    if (hr) s_prefs.remove("hr");
+    switch (rr) {
+      case ESP_RST_POWERON: s_resetWhy = "전원 켬"; break;
+      case ESP_RST_SW: s_resetWhy = hr == 1 ? "자동 점검(새벽)" : hr == 2 ? "[다시 켜기] 단추" : "프로그램이 다시 켬"; break;
+      case ESP_RST_BROWNOUT: s_resetWhy = "전압 부족"; break;
+      case ESP_RST_PANIC: s_resetWhy = "오류로 다시 켬"; break;
+      case ESP_RST_TASK_WDT: case ESP_RST_INT_WDT: case ESP_RST_WDT: s_resetWhy = "멈춰서 다시 켬"; break;
+      case ESP_RST_EXT: s_resetWhy = "리셋 단추"; break;
+      default: s_resetWhy = "기타"; break;
+    }
+    // 멈춤·오류·전압 부족은 횟수를 남긴다(되풀이되는지 설정 화면에서 본다). [다시 켜기]로 켜면 0 으로
+    s_crashN = s_prefs.getInt("crashN", 0);
+    const bool crash = rr == ESP_RST_PANIC || rr == ESP_RST_TASK_WDT || rr == ESP_RST_INT_WDT || rr == ESP_RST_WDT || rr == ESP_RST_BROWNOUT;
+    if (crash) s_prefs.putInt("crashN", ++s_crashN);
+    else if (rr == ESP_RST_SW && hr == 2 && s_crashN) { s_crashN = 0; s_prefs.putInt("crashN", 0); }
+    Serial.printf("reset reason %d (%s) crash#%d\n", (int)rr, s_resetWhy, s_crashN);
+  }
 
   initDisplay();
   // 화면을 켠 뒤부터는 64바이트가 넘는 malloc 을 PSRAM 에서 먼저 준다. 화면 물체(LVGL)가 내부 RAM 을 다 쓰면
@@ -2834,6 +3410,14 @@ void setup() {
   setenv("TZ", "KST-9", 1); tzset();
   wifiOff();                                              // 평소에는 꺼 둔다
   // 켜자마자는 전원·화면이 안정되기 전이라 첫 연결이 잘 실패한다 → 5초 뒤에 첫 연결(loop 에서)
+
+  // 멈춤 감시(워치독): loop 가 150초 넘게 돌지 않으면 스스로 다시 켠다(틀린 시계가 그대로 남지 않게).
+  // 받기 하나가 연결·암호·읽기로 길게는 30~40초 걸릴 수 있어(60초 마감 직전에 시작하면 그 뒤까지) 진짜 멈춤만 잡게 넉넉히 둔다.
+  // 받기 사이마다·loop 끝마다 쓰다듬는다. 쉬는(idle) 작업은 보지 않는다.
+  esp_task_wdt_config_t wcfg = {};
+  wcfg.timeout_ms = 150000; wcfg.idle_core_mask = 0; wcfg.trigger_panic = true;
+  if (esp_task_wdt_reconfigure(&wcfg) != ESP_OK) esp_task_wdt_init(&wcfg);
+  esp_task_wdt_add(NULL);
 }
 
 void loop() {
@@ -2864,7 +3448,7 @@ void loop() {
     if (s_sync == SYNC_IDLE) { wifiOff(); lcdSlow(false); }
   }
 
-  // 배터리: 켠 뒤 5초, 그 뒤 1분마다 읽는다. 글자는 값이 바뀔 때만 바꾼다(다시 그리기 줄이기). 3.0V 밑이면 배터리 없음으로 보고 숨긴다.
+  // 배터리: 켠 뒤 5초, 그 뒤 15초마다 읽는다. 글자는 값이 바뀔 때만 바꾼다(다시 그리기 줄이기). 3.0V 밑이면 배터리 없음으로 보고 숨긴다.
   static uint32_t lastBat = 0;
   if (BOARD_7B && ms > 5000 && (lastBat == 0 || ms - lastBat > 15000)) {
     lastBat = ms;
@@ -2915,7 +3499,13 @@ void loop() {
       shown = pct;
     }
     const int chg = st;
-    Serial.printf("battery %dmV off %d -> %d%% (%s)\n", mv, st ? off : 0, pct, chg == 1 ? "charging" : chg == 2 ? "full" : "-");
+    {   // 기록 줄: %·충전 상태가 바뀌었거나 10분마다만(도우미 UART 선과 기록을 어지럽히지 않게)
+      static int logPct = -2, logChg = -1; static uint32_t lastLog = 0;
+      if (pct != logPct || chg != logChg || ms - lastLog > 600000UL) {
+        logPct = pct; logChg = chg; lastLog = ms;
+        Serial.printf("battery %dmV off %d -> %d%% (%s)\n", mv, st ? off : 0, pct, chg == 1 ? "charging" : chg == 2 ? "full" : "-");
+      }
+    }
     static int lastChg = -1;
     if ((pct != s_batPct || chg != lastChg) && s_bat) {
       s_batPct = pct; lastChg = chg;
@@ -2948,6 +3538,25 @@ void loop() {
 
   // 1시간마다 잠깐 연결: 연결 → 시간 맞추기 → 시간표 받기 → 끄기
   if (s_sync == SYNC_IDLE) {
+    // 설정 화면이 남긴 요청(와이파이 고르기·지우기·다시 켜기)은 받기가 없을 때 여기서 처리한다
+    if (s_forgetReq) {
+      s_forgetReq = false;
+      if (s_prefs.isKey("ssid")) s_prefs.remove("ssid");
+      if (s_prefs.isKey("pw")) s_prefs.remove("pw");
+      wifiOff(); s_wifiFails = 0; s_lastWifiKind = 0;
+      s_pwOk = false; if (s_prefs.isKey("pwok")) s_prefs.remove("pwok");
+      if (s_failKind == FK_AUTH || s_failKind == FK_NOAP) s_failKind = FK_NONE;
+      lock(); refreshWifiLabel(); setStatus("저장한 와이파이를 지웠습니다"); refreshStale(); unlock();
+    }
+    if (s_wifiApplyReq) {
+      lock(); const String ss = s_reqSsid, pw = s_reqPw; s_wifiApplyReq = false; unlock();
+      s_prefs.putString("ssid", ss); s_prefs.putString("pw", pw);
+      s_pwOk = false; if (s_prefs.isKey("pwok")) s_prefs.remove("pwok");   // 새 비밀번호는 아직 맞는지 모른다
+      wifiOff(); s_wifiFails = 0; s_lastWifiKind = 0;
+      if (s_failKind == FK_AUTH || s_failKind == FK_NOAP) s_failKind = FK_NONE;
+      s_syncReq = true;
+    }
+    if (s_rebootReq) { Serial.println("restart (button)"); s_prefs.putInt("hr", 2); delay(200); ESP.restart(); }
     bool due = s_prefs.isKey("ssid") && (!s_triedOnce || ms - s_lastSync > syncWaitMs());
     if (ms < 5000) due = false;                                  // 켠 뒤 5초는 기다린다
     // 수업 중에는 쉬는 시간까지 미룬다(켠 직후 첫 받기와 [지금 받기]는 바로)
@@ -2957,47 +3566,134 @@ void loop() {
     if ((s_syncReq || due) && ms >= 5000) { s_syncReq = false; startSync(); }
   } else if (s_sync == SYNC_CONNECTING) {
     if (WiFi.isConnected()) {
-      s_sync = SYNC_TIME; s_syncStart = ms;
+      s_sync = SYNC_TIME; s_syncStart = ms; s_wifiFails = 0; s_lastWifiKind = 0;
+      if (!s_pwOk) { s_pwOk = true; s_prefs.putBool("pwok", true); }   // 이 비밀번호는 맞다(한 번만 쓴다)
       configTzTime("KST-9", "pool.ntp.org", "time.google.com", "kr.pool.ntp.org");
-      lock(); setStatus("시간을 맞추는 중…"); unlock();
+      lock(); setStatus("시간을 맞추는 중..."); unlock();
     } else if (!s_retried && ms - s_syncStart > 15000) {
       s_retried = true;
       Serial.printf("sync: retry (reason %d %s)\n", (int)s_wifiReason, wifiReasonText(s_wifiReason));
       WiFi.disconnect(false, false);
       wifiBegin();
     } else if (ms - s_syncStart > 35000) {
-      static char msg[96];
-      snprintf(msg, sizeof msg, "와이파이에 연결하지 못했습니다(%s, %d). 잠시 뒤 다시 해 봅니다.", wifiReasonText(s_wifiReason), (int)s_wifiReason);
-      s_failKind = FK_NET;
+      static char msg[160];
+      const int r = s_wifiReason;
+      // 비밀번호가 틀렸으면 몇 분마다 다시 붙어 봐야 소용없다(그때마다 화면 박자를 바꾼다) → 6시간 쉰다. 그러나 15·204 는 신호가 약하거나
+      // 공유기가 바쁠 때도 나므로 3번 이어져야 잠그고, 한 번이라도 붙은 비밀번호(pwok)면 잠그지 않는다. 공유기 없음(201)은 잠그지 않는다.
+      const bool pwLike = r == 15 || r == 202 || r == 204;
+      const int kind = (pwLike && !s_pwOk) ? (r == 202 ? 1 : 3) : r == 201 ? 2 : 0;
+      s_wifiFails = kind ? (kind == s_lastWifiKind ? s_wifiFails + 1 : 1) : 0;
+      s_lastWifiKind = kind;
+      s_failKind = ((kind == 1 && s_wifiFails >= 2) || (kind == 3 && s_wifiFails >= 3)) ? FK_AUTH : (kind == 2 && s_wifiFails >= 2) ? FK_NOAP : FK_NET;
+      okMark(OK_WIFI, false, (pwLike && s_pwOk) ? "공유기 응답 없음" : wifiReasonText(r));
+      if (s_failKind == FK_AUTH) snprintf(msg, sizeof msg, "와이파이 비밀번호가 맞지 않습니다. [찾기]에서 다시 고르세요(잠시 뒤 다시 해 봅니다).");
+      else if (s_failKind == FK_NOAP) snprintf(msg, sizeof msg, "와이파이 공유기를 찾지 못했습니다(잠시 뒤 다시 해 봅니다).");
+      else snprintf(msg, sizeof msg, "와이파이에 연결하지 못했습니다(%s, %d). 잠시 뒤 다시 해 봅니다.", wifiReasonText(r), r);
       finishSync(false, msg);
     }
   } else if (s_sync == SYNC_TIME) {
     bool synced = sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED || (timeValid() && ms - s_syncStart > 8000);
     if (synced || ms - s_syncStart > 15000) {
-      lock(); setStatus("시간표를 받는 중…"); unlock();
+      okMark(OK_WIFI, true);
+      okMark(OK_TIME, timeValid(), "못 맞춤");
+      lock(); setStatus("시간표를 받는 중..."); unlock();
       // 시간표 주소를 아직 안 넣었으면(YOUR-SITE-ID) 시간표·선생님 위치는 받지 않는다. 404 로 실패해 몇 분마다
       // 다시 받으면 그때마다 화면 박자를 바꿔 화면이 깜빡였다(2026-10-16). 시간·날씨·급식은 그대로 받는다.
       const bool noUrl = urlUnset();
-      if (!noUrl && downloadIndex()) { lock(); fillPicker(); unlock(); }
+      bool cut = false, lowB = false, coreLow = false;   // coreLow: 핵심 자료(학교 일정)를 남은 시간이 모자라 건너뜀
+      uint32_t B = 0;
+      // 받기 사이마다 멈춤 감시를 쓰다듬고, 남은 시간(60초 마감까지)을 받기에 넘긴다. 남은 시간이 need 보다 적으면 그 받기는 건너뛴다.
+      auto go = [&](uint32_t need) { esp_task_wdt_reset(); const uint32_t el = millis() - s_syncStart; if (el > 60000) cut = true;
+                                     B = cut ? 0 : 60000 - el; lowB = !cut && B < need; return !cut && !lowB; };
+      auto mark = [&](int i, bool want, bool good, const char *why) { if (want) okMark(i, good, (cut || lowB) && !good ? "시간 초과" : why); };
+      // 밤·주말에는 날씨·미세먼지·선생님 위치를 건너뛴다(오늘 6시간 안에 받은 것이 있을 때만 — 주말 내내 금요일 날씨가 남지 않게)
+      auto fresh = [&](time_t at) { if (!at || !quietNow() || !timeValid()) return false; const time_t now = time(nullptr);
+                                    struct tm a1, b1; localtime_r(&at, &a1); localtime_r(&now, &b1);
+                                    return now - at < 6 * 3600 && a1.tm_yday == b1.tm_yday; };
+      const String tdNow = todayIso();
+      // 목록(index.json)은 거의 바뀌지 않는다 → 날이 바뀐 뒤 첫 받기 · [볼 시간표] 판을 연 뒤 · 아직 목록이 없을 때만
+      const bool wantIdx = !noUrl && (!tdNow.length() || s_idxDay != tdNow || s_idxReq || s_index["items"].isNull());
+      if (wantIdx && go(1) && downloadIndex(B)) {
+        if (tdNow.length()) s_idxDay = tdNow;
+        s_idxReq = false;
+        if (!s_idxSame) { lock(); fillPicker(); unlock(); }            // 304 면 단추 판을 다시 채우지 않는다
+      }
       s_ttCode = 0;
-      bool ok = !noUrl && !s_principal && downloadTT();
-      bool loaded = ok && loadTTFromFile();
-      bool wx = downloadWeather();
-      bool meal = downloadMeal();
-      if (meal) s_mealOk = true;
-      bool air = downloadAir();
-      bool whr = !noUrl && downloadWhere();
-      const bool sch = s_principal && downloadSchedule();
-      lock(); if (loaded) { s_week = -1; renderTT(); } if (wx) renderWeather(); if (meal) renderMeal(); if (air) renderAir(); if (whr) { fillFinderGrid(); renderFinder(); } unlock();
-      if (s_principal) { lock(); if (sch && s_pDetail) lv_obj_add_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN); renderPrincipal(); renderSchedList(); if (s_pTeach && !lv_obj_has_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN)) renderTeach(); unlock(); }
-      if (s_principal && !noUrl && !sch && cfgSet(SCHEDULE_URL)) s_failKind = (wx || meal) ? FK_PARTIAL : FK_NET;
+      const bool wantTT = !noUrl && !s_principal && !s_pickMissing;   // 볼 시간표가 목록에 없으면 옛 파일을 받지 않는다
+      const bool wantSch = s_principal && cfgSet(SCHEDULE_URL);
+      bool ok = false, same = false, loaded = false, ttGood = false, sch = false, whr = false, wx = false, meal = false, air = false;
+      bool skipWx = false, skipAir = false, skipWhr = false;
+      // 순서: 모드의 핵심 자료를 먼저(60초 마감에 걸려도 잘리지 않게). 교장: 목록 → 학교 일정 → 선생님 위치 → 날씨 → 미세먼지 → 급식
+      //                                                     교사: 목록 → 시간표 → 선생님 위치 → 날씨 → 급식 → 미세먼지
+      auto doTT = [&]() {
+        ok = wantTT && go(1) && downloadTT(B);
+        same = ok && s_ttSame;                                        // 304: 이미 화면에 있는 시간표 그대로
+        loaded = ok && !same && loadTTFromFile();
+        if (same && !s_ttLoaded) loaded = loadTTFromFile();
+        ttGood = loaded || (same && s_ttLoaded);
+        mark(OK_TT, wantTT, ttGood, (s_ttCode == 404 || s_ttCode == 403) ? "404 파일 없음" : ok ? "파일 읽기 실패" : "인터넷");
+      };
+      auto doSch = [&]() { sch = s_principal && go(20000) && downloadSchedule(B); coreLow = lowB; mark(OK_SCH, wantSch, sch, "인터넷"); };
+      auto doWhr = [&]() {
+        skipWhr = !noUrl && fresh(s_whrAt) && s_where["teachers"].size();
+        if (skipWhr) return;
+        whr = !noUrl && go(20000) && downloadWhere(B); mark(OK_WHR, !noUrl, whr, "인터넷");
+        if (whr && timeValid()) s_whrAt = time(nullptr);
+      };
+      auto doWx = [&]() {
+        skipWx = HAS_WX && s_wxOk && fresh(s_wxAt);
+        if (skipWx) return;
+        wx = go(1) && downloadWeather(B); mark(OK_WX, HAS_WX, wx, "인터넷");
+        if (wx && timeValid()) s_wxAt = time(nullptr);
+      };
+      auto doAir = [&]() {
+        skipAir = HAS_WX && (!isnan(s_pm10) || !isnan(s_pm25)) && fresh(s_airAt);
+        if (skipAir) return;
+        air = go(1) && downloadAir(B); mark(OK_AIR, HAS_WX, air, "인터넷");
+        if (air && timeValid()) s_airAt = time(nullptr);
+      };
+      auto doMeal = [&]() {
+        meal = go(1) && downloadMeal(B);
+        if (!(meal && s_mealCached)) mark(OK_MEAL, HAS_MEAL, meal, "인터넷");   // '오늘 이미 받음'은 점검표 시각을 새로 찍지 않는다
+        if (meal) s_mealOk = true;
+      };
+      if (s_principal) { doSch(); doWhr(); doWx(); doAir(); doMeal(); }
+      else { doTT(); doWhr(); doWx(); doMeal(); doAir(); }
+      esp_task_wdt_reset();
+      if (cut) Serial.println("sync: 60s limit, rest skipped");
+      if (skipWx || skipAir || skipWhr) Serial.printf("sync: quiet skip%s%s%s\n", skipWx ? " weather" : "", skipAir ? " air" : "", skipWhr ? " where" : "");
+      {   // 시간 초과로 모드의 핵심 자료를 못 받았으면 10분 뒤 한 번 더(하루 한 번, s_mealRetry 와 같은 방식)
+        static String coreDay;
+        const bool coreMiss = s_principal ? (wantSch && !sch) : (wantTT && !ttGood);
+        s_coreRetry = (cut || coreLow) && coreMiss && tdNow.length() && coreDay != tdNow;
+        if (s_coreRetry) coreDay = tdNow;
+      }
+      const bool newMeal = meal && !s_mealCached;
+      lock();
+      if (loaded) s_week = -1;
+      if (s_blOff) {                                                  // 화면 불이 꺼져 있으면 그리지 않고 켤 때 한 번에(분 그리기와 함께)
+        if (loaded || wx || newMeal || air || sch) s_renderPending = true;
+        if (whr && !s_whereSame) s_findGridDirty = true;
+        if (sch && s_pDetail) lv_obj_add_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN);
+      } else {
+        if (loaded) renderTT(); if (wx) renderWeather(); if (newMeal) renderMeal(); if (air) renderAir(); if (whr && !s_whereSame) { fillFinderGrid(); renderFinder(); }
+        if (s_principal) { if (sch && s_pDetail) lv_obj_add_flag(s_pDetail, LV_OBJ_FLAG_HIDDEN); renderPrincipal(); renderSchedList(); if (s_pTeach && !lv_obj_has_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN)) renderTeach(); }
+      }
+      unlock();
+      if (s_principal && !noUrl && !sch && cfgSet(SCHEDULE_URL)) s_failKind = (wx || meal || cut || coreLow) ? FK_PARTIAL : FK_NET;
       if (s_principal && !noUrl) finishSync(timeValid() && (sch || !cfgSet(SCHEDULE_URL)), sch ? "시간과 학교 일정을 받았습니다." : cfgSet(SCHEDULE_URL) ? "학교 일정을 받지 못했습니다. 인터넷을 확인하세요." : "학교 일정 주소가 없습니다(SCHEDULE_URL).");
       else if (noUrl) finishSync(timeValid(), timeValid() ? "시간을 맞췄습니다. 시간표 주소를 넣으면 시간표도 받습니다." : "시간을 맞추지 못했습니다. 인터넷을 확인하세요.");
-      else {
-        if (!loaded) s_failKind = (s_ttCode == 404 || s_ttCode == 403) ? FK_NOTFOUND : (wx || meal) ? FK_PARTIAL : FK_NET;
-        finishSync(loaded, loaded ? "시간과 시간표를 받았습니다."
-                   : s_failKind == FK_NOTFOUND ? "시간표 주소에 파일이 없습니다. 주소를 확인하세요(6시간 뒤 다시 받습니다)."
-                   : ok ? "시간표 파일을 읽지 못했습니다." : "시간표를 받지 못했습니다. 인터넷을 확인하세요.");
+      else if (s_pickMissing) {
+        static char pm[200];
+        snprintf(pm, sizeof pm, "볼 시간표 '%s'이(가) 목록에 없습니다. 설정에서 다시 고르세요.", s_pickName.c_str());
+        s_failKind = FK_PARTIAL;
+        finishSync(false, pm);
+      } else {
+        if (!ttGood) s_failKind = cut ? FK_PARTIAL : (s_ttCode == 404 || s_ttCode == 403) ? FK_NOTFOUND : (wx || meal) ? FK_PARTIAL : FK_NET;
+        finishSync(ttGood, ttGood ? (same ? "시간을 맞췄습니다. 시간표는 바뀐 것이 없습니다." : "시간과 시간표를 받았습니다.")
+                   : s_failKind == FK_NOTFOUND ? "시간표 파일이 사이트에 없습니다. 볼 시간표를 다시 고르거나 관리자께 알려 주세요(6시간 뒤 다시 받습니다)."
+                   : ok ? "시간표 파일을 읽지 못했습니다."
+                   : cut ? "받는 시간이 길어 중간에 멈췄습니다. 곧 다시 받습니다." : "시간표를 받지 못했습니다. 인터넷을 확인하세요.");
       }
     }
   }
@@ -3009,30 +3705,38 @@ void loop() {
       time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
       static const char *W[7] = {"일", "월", "화", "수", "목", "금", "토"};
       // 분이 바뀔 때만 그린다. 이 보드(RGB 화면)는 한 번 그릴 때마다 화면 전체를 PSRAM 에 다시 쓰므로
-      // 매초 글자를 바꾸면 화면이 흔들린다(2026-09-30 확인).
+      // 매초 글자를 바꾸면 화면이 흔들린다(2026-09-30 확인). 화면 불이 꺼져 있으면 그리지 않는다(켤 때 한 번에 최신으로).
       if (tm.tm_min != s_lastMin) {
         bool first = lastMin < 0; lastMin = tm.tm_min; s_lastMin = tm.tm_min;
         lock();
-        char hm[12]; const char *ampm;
-        clockText(tm, hm, sizeof hm, &ampm);
-        lv_label_set_text_fmt(s_clock, "%s%s%s", ampm, *ampm ? " " : "", hm);
-        lv_label_set_text_fmt(s_date, "%d월 %d일 (%s)", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
-        lv_label_set_text(s_big, hm);
-        lv_label_set_text(s_bigAmPm, ampm);
-        if (*ampm) {                                   // "오후"를 숫자 왼쪽 아래에 붙인다(자리는 layoutClock 이 잡는다)
-          lv_obj_clear_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
-          lv_obj_update_layout(s_big);
-          lv_obj_align_to(s_bigAmPm, s_big, LV_ALIGN_OUT_LEFT_BOTTOM, -8, -14);
-        } else lv_obj_add_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
-        lv_label_set_text_fmt(s_bigDate, "%d월 %d일 %s요일", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
+        s_offName = ""; s_offToday = isOffDay(&s_offName);   // 2초마다 일정 JSON 을 훑지 않게 1분에 한 번(교장 화면도 이 값을 쓴다)
         if (first) s_week = -1;
-        renderTT();
-        renderMeal();
-        if (s_principal && s_view == V_CLOCK) renderPrincipal();
-        if (s_pTeach && !lv_obj_has_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN)) renderTeach();   // 교시가 바뀌면 명단도
-        if (s_principal && s_view == V_WEEK && tm.tm_hour == 0 && tm.tm_min == 0) renderSchedList();   // 자정에 '오늘' 바꾸기
-        refreshStale();
-        if (s_view == V_FIND) renderFinder();
+        if (!s_blOff) {
+          char hm[12]; const char *ampm;
+          clockText(tm, hm, sizeof hm, &ampm);
+          setTextFmtIf(s_clock, "%s%s%s", ampm, *ampm ? " " : "", hm);
+          setTextFmtIf(s_date, "%d월 %d일 (%s)", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
+          const bool bigChg = setTextIf(s_big, hm);
+          const bool apChg = setTextIf(s_bigAmPm, ampm);
+          if (*ampm) {                                   // "오후"를 숫자 왼쪽 아래에 붙인다(자리는 layoutClock 이 잡는다)
+            const bool was = lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
+            showIf(s_bigAmPm, true);
+            if (bigChg || apChg || was) { lv_obj_update_layout(s_big); lv_obj_align_to(s_bigAmPm, s_big, LV_ALIGN_OUT_LEFT_BOTTOM, -8, -14); }
+          } else showIf(s_bigAmPm, false);
+          setTextFmtIf(s_bigDate, "%d월 %d일 %s요일", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
+          if (s_renderPending) {                         // 화면 불이 꺼진 동안 받은 자료
+            s_renderPending = false;
+            renderWeather(); renderAir();
+            if (s_principal) renderSchedList();
+          }
+          renderTT();
+          renderMeal();
+          if (s_principal && s_view == V_CLOCK) renderPrincipal();
+          if (s_pTeach && !lv_obj_has_flag(s_pTeach, LV_OBJ_FLAG_HIDDEN)) renderTeach();   // 교시가 바뀌면 명단도
+          if (s_principal && s_view == V_WEEK && tm.tm_hour == 0 && tm.tm_min == 0) renderSchedList();   // 자정에 '오늘' 바꾸기
+          refreshStale();
+          if (s_view == V_FIND) renderFinder();
+        }
         static int lastDay = -1;
         if (lastDay >= 0 && tm.tm_mday != lastDay) s_syncReq = true;   // 날이 바뀌면 오늘 급식·날씨를 새로 받는다
         lastDay = tm.tm_mday;
@@ -3043,6 +3747,7 @@ void loop() {
   // 불이 꺼져 있을 때 터치가 오면 바로 켠다. 그 터치는 단추로 가지 않는다(esp_lv_adapter 가 삼킨다).
   if (s_blOff && g_touchWoke && blReady()) {
     g_touchWoke = false; g_touchSwallow = false; s_blOff = false;
+    s_lastMin = -1;                                    // 꺼진 동안 미룬 그리기를 1초 안에 한 번에
     blSet(true);
     lock(); lv_disp_trig_activity(NULL); unlock();
     Serial.println("backlight on (touch)");
@@ -3056,21 +3761,27 @@ void loop() {
     bool off;
     lock();
     const uint32_t idle = lv_disp_get_inactive_time(NULL);
+    static uint32_t gone = 0;
     if (s_usbSeen) {
-      static uint32_t gone = 0;
       if (s_usbOn) gone = 0; else if (!gone) gone = ms;
+      // 30분 넘게 도우미 신호가 없으면(컴퓨터에서 뽑아 칠판 옆으로 옮김 — 7B 는 배터리로 계속 켜져 있다) 시간 규칙으로 돌아간다.
+      // 전에는 한 번 컴퓨터를 본 보드가 수업 중에도 2분만 안 만지면 꺼졌다. '@pc on' 이 다시 오면 deckPoll 이 되살린다.
+      if (!s_usbOn && gone && ms - gone > 30UL * 60 * 1000) { s_usbSeen = false; gone = 0; Serial.println("pc helper gone 30min: time rules"); }
+    }
+    if (s_usbSeen) {
       off = !s_usbOn && ms - gone > 10000 && idle > 2UL * 60 * 1000;   // 컴퓨터가 꺼진 뒤 만지면 2분 동안은 켜 둔다
-    } else {
+    } else if (timeValid()) {
       time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
       const int m = tm.tm_hour * 60 + tm.tm_min;
       bool quiet = m < 7 * 60 || m >= 22 * 60;   // 22:00~07:00(사용자 지시 2026-10-01)
-      if (!quiet) quiet = isOffDay(nullptr);      // 주말·휴일(교장 모드는 학사 일정의 '휴')
+      quiet = quiet || s_offToday;                // 주말·휴일(교장 모드는 학사 일정의 '휴'). 1분마다 계산해 둔 값
       off = quiet && idle > 2UL * 60 * 1000;
-    }
+    } else off = false;
     unlock();
     if (off != s_blOff) {
       s_blOff = off;
       g_touchSwallow = off;
+      if (!off) s_lastMin = -1;                    // 켜질 때 미룬 그리기를 한 번에
       blSet(!off);
       Serial.printf("backlight %s\n", off ? "off" : "on");
     }
@@ -3085,6 +3796,7 @@ void loop() {
     const unsigned big = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
     if (tm.tm_hour == 3 && s_blOff && s_sync == SYNC_IDLE && ms > 3600000UL && (big < 40000 || s_failCount >= 4)) {
       Serial.printf("health restart (internal largest %u, fails %d)\n", big, s_failCount);
+      s_prefs.putInt("hr", 1);                         // 다음에 켤 때 '자동 점검'으로 보인다
       delay(100); ESP.restart();
     }
   }
@@ -3094,7 +3806,17 @@ void loop() {
     if (ms - lastUsbChk > 200) {   // 받은 줄은 자주 읽고, 상태 글은 바뀔 때만
       lastUsbChk = ms;
       deckPoll(ms);
-      if (lastUsb != s_usbOn) { lastUsb = s_usbOn; Serial.printf("pc helper %s\n", s_usbOn ? "on" : "off"); lock(); deckStateText(); unlock(); }
+      if (lastUsb != s_usbOn) { lastUsb = s_usbOn; Serial.printf("pc helper %s\n", s_usbOn ? "on" : "off"); lock(); deckStateText(); deckIconsDim(); unlock(); }
+      if (s_deckWaitKey >= 0 && ms - s_deckWaitAt > 5000) {   // 보냈는데 5초 안에 도우미 답이 없다 → 성공처럼 남기지 않는다
+        const int k = s_deckWaitKey; s_deckWaitKey = -1;
+        lock();
+        if (s_deckState) { lv_label_set_text_fmt(s_deckState, LV_SYMBOL_WARNING "  '%s' 컴퓨터 답이 없습니다 · 도우미를 다시 켜 주세요", DECK[k].label);
+                           lv_obj_set_style_text_color(s_deckState, lv_color_hex(0xfbbf24), 0); }
+        unlock();
+        s_deckSentAt = ms ? ms : 1;
+      }
+      if (s_deckSentAt && ms - s_deckSentAt > 60000) { s_deckSentAt = 0; lock(); deckStateText(); unlock(); }   // '보냈습니다' 글은 1분 뒤 안내로
+      if (s_forgetArmed || s_rebootArmed) { lock(); disarmButtons(); unlock(); }                                // '한 번 더' 글은 3초 뒤 되돌린다
     }
   }
 
@@ -3108,9 +3830,10 @@ void loop() {
     const bool typing = s_pwBox && !lv_obj_has_flag(s_pwBox, LV_OBJ_FLAG_HIDDEN) && idle < lim * 2;
     if (s_autoClkMin > 0 && idle > lim && !typing && (s_view != V_CLOCK || overlayOpen())) {
       hideOverlays();
-      if (s_view != V_CLOCK) showView(V_CLOCK);
+      if (s_view != V_CLOCK) showView(V_CLOCK);       // 보던 탭(시간표·단축키)은 showView 가 기억한다 → 시계를 누르면 돌아간다
     }
     unlock();
   }
+  esp_task_wdt_reset();
   delay(20);
 }

@@ -51,6 +51,32 @@ if (-not $NoUpload -and -not $Port) {
   if ($Port) { Write-Host "업로드 포트: $Port" } else { Write-Host '업로드 포트를 못 찾았습니다. PlatformIO 가 알아서 찾아 봅니다(안 되면 -Port COM번호).' }
 }
 
+# 화면 글자 점검(경고만): main.cpp 의 문자열에 글꼴에 없는 글자(… “ ” × 등, KS X 1001 2,350자 밖 한글)가 있으면 화면에 빈 네모로 보인다.
+# 주석은 보지 않는다. 글꼴에 있는 기호: ASCII · ° · → ▶ ◀ ●
+try {
+  $okSet = New-Object 'System.Collections.Generic.HashSet[char]'
+  foreach ($ch in [IO.File]::ReadAllText((Join-Path $src 'fonts\src\hangul2350.txt'), [Text.Encoding]::UTF8).ToCharArray()) { [void]$okSet.Add($ch) }
+  foreach ($ch in @([char]0xB0, [char]0xB7, [char]0x2192, [char]0x25B6, [char]0x25C0, [char]0x25CF)) { [void]$okSet.Add($ch) }
+  $ln = 0; $warn = 0
+  foreach ($line in [IO.File]::ReadAllLines((Join-Path $src 'src\main.cpp'), [Text.Encoding]::UTF8)) {
+    $ln++; $inStr = $false; $bad = ''
+    for ($i = 0; $i -lt $line.Length; $i++) {
+      $c = $line[$i]
+      if (-not $inStr) {
+        if ($c -eq '/' -and $i + 1 -lt $line.Length -and $line[$i + 1] -eq '/') { break }   # 주석 시작
+        if ($c -eq "'" -and $i + 2 -lt $line.Length -and $line[$i + 2] -eq "'") { $i += 2; continue }   # '"' 같은 글자 하나
+        if ($c -eq '"') { $inStr = $true }
+        continue
+      }
+      if ($c -eq '\') { $i++; continue }
+      if ($c -eq '"') { $inStr = $false; continue }
+      if ([int]$c -ge 0x20 -and [int]$c -le 0x7E) { continue }
+      if (-not $okSet.Contains($c)) { $bad += $c }
+    }
+    if ($bad -and $warn -lt 10) { Write-Host ("  ! 화면 글자 주의 main.cpp:{0} '{1}' (글꼴에 없음 → 빈 네모)" -f $ln, $bad) -ForegroundColor Yellow; $warn++ }
+  }
+} catch { Write-Host "  (화면 글자 점검을 건너뜀: $($_.Exception.Message))" }
+
 New-Item -ItemType Directory -Force $dst | Out-Null
 # .pio(이전 빌드 결과)는 지우지 않고 남겨 두어야 두 번째부터 빠르다
 robocopy $src $dst /MIR /XD .pio managed_components /XF build.log build.done sdkconfig.* .dummy /NFL /NDL /NJH /NJS /NP | Out-Null

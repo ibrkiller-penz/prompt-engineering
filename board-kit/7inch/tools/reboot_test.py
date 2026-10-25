@@ -23,27 +23,40 @@ if not port:
             break
 if not port:
     sys.exit("보드의 COM 포트를 못 찾았습니다. 두 번째 인자로 COM 번호를 주세요.")
+# 단축키 도우미가 포트를 쥐고 있으면 잠깐 놓게 한다(끝나면 되돌린다)
+stop = os.path.join(os.environ.get("TEMP", "."), "deck_helper.stop")
+made = not os.path.exists(stop)
+if made:
+    open(stop, "w").close()
+    time.sleep(2)
 results = []
-for i in range(1, n + 1):
-    s = serial.Serial()
-    s.port, s.baudrate, s.timeout = port, 115200, 0.2
-    s.dtr = s.rts = False
-    s.open()
-    s.rts = True; time.sleep(0.1); s.rts = False
-    t0 = time.time(); buf = b""; res = "timeout"; retry = False
-    while time.time() - t0 < 90:
-        buf += s.read(4096)
-        txt = buf.decode("utf-8", "replace")
-        if "sync: retry" in txt:
-            retry = True
-        if "sync: ok" in txt:
-            res = "ok"; break
-        if "sync: fail" in txt:
-            res = "fail " + txt[txt.rfind("sync: fail"):].splitlines()[0]; break
-    s.close()
-    dt = time.time() - t0
-    results.append((res, dt, retry))
-    print(f"{i}: {res}  {dt:.1f}s{'  (다시 붙어 봄)' if retry else ''}", flush=True)
-    time.sleep(3)
+try:
+  for i in range(1, n + 1):
+      s = serial.Serial()
+      s.port, s.baudrate, s.timeout = port, 115200, 0.2
+      s.dtr = s.rts = False
+      s.open()
+      s.rts = True; time.sleep(0.1); s.rts = False
+      t0 = time.time(); buf = b""; res = "timeout"; retry = False
+      while time.time() - t0 < 90:
+          buf += s.read(4096)
+          txt = buf.decode("utf-8", "replace")
+          if "sync: retry" in txt:
+              retry = True
+          if "sync: ok" in txt:
+              res = "ok"; break
+          if "sync: fail" in txt:
+              res = "fail " + txt[txt.rfind("sync: fail"):].splitlines()[0]; break
+      s.close()
+      dt = time.time() - t0
+      results.append((res, dt, retry))
+      print(f"{i}: {res}  {dt:.1f}s{'  (다시 붙어 봄)' if retry else ''}", flush=True)
+      time.sleep(3)
+finally:
+  if made:
+    try:
+      os.remove(stop)
+    except OSError:
+      pass
 ok = sum(1 for r in results if r[0] == "ok")
 print(f"성공 {ok}/{n}")

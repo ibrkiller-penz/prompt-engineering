@@ -32,18 +32,32 @@ ap.add_argument("--grep", default="")
 a = ap.parse_args()
 sys.stdout.reconfigure(encoding="utf-8")
 
-s = serial.Serial()
-s.port, s.baudrate, s.timeout = a.port or find_port(), 115200, 0.2
-s.dtr = s.rts = False  # 열 때 EN/BOOT 를 건드리지 않는다
-s.open()
-if a.reset:
-    s.rts = True
-    time.sleep(0.1)
-    s.rts = False
-buf, t = b"", time.time()
-while time.time() - t < a.secs:
-    buf += s.read(4096)
-s.close()
+# 단축키 도우미(deck_helper.ps1)가 포트를 쥐고 있으면 'port is busy' 가 난다 → 멈춤 파일을 만들어 잠깐 놓게 하고, 끝나면 되돌린다
+stop = os.path.join(os.environ.get("TEMP", "."), "deck_helper.stop")
+made = False
+if not os.path.exists(stop):
+    open(stop, "w").close()
+    made = True
+    time.sleep(2)
+try:
+    s = serial.Serial()
+    s.port, s.baudrate, s.timeout = a.port or find_port(), 115200, 0.2
+    s.dtr = s.rts = False  # 열 때 EN/BOOT 를 건드리지 않는다
+    s.open()
+    if a.reset:
+        s.rts = True
+        time.sleep(0.1)
+        s.rts = False
+    buf, t = b"", time.time()
+    while time.time() - t < a.secs:
+        buf += s.read(4096)
+    s.close()
+finally:
+    if made:  # 내가 만든 경우만 지운다(빌드 스크립트가 만든 것은 그대로)
+        try:
+            os.remove(stop)
+        except OSError:
+            pass
 
 lines = buf.decode("utf-8", "replace").splitlines()
 keys = [k for k in a.grep.split(",") if k]
