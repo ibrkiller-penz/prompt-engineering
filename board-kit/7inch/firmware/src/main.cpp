@@ -1478,13 +1478,14 @@ static void showView(View v);
 // → 15초 넘게 안 오면 '컴퓨터 꺼짐'으로 본다(화면 불 규칙에도 쓴다).
 // USB 키보드(TinyUSB) 방식은 이 빌드(custom_sdkconfig 로 ESP-IDF 를 다시 컴파일)에 TinyUSB 부품이 빠져 있어 쓰지 못했다.
 // 어떤 프로그램을 열지는 컴퓨터 쪽 도우미 표에서 정한다(학교 컴퓨터마다 경로가 달라서).
-extern const lv_img_dsc_t deck_explorer, deck_claude, deck_terminal, deck_cmd, deck_powershell, deck_web, deck_naver, deck_youtube,
-    deck_coolmsg, deck_kakao, deck_office, deck_excel, deck_ppt, deck_word, deck_hwp, deck_desktop;
+extern const lv_img_dsc_t deck_explorer, deck_claude, deck_gemini, deck_gpt, deck_cmd, deck_powershell, deck_neis, deck_naver,
+    deck_youtube, deck_coolmsg, deck_kakao, deck_excel, deck_ppt, deck_word, deck_hwp, deck_desktop;
 struct DeckItem { const char *label; const lv_img_dsc_t *icon; const char *key; };   // key: 도우미에게 보내는 이름(영문)
+// 2026-10-25: 웹→나이스, 오피스·터미널 빼고 제미나이·GPT(사용자 요청)
 static const DeckItem DECK[16] = {
-  {"탐색기", &deck_explorer, "explorer"}, {"Claude", &deck_claude, "claude"}, {"터미널", &deck_terminal, "terminal"}, {"CMD", &deck_cmd, "cmd"},
-  {"파워셸", &deck_powershell, "powershell"}, {"웹", &deck_web, "web"}, {"네이버", &deck_naver, "naver"}, {"유튜브", &deck_youtube, "youtube"},
-  {"쿨메신저", &deck_coolmsg, "coolmsg"}, {"카카오톡", &deck_kakao, "kakao"}, {"오피스", &deck_office, "office"}, {"엑셀", &deck_excel, "excel"},
+  {"탐색기", &deck_explorer, "explorer"}, {"Claude", &deck_claude, "claude"}, {"제미나이", &deck_gemini, "gemini"}, {"GPT", &deck_gpt, "gpt"},
+  {"CMD", &deck_cmd, "cmd"}, {"파워셸", &deck_powershell, "powershell"}, {"나이스", &deck_neis, "neis"}, {"네이버", &deck_naver, "naver"},
+  {"유튜브", &deck_youtube, "youtube"}, {"쿨메신저", &deck_coolmsg, "coolmsg"}, {"카카오톡", &deck_kakao, "kakao"}, {"엑셀", &deck_excel, "excel"},
   {"PPT", &deck_ppt, "ppt"}, {"워드", &deck_word, "word"}, {"한글", &deck_hwp, "hwp"}, {"바탕화면", &deck_desktop, "desktop"},
 };
 static lv_obj_t *s_viewDeck = nullptr, *s_tabDeck = nullptr, *s_deckState = nullptr;
