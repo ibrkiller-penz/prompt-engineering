@@ -43,7 +43,7 @@ name = "penedu-board-deck-helper.zip"
 path = os.path.join(OUT, name)
 hd = os.path.join(KIT, "common", "deck-helper")
 pkg = {}
-for f in ("교실알림판_도우미.exe", "읽어보기.txt", "끄기.bat", "uninstall.ps1", "아이콘_직접만들기.md"):
+for f in ("교실알림판_도우미.exe", "단축키도우미_사용설명서.pdf", "읽어보기.txt", "끄기.bat", "uninstall.ps1", "아이콘_직접만들기.md"):
     if not os.path.isfile(os.path.join(hd, f)):
         sys.exit("도우미 꾸러미에 넣을 파일이 없다: " + f)
     pkg[f] = os.path.join(hd, f)
@@ -65,6 +65,10 @@ with zipfile.ZipFile(os.path.join(OUT, exe_name), "w", zipfile.ZIP_DEFLATED, com
     zi.external_attr = 0o644 << 16
     with open(os.path.join(hd, "교실알림판_도우미.exe"), "rb") as fh:
         z.writestr(zi, fh.read())
+# 사용 설명서 PDF 는 사이트에서 바로 볼 수 있게 따로도 둔다
+import shutil
+shutil.copyfile(os.path.join(hd, "단축키도우미_사용설명서.pdf"), os.path.join(OUT, "deck-helper-manual.pdf"))
+meta["helperManual"] = {"file": "deck-helper-manual.pdf", "bytes": os.path.getsize(os.path.join(OUT, "deck-helper-manual.pdf"))}
 meta["helperExe"] = {"file": exe_name, "bytes": os.path.getsize(os.path.join(OUT, exe_name)), "date": datetime.date.today().isoformat()}
 print(exe_name, meta["helperExe"]["bytes"], "bytes")
 with open(os.path.join(ROOT, "content", "board", "kits.json"), "w", encoding="utf-8") as fh:

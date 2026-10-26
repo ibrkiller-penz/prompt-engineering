@@ -74,8 +74,16 @@ export default function DeckGet() {
       >
         ⬇ 도우미 받기 (교실알림판_도우미.exe{mb(kits.helperExe.bytes)})
       </a>
+      <a
+        href={`/board/${kits.helperManual.file}`}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-3 flex min-h-[48px] items-center justify-center rounded-card border border-line bg-surface px-6 font-bold hover:border-accent"
+      >
+        📘 사용 설명서 PDF 보기{mb(kits.helperManual.bytes)}
+      </a>
       <p className="mt-2 text-center text-sm text-muted">
-        읽어보기·끄기 파일까지 든 꾸러미:{" "}
+        설명서·읽어보기·끄기 파일까지 든 꾸러미:{" "}
         <a href={`/board/${kits.helper.file}`} download className="font-semibold text-accent underline">
           {kits.helper.file}
           {mb(kits.helper.bytes)}

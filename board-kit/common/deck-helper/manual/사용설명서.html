@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>교실 알림판 단축키 도우미 사용 설명서</title>
+<!-- PDF 만들기: python make_manual_pdf.py (Edge 로 인쇄) -->
+<style>
+@font-face { font-family: "SCD"; font-weight: 300; src: url("../exe/fonts/SCDream3.otf"); }
+@font-face { font-family: "SCD"; font-weight: 400; src: url("../exe/fonts/SCDream4.otf"); }
+@font-face { font-family: "SCD"; font-weight: 600; src: url("../exe/fonts/SCDream5.otf"); }
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+:root { --ink: #1c2230; --muted: #5b6478; --line: #d9dee8; --accent: #3b6fe0; --soft: #eef3ff; --warn: #b4560a; --dark: #1a1e27; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "SCD", "Malgun Gothic", sans-serif; font-weight: 400; color: var(--ink); font-size: 10.2pt; line-height: 1.62; margin: 0; }
+h1, h2, h3 { font-weight: 600; line-height: 1.3; }
+h2 { font-size: 16pt; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid var(--accent); break-after: avoid; }
+h2 .no { color: var(--accent); margin-right: 2mm; }
+h3 { font-size: 11.5pt; margin: 5mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.2mm; }
+section { break-before: page; }
+section.flow { break-before: auto; margin-top: 8mm; }
+figure { margin: 3mm 0 4mm; break-inside: avoid; }
+figure img { width: 100%; border-radius: 2.5mm; border: 1px solid var(--line); display: block; }
+figure.half img { width: 50%; margin: 0 auto; }
+figure.w80 img { width: 80%; margin: 0 auto; }
+figure.w72 img { width: 72%; margin: 0 auto; }
+figure.w64 img { width: 64%; margin: 0 auto; }
+figcaption { font-size: 8.6pt; color: var(--muted); margin-top: 1.5mm; text-align: center; }
+ol, ul { margin: 0 0 2.5mm; padding-left: 6mm; }
+li { margin: 0.8mm 0; }
+b, strong { font-weight: 600; }
+.key { display: inline-block; font-weight: 600; font-size: 8.8pt; padding: 0 1.6mm; border: 1px solid #b9c1d3; border-bottom-width: 2px; border-radius: 1.2mm; background: #f7f8fb; line-height: 1.5; }
+.btn { display: inline-block; font-weight: 600; font-size: 9pt; padding: 0 2mm; border-radius: 1.2mm; background: #e7ecf7; color: #24314f; line-height: 1.55; }
+.tip, .note, .warn { border-radius: 2mm; padding: 2.6mm 3.4mm; margin: 3mm 0; break-inside: avoid; font-size: 9.6pt; }
+.tip { background: var(--soft); border-left: 1.2mm solid var(--accent); }
+.note { background: #f4f5f8; border-left: 1.2mm solid #9aa3b5; }
+.warn { background: #fff4e8; border-left: 1.2mm solid var(--warn); }
+.tip b:first-child, .note b:first-child, .warn b:first-child { margin-right: 1.5mm; }
+table { width: 100%; border-collapse: collapse; margin: 2mm 0 3.5mm; font-size: 9.4pt; break-inside: avoid; }
+th, td { border: 1px solid var(--line); padding: 1.6mm 2.2mm; text-align: left; vertical-align: top; }
+th { background: #f1f4fa; font-weight: 600; }
+td.c, th.c { text-align: center; white-space: nowrap; }
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin: 2mm 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0.3mm; width: 6mm; height: 6mm; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 600; font-size: 8.6pt; text-align: center; line-height: 6mm; }
+code, .mono { font-family: Consolas, "SCD", monospace; font-size: 9pt; background: #f1f3f7; padding: 0 1.2mm; border-radius: 1mm; }
+pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; background: #f4f6fa; border: 1px solid var(--line); border-radius: 2mm; padding: 3mm 3.4mm; white-space: pre-wrap; margin: 2mm 0 3mm; break-inside: avoid; line-height: 1.55; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.small { font-size: 8.8pt; color: var(--muted); }
+
+/* 표지 */
+.cover { height: 263mm; display: flex; flex-direction: column; justify-content: space-between; background: var(--dark); color: #e9edf5; border-radius: 4mm; padding: 18mm 16mm 14mm; }
+.cover .eyebrow { color: #8fb0ff; font-weight: 600; letter-spacing: 1.5mm; font-size: 9.5pt; }
+.cover h1 { font-size: 30pt; margin: 4mm 0 3mm; color: #fff; }
+.cover .sub { font-weight: 300; font-size: 13pt; color: #c3cad9; }
+.cover img { width: 100%; border-radius: 3mm; border: 1px solid #343b4c; }
+.cover .foot { display: flex; justify-content: space-between; font-size: 9pt; color: #9aa3b8; font-weight: 300; }
+.toc { margin-top: 2mm; }
+.toc li { display: flex; justify-content: space-between; border-bottom: 1px dotted #c8ceda; padding: 1.4mm 0; margin: 0; }
+.toc { list-style: none; padding: 0; }
+.toc .n { color: var(--accent); font-weight: 600; width: 9mm; display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div>
+    <div class="eyebrow">교실 알림판 · 7인치 · 4인치 공통 · 윈도 PC용</div>
+    <h1>단축키 도우미<br>사용 설명서</h1>
+    <div class="sub">보드 단추를 누르면 컴퓨터의 프로그램·사이트가 열려요.<br>16칸을 스트림덱처럼 마음대로 꾸밀 수 있어요.</div>
+  </div>
+  <img src="img/02.png" alt="단축키 꾸미기 창">
+  <div class="foot"><span>받는 곳 penedu.web.app/deck</span><span>2026년 10월판</span></div>
+</div>
+
+<section>
+  <h2>차례</h2>
+  <ol class="toc">
+    <li><span><span class="n">1</span>도우미는 무엇을 하나요</span></li>
+    <li><span><span class="n">2</span>받기와 깔기</span></li>
+    <li><span><span class="n">3</span>보드와 연결하기</span></li>
+    <li><span><span class="n">4</span>꾸미기 창 둘러보기</span></li>
+    <li><span><span class="n">5</span>칸 채우기 — 끌어다 놓기·한 번에 채우기</span></li>
+    <li><span><span class="n">6</span>하는 일 6가지</span></li>
+    <li><span><span class="n">7</span>단축키 눌러서 넣기</span></li>
+    <li><span><span class="n">8</span>여러 동작 묶기</span></li>
+    <li><span><span class="n">9</span>자세한 설정</span></li>
+    <li><span><span class="n">10</span>아이콘 — 모음·테마·내 그림·인공지능으로 만들기</span></li>
+    <li><span><span class="n">11</span>저장하고 보드에 보내기</span></li>
+    <li><span><span class="n">12</span>다른 선생님과 나누기 — 내보내기·가져오기</span></li>
+    <li><span><span class="n">13</span>키보드로 쓰기</span></li>
+    <li><span><span class="n">14</span>끄기·지우기</span></li>
+    <li><span><span class="n">15</span>안 될 때</span></li>
+  </ol>
+
+  </section>
+<section>
+    <h2><span class="no">1</span>도우미는 무엇을 하나요</h2>
+    <p>교실 알림판의 <b>단축키</b> 화면에는 단추 16개가 있어요. 단추를 누르면 보드가 USB 선으로 컴퓨터에 알려 주고, 컴퓨터에 깔린 <b>단축키 도우미</b>가 프로그램·사이트를 열거나 단축키를 눌러 줘요.</p>
+    <figure><img src="img/board.png" alt="보드 단축키 화면"><figcaption>보드의 단축키 화면(7인치). 칸 이름과 그림은 도우미에서 바꿔 보낼 수 있어요.</figcaption></figure>
+    <ul>
+      <li><b>보드 단추로 열기</b> — 한글, 나이스, 유튜브, 수업 PPT…</li>
+      <li><b>16칸 꾸미기</b> — 이름·하는 일·아이콘을 바꾸면 보드로 보내요. 보드를 다시 굽지 않아도 돼요.</li>
+      <li><b>화면 켜고 끄기 도움</b> — 컴퓨터가 켜져 있는 동안 보드 화면을 끄지 않고, 컴퓨터가 꺼지면 보드도 화면을 꺼요.</li>
+    </ul>
+</section>
+
+<section>
+  <h2><span class="no">2</span>받기와 깔기</h2>
+  <ol class="steps">
+    <li>인터넷 창에서 <b>penedu.web.app/deck</b> 에 들어가 <span class="btn">도우미 받기</span>를 눌러요. “흔하지 않은 파일”이라고 나오면 <span class="btn">유지</span>.</li>
+    <li>받은 압축 파일을 더블클릭해 열고, 안의 <b>교실알림판_도우미.exe</b> 를 더블클릭해요(압축을 풀지 않아도 돼요).</li>
+    <li>파란 <b>“Windows의 PC 보호”</b> 창이 뜨면 <span class="btn">추가 정보</span> → <span class="btn">실행</span>. 서명이 없는 프로그램이라 처음 한 번만 나와요.</li>
+    <li>화면 오른쪽 아래 작업 표시줄(<b>^</b> 안쪽)에 알림판 아이콘이 생기면 끝이에요.</li>
+  </ol>
+  <div class="tip"><b>알아 두기</b>관리자 권한은 필요 없어요. 컴퓨터를 켤 때마다 저절로 켜져요. 설정은 <code>%LOCALAPPDATA%\PeneduBoard</code> 에 저장돼요.</div>
+  <div class="note"><b>학교 백신이 막으면</b>백신의 ‘예외(허용)’ 목록에 교실알림판_도우미.exe 를 넣어 주세요.</div>
+
+  <section class="flow">
+    <h2><span class="no">3</span>보드와 연결하기</h2>
+    <ol class="steps">
+      <li>보드를 <b>데이터 케이블</b>로 컴퓨터에 꽂아요. <b>7인치</b>는 ‘UART’ 라고 적힌 단자, <b>4인치</b>는 USB-C 단자예요.</li>
+      <li>5초쯤 지나면 작업 표시줄 아이콘이 <b>초록</b>으로 바뀌고 “알림판과 연결됐어요” 알림이 떠요.</li>
+      <li>보드 단축키 화면 아래에 “컴퓨터와 연결됨”이 보이면 단추를 눌러 보세요.</li>
+    </ol>
+    <table>
+      <tr><th class="c">아이콘 색</th><th>뜻</th></tr>
+      <tr><td class="c">회색</td><td>알림판을 찾는 중이에요.</td></tr>
+      <tr><td class="c">초록</td><td>연결됐어요.</td></tr>
+      <tr><td class="c">주황</td><td>잠깐 멈춤(보드에 프로그램을 구울 때 씀).</td></tr>
+    </table>
+    <p>아이콘을 <b>오른쪽 클릭</b>하면 <span class="btn">단축키 꾸미기…</span> · 기록 보기 · 잠깐 멈추기 · 컴퓨터를 켤 때 저절로 켜기 · 끝내기가 있어요. 아이콘을 <b>두 번 클릭</b>해도 꾸미기 창이 열려요.</p>
+    <div class="tip"><b>보드의 ⟳ 단추</b>보드 단축키 화면 오른쪽 아래 ⟳ 를 누르면 도우미 연결을 바로 다시 확인해요.</div>
+  </section>
+</section>
+
+<section>
+  <h2><span class="no">4</span>꾸미기 창 둘러보기</h2>
+  <p>작업 표시줄 아이콘 오른쪽 클릭 → <span class="btn">단축키 꾸미기…</span></p>
+  <figure class="w72"><img src="img/01.png" alt="꾸미기 창 처음 모습"><figcaption>처음 열었을 때의 꾸미기 창</figcaption></figure>
+  <table>
+    <tr><th style="width:24%">자리</th><th>하는 일</th></tr>
+    <tr><td>위 띠</td><td><span class="btn">한 번에 채우기</span> · <span class="btn">아이콘 모양</span>(테마) · <span class="btn">더보기</span>(내보내기·가져오기·기본값으로·글꼴 안내)</td></tr>
+    <tr><td>가운데 보드 모양</td><td>보드와 같은 16칸. 칸을 누르면 고르고, 끌어서 자리를 바꿔요. 오른쪽 위 <span class="btn">7인치</span> <span class="btn">4인치</span>로 모양을 바꿔 봐요.</td></tr>
+    <tr><td>오른쪽 동작 목록</td><td>자주 쓰는 동작과 아이콘 모음 205개. 위의 찾기 칸에 ‘소리’, ‘한글’처럼 쳐요.</td></tr>
+    <tr><td>아래 칸 설정</td><td>고른 칸의 이름·하는 일·대상·아이콘. <span class="btn">▶ 눌러 보기</span>로 보드 없이 바로 해 봐요.</td></tr>
+    <tr><td>맨 아래</td><td>연결 상태 · <span class="btn">닫기</span> · <span class="btn">저장하고 보드에 보내기</span></td></tr>
+  </table>
+  <div class="two">
+    <figure><img src="img/03.png" alt="4인치 모양"><figcaption>4인치 모양으로 보기(4×4)</figcaption></figure>
+    <figure><img src="img/04.png" alt="찾기"><figcaption>동작 목록에서 ‘소리’ 찾기</figcaption></figure>
+  </div>
+  <div class="note"><b>칸 번호</b>7인치는 윗줄 1~8, 아랫줄 9~16번이고, 4인치는 1~4번이 첫 줄이에요. 같은 번호 칸이 같은 일을 해요. 칸 설정 위에 “7인치 윗줄 3번째 · 4인치 1줄 3번째”처럼 알려 줘요.</div>
+</section>
+
+<section>
+  <h2><span class="no">5</span>칸 채우기</h2>
+  <h3>끌어다 놓기</h3>
+  <ul>
+    <li><b>동작 목록 → 칸</b> : 이름·하는 일·아이콘이 한꺼번에 들어가요. <span class="key">Shift</span>를 누른 채 놓으면 아이콘만 바뀌어요.</li>
+    <li><b>칸 → 다른 칸</b> : 두 칸의 자리가 바뀌어요. <span class="key">Ctrl</span>을 누른 채 끌면 복사돼요.</li>
+    <li><b>바탕화면의 프로그램·바로 가기·인터넷 주소 → 칸</b> : 이름·대상·아이콘이 저절로 채워져요.</li>
+    <li><b>그림 파일 → 칸</b> : 그 칸의 아이콘만 바뀌어요(10장).</li>
+  </ul>
+  <h3>한 번에 채우기</h3>
+  <p>위 띠의 <span class="btn">한 번에 채우기</span>에서 고르면 16칸이 한 번에 바뀌어요. 바꾸기 전에 어떤 칸이 들어가는지 보여 주고 물어봐요.</p>
+  <table>
+    <tr><th style="width:30%">묶음</th><th>들어가는 것</th></tr>
+    <tr><td>이 컴퓨터에 깔린 프로그램으로</td><td>탐색기·한글·워드·엑셀·PPT·크롬·카카오톡·쿨메신저·포토샵… 중 <b>실제로 깔린 것</b>만, 모자라면 나이스·GPT 등으로 채움</td></tr>
+    <tr><td>수업용</td><td>한글·PPT·발표 시작·이전/다음 장·화면 검게·전체 화면·타이머·패들렛·클래스룸·소리 크게/작게</td></tr>
+    <tr><td>업무용</td><td>한글·엑셀·워드·나이스·업무포털·쿨메신저·카카오톡·GPT·제미나이·계산기·캡처·인쇄</td></tr>
+    <tr><td>발표·원격수업용</td><td>슬라이드 넘기기·크게/작게 보기·화면 공유·마이크/카메라 끄기·줌·팀즈·구글 미트</td></tr>
+  </table>
+  <h3>칸 오른쪽 클릭</h3>
+  <p>▶ 눌러 보기 · 복사 · 붙여넣기 · 비우기 · 아이콘 바꾸기</p>
+  <div class="tip"><b>저장 안 함 표시</b>고친 뒤 저장하지 않으면 창 제목에 ●, 위 띠에 ‘저장 안 함’, 저장 단추에 점이 보여요. 이름이 너무 긴 칸에는 주황 점, 보드에 나오지 않는 글자가 있거나 이름이 빈 칸에는 빨간 점이 찍혀요.</div>
+</section>
+
+<section>
+  <h2><span class="no">6</span>하는 일 6가지</h2>
+  <figure><img src="img/02.png" alt="칸 설정"><figcaption>칸을 고르면 아래에서 이름·하는 일·대상을 고쳐요.</figcaption></figure>
+  <table>
+    <tr><th style="width:18%">하는 일</th><th style="width:34%">대상에 넣는 것</th><th>예</th></tr>
+    <tr><td>프로그램 열기</td><td>프로그램·바로 가기·파일·폴더 경로. <span class="btn">찾아보기…</span>로 골라요.</td><td>한글, 수업 폴더, 오늘.pptx</td></tr>
+    <tr><td>사이트 열기</td><td>인터넷 주소</td><td>https://www.neis.go.kr</td></tr>
+    <tr><td>단축키 누르기</td><td>누를 키. <span class="btn">눌러서 넣기</span>로 키보드에서 바로(7장)</td><td>Ctrl+C 복사, Win+Shift+S 화면 캡처</td></tr>
+    <tr><td>글자 넣기</td><td>넣을 글(여러 줄 가능). 지금 쓰고 있는 칸에 붙여 넣어요.</td><td>학교 주소, 자주 쓰는 인사말</td></tr>
+    <tr><td>컴퓨터 기능</td><td>목록에서 고르기</td><td>바탕화면 보기·창 닫기·화면 잠그기·소리 끄기/크게/작게·재생·다음 곡·이전 곡</td></tr>
+    <tr><td>여러 동작</td><td>위 다섯 가지를 차례대로(8장)</td><td>PPT 열기 → 2초 → 나이스 열기</td></tr>
+  </table>
+  <h3>이름</h3>
+  <p>보드 칸 아래에 나오는 글자예요. <b>한글 6자, 영문 10자 안쪽</b>이 좋아요. 보드 글꼴은 한글 2,350자(자주 쓰는 완성형)만 있어서, 그 밖의 글자·이모지·한자는 빨갛게 알려 줘요.</p>
+  <div class="warn"><b>글자 넣기 주의</b>글자는 복사해서 붙여 넣는 방식이라, 원래 복사해 둔 내용은 바뀌어요.</div>
+</section>
+
+<section>
+  <h2><span class="no">7</span>단축키 눌러서 넣기</h2>
+  <p>‘단축키 누르기’ 칸에서 <span class="btn">눌러서 넣기</span>를 누르고, 키보드에서 단축키를 <b>그대로</b> 눌러요. 화면에 “Ctrl + Shift + M”처럼 보이면 <span class="btn">확인</span>.</p>
+  <figure class="half"><img src="img/12.png" alt="단축키 눌러서 넣기"><figcaption>단축키 눌러서 넣기 창 — Win + Shift + S(화면 캡처)를 넣은 모습</figcaption></figure>
+  <ul>
+    <li><b>Win 키</b>가 들어가는 단축키(Win+V 클립보드, Win+Shift+S 캡처…)는 윈도가 먼저 가로채요. <b>‘Win 키도 함께’</b>를 켜고 나머지 키만 누르세요.</li>
+    <li>이 창에서는 Tab·Enter·Esc 도 단축키로 기록돼요. 키보드로 끝낼 땐 <span class="key">Ctrl</span>+<span class="key">Enter</span> 확인, <span class="key">Shift</span>+<span class="key">Esc</span> 취소.</li>
+    <li>다시 넣으려면 <span class="btn">다시</span>.</li>
+  </ul>
+  <figure class="w64"><img src="img/10.png" alt="단축키 칸"><figcaption>대상 칸 아래에 “누를 키: Win + Shift + S”처럼 읽기 쉬운 글이 나와요.</figcaption></figure>
+  <h3>직접 쓸 때의 기호(알면 편해요)</h3>
+  <table>
+    <tr><th class="c">기호</th><th>뜻</th><th class="c">기호</th><th>뜻</th></tr>
+    <tr><td class="c"><code>^</code></td><td>Ctrl</td><td class="c"><code>{ENTER}</code> <code>{TAB}</code> <code>{ESC}</code></td><td>Enter · Tab · Esc</td></tr>
+    <tr><td class="c"><code>+</code></td><td>Shift</td><td class="c"><code>{F5}</code></td><td>F5 (F1~F24)</td></tr>
+    <tr><td class="c"><code>%</code></td><td>Alt</td><td class="c"><code>{UP}</code> <code>{LEFT}</code></td><td>화살표</td></tr>
+    <tr><td class="c"><code>#</code></td><td>Win</td><td class="c"><code>{TAB 3}</code></td><td>Tab 세 번</td></tr>
+  </table>
+  <p class="small">예) <code>^c</code> 복사 · <code>^+m</code> Ctrl+Shift+M · <code>%{F4}</code> 창 닫기 · <code>#+s</code> 화면 캡처</p>
+</section>
+
+<section>
+  <h2><span class="no">8</span>여러 동작 묶기</h2>
+  <p>칸 하나를 누르면 여러 일을 <b>차례대로</b> 해요. 예) 수업 시작 칸 = 파워포인트 열기 → 2초 기다리기 → 나이스 열기 → 소리 끄기</p>
+  <ol class="steps">
+    <li>하는 일에서 <span class="btn">여러 동작</span>을 고르면 <b>차례 고치기 창</b>이 열려요. 그 칸이 하던 일은 첫 동작으로 옮겨져요.</li>
+    <li><span class="btn">+ 동작 더하기</span>로 하는 일을 골라 넣고, 아래에서 대상을 채워요(단축키는 <span class="btn">눌러서 넣기</span>, 컴퓨터 기능은 목록).</li>
+    <li><b>다음 동작까지 기다리기</b>를 정해요(바로·0.3초~5초). 프로그램이 뜨는 데 시간이 걸리니 1~2초를 권해요.</li>
+    <li><span class="btn">위로</span> <span class="btn">아래로</span>로 차례를 바꾸고, <span class="btn">▶ 차례대로 해 보기</span>로 확인한 뒤 <span class="btn">확인</span>.</li>
+  </ol>
+  <figure class="w72"><img src="img/11.png" alt="여러 동작 차례 창"><figcaption>여러 동작 차례 고치기 창(최대 12가지)</figcaption></figure>
+  <figure class="w72"><img src="img/09.png" alt="여러 동작 칸"><figcaption>칸 설정 아래에 차례가 요약돼요.</figcaption></figure>
+  <div class="note"><b>빈 동작</b>대상이 빈 동작이 있으면 저장할 때 “3번째 동작이 비어 있어요”처럼 알려 줘요.</div>
+</section>
+
+<section>
+  <h2><span class="no">9</span>자세한 설정</h2>
+  <p>‘프로그램 열기’, ‘사이트 열기’, ‘글자 넣기’ 칸의 대상 옆 <span class="btn">자세히…</span>를 눌러요. 설정이 있으면 단추에 점이 찍히고, 아래에 요약이 나와요.</p>
+  <div class="two">
+    <figure><img src="img/13.png" alt="프로그램 자세히"><figcaption>프로그램 열기 · 자세한 설정</figcaption></figure>
+    <figure><img src="img/14.png" alt="사이트 자세히"><figcaption>사이트 열기 · 자세한 설정</figcaption></figure>
+  </div>
+  <table>
+    <tr><th style="width:18%">하는 일</th><th style="width:32%">설정</th><th>쓰는 곳</th></tr>
+    <tr><td rowspan="4">프로그램 열기</td><td>함께 넘길 값</td><td>열 파일을 함께 줘요. 예) 한글 + 오늘 수업.hwp</td></tr>
+    <tr><td>시작 폴더</td><td>프로그램이 처음 보는 폴더</td></tr>
+    <tr><td>이미 열려 있으면 그 창을 앞으로</td><td>메신저처럼 하나만 띄울 프로그램(함께 넘길 값이 있으면 새로 열어요)</td></tr>
+    <tr><td>관리자 권한으로 열기</td><td>누를 때마다 윈도가 물어봐요</td></tr>
+    <tr><td rowspan="2">사이트 열기</td><td>브라우저 고르기</td><td>기본·크롬·엣지·웨일·파이어폭스. 없으면 기본 브라우저로 열어요.</td></tr>
+    <tr><td>새 창으로 열기</td><td>기본 브라우저가 아닐 때만 돼요</td></tr>
+    <tr><td>글자 넣기</td><td>넣은 뒤 Enter 누르기</td><td>채팅·검색창에 바로 보내기</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="no">10</span>아이콘</h2>
+  <p>칸 설정 왼쪽의 아이콘 상자를 누르거나 <span class="btn">아이콘 바꾸기</span>를 눌러요.</p>
+  <table>
+    <tr><th style="width:22%">방식</th><th>설명</th></tr>
+    <tr><td>자동</td><td>프로그램의 아이콘을 가져와 보드 모양(어두운 사각)으로</td></tr>
+    <tr><td>글자</td><td>이름 첫 글자로 만든 아이콘</td></tr>
+    <tr><td>사이트 아이콘 받기</td><td>사이트의 작은 아이콘을 받아서(인터넷 필요)</td></tr>
+    <tr><td>그림 파일</td><td>내 그림. <b>틀에 넣기</b>(기호만 있는 그림에 테두리를 씌움) / <b>그대로</b>(테두리까지 그린 완성 그림)</td></tr>
+    <tr><td>기본 그림</td><td>보드에 원래 들어 있는 16개</td></tr>
+    <tr><td>모음에서</td><td>205개: 마이크로소프트·어도비·구글·한컴·학교·인공지능·윈도 도구·스트림덱 기본 동작…</td></tr>
+  </table>
+  <h3>아이콘 모양(테마)</h3>
+  <p>위 띠의 <span class="btn">아이콘 모양</span>에서 고르면 모음에서 고른 아이콘이 모두 그 모양으로 바뀌어요. 보드의 색 테마와 맞추면 예뻐요.</p>
+  <figure><img src="img/themes.png" alt="테마 비교"><figcaption>위부터 기본 · 따뜻함 · 남색밤 · 밝은종이 · 고대비 · 숲초록</figcaption></figure>
+</section>
+
+<section>
+  <h2><span class="no">10</span>아이콘 — 인공지능으로 만들기</h2>
+  <p>보드 칸의 그림은 <b>72×72 점</b>이에요. 크게 만들면 도우미가 알아서 줄여요.</p>
+  <table>
+    <tr><th style="width:22%">항목</th><th>권장</th></tr>
+    <tr><td>크기</td><td><b>정사각형 1024×1024</b>(512 이상)</td></tr>
+    <tr><td>파일</td><td>PNG, 배경 <b>투명</b></td></tr>
+    <tr><td>그림</td><td>가운데 <b>기호 하나</b>, 칸의 80%, 굵은 선, 색 2~3개</td></tr>
+    <tr><td>피할 것</td><td>작은 글씨·가는 선·사진 같은 그림·복잡한 배경</td></tr>
+  </table>
+  <h3>인공지능에게 줄 말(예시) — [ ] 안만 바꾸세요</h3>
+  <pre>[출석부] 를 나타내는 앱 아이콘 기호 하나를 그려 줘.
+정사각형 1024x1024, 배경은 완전히 투명(PNG).
+가운데에 기호 하나만, 화면의 80% 크기. 굵은 선의 평면 스타일,
+색은 [밝은 초록] 한 가지와 흰색만. 글씨·그림자·배경 무늬는 넣지 마.
+아주 작게(72픽셀) 줄여도 알아볼 수 있게 단순하게.</pre>
+  <p>만든 그림을 칸에 끌어다 놓고 <b>틀에 넣기</b>를 고르면 다른 칸과 같은 모양이 돼요.</p>
+  <div class="note"><b>배경이 하얗게 나오면</b>“배경 투명”을 다시 부탁하거나 캔바의 ‘배경 제거’를 쓰세요. 회사 로고는 그대로 베끼지 말고 그 회사 색의 글자 한두 개로 만드세요.</div>
+</section>
+
+<section>
+  <h2><span class="no">11</span>저장하고 보드에 보내기</h2>
+  <ol class="steps">
+    <li>맨 아래 <span class="btn">저장하고 보드에 보내기</span>를 눌러요(<span class="key">Ctrl</span>+<span class="key">S</span>).</li>
+    <li>바뀐 아이콘만 보내요. 보드 단축키 화면에 “아이콘 받는 중 3/16” → “새 단축키를 받았습니다”.</li>
+    <li>7인치는 아이콘 하나에 3~7초, 16칸을 다 바꾸면 1분쯤 걸려요. 4인치는 더 빨라요.</li>
+  </ol>
+  <ul>
+    <li>보드가 꽂혀 있지 않으면 다음에 꽂을 때 <b>저절로</b> 보내요.</li>
+    <li>보드가 날씨·시간표를 받는 중이면 끝난 뒤 보내요.</li>
+    <li>보드를 처음 상태로: <span class="btn">더보기</span> → <span class="btn">기본값으로</span>, 또는 보드 단축키 화면의 <span class="btn">기본 아이콘</span>을 3초 안에 두 번.</li>
+  </ul>
+  <div class="warn"><b>예전 보드</b>창 아래에 “이 보드는 아이콘 받기를 못 해요”가 보이면 보드 프로그램을 새로 구워야 해요. 단추로 프로그램 열기는 예전 보드에서도 돼요.</div>
+
+  <section class="flow">
+    <h2><span class="no">12</span>다른 선생님과 나누기</h2>
+    <ul>
+      <li><span class="btn">더보기</span> → <span class="btn">내보내기</span> : 지금 16칸(이름·하는 일·아이콘·여러 동작·자세한 설정)을 zip 파일 하나로 저장해요.</li>
+      <li><span class="btn">더보기</span> → <span class="btn">가져오기</span> : 받은 zip 을 불러와요. 저장하지 않은 수정이 있으면 먼저 물어봐요. 확인한 뒤 <span class="btn">저장하고 보드에 보내기</span>를 눌러야 보드로 가요.</li>
+    </ul>
+    <div class="note"><b>프로그램 경로</b>보낸 컴퓨터와 받은 컴퓨터의 프로그램 위치가 다를 수 있어요. 열리지 않는 칸은 대상을 고쳐 주세요.</div>
+  </section>
+
+  <section class="flow">
+    <h2><span class="no">13</span>키보드로 쓰기</h2>
+    <table>
+      <tr><th class="c">키</th><th>하는 일</th><th class="c">키</th><th>하는 일</th></tr>
+      <tr><td class="c"><span class="key">←↑→↓</span></td><td>칸 옮기기</td><td class="c"><span class="key">F2</span></td><td>이름 고치기</td></tr>
+      <tr><td class="c"><span class="key">Enter</span></td><td>눌러 보기</td><td class="c"><span class="key">Ctrl</span>+<span class="key">S</span></td><td>저장하고 보내기</td></tr>
+      <tr><td class="c"><span class="key">Delete</span></td><td>칸 비우기</td><td class="c"><span class="key">Ctrl</span>+<span class="key">F</span></td><td>동작 찾기</td></tr>
+      <tr><td class="c"><span class="key">Ctrl</span>+<span class="key">C</span>/<span class="key">V</span></td><td>칸 복사·붙여넣기</td><td class="c"></td><td></td></tr>
+    </table>
+  </section>
+</section>
+
+<section>
+  <h2><span class="no">14</span>끄기·지우기</h2>
+  <ul>
+    <li><b>잠깐 끄기</b> : 아이콘 오른쪽 클릭 → <span class="btn">끝내기</span>. 다시 켜려면 시작 메뉴의 ‘교실알림판 도우미’.</li>
+    <li><b>저절로 켜지 않기</b> : 아이콘 오른쪽 클릭 → ‘컴퓨터를 켤 때 저절로 켜기’를 끔.</li>
+    <li><b>지우기</b> : 받은 꾸러미의 <b>끄기.bat</b> 을 더블클릭. 꾸민 설정까지 지울지 물어봐요.</li>
+  </ul>
+
+  <section class="flow">
+    <h2><span class="no">15</span>안 될 때</h2>
+    <p>아이콘 오른쪽 클릭 → <span class="btn">기록 보기</span>에서 마지막 줄을 봐요.</p>
+    <table>
+      <tr><th style="width:36%">증상·기록</th><th>해결</th></tr>
+      <tr><td>‘포트 열어 봄’이 없어요</td><td>컴퓨터가 보드를 못 봐요. 데이터 케이블인지, 7인치는 ‘UART’ 단자인지, 다른 USB 구멍에 꽂아 봐요. 7인치는 CH343 드라이버가 필요할 수 있어요.</td></tr>
+      <tr><td>‘알림판 아님(답 없음)’</td><td>보드 프로그램이 예전 것이거나, 같은 칩을 쓰는 다른 장치예요. 1분 뒤 다시 확인해요.</td></tr>
+      <tr><td>‘알림판 확인’까지 있는데 안 열려요</td><td>칸의 대상(프로그램 경로·주소)을 고치고 <span class="btn">▶ 눌러 보기</span>로 확인해요.</td></tr>
+      <tr><td>단축키가 안 먹어요</td><td>단축키는 <b>맨 앞에 있는 창</b>에 들어가요. 보낼 프로그램 창을 먼저 눌러 두세요. Win 키 조합은 ‘Win 키도 함께’를 켰는지 봐요.</td></tr>
+      <tr><td>여러 동작 중 일부가 안 돼요</td><td>앞 프로그램이 뜨기 전에 다음 동작이 와서 그래요. 기다리기를 1~2초 늘려요.</td></tr>
+      <tr><td>“설정 파일이 깨져 있어 기본값으로 시작해요”</td><td>원본은 <code>deck.json.broken</code> 으로 남아 있어요. 내보내 둔 zip 이 있으면 가져오기로 되살려요.</td></tr>
+      <tr><td>컴퓨터를 켠 뒤 아이콘이 없어요</td><td>시작 메뉴에서 ‘교실알림판 도우미’를 눌러 켜요.</td></tr>
+    </table>
+    <p class="small" style="margin-top:6mm">글꼴: 에스코어 드림 (S-Core) · 아이콘 일부: Tabler Icons (MIT) · 받는 곳 penedu.web.app/deck</p>
+  </section>
+</section>
+
+</body>
+</html>
