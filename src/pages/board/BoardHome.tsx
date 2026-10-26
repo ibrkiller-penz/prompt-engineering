@@ -207,23 +207,28 @@ export default function BoardHome() {
         압축은 <b>영문 경로</b>(예: <code>C:\dev</code>)에 풀어 주세요. 한글 폴더에서는 빌드가 멈춰요.
       </p>
       <div className="mt-4 flex flex-col rounded-card border border-line bg-surface p-4">
-        <p className="font-extrabold">⌨️ 단축키 도우미만 (7인치·4인치 공통)</p>
+        <p className="font-extrabold">⌨️ 단축키 도우미 · PC용 exe (7인치·4인치 공통)</p>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          이미 구운 보드를 <b>다른 컴퓨터</b>에 꽂아 단축키를 쓸 때. 안의 <b>교실알림판_도우미.exe</b> 하나만 더블클릭하면 끝이에요(관리자 권한 필요
-          없음). 작업 표시줄에 아이콘이 생기고 보드와 이어지면 초록으로 바뀌어요. 컴퓨터를 켤 때 저절로 켜져요. 학교 백신이 exe를 막으면 압축을
-          풀고 <b>설치.bat</b>을 써요.{kits.helper?.bytes ? ` · ${mb(kits.helper.bytes)}` : ""}
+          보드를 꽂은 <b>윈도 컴퓨터</b>에 까는 작은 프로그램이에요. <b>교실알림판_도우미.exe</b> 하나만 더블클릭하면 끝(관리자 권한 필요 없음).
+          작업 표시줄에 아이콘이 생기고 보드와 이어지면 초록으로 바뀌어요. 아이콘 오른쪽 클릭 → <b>[단축키 꾸미기…]</b>에서 16칸을 스트림덱처럼
+          꾸며 보드로 보내요(아이콘 모음 205개 · 한 번에 채우기 · 내보내기/가져오기).{kits.helperExe?.bytes ? ` · ${mb(kits.helperExe.bytes)}` : ""}
         </p>
+        <img
+          src="/board/deck-helper-screen.png"
+          alt="단축키 꾸미기 창: 가운데 보드 미리보기, 오른쪽 동작 목록, 아래 칸 설정"
+          className="mt-3 w-full max-w-2xl rounded-card border border-line"
+          loading="lazy"
+        />
         <p className="mt-2 text-sm leading-relaxed">
           짧은 주소: <Link to="/deck" className="font-bold text-accent underline">penedu.web.app/deck</Link> — 도우미가 없을 때 보드에서 단축키를 누르면 이
-          주소가 화면에 떠요. 그 컴퓨터의 인터넷 창에 치면 exe 를 바로 받는 쪽이 열려요.
+          주소가 화면에 떠요. 받는 방법과 쓰는 법이 거기에 차례대로 있어요.
         </p>
-        <a
-          href={`/board/${kits.helper.file}`}
-          download
+        <Link
+          to="/deck"
           className="mt-3 inline-flex min-h-[44px] items-center justify-center self-start rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110"
         >
-          ⬇ {kits.helper.file}
-        </a>
+          ⬇ 도우미 받기 · 안내 보기
+        </Link>
       </div>
 
       <H2>시작하기 전에 알아 둘 것</H2>

@@ -87,7 +87,7 @@ class LibraryPicker : Form
 
     public LibraryPicker(int theme)
     {
-        Text = "아이콘 모음에서 고르기"; Font = new Font("Malgun Gothic", 9.5f);
+        Text = "아이콘 모음에서 고르기"; Font = DeckFonts.Regular(9.5f);
         ClientSize = new Size(820, 600); StartPosition = FormStartPosition.CenterParent; MinimizeBox = false;
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8, 8, 8, 0) };
         top.Controls.Add(new Label { Text = "테마", AutoSize = true, Margin = new Padding(0, 6, 4, 0) });

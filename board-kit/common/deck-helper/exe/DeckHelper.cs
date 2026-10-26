@@ -15,6 +15,7 @@ using System.IO;
 using System.IO.Ports;
 using System.Management;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -30,6 +31,15 @@ static class Program
     [STAThread]
     static void Main(string[] args)
     {
+        // --preview <폴더>: '단축키 꾸미기' 창 그림만 만들고 끝낸다(뮤텍스·포트·트레이·설치·로그·사용자 폴더를 건드리지 않음)
+        int pi = Array.IndexOf(args, "--preview");
+        if (pi >= 0) { Environment.ExitCode = RunPreview(pi + 1 < args.Length ? args[pi + 1] : "미리보기그림"); return; }
+        RunTray(args);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static void RunTray(string[] args)
+    {
         bool fresh;
         using (var m = new Mutex(true, "PeneduBoardDeckHelper", out fresh))
         {
@@ -37,6 +47,16 @@ static class Program
             Application.EnableVisualStyles();
             Application.Run(new Helper(Array.IndexOf(args, "--test") >= 0));
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static int RunPreview(string dir)
+    {
+        dir = Path.GetFullPath(dir);
+        Directory.CreateDirectory(dir);
+        // Helper 의 static 필드(Dir)가 만들어지기 전에 자료 폴더를 바꿔 둔다
+        Environment.SetEnvironmentVariable("PENEDU_DECK_DIR", Path.Combine(dir, "_자료"));
+        return DeckPreview.Run(dir);
     }
 }
 
@@ -114,6 +134,24 @@ class Helper : ApplicationContext
     DeckForm form;
     public event Action<string> PushProgress;   // 보드 스레드에서 온다(창은 ui.Post 로 받는다)
     public SynchronizationContext Ui { get { return ui; } }
+
+    static Helper() { }                       // static 필드를 '처음 쓸 때' 만들게 해서 --preview 의 PENEDU_DECK_DIR 가 먹게 한다
+    public static bool Quiet;                  // true 면 Log() 가 아무것도 안 씀(미리보기)
+    public static bool IsPreview;              // 미리보기: DeckForm 이 설정 쓰기·창 줄이기를 건너뜀
+    public static string DataDir { get { return Dir; } }
+
+    // 미리보기 전용: 트레이·포트·설치·스레드 없음
+    internal Helper(string previewData)
+    {
+        test = true; Quiet = true; IsPreview = true;
+        ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+        string real = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PeneduBoard");
+        if (string.Equals(Path.GetFullPath(Dir).TrimEnd('\\'), real.TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("미리보기가 사용자 폴더를 쓰려고 함");   // 안전장치
+        Directory.CreateDirectory(Dir);
+        DeckIcons.ExtractBuiltins(Path.Combine(IconDir, "기본"));
+        DeckLibrary.Extract(Path.Combine(IconDir, "모음"));
+    }
 
     public Helper(bool testMode)
     {
@@ -430,6 +468,9 @@ class Helper : ApplicationContext
     // 소리·음악 키(아이콘 모음의 '소리 크게'·'재생/멈춤' 등)
     static readonly Dictionary<string, byte> MediaKeys = new Dictionary<string, byte> {
         { "#volup", 0xAF }, { "#voldown", 0xAE }, { "#playpause", 0xB3 }, { "#next", 0xB0 }, { "#prev", 0xB1 } };
+
+    // 설정 창의 [▶ 눌러 보기]: 보드 없이 이 컴퓨터에서 바로 해 본다(화면 스레드에서 부른다)
+    public static void TryCell(string kind, string t) { Exec(kind, t); }
 
     // 칸 하나 실행(화면 스레드): 프로그램·사이트 열기 / 단축키 / 글자 붙여 넣기 / 내장 기능
     static void Exec(string kind, string t)
@@ -915,6 +956,7 @@ class Helper : ApplicationContext
 
     static void Log(string m)
     {
+        if (Quiet) return;
         try { File.AppendAllText(LogFile, DateTime.Now.ToString("MM-dd HH:mm:ss") + " " + m + "\r\n", Encoding.UTF8); } catch { }
     }
 }

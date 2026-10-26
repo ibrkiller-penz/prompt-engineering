@@ -37,18 +37,16 @@ for board in ("7inch", "4inch"):
                 z.writestr(zi, fh.read())
     meta[board] = {"file": name, "bytes": os.path.getsize(path), "date": datetime.date.today().isoformat(), "files": len(seen)}
     print(name, meta[board]["bytes"], "bytes,", len(seen), "files")
-# 단축키 도우미 단독 꾸러미(7인치·4인치 공통): 키트 없이 다른 컴퓨터에 설치.bat 만 눌러 깔기(2026-10-26)
-helpers = [os.path.join(KIT, b, "tools", "deck_helper.ps1") for b in ("7inch", "4inch")]
-hb = [open(h, "rb").read() for h in helpers]
-if hb[0] != hb[1]:
-    sys.exit("7inch/tools/deck_helper.ps1 과 4inch/tools/deck_helper.ps1 이 다르다 — 한쪽을 고쳤으면 다른 쪽에도 똑같이 복사할 것")
+# 단축키 도우미 단독 꾸러미(7인치·4인치 공통): exe + 읽어보기 + 끄기.bat + 아이콘 만들기 안내.
+# PC용은 exe 판 하나만 둔다(예전 PowerShell 판 설치.bat 은 2026-10-27 에 없앰).
 name = "penedu-board-deck-helper.zip"
 path = os.path.join(OUT, name)
-pkg = {"deck_helper.ps1": helpers[0]}
 hd = os.path.join(KIT, "common", "deck-helper")
-for f in sorted(os.listdir(hd)):
-    if os.path.isfile(os.path.join(hd, f)):   # exe/ (소스·아이콘·만들기 스크립트)는 키트에만, 꾸러미에는 만든 exe 만
-        pkg[f] = os.path.join(hd, f)
+pkg = {}
+for f in ("교실알림판_도우미.exe", "읽어보기.txt", "끄기.bat", "uninstall.ps1", "아이콘_직접만들기.md"):
+    if not os.path.isfile(os.path.join(hd, f)):
+        sys.exit("도우미 꾸러미에 넣을 파일이 없다: " + f)
+    pkg[f] = os.path.join(hd, f)
 with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for rel in sorted(pkg):
         zi = zipfile.ZipInfo(f"penedu-board-deck-helper/{rel}", date_time=(2026, 10, 6, 0, 0, 0))
