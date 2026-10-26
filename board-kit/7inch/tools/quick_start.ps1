@@ -149,14 +149,12 @@ if ($paused) { Remove-Item (Join-Path $env:TEMP 'deck_helper.stop') -ErrorAction
 # 8. 단축키 도우미(선택)
 Step 8 '단축키 도우미(선택: 보드의 단축키 단추로 이 컴퓨터의 프로그램 열기)'
 $vbs = Join-Path ([Environment]::GetFolderPath('Startup')) '교실알림판_단축키도우미.vbs'
-if (Test-Path $vbs) { Ok '이미 등록됨' }
-elseif (Yes '이 컴퓨터를 켤 때 도우미가 창 없이 켜지게 등록할까요?') {
-  $helper = Join-Path $PSScriptRoot 'deck_helper.ps1'
-  $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $helper + '"'
-  $body = "' 교실 알림판 단축키 도우미(창 없이 켜기). 끄려면 이 파일을 지우세요.`r`nCreateObject(""WScript.Shell"").Run """ + $cmd.Replace('"', '""') + """, 0, False`r`n"
-  [IO.File]::WriteAllText($vbs, $body, [Text.Encoding]::Unicode)
-  Start-Process wscript.exe -ArgumentList ('"' + $vbs + '"')
-  Ok "등록하고 켰어요: $vbs"
-  Info '여는 프로그램은 tools\deck_helper.ps1 의 $Apps 표에서 바꿔요.'
+$run = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).PeneduBoardDeckHelper
+if ($run -or (Test-Path $vbs)) { Ok '이미 등록됨' }
+elseif (Yes '도우미(작업 표시줄 아이콘)를 켜고, 컴퓨터를 켤 때 저절로 켜지게 할까요?') {
+  # 7인치·4인치 공통 exe(common\deck-helper). 처음 켜면 %LOCALAPPDATA%\PeneduBoard 로 복사하고 저절로 켜기를 등록한다
+  Start-Process (Join-Path $root 'common\deck-helper\교실알림판_도우미.exe')
+  Ok '켰어요. 화면 오른쪽 아래 작업 표시줄에 알림판 아이콘이 생겨요(보드와 이어지면 초록, 오른쪽 클릭 → 메뉴).'
+  Info '여는 프로그램은 아이콘 메뉴의 "여는 프로그램 바꾸기"에서 바꿔요.'
 }
 Write-Host ""; Write-Host "끝! 막히면 빨간 X 줄만 AI에게 붙여 넣으세요." -ForegroundColor Yellow

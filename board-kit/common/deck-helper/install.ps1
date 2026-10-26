@@ -21,6 +21,11 @@ if (-not $src) { Bad 'deck_helper.ps1 을 못 찾았어요. 압축을 먼저 풀
 $old = @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match 'deck_helper\.ps1' })
 foreach ($p in $old) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction Stop } catch {} }
 if ($old.Count) { Info "켜져 있던 도우미 $($old.Count)개를 껐어요"; Start-Sleep 1 }
+# exe 판 도우미와 같이 돌면 같은 보드를 서로 잡으려 한다 → exe 를 끄고 저절로 켜기 등록도 지운다
+$exe = @(Get-Process -Name '교실알림판_도우미' -ErrorAction SilentlyContinue)
+foreach ($p in $exe) { try { $p.Kill() } catch {} }
+Remove-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'PeneduBoardDeckHelper' -ErrorAction SilentlyContinue
+if ($exe.Count) { Info 'exe 도우미를 끄고 이 방식으로 바꿨어요' }
 Remove-Item (Join-Path $env:TEMP 'deck_helper.stop') -ErrorAction SilentlyContinue   # '잠깐 멈춤' 표시가 남아 있으면 지운다
 
 # 2. 복사(고쳐 둔 프로그램 표가 있으면 .bak 으로 남긴다)

@@ -47,7 +47,8 @@ path = os.path.join(OUT, name)
 pkg = {"deck_helper.ps1": helpers[0]}
 hd = os.path.join(KIT, "common", "deck-helper")
 for f in sorted(os.listdir(hd)):
-    pkg[f] = os.path.join(hd, f)
+    if os.path.isfile(os.path.join(hd, f)):   # exe/ (소스·아이콘·만들기 스크립트)는 키트에만, 꾸러미에는 만든 exe 만
+        pkg[f] = os.path.join(hd, f)
 with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for rel in sorted(pkg):
         zi = zipfile.ZipInfo(f"penedu-board-deck-helper/{rel}", date_time=(2026, 10, 6, 0, 0, 0))

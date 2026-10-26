@@ -209,8 +209,9 @@ export default function BoardHome() {
       <div className="mt-4 flex flex-col rounded-card border border-line bg-surface p-4">
         <p className="font-extrabold">⌨️ 단축키 도우미만 (7인치·4인치 공통)</p>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          이미 구운 보드를 <b>다른 컴퓨터</b>에 꽂아 단축키를 쓸 때. 압축을 풀고 <b>설치.bat</b>을 더블클릭하면 끝이에요(관리자 권한 필요 없음, 컴퓨터를
-          켤 때 저절로 켜져요). 끄려면 <b>끄기.bat</b>.{kits.helper?.bytes ? ` · ${mb(kits.helper.bytes)}` : ""}
+          이미 구운 보드를 <b>다른 컴퓨터</b>에 꽂아 단축키를 쓸 때. 안의 <b>교실알림판_도우미.exe</b> 하나만 더블클릭하면 끝이에요(관리자 권한 필요
+          없음). 작업 표시줄에 아이콘이 생기고 보드와 이어지면 초록으로 바뀌어요. 컴퓨터를 켤 때 저절로 켜져요. 학교 백신이 exe를 막으면 압축을
+          풀고 <b>설치.bat</b>을 써요.{kits.helper?.bytes ? ` · ${mb(kits.helper.bytes)}` : ""}
         </p>
         <a
           href={`/board/${kits.helper.file}`}
