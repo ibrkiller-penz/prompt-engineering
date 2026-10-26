@@ -64,7 +64,7 @@ static const lv_font_t *FTEMP() { return big() ? &num44 : &num36; }        // �
 static const char *PERIOD_START[7] = {"08:40", "09:40", "10:40", "11:40", "13:30", "14:40", "15:40"};
 static const char *DOW[5] = {"월", "화", "수", "목", "금"};
 
-// ── 색 ── 테마 5가지(설정 '화면 색', prefs "theme"). 1번 '따뜻함'이 원래 값. 바꾸면 다시 켜서 화면을 새로 만든다.
+// ── 색 ── 테마 5가지(설정 '화면 색', prefs "theme"). 1번 '따뜻함'이 원래 값. 바꾸면 다시 켜지 않고 화면 물체만 새로 만든다(rebuildUi).
 struct Theme {
   const char *name;
   uint32_t C_PRIMARY, C_PRIMARY50, C_TEXT, C_MUTED, C_LIGHT, C_BG, C_SURF, C_ALT, C_BORDER, C_LINE, C_EMERALD, C_ROSE;
@@ -98,7 +98,7 @@ static const Theme THEMES[5] = {
 static const int THEME_N = 5;
 static int s_themeIdx = 0;                // prefs "theme"(0~4)
 static const Theme *s_th = &THEMES[0];   // setup 에서 prefs "theme" 을 읽어 buildUI 전에 정한다
-static uint32_t s_themeRestartAt = 0;     // 화면 색을 바꾼 때(1초 뒤 다시 켠다)
+static uint32_t s_themeRestartAt = 0;     // 화면 색을 바꾼 때(잠시 뒤 화면을 새 색으로 다시 만든다 — 다시 켜지 않는다)
 #define C_PRIMARY (s_th->C_PRIMARY)
 #define C_PRIMARY50 (s_th->C_PRIMARY50)
 #define C_TEXT (s_th->C_TEXT)
@@ -3395,6 +3395,29 @@ static void initDisplay() {
 
 SET_LOOP_TASK_STACK_SIZE(16 * 1024);   // loop 스택 8→16KB(교장실 화면 그리기가 깊다)
 
+// 화면 색을 바꿀 때: 보드를 다시 켜지 않고 화면 물체만 새 색으로 다시 만든다.
+// 다시 켜면 시계 칩이 없어 시각을 맞추려고 와이파이로 다시 받게 된다(사용자 지적: "테마는 색만 바꾸면 되는데", 2026-10-26).
+// 받은 자료(시간표·날씨·급식·일정)와 와이파이·시각은 그대로 두고, setup 의 그리기 순서를 다시 돈다.
+static void rebuildUi() {
+  const View v = s_view;
+  const uint32_t t0 = millis();
+  lock();
+  s_th = &THEMES[s_themeIdx];
+  lv_obj_clean(lv_scr_act());
+  buildUI();
+  s_batPct = -99; s_lastMin = -1;                        // 배터리·시계 글을 다음 바퀴에 다시 쓰게
+  s_findGridDirty = true; s_weekDirty = true; s_todayDirty = true; s_ttLayoutDirty = true;
+  renderWeather(); renderMeal(); renderAir();
+  fillFinderGrid(); renderFinder();
+  fillPicker();
+  renderTT();
+  refreshWifiLabel();
+  showView(v);
+  refreshStale();
+  unlock();
+  Serial.printf("theme %d applied (%ums, no restart)\n", s_themeIdx, (unsigned)(millis() - t0));
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.printf("\n교실 알림판 v%s\n", FW_VERSION);
@@ -3606,7 +3629,7 @@ void loop() {
       if (s_failKind == FK_AUTH || s_failKind == FK_NOAP) s_failKind = FK_NONE;
       s_syncReq = true;
     }
-    if (s_themeRestartAt && millis() - s_themeRestartAt > 1000) { Serial.printf("restart (theme %d)", s_themeIdx); Serial.println(); s_prefs.putInt("hr", 2); delay(100); ESP.restart(); }
+    if (s_themeRestartAt && millis() - s_themeRestartAt > 300) { s_themeRestartAt = 0; rebuildUi(); }   // 화면 색: 다시 켜지 않는다(사용자 지적 2026-10-26)
     if (s_rebootReq) { Serial.println("restart (button)"); s_prefs.putInt("hr", 2); delay(200); ESP.restart(); }
     bool due = s_prefs.isKey("ssid") && (!s_triedOnce || ms - s_lastSync > syncWaitMs());
     if (ms < 5000) due = false;                                  // 켠 뒤 5초는 기다린다
