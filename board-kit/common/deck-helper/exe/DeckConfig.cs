@@ -78,7 +78,7 @@ class DeckConfig
             string t = appFor(Keys[i]) ?? "";
             var c = new DeckCell { Name = KeyNames[i], Target = t, IconMode = "builtin", IconSrc = Keys[i] };
             if (t.StartsWith("#")) c.Kind = "builtin";
-            else if (t.StartsWith("http://") || t.StartsWith("https://")) c.Kind = "url";
+            else if (UrlX.IsWeb(t)) c.Kind = "url";
             else c.Kind = "app";
             d.Cells[i] = c;
         }
@@ -114,9 +114,14 @@ class DeckConfig
                     {
                         var sm = so as Dictionary<string, object>;
                         if (sm == null) continue;
+                        if (c.Steps.Count >= DeckRun.MaxSteps) break;   // 단계는 12개까지
                         var st = new DeckStep { Kind = Str(sm, "kind"), Target = Str(sm, "target"), Opt = ReadOpt(sm) };
                         object w;
-                        if (sm.TryGetValue("wait", out w) && w is double) st.Wait = Math.Max(0, Math.Min(10000, (int)(double)w));
+                        if (sm.TryGetValue("wait", out w) && w is double)
+                        {   // double 에서 바로 자른다(먼저 int 로 바꾸면 아주 큰 값이 넘쳐 0 이 된다)
+                            double wd = (double)w;
+                            st.Wait = double.IsNaN(wd) ? 0 : (int)Math.Max(0, Math.Min(10000, wd));
+                        }
                         c.Steps.Add(st);
                     }
             }
@@ -194,11 +199,21 @@ class DeckConfig
     {
         var sb = new StringBuilder();
         sb.Append("{\"v\":1,\"n\":[");
-        for (int i = 0; i < 16; i++) { if (i > 0) sb.Append(','); sb.Append(Q(Cells[i].Kind == "none" ? "" : Cells[i].Name)); }
+        for (int i = 0; i < 16; i++) { if (i > 0) sb.Append(','); sb.Append(Q(Cells[i].Kind == "none" ? "" : BoardName(Cells[i].Name))); }
         sb.Append("],\"ic\":[");
         for (int i = 0; i < 16; i++) { if (i > 0) sb.Append(','); sb.Append(Q(CfgIcon(i))); }
         sb.Append("]}");
         return new UTF8Encoding(false).GetBytes(sb.ToString());
+    }
+
+    // 보드로 보낼 이름: 보드 글꼴 밖 글자는 빼고, 앞뒤 공백을 지우고, 39바이트(UTF-8)까지만(손으로 고친 deck.json 도 안전하게)
+    public static string BoardName(string name)
+    {
+        var sb = new StringBuilder();
+        foreach (char ch in name ?? "") if (DeckForm.CharOk(ch)) sb.Append(ch);
+        string r = sb.ToString().Trim();
+        while (r.Length > 0 && Encoding.UTF8.GetByteCount(r) > 39) r = r.Substring(0, r.Length - 1).TrimEnd();
+        return r;
     }
 
     // JSON 문자열: " \ 만 바꾸고 0x00~0x1F 는 \uXXXX, 한글·/ 는 그대로

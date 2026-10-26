@@ -32,7 +32,8 @@ static class DeckRun
                 return;
             case "url":
             {
-                if (!Regex.IsMatch(t, "^[a-zA-Z][a-zA-Z0-9+.-]*:")) t = "https://" + t;
+                t = t.Trim();
+                if (!UrlX.HasScheme(t)) t = "https://" + t;
                 string br = OptX.Get(opt, "browser");
                 bool nw = OptX.Get(opt, "newwin") == "1";
                 if (br.Length > 0)
@@ -50,9 +51,10 @@ static class DeckRun
             }
             case "app":
             {
-                if (OptX.Get(opt, "front") == "1" && BringToFront(t)) return;
-                var psi = new ProcessStartInfo(t) { UseShellExecute = true };
                 string args = OptX.Get(opt, "args"), dir = OptX.Get(opt, "dir");
+                // 넘길 값(args)이 있으면 열린 창을 앞으로 가져오지 않고 새로 연다(값이 버려지지 않게)
+                if (OptX.Get(opt, "front") == "1" && args.Length == 0 && BringToFront(t)) return;
+                var psi = new ProcessStartInfo(t) { UseShellExecute = true };
                 if (args.Length > 0) psi.Arguments = args;
                 if (dir.Length > 0 && Directory.Exists(dir)) psi.WorkingDirectory = dir;
                 if (OptX.Get(opt, "admin") == "1") psi.Verb = "runas";
@@ -68,6 +70,12 @@ static class DeckRun
     // 보드 칸·[눌러 보기]: 한 동작은 바로, '여러 동작'은 따로 스레드에서 차례대로(기다리는 동안 보드 통신이 멈추지 않게)
     public static bool Run(DeckCell c, SynchronizationContext ui, Action<string> log)
     {
+        return Run(c, ui, log, null);
+    }
+
+    // fail: '여러 동작' 중 실패한 단계를 화면에 알려 줌(화면 스레드에서 불림)
+    public static bool Run(DeckCell c, SynchronizationContext ui, Action<string> log, Action<string> fail)
+    {
         if (c == null) return false;
         if (c.Kind == "multi")
         {
@@ -81,7 +89,15 @@ static class DeckRun
                 {
                     var s = steps[i];
                     try { ui.Send(delegate { Exec(s.Kind, s.Target, s.Opt); }, null); }
-                    catch (Exception ex) { if (log != null) log("여러 동작 '" + name + "' " + (i + 1) + "번째 실패: " + ex.Message); }
+                    catch (Exception ex)
+                    {
+                        if (log != null) log("여러 동작 '" + name + "' " + (i + 1) + "번째 실패: " + ex.Message);
+                        if (fail != null)
+                        {
+                            string msg = (i + 1) + "번째 동작을 하지 못했어요 (" + ErrText.Easy(ex) + ")";
+                            try { ui.Post(delegate { try { fail(msg); } catch { } }, null); } catch { }
+                        }
+                    }
                     if (i < steps.Count - 1 && s.Wait > 0) Thread.Sleep(Math.Min(10000, s.Wait));
                 }
             });
@@ -152,9 +168,16 @@ static class KeySend
 
     static void TapWith(List<byte> mods, byte vk, int times)
     {
-        foreach (var m in mods) Key(m, false);
-        for (int i = 0; i < Math.Max(1, times); i++) { Key(vk, false); Thread.Sleep(5); Key(vk, true); Thread.Sleep(5); }
-        for (int i = mods.Count - 1; i >= 0; i--) Key(mods[i], true);
+        int down = 0;
+        try
+        {
+            foreach (var m in mods) { Key(m, false); down++; }
+            for (int i = 0; i < Math.Max(1, times); i++) { Key(vk, false); Thread.Sleep(5); Key(vk, true); Thread.Sleep(5); }
+        }
+        finally
+        {   // 중간에 예외가 나도 Ctrl·Alt·Win 이 눌린 채 남지 않게
+            for (int i = down - 1; i >= 0; i--) Key(mods[i], true);
+        }
         Thread.Sleep(15);
     }
 
@@ -172,6 +195,29 @@ static class KeySend
         if ((st & 2) != 0 && !all.Contains(0x11)) all.Add(0x11);
         if ((st & 4) != 0 && !all.Contains(0x12)) all.Add(0x12);
         TapWith(all, (byte)(r & 0xff), times);
+    }
+
+    // ( 의 짝 ) 위치(깊이를 센다). 짝이 없으면 s.Length
+    public static int CloseParen(string s, int i)
+    {
+        int depth = 1, j = i + 1;
+        while (j < s.Length && depth > 0) { if (s[j] == '(') depth++; else if (s[j] == ')') depth--; if (depth > 0) j++; }
+        return j;
+    }
+
+    // { 의 짝 } 위치. {}} 처럼 } 자체도 되게 i+2 부터 찾는다. 짝이 없으면 s.Length(끝까지)
+    public static int CloseBrace(string s, int i)
+    {
+        int end = (i + 2 <= s.Length) ? s.IndexOf('}', i + 2) : -1;
+        return end < 0 ? s.Length : end;
+    }
+
+    // {키 N} 의 N: 숫자가 아니거나 너무 크면 50 으로 자른다
+    public static int Repeat(string n)
+    {
+        int v;
+        if (!int.TryParse(n, out v) || v > 50) return 50;
+        return Math.Max(1, v);
     }
 
     public static void Send(string s)
@@ -192,24 +238,29 @@ static class KeySend
             }
             if (c == '(')
             {
-                int depth = 1, j = i + 1;
-                while (j < s.Length && depth > 0) { if (s[j] == '(') depth++; else if (s[j] == ')') depth--; if (depth > 0) j++; }
+                int j = CloseParen(s, i);
                 string inner = s.Substring(i + 1, Math.Max(0, j - i - 1));
-                foreach (var m in mods) Key(m, false);
-                Send(inner);
-                for (int k = mods.Count - 1; k >= 0; k--) Key(mods[k], true);
+                int down = 0;
+                try
+                {
+                    foreach (var m in mods) { Key(m, false); down++; }
+                    Send(inner);
+                }
+                finally
+                {   // 안쪽에서 예외가 나도 앞 키를 꼭 뗀다
+                    for (int k = down - 1; k >= 0; k--) Key(mods[k], true);
+                }
                 mods.Clear();
                 i = Math.Min(s.Length, j + 1);
                 continue;
             }
             if (c == '{')
             {
-                int end = s.IndexOf('}', i + 2);       // {}} 처럼 } 자체도 되게 i+2 부터 찾는다
-                if (end < 0) end = s.Length - 1;
-                string body = s.Substring(i + 1, end - i - 1);
+                int end = CloseBrace(s, i);
+                string body = s.Substring(i + 1, Math.Max(0, end - i - 1));
                 int times = 1;
                 var mm = Regex.Match(body, "^(.+?) (\\d+)$");
-                if (mm.Success) { body = mm.Groups[1].Value; times = Math.Min(50, int.Parse(mm.Groups[2].Value)); }
+                if (mm.Success) { body = mm.Groups[1].Value; times = Repeat(mm.Groups[2].Value); }
                 byte vk;
                 var fk = Regex.Match(body, "^F([1-9]|1[0-9]|2[0-4])$", RegexOptions.IgnoreCase);
                 if (fk.Success) TapWith(mods, (byte)(0x6F + int.Parse(fk.Groups[1].Value)), times);
@@ -251,30 +302,72 @@ static class KeyText
             string key;
             if (c == '(')
             {
-                int j = s.IndexOf(')', i);
-                if (j < 0) j = s.Length;
+                int j = KeySend.CloseParen(s, i);
                 key = Describe(s.Substring(i + 1, Math.Max(0, j - i - 1)));
                 i = j + 1;
             }
             else if (c == '{')
             {
-                int end = s.IndexOf('}', i + 2);
-                if (end < 0) end = s.Length - 1;
+                int end = KeySend.CloseBrace(s, i);
                 string body = s.Substring(i + 1, Math.Max(0, end - i - 1));
                 string times = "";
                 var mm = Regex.Match(body, "^(.+?) (\\d+)$");
-                if (mm.Success) { body = mm.Groups[1].Value; times = " ×" + mm.Groups[2].Value; }
+                if (mm.Success) { body = mm.Groups[1].Value; times = " ×" + KeySend.Repeat(mm.Groups[2].Value); }
                 string n;
-                key = (Nice.TryGetValue(body, out n) ? n : body.Length == 1 ? body.ToUpperInvariant() : body.ToUpperInvariant()) + times;
+                key = (Nice.TryGetValue(body, out n) ? n : body.ToUpperInvariant()) + times;
+                if (body.Length == 1 && body[0] >= 'A' && body[0] <= 'Z' && !mods.Contains("Shift")) mods.Add("Shift");   // 대문자는 Shift 가 함께 눌린다(Send 와 같게)
                 i = end + 1;
             }
             else if (c == '~') { key = "Enter"; i++; }
             else if (c == ' ') { key = "Space"; i++; }
-            else { key = c.ToString().ToUpperInvariant(); i++; }
+            else
+            {
+                key = c.ToString().ToUpperInvariant();
+                if (c >= 'A' && c <= 'Z' && !mods.Contains("Shift")) mods.Add("Shift");   // 대문자는 Shift 가 함께 눌린다(Send 와 같게)
+                i++;
+            }
             var all = new List<string>(mods); all.Add(key);
             parts.Add(string.Join(" + ", all.ToArray()));
             mods.Clear();
         }
         return string.Join(", ", parts.ToArray());
+    }
+}
+
+// 주소인지 가리기: "https://", "mailto:" 처럼 앞에 방식이 붙었는지(localhost:3000·naver.com:8080 은 방식이 아님)
+static class UrlX
+{
+    // ://  또는  두 글자 이상 이름 + ':' 다음이 숫자가 아님(steam:rungameid, slack:open, mailto:). localhost:3000·naver.com:8080 은 아님, C:\ 도 아님
+    static readonly Regex Scheme = new Regex("^([a-zA-Z][a-zA-Z0-9+.-]*://|[a-zA-Z][a-zA-Z0-9+-]+:(?![0-9]))", RegexOptions.IgnoreCase);
+    public static bool HasScheme(string t) { return t != null && Scheme.IsMatch(t.Trim()); }
+    public static bool IsWeb(string t)
+    {
+        if (t == null) return false;
+        t = t.Trim();
+        return t.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || t.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+// 예외를 쉬운 한국어로(원문은 기록에만 남긴다)
+static class ErrText
+{
+    public static string Easy(Exception ex)
+    {
+        if (ex == null) return "알 수 없는 문제가 생겼어요";
+        var w = ex as System.ComponentModel.Win32Exception;
+        if (w != null)
+        {
+            if (w.NativeErrorCode == 2 || w.NativeErrorCode == 3) return "파일이나 프로그램을 찾지 못했어요";
+            if (w.NativeErrorCode == 1223) return "실행을 취소했어요";
+            if (w.NativeErrorCode == 5) return "권한이 없어요";
+            return "열지 못했어요";
+        }
+        if (ex is FileNotFoundException || ex is DirectoryNotFoundException) return "파일이나 폴더를 찾지 못했어요";
+        if (ex is UnauthorizedAccessException) return "권한이 없어 읽거나 쓸 수 없어요";
+        if (ex is PathTooLongException) return "파일 경로가 너무 길어요";
+        if (ex is IOException) return "다른 프로그램이 파일을 쓰고 있거나 읽고 쓸 수 없어요";
+        if (ex is FormatException || ex is ArgumentException || ex is InvalidDataException || ex is InvalidCastException) return "파일 내용이 올바르지 않아요";
+        if (ex is OutOfMemoryException) return "파일이 너무 크거나 그림 파일이 아니에요";
+        return "알 수 없는 문제가 생겼어요";
     }
 }

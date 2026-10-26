@@ -428,13 +428,25 @@ static class DeckIcons
         {
             Directory.CreateDirectory(dir);
             var asm = Assembly.GetExecutingAssembly();
+            // exe 가 바뀌어 묻은 그림이 달라졌으면 덮어쓴다(그림 크기들을 .ver 에 적어 둠, DeckLibrary.Extract 와 같은 방식)
+            var sizes = new StringBuilder();
+            foreach (var k in DeckConfig.Keys)
+                using (var s = asm.GetManifestResourceStream("deck." + k + ".png")) sizes.Append(s != null ? s.Length : 0).Append(',');
+            string ver = Path.Combine(dir, ".ver"), want = sizes.ToString();
+            bool same = false, allOk = true;
+            try { same = File.Exists(ver) && File.ReadAllText(ver) == want; } catch { }
             foreach (var k in DeckConfig.Keys)
             {
                 string f = Path.Combine(dir, k + ".png");
-                if (File.Exists(f)) continue;
-                using (var s = asm.GetManifestResourceStream("deck." + k + ".png"))
-                    if (s != null) using (var fs = File.Create(f)) s.CopyTo(fs);
+                if (same && File.Exists(f)) continue;
+                try
+                {
+                    using (var s = asm.GetManifestResourceStream("deck." + k + ".png"))
+                        if (s != null) using (var fs = File.Create(f)) s.CopyTo(fs);
+                }
+                catch { allOk = false; }   // 다른 곳에서 그림을 쓰는 중이면 다음에
             }
+            if (allOk && !same) try { File.WriteAllText(ver, want); } catch { }
         }
         catch { }
     }

@@ -337,7 +337,7 @@ class BoardView : Control
     {
         if (!d.GetDataPresent(DataFormats.UnicodeText)) return null;
         var t = (d.GetData(DataFormats.UnicodeText) as string ?? "").Trim();
-        return t.StartsWith("http://") || t.StartsWith("https://") ? t : null;
+        return UrlX.IsWeb(t) ? t : null;
     }
 
     void UpdateDrop(DragEventArgs e)

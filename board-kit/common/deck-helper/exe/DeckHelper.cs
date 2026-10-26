@@ -44,6 +44,9 @@ static class Program
         using (var m = new Mutex(true, "PeneduBoardDeckHelper", out fresh))
         {
             if (!fresh) { MessageBox.Show("단축키 도우미가 이미 켜져 있어요.\n화면 오른쪽 아래 작업 표시줄(^ 안쪽)의 아이콘을 보세요.", "교실 알림판 도우미"); return; }
+            // 화면 쪽에서 미처 못 잡은 예외: 도우미가 꺼지지 않게 기록만 남긴다
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+            Application.ThreadException += delegate (object s, ThreadExceptionEventArgs e) { Helper.Log("화면 오류(계속 켜 둠): " + e.Exception); };
             Application.EnableVisualStyles();
             Application.Run(new Helper(Array.IndexOf(args, "--test") >= 0));
         }
@@ -165,7 +168,7 @@ class Helper : ApplicationContext
         menu.Items.Add(miState);
         menu.Items.Add("단축키 꾸미기…", null, delegate { OpenDeckForm(); });
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("여는 프로그램 바꾸기(옛 보드용, 메모장)", null, delegate { OpenAppsFile(); });
+        menu.Items.Add("예전 보드만 쓰는 프로그램 목록", null, delegate { OpenAppsFile(); });
         menu.Items.Add("기록 보기", null, delegate { ShellOpen(LogFile); });
         menu.Items.Add(miPause);
         menu.Items.Add(miAuto);
@@ -182,6 +185,7 @@ class Helper : ApplicationContext
             // 화면 스레드에서는 보드 목록을 잠그지 않는다(보드 스레드가 프로그램을 열려고 화면 스레드를 기다리는 중일 수 있다)
             if (e.Button == MouseButtons.Left) tray.ShowBalloonTip(4000, "교실 알림판 도우미", lastTip.Length > 0 ? lastTip : "찾는 중", ToolTipIcon.Info);
         };
+        tray.MouseDoubleClick += delegate (object s, MouseEventArgs e) { if (e.Button == MouseButtons.Left) OpenDeckForm(); };   // 두 번 누르면 꾸미기 창
 
         Directory.CreateDirectory(Dir);
         if (!test) Install();
@@ -191,9 +195,12 @@ class Helper : ApplicationContext
         if (File.Exists(DeckFile))
             try { RefreshCfg(DeckConfig.Parse(File.ReadAllText(DeckFile, Encoding.UTF8))); }
             catch (Exception ex) { Log("deck.json 을 읽지 못함: " + ex.Message); }
-        var th = new Thread(Loop) { IsBackground = true, Name = "deck" };
-        th.Start();
+        loopTh = new Thread(Loop) { IsBackground = true, Name = "deck" };
+        loopTh.Start();
     }
+    Thread loopTh;
+    // 보드가 누른 칸('@deck 키'): Read 는 모아 두기만 하고, Loop 가 보드 목록 잠금을 푼 뒤에 연다(보드 스레드만 쓴다)
+    readonly List<KeyValuePair<string, string>> deckReq = new List<KeyValuePair<string, string>>();
 
     // 처음 켤 때: 자기를 %LOCALAPPDATA%\PeneduBoard 로 복사(압축 안이나 내려받기 폴더에서 바로 켜도 되게), 예전 스크립트 도우미는 끄고, 저절로 켜기 등록
     void Install()
@@ -267,8 +274,10 @@ class Helper : ApplicationContext
 
     void Quit()
     {
+        // 화면 스레드에서는 보드 목록을 잠그지 않는다(보드 스레드가 칸을 열려고 화면 스레드를 기다리는 중이면 서로 막힌다).
+        // quit 만 켜면 Loop 가 스스로 포트를 닫고 끝난다. 잠깐만 기다린다
         quit = true;
-        lock (boards) foreach (var b in boards.Values) try { b.Port.Close(); } catch { }
+        if (loopTh != null) try { loopTh.Join(1500); } catch { }
         tray.Visible = false;
         Log("도우미(exe) 끝냄");
         ExitThread();
@@ -285,6 +294,7 @@ class Helper : ApplicationContext
                 if (File.Exists(StopFile))
                 {
                     lock (boards) foreach (var n in new List<string>(boards.Keys)) Drop(n, "포트 놓음(멈춤)");
+                    deckReq.Clear();
                     UpdateTray();
                     Thread.Sleep(1000); continue;
                 }
@@ -320,11 +330,24 @@ class Helper : ApplicationContext
                         MaybePush(b, now);
                     }
                 lock (boards) foreach (var n in new List<string>(boards.Keys)) if (!boards[n].Pushing) Read(n);
+                if (deckReq.Count > 0)
+                {   // 잠금 밖에서 연다(여는 동안 화면 스레드를 기다려도 끝내기·창이 막히지 않게)
+                    var reqs = new List<KeyValuePair<string, string>>(deckReq);
+                    deckReq.Clear();
+                    foreach (var r in reqs)
+                    {
+                        if (quit) break;
+                        bool ok = OpenApp(r.Value);
+                        lock (boards) Send(r.Key, (ok ? "@deck ok " : "@deck fail ") + r.Value);
+                    }
+                }
                 UpdateTray();
             }
             catch (Exception ex) { Log("오류: " + ex.Message); }
+            if (quit) break;
             Thread.Sleep(100);
         }
+        lock (boards) foreach (var b in boards.Values) try { b.Port.Close(); } catch { }
     }
 
     void Scan(DateTime now)
@@ -407,8 +430,7 @@ class Helper : ApplicationContext
             {
                 if (!b.Ok) Confirm(b);
                 string key = line.Substring(6).Trim();
-                bool ok = OpenApp(key);
-                Send(n, (ok ? "@deck ok " : "@deck fail ") + key);
+                deckReq.Add(new KeyValuePair<string, string>(n, key));   // 여는 일은 Loop 가 잠금을 푼 뒤에
             }
             else if (Regex.IsMatch(line, "^(sync|reset reason|health|download|index|where|schedule|weather|meal|air|heap|pc helper|backlight|restart|deck)"))
                 BoardLog(n, line);
@@ -484,7 +506,8 @@ class Helper : ApplicationContext
             case "keys": KeySend.Send(t); return;   // SendKeys 는 Win 키(#)를 모른다 → 직접 보낸다
             case "text": Clipboard.SetText(t); SendKeys.SendWait("^v"); return;
             case "url":
-                if (!Regex.IsMatch(t, "^[a-zA-Z][a-zA-Z0-9+.-]*:")) t = "https://" + t;
+                t = (t ?? "").Trim();
+                if (!UrlX.HasScheme(t)) t = "https://" + t;
                 Process.Start(new ProcessStartInfo(t) { UseShellExecute = true });
                 return;
             case "builtin":
@@ -553,12 +576,22 @@ class Helper : ApplicationContext
 
     public static string AppFor(string key) { return Apps(key); }
 
+    // 마지막 LoadDeck 에서 deck.json 이 깨져 기본값으로 시작했나(꾸미기 창이 상태줄에 알린다)
+    public bool LoadFailed;
+
     // deck.json 읽기(없으면 기본 16개). 미리보기 그림(Tile)도 채운다
     public DeckConfig LoadDeck()
     {
         DeckConfig c = null;
+        LoadFailed = false;
         if (File.Exists(DeckFile))
-            try { c = DeckConfig.Parse(File.ReadAllText(DeckFile, Encoding.UTF8)); } catch (Exception ex) { Log("deck.json 을 읽지 못함: " + ex.Message); }
+            try { c = DeckConfig.Parse(File.ReadAllText(DeckFile, Encoding.UTF8)); }
+            catch (Exception ex)
+            {   // 깨진 파일은 저장으로 덮어쓰기 전에 deck.json.broken 으로 남겨 둔다
+                Log("deck.json 을 읽지 못함: " + ex.Message);
+                LoadFailed = true;
+                try { File.Copy(DeckFile, DeckFile + ".broken", true); } catch (Exception ex2) { Log("deck.json.broken 을 만들지 못함: " + ex2.Message); }
+            }
         if (c == null) c = DeckConfig.Default(Apps);
         for (int i = 0; i < 16; i++)
         {
@@ -958,7 +991,7 @@ class Helper : ApplicationContext
         return Icon.FromHandle(bmp.GetHicon());
     }
 
-    static void Log(string m)
+    internal static void Log(string m)
     {
         if (Quiet) return;
         try { File.AppendAllText(LogFile, DateTime.Now.ToString("MM-dd HH:mm:ss") + " " + m + "\r\n", Encoding.UTF8); } catch { }

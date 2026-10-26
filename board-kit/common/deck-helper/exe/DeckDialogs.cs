@@ -113,8 +113,9 @@ class KeyRecordForm : Form
         if (key.Length > 0) body = mods + key;
         Result = body.Length > 0 ? w + body : "";
         show.Text = Result.Length > 0 ? KeyText.Describe(Result) : (mods.Length > 0 ? KeyText.Describe(w + mods).TrimEnd() + " + …" : "여기서 키를 누르세요");
-        hint.Text = Result.Length > 0 ? "보드에 넣을 글: " + Result + "    (마음에 들면 [확인])" : "예) Ctrl+C 복사, Ctrl+Shift+M, Alt+F4, F5, Enter";
+        hint.Text = Result.Length > 0 ? "보드에 넣을 글: " + Result + "    (마음에 들면 [확인] 또는 Ctrl+Enter)" : "예) Ctrl+C, Alt+F4, F5  ·  키보드로 확인 Ctrl+Enter, 취소 Shift+Esc";
     }
+
 
     // 모든 키(Tab·화살표·Alt 조합·Enter 까지)를 이 창이 먼저 받는다
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -122,6 +123,10 @@ class KeyRecordForm : Form
         const int WM_KEYDOWN = 0x100, WM_SYSKEYDOWN = 0x104;
         if (msg.Msg != WM_KEYDOWN && msg.Msg != WM_SYSKEYDOWN) return base.ProcessCmdKey(ref msg, keyData);
         Keys k = keyData & Keys.KeyCode;
+        // 키보드만으로 닫기: Ctrl+Enter = 확인, Shift+Esc = 취소(이 두 조합은 단축키로 넣지 않는다. 필요하면 대상 칸에 ^{ENTER} 처럼 직접 써요)
+        Keys mk = keyData & Keys.Modifiers;
+        if (k == Keys.Enter && mk == Keys.Control) { DialogResult = Result.Length > 0 ? DialogResult.OK : DialogResult.Cancel; Close(); return true; }
+        if (k == Keys.Escape && mk == Keys.Shift) { DialogResult = DialogResult.Cancel; Close(); return true; }
         string m = ((keyData & Keys.Control) != 0 ? "^" : "") + ((keyData & Keys.Alt) != 0 ? "%" : "") + ((keyData & Keys.Shift) != 0 ? "+" : "");
         if (GetKeyState(0x5B) < 0 || GetKeyState(0x5C) < 0) win.Checked = true;
         if (k == Keys.ControlKey || k == Keys.ShiftKey || k == Keys.Menu || k == Keys.LWin || k == Keys.RWin)
@@ -129,7 +134,11 @@ class KeyRecordForm : Form
             mods = m; key = ""; Result = ""; Refresh2(); return true;
         }
         string t = Token(k);
-        if (t == null) return true;
+        if (t == null)
+        {   // 넣을 수 없는 키(한/영·한자 등): 조용히 무시하지 않고 알린다
+            hint.Text = "이 키는 넣을 수 없어요. 다른 키를 눌러 주세요.";
+            return true;
+        }
         mods = m; key = t;
         Refresh2();
         return true;
@@ -203,7 +212,7 @@ static class OptionsForm
                     using (var f = new FolderBrowserDialog { Description = "시작 폴더 고르기" })
                         if (f.ShowDialog(d) == DialogResult.OK) dir.Box.Text = f.SelectedPath;
                 };
-                var front = Dlg.Check(d, "이미 열려 있으면 새로 열지 않고 그 창을 앞으로 가져오기", 20, 156, OptX.Get(opt, "front") == "1");
+                var front = Dlg.Check(d, "이미 열려 있으면 그 창을 앞으로(넘길 값이 있으면 새로 열어요)", 20, 156, OptX.Get(opt, "front") == "1");
                 var admin = Dlg.Check(d, "관리자 권한으로 열기(누를 때마다 윈도가 물어봐요)", 20, 186, OptX.Get(opt, "admin") == "1");
                 Dlg.Lbl(d, "※ 대상에 파일·폴더 경로를 넣어도 돼요(그 파일을 기본 프로그램으로 열어요).", 20, 222, 480, Theme.Text3, 8.5f);
                 save = delegate
@@ -264,7 +273,7 @@ class StepsForm : Form
 {
     public readonly List<DeckStep> Steps = new List<DeckStep>();
     static readonly string[] KindCodes = { "app", "url", "keys", "text", "builtin" };
-    static readonly string[] KindNames = { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "내장 기능" };
+    static readonly string[] KindNames = { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "컴퓨터 기능" };
     static readonly int[] Waits = { 0, 300, 500, 1000, 2000, 3000, 5000 };
     static readonly string[] WaitNames = { "바로", "0.3초", "0.5초", "1초", "2초", "3초", "5초" };
 
@@ -311,6 +320,7 @@ class StepsForm : Form
         builtin.Glyph = BtnGlyph.Down; builtin.SetBounds(20, y + 65, 260, 34); Controls.Add(builtin);
         more.Text = "자세히…"; more.SetBounds(588, y + 65, 112, 34); Controls.Add(more);
         optSum = Dlg.Lbl(this, "", 20, y + 104, 680, Theme.Text3, 8.5f);
+        optSum.Height = 20; optSum.AutoEllipsis = true;   // 긴 요약은 한 줄에서 … 로 줄인다(두 줄로 넘어가 아래 글과 겹치지 않게)
         Dlg.Lbl(this, "다음 동작까지 기다리기(프로그램이 뜨는 시간을 주세요)", 20, y + 128, 400, Theme.Text2, 9f);
         wait.Items = WaitNames; wait.SetBounds(20, y + 152, 520, 32); Controls.Add(wait);
 
@@ -442,10 +452,23 @@ class StepsForm : Form
         var c = new DeckCell { Name = "시험", Kind = "multi" };
         foreach (var s in Steps) c.Steps.Add(s.Clone());
         bool other = false;
-        foreach (var s in Steps) if (s.Kind == "keys" || s.Kind == "text") other = true;
+        foreach (var s in Steps) if (s.Kind == "keys" || s.Kind == "text" || s.Target == "#altf4") other = true;   // Alt+F4 가 이 창을 닫지 않게
         if (other) { WindowState = FormWindowState.Minimized; Application.DoEvents(); System.Threading.Thread.Sleep(400); }
-        try { DeckRun.Run(c, System.Threading.SynchronizationContext.Current, null); }
-        catch (Exception ex) { MessageBox.Show(this, "해 보지 못했어요: " + ex.Message, "여러 동작"); }
+        try
+        {
+            bool started = DeckRun.Run(c, System.Threading.SynchronizationContext.Current, null, delegate (string why) {
+                if (IsDisposed) return;
+                if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+                MessageBox.Show(this, why + ".\n그 동작의 대상을 확인해 주세요.", "여러 동작");
+            });
+            if (!started)
+            {
+                if (other) WindowState = FormWindowState.Normal;
+                MessageBox.Show(this, Steps.Count == 0 ? "동작을 먼저 넣어 주세요." : "해 볼 동작이 없어요. 비어 있는 동작을 채워 주세요.", "여러 동작");
+                return;
+            }
+        }
+        catch (Exception ex) { Helper.Log("차례대로 해 보기 실패: " + ex.Message); MessageBox.Show(this, "해 보지 못했어요: " + ErrText.Easy(ex), "여러 동작"); }
         if (other)
         {
             int total = 1500; foreach (var s in Steps) total += s.Wait;

@@ -30,7 +30,7 @@ class Inspector : Control
         AllowDrop = true;
 
         NameBox.Box.MaxLength = 20;
-        Kind.Items = new[] { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "내장 기능", "여러 동작" };
+        Kind.Items = new[] { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "컴퓨터 기능", "여러 동작" };
         RecordBtn.Text = "눌러서 넣기"; RecordBtn.Size = new Size(112, 32);
         OptBtn.Text = "자세히…"; OptBtn.Size = new Size(80, 32);
         StepsBtn.Text = "동작 차례 고치기…"; StepsBtn.Style = BtnStyle.Primary; StepsBtn.Size = new Size(200, 32);

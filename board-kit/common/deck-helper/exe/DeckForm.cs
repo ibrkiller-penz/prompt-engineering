@@ -41,7 +41,7 @@ class DeckForm : Form
     public static readonly string[] BuiltinNames = { "바탕화면 보기", "맨 앞 창 닫기", "화면 잠그기", "소리 끄기·켜기", "소리 크게", "소리 작게", "재생·멈춤", "다음 곡", "이전 곡" };
     public static readonly string[] BuiltinIconKeys = { "desktop2", "closewin", "lock", "mute", "volup", "voldown", "playpause", "nexttrack", "sd_prev" };   // 동작 목록·끌어 놓기 그림(모음 key)
     static readonly string[] KindCodes = { "app", "url", "keys", "text", "builtin", "multi" };
-    static readonly string[] KindNames = { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "내장 기능", "여러 동작" };
+    static readonly string[] KindNames = { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "컴퓨터 기능", "여러 동작" };
     static int libTheme;   // 모음 창에서 마지막에 고른 테마
     static bool themeLoaded;
     static readonly Encoding Euc = Encoding.GetEncoding(51949, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
@@ -111,7 +111,7 @@ class DeckForm : Form
             Changed();
         };
         txtTarget.Leave += delegate {
-            if (Cur.Kind == "url" && Cur.Target.Length > 0 && !Regex.IsMatch(Cur.Target, "^[a-zA-Z][a-zA-Z0-9+.-]*:")) { txtTarget.Text = "https://" + Cur.Target; }
+            if (Cur.Kind == "url" && Cur.Target.Trim().Length > 0 && !UrlX.HasScheme(Cur.Target)) { txtTarget.Text = "https://" + Cur.Target.Trim(); }
         };
         txtText.TextChanged += delegate { if (loading) return; Cur.Target = txtText.Text; Changed(); };
         iconLater.Interval = 700;
@@ -140,6 +140,11 @@ class DeckForm : Form
         work = host.LoadDeck();
         SelectCell(0);
         Status(host.DeckStatus());
+        if (host.LoadFailed)
+        {   // deck.json 이 깨져 있었다: 원본은 deck.json.broken 으로 남겨 두었음을 알린다
+            Status("설정 파일이 깨져 있어 기본값으로 시작해요(원본은 deck.json.broken).");
+            lastMsg = DateTime.Now.AddSeconds(15);
+        }
         UpdateHint();
         UpdateDirty();
     }
@@ -312,6 +317,12 @@ class DeckForm : Form
     // 대상 줄 아래 도움말: 자세한 설정 요약·단축키 읽는 글·여러 동작 차례
     void UpdateHelp()
     {
+        try { UpdateHelpCore(); }
+        catch (Exception ex) { Helper.Log("도움말 오류: " + ex.Message); insp.SetHelp(""); }   // 글을 치는 도중의 이상한 값으로 창이 멈추지 않게
+    }
+
+    void UpdateHelpCore()
+    {
         var c = Cur;
         string k = c.Kind;
         string sum = OptionsForm.Summary(k, c.Opt);
@@ -353,7 +364,11 @@ class DeckForm : Form
         if (c.Kind != "multi") return;
         using (var d = new StepsForm(c.Steps, c.Name))
         {
-            if (d.ShowDialog(this) != DialogResult.OK) return;
+            if (d.ShowDialog(this) != DialogResult.OK)
+            {   // 동작을 하나도 넣지 않고 닫았으면 '여러 동작'으로 남기지 않고 빈 칸으로 되돌린다
+                if (c.Steps.Count == 0) { c.Kind = "none"; c.Target = ""; c.Opt.Clear(); ShowCell(); Changed(); }
+                return;
+            }
             c.Steps = d.Steps;
             UpdateHelp(); Changed();
         }
@@ -728,37 +743,68 @@ class DeckForm : Form
     // 대상이 비었는지: 'https://' 만 있는 주소도 빈 것으로 본다(UI 검수 3)
     static bool TargetEmpty(DeckCell c)
     {
-        if (c.Kind == "multi")
-        {
-            if (c.Steps.Count == 0) return true;
-            foreach (var s in c.Steps) if ((s.Target ?? "").Trim().Length == 0) return true;
-            return false;
-        }
+        if (c.Kind == "multi") return c.Steps.Count == 0 || EmptyStep(c) >= 0;
         string t = (c.Target ?? "").Trim();
         if (t.Length == 0) return true;
         return c.Kind == "url" && Regex.IsMatch(t, "^https?://$", RegexOptions.IgnoreCase);
     }
 
+    // '여러 동작' 중 대상이 빈 첫 단계(0부터). 없으면 -1
+    static int EmptyStep(DeckCell c)
+    {
+        for (int k = 0; k < c.Steps.Count; k++) if ((c.Steps[k].Target ?? "").Trim().Length == 0) return k;
+        return -1;
+    }
+
+    // 대상이 비었을 때 하는 일마다 알맞은 안내
+    static string EmptyWhy(DeckCell c)
+    {
+        switch (c.Kind)
+        {
+            case "url": return "사이트 주소를 넣어 주세요.";
+            case "keys": return "누를 단축키를 넣어 주세요.";
+            case "text": return "넣을 글자를 써 주세요.";
+            case "multi":
+            {
+                if (c.Steps.Count == 0) return "동작을 먼저 넣어 주세요([동작 차례 고치기]).";
+                int k = EmptyStep(c);
+                return (k + 1) + "번째 동작이 비어 있어요. [동작 차례 고치기]에서 채워 주세요.";
+            }
+            default: return "무엇을 열지(대상)를 넣어 주세요.";
+        }
+    }
+
     // 주소에 http(s):// 같은 앞머리가 없으면 https:// 를 붙인다(입력칸 Leave 와 같은 규칙)
     static void FixUrl(DeckCell c)
     {
-        if (c.Kind == "url" && c.Target.Length > 0 && !Regex.IsMatch(c.Target, "^[a-zA-Z][a-zA-Z0-9+.-]*:")) c.Target = "https://" + c.Target;
+        if (c.Kind != "url") return;
+        c.Target = (c.Target ?? "").Trim();
+        if (c.Target.Length > 0 && !UrlX.HasScheme(c.Target)) c.Target = "https://" + c.Target;
     }
 
     void TryCell(int i)
     {
         var c = work.Cells[i];
-        if (c.Kind == "none" || TargetEmpty(c)) { MessageBox.Show(this, c.Kind == "url" ? "사이트 주소를 먼저 넣어 주세요." : "이 칸은 아직 할 일이 없어요.", "단축키 꾸미기"); return; }
+        if (c.Kind == "none") { MessageBox.Show(this, "이 칸은 아직 할 일이 없어요.", "단축키 꾸미기"); return; }
+        if (TargetEmpty(c)) { MessageBox.Show(this, EmptyWhy(c), "단축키 꾸미기"); return; }
         // 단축키·글자 넣기는 이 창이 아니라 그 전에 쓰던 창에 가야 한다 → 창을 잠깐 내려 두고 한다
         bool toOther = c.Kind == "keys" || c.Kind == "text" || c.Target == "#altf4";
         if (c.Kind == "multi") foreach (var s in c.Steps) if (s.Kind == "keys" || s.Kind == "text" || s.Target == "#altf4") toOther = true;
         try
         {
             if (toOther) { WindowState = FormWindowState.Minimized; Application.DoEvents(); System.Threading.Thread.Sleep(400); }
-            DeckRun.Run(c.Clone(), host.Ui, null);
+            string nm = c.Name;
+            DeckRun.Run(c.Clone(), host.Ui, null, delegate (string why) {
+                if (IsDisposed) return;
+                Status("'" + nm + "' " + why + ". [동작 차례 고치기]에서 확인해 주세요."); lastMsg = DateTime.Now.AddSeconds(6);
+            });
             Notify("'" + c.Name + "' 해 봤어요." + (c.Kind == "multi" ? " (" + c.Steps.Count + "가지를 차례대로)" : ""));
         }
-        catch (Exception ex) { MessageBox.Show(this, "열지 못했어요: " + ex.Message + "\n대상(무엇을 열지)을 확인해 주세요.", "단축키 꾸미기"); }
+        catch (Exception ex)
+        {
+            Helper.Log("눌러 보기 실패: " + c.Name + " (" + ex.Message + ")");
+            MessageBox.Show(this, "열지 못했어요: " + ErrText.Easy(ex) + "\n대상(무엇을 열지)을 확인해 주세요.", "단축키 꾸미기");
+        }
         finally
         {   // 내려 둔 창은 1.5초 뒤 다시 올린다(UI 검수 14)
             if (toOther)
@@ -913,7 +959,7 @@ class DeckForm : Form
                 }
                 Status("내보냈어요: " + d.FileName); lastMsg = DateTime.Now.AddSeconds(4);
             }
-            catch (Exception ex) { MessageBox.Show(this, "내보내지 못했어요: " + ex.Message, "단축키 꾸미기"); }
+            catch (Exception ex) { Helper.Log("내보내기 실패: " + ex.Message); MessageBox.Show(this, "내보내지 못했어요: " + ErrText.Easy(ex), "단축키 꾸미기"); }
         }
     }
 
@@ -928,12 +974,20 @@ class DeckForm : Form
                 using (var z = ZipFile.OpenRead(d.FileName))
                 {
                     var e = z.GetEntry("deck.json");
-                    if (e == null) throw new FormatException("알림판 단축키 설정 파일이 아니에요");
+                    if (e == null) { MessageBox.Show(this, "알림판 단축키 설정 파일이 아니에요(deck.json 이 없어요).", "단축키 꾸미기"); return; }
                     using (var r = new StreamReader(e.Open(), Encoding.UTF8)) cfg = DeckConfig.Parse(r.ReadToEnd());
+                    bool any = false;
+                    for (int i = 0; i < 16; i++) if (cfg.Cells[i].Kind != "none") any = true;
+                    if (!any) { MessageBox.Show(this, "칸 정보가 없는 파일이에요. 다른 파일을 골라 주세요.", "단축키 꾸미기"); return; }
+                    // 지금 16칸을 바꾸기 전에 묻는다(그림 파일을 쓰기 전에 물어야 '가져옴' 폴더에 쓸데없는 파일이 안 남는다)
+                    if (dirty && MessageBox.Show(this, "저장하지 않은 고친 내용이 있어요.\n가져오면 지금 16칸이 바뀌고 고친 내용은 사라져요. 가져올까요?",
+                        "단축키 가져오기", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
                     for (int i = 0; i < 16; i++)
                     {
                         var p = z.GetEntry("cell_" + i + ".png");
-                        if (p != null) using (var s = p.Open()) using (var ms = new MemoryStream()) { s.CopyTo(ms); ms.Position = 0; using (var im = Image.FromStream(ms)) pics[i] = new Bitmap(im); }
+                        if (p != null)
+                            try { using (var s = p.Open()) using (var ms = new MemoryStream()) { s.CopyTo(ms); ms.Position = 0; using (var im = Image.FromStream(ms)) pics[i] = new Bitmap(im); } }
+                            catch (Exception pe) { Helper.Log("가져오기: cell_" + i + ".png 를 열지 못함(" + pe.Message + ")"); }   // 그림 하나가 깨져도 나머지는 가져온다
                     }
                 }
                 // 다른 컴퓨터의 그림 파일 경로는 여기 없으니, 함께 온 칸 그림을 도우미 폴더에 두고 '그대로'로 쓴다
@@ -958,7 +1012,12 @@ class DeckForm : Form
                 SelectCell(0); Changed();
                 Status("가져왔어요. 확인하고 [저장하고 보드에 보내기]를 누르세요. (이 컴퓨터에 없는 프로그램 칸은 대상을 고쳐 주세요)"); lastMsg = DateTime.Now.AddSeconds(4);
             }
-            catch (Exception ex) { MessageBox.Show(this, "가져오지 못했어요: " + ex.Message, "단축키 꾸미기"); }
+            catch (Exception ex)
+            {
+                Helper.Log("가져오기 실패: " + ex.Message);
+                string why = ex is InvalidDataException ? "zip 파일이 깨져 있어요" : ex is FormatException ? "설정 내용이 올바르지 않아요" : ErrText.Easy(ex);
+                MessageBox.Show(this, "가져오지 못했어요: " + why, "단축키 꾸미기");
+            }
         }
     }
 
@@ -978,7 +1037,8 @@ class DeckForm : Form
         var c = work.Cells[i];
         bool wasNone = c.Kind == "none";
         string ext = Path.GetExtension(path).ToLowerInvariant();
-        bool web = path.StartsWith("http://") || path.StartsWith("https://");
+        path = (path ?? "").Trim();
+        bool web = UrlX.IsWeb(path);
         if (ext == ".url")
             try { foreach (var l in File.ReadAllLines(path)) if (l.StartsWith("URL=", StringComparison.OrdinalIgnoreCase)) { path = l.Substring(4).Trim(); web = true; break; } } catch { }
         if (rename || wasNone || c.Name.Length == 0)
@@ -1071,12 +1131,12 @@ class DeckForm : Form
             string why = bad.Length > 0 ? "이 글자는 보드에 나오지 않아요: " + bad
                 : Encoding.UTF8.GetByteCount(c.Name) > 39 ? "이름이 너무 길어요."
                 : c.Name.Trim().Length == 0 ? "이름을 넣어 주세요."
-                : TargetEmpty(c) ? (c.Kind == "url" ? "사이트 주소를 넣어 주세요." : c.Kind == "multi" ? "여러 동작의 차례를 채워 주세요(빈 동작이 있어요)." : "무엇을 열지(대상)를 넣어 주세요.") : null;
+                : TargetEmpty(c) ? EmptyWhy(c) : null;
             if (why != null) { SelectCell(i); MessageBox.Show(this, (i + 1) + "번 칸: " + why, "단축키 꾸미기", MessageBoxButtons.OK, MessageBoxIcon.Warning); return false; }
         }
         work.IsDefault = false;
         try { Cursor = Cursors.WaitCursor; host.SaveDeck(work); }
-        catch (Exception ex) { MessageBox.Show(this, "저장하지 못했어요: " + ex.Message, "단축키 꾸미기"); return false; }
+        catch (Exception ex) { Helper.Log("저장 실패: " + ex.Message); MessageBox.Show(this, "저장하지 못했어요: " + ErrText.Easy(ex), "단축키 꾸미기"); return false; }
         finally { Cursor = Cursors.Default; }
         host.RequestPush(true);
         dirty = false;
@@ -1094,7 +1154,7 @@ class DeckForm : Form
         for (int i = 0; i < 16; i++) work.Cells[i].Tile = builtinPics[i] != null ? new Bitmap(builtinPics[i]) : null;
         work.IsDefault = true;
         try { host.SaveDeck(work); work.IsDefault = true; }
-        catch (Exception ex) { MessageBox.Show(this, "저장하지 못했어요: " + ex.Message, "단축키 꾸미기"); return; }
+        catch (Exception ex) { Helper.Log("저장 실패: " + ex.Message); MessageBox.Show(this, "저장하지 못했어요: " + ErrText.Easy(ex), "단축키 꾸미기"); return; }
         host.RequestReset();
         dirty = false;
         UpdateDirty();
