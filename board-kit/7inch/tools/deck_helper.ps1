@@ -43,7 +43,7 @@ function Open-App($key) {
 }
 
 # 알림판일 수 있는 포트: 7인치(CH343/CH340, VID 1A86) · 4인치(칩 내장 USB, VID 303A)
-# 303A 는 다른 ESP32(예: 시계)일 수도 있어서, 열어 보고 '@board ok' 로 답하는 포트만 쥔다(아니면 놓고 10분 쉰다).
+# 303A 는 다른 ESP32(예: 시계)일 수도 있어서, 열어 보고 '@board ok' 로 답하는 포트만 쥔다(아니면 놓고 1분 쉬었다 다시 본다 — 켠 직후 자료를 받느라 답이 늦은 보드도 곧 잡히게, 2026-10-26).
 function Find-BoardPorts {
   Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue |
     Where-Object { $_.DeviceID -match 'VID_1A86|VID_303A' -and $_.Name -match '\((COM\d+)\)' } |
@@ -89,7 +89,7 @@ while ($true) {
   }
   foreach ($p in @($ports.Keys)) {                  # 40초 안에 답이 없으면 알림판이 아니다(켠 직후 받는 중에는 답이 늦다) → 놓기
     if (-not $okp[$p] -and ($now - $opened[$p]).TotalSeconds -ge 40) {
-      try { $ports[$p].Close() } catch {}; $ports.Remove($p); $skip[$p] = $now.AddMinutes(10); Log "알림판 아님(답 없음): $p"
+      try { $ports[$p].Close() } catch {}; $ports.Remove($p); $skip[$p] = $now.AddMinutes(1); Log "알림판 아님(답 없음): $p"
     }
   }
   foreach ($p in @($ports.Keys)) {                  # 보드가 보낸 줄 읽기
