@@ -101,6 +101,18 @@ export default function DeckGet() {
         <li>
           <b className="text-ink">[더보기] → 내보내기·가져오기</b>로 꾸민 16칸을 파일 하나로 다른 선생님과 나눌 수 있어요.
         </li>
+        <li>
+          <b className="text-ink">여러 동작</b>: 칸 하나로 여러 일을 차례대로 해요(예: 파워포인트 열기 → 2초 → 나이스 열기 → 소리 끄기). 하는 일에서{" "}
+          <b className="text-ink">[여러 동작]</b> → <b className="text-ink">[동작 차례 고치기…]</b>.
+        </li>
+        <li>
+          <b className="text-ink">단축키 눌러서 넣기</b>: 단축키 칸의 <b className="text-ink">[눌러서 넣기]</b>를 누르고 키보드에서 Ctrl+Shift+M 처럼 그대로 누르면
+          들어가요. Win 키 조합(Win+Shift+S 화면 캡처 등)도 돼요.
+        </li>
+        <li>
+          <b className="text-ink">[자세히…]</b>: 프로그램은 함께 열 파일·시작 폴더·관리자 권한·“이미 열려 있으면 그 창을 앞으로”, 사이트는 브라우저(크롬·엣지·웨일)·새 창,
+          글자는 “넣고 Enter”.
+        </li>
         <li>키보드: 화살표 칸 옮기기 · Enter 눌러 보기 · Delete 비우기 · Ctrl+C/V 복사·붙여넣기 · Ctrl+S 저장</li>
       </ul>
 

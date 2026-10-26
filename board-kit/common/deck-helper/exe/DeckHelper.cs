@@ -444,9 +444,13 @@ class Helper : ApplicationContext
         if (m.Success)   // 사용자 설정 칸 번호(새 보드)
         {
             DeckCell c = null;
-            lock (deckLock) if (deck != null) c = deck.Cells[int.Parse(m.Groups[1].Value)];
-            if (c == null || c.Kind == "none" || c.Target.Length == 0) { Log("설정이 없는 칸: " + key); return false; }
-            kind = c.Kind; t = c.Target;
+            lock (deckLock) if (deck != null) c = deck.Cells[int.Parse(m.Groups[1].Value)].Clone();
+            if (c == null || c.Kind == "none" || (c.Kind == "multi" ? c.Steps.Count == 0 : c.Target.Length == 0)) { Log("설정이 없는 칸: " + key); return false; }
+            // 자세한 설정·여러 동작까지(DeckActions.cs). 여러 동작은 따로 스레드에서 차례대로 해서 보드에는 바로 ok
+            bool done = false;
+            try { done = DeckRun.Run(c, ui, Log); } catch { }
+            if (done) Log("열기: " + key + (c.Kind == "multi" ? " (여러 동작 " + c.Steps.Count + "개)" : ""));
+            return done;
         }
         else
         {
@@ -472,12 +476,12 @@ class Helper : ApplicationContext
     // 설정 창의 [▶ 눌러 보기]: 보드 없이 이 컴퓨터에서 바로 해 본다(화면 스레드에서 부른다)
     public static void TryCell(string kind, string t) { Exec(kind, t); }
 
-    // 칸 하나 실행(화면 스레드): 프로그램·사이트 열기 / 단축키 / 글자 붙여 넣기 / 내장 기능
-    static void Exec(string kind, string t)
+    // 칸 하나 실행(화면 스레드): 프로그램·사이트 열기 / 단축키 / 글자 붙여 넣기 / 내장 기능. 자세한 설정이 있으면 DeckRun.Exec
+    internal static void Exec(string kind, string t)
     {
         switch (kind)
         {
-            case "keys": SendKeys.SendWait(t); return;
+            case "keys": KeySend.Send(t); return;   // SendKeys 는 Win 키(#)를 모른다 → 직접 보낸다
             case "text": Clipboard.SetText(t); SendKeys.SendWait("^v"); return;
             case "url":
                 if (!Regex.IsMatch(t, "^[a-zA-Z][a-zA-Z0-9+.-]*:")) t = "https://" + t;

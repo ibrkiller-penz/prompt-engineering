@@ -11,6 +11,7 @@ class Inspector : Control
     public readonly Segmented Kind = new Segmented();
     public readonly FlatButton BrowseBtn = new FlatButton(), BuiltinBtn = new FlatButton(), IconBtn = new FlatButton();
     public readonly FlatButton TryBtn = new FlatButton(), ClearBtn = new FlatButton();
+    public readonly FlatButton RecordBtn = new FlatButton(), OptBtn = new FlatButton(), StepsBtn = new FlatButton();   // 단축키 눌러서 넣기 · 자세히 · 여러 동작 차례
 
     // 그림으로 그리는 글
     string head = "", headSub = "", warn = "", help = "", mode = "";
@@ -29,7 +30,11 @@ class Inspector : Control
         AllowDrop = true;
 
         NameBox.Box.MaxLength = 20;
-        Kind.Items = new[] { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "내장 기능" };
+        Kind.Items = new[] { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "내장 기능", "여러 동작" };
+        RecordBtn.Text = "눌러서 넣기"; RecordBtn.Size = new Size(112, 32);
+        OptBtn.Text = "자세히…"; OptBtn.Size = new Size(80, 32);
+        StepsBtn.Text = "동작 차례 고치기…"; StepsBtn.Style = BtnStyle.Primary; StepsBtn.Size = new Size(200, 32);
+        Controls.AddRange(new Control[] { RecordBtn, OptBtn, StepsBtn });
         Kind.Height = 32;
         BrowseBtn.Text = "찾아보기…"; BrowseBtn.Size = new Size(96, 32);
         BuiltinBtn.Glyph = BtnGlyph.Down; BuiltinBtn.Size = new Size(240, 32);
@@ -63,7 +68,10 @@ class Inspector : Control
         BrowseBtn.Visible = k == "app";
         TextBox.Visible = k == "text";
         BuiltinBtn.Visible = k == "builtin";
-        TargetBox.Placeholder = k == "url" ? "https://…" : k == "keys" ? "예) ^c" : k == "app" ? "프로그램 경로" : "";
+        RecordBtn.Visible = k == "keys";
+        OptBtn.Visible = k == "app" || k == "url" || k == "text";
+        StepsBtn.Visible = k == "multi";
+        TargetBox.Placeholder = k == "url" ? "https://…" : k == "keys" ? "[눌러서 넣기] 또는 직접: ^c" : k == "app" ? "프로그램·파일·폴더 경로" : "";
         DoLayout();
         Invalidate();
     }
@@ -82,11 +90,16 @@ class Inspector : Control
         IconBtn.SetBounds(16, 144, 120, 28);
         NameBox.SetBounds(216, 48, 240, 32);
         Kind.SetBounds(216, 88, rowW, 32);
-        int tw = targetKind == "app" ? rowW - 104 : rowW;
-        TargetBox.SetBounds(216, 128, Math.Max(80, tw), 32);
-        BrowseBtn.SetBounds(216 + Math.Max(80, tw) + 8, 128, 96, 32);
-        TextBox.SetBounds(216, 128, rowW, 56);
+        // 대상 줄 오른쪽 단추: 프로그램 = [찾아보기][자세히] / 사이트 = [자세히] / 단축키 = [눌러서 넣기] / 글자 = [자세히]
+        int right = targetKind == "app" ? 104 + 88 : targetKind == "url" ? 88 : targetKind == "keys" ? 120 : 0;
+        int tw = Math.Max(80, rowW - right);
+        TargetBox.SetBounds(216, 128, tw, 32);
+        BrowseBtn.SetBounds(216 + tw + 8, 128, 96, 32);
+        RecordBtn.SetBounds(216 + tw + 8, 128, 112, 32);
+        OptBtn.SetBounds(targetKind == "app" ? 216 + tw + 8 + 104 : targetKind == "text" ? 216 + rowW - 80 : 216 + tw + 8, 128, 80, 32);
+        TextBox.SetBounds(216, 128, targetKind == "text" ? rowW - 88 : rowW, 56);
         BuiltinBtn.SetBounds(216, 128, 240, 32);
+        StepsBtn.SetBounds(216, 128, 200, 32);
         TryBtn.SetBounds(colX, 16, 160, 32);
         ClearBtn.SetBounds(colX, 56, 160, 32);
     }
@@ -132,7 +145,7 @@ class Inspector : Control
         Theme.Text(g, "이름", lf, Theme.Text2, new RectangleF(152, NameBox.Top, 60, NameBox.Height));
         Theme.Text(g, "하는 일", lf, Theme.Text2, new RectangleF(152, Kind.Top, 62, Kind.Height));
         if (targetKind != "none")
-            Theme.Text(g, "대상", lf, Theme.Text2, new RectangleF(152, 128, 60, 32));
+            Theme.Text(g, targetKind == "multi" ? "차례" : "대상", lf, Theme.Text2, new RectangleF(152, 128, 60, 32));
 
         // 이름 검사 글(두 줄까지)
         float wx = NameBox.Right + 12, wr = Width - 176 - 12;

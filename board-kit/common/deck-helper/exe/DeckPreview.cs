@@ -32,7 +32,15 @@ static class DeckPreview
             f.SelectCell(2); Pump(f); Shot(f, outDir, "07_저장안함_이름점.png", log);
             // 4인치 + 가장 작은 창(아래 칸이 잘리지 않는지)
             f.SetShape(4); f.SelectCell(14); f.ClientSize = new Size(1080, 600); Pump(f); Shot(f, outDir, "08_4인치_가장작은창.png", log);
-            f.SetShape(7);
+            f.SetShape(7); f.ClientSize = new Size(1240, 720);
+            // 동작 세팅(2026-10-27): 여러 동작 칸 · 단축키 칸 · 작은 창 셋
+            f.PreviewMulti(0); Pump(f); Shot(f, outDir, "09_여러동작_칸.png", log);
+            f.PreviewKeys(1); Pump(f); Shot(f, outDir, "10_단축키_칸.png", log);
+            Dialog(new StepsForm(f.Work.Cells[0].Steps, f.Work.Cells[0].Name), outDir, "11_여러동작_차례창.png", log);
+            Dialog(new KeyRecordForm("#+s"), outDir, "12_단축키_눌러넣기.png", log);
+            var o = new System.Collections.Generic.Dictionary<string, string> { { "front", "1" }, { "args", "D:/수업/오늘.pptx" } };
+            Dialog(OptionsForm.Build("app", o), outDir, "13_자세히_프로그램.png", log);
+            Dialog(OptionsForm.Build("url", new System.Collections.Generic.Dictionary<string, string> { { "browser", "chrome" } }), outDir, "14_자세히_사이트.png", log);
             f.PreviewDiscard();                            // 닫을 때 묻지 않게
             f.Close(); f.Dispose();
             log.AppendLine("글꼴 에스코어 드림 읽음: " + DeckFonts.Loaded);
@@ -46,6 +54,13 @@ static class DeckPreview
             try { File.WriteAllText(Path.Combine(outDir, "preview.txt"), log.ToString(), new UTF8Encoding(false)); } catch { }
             return 1;
         }
+    }
+
+    static void Dialog(Form d, string dir, string name, StringBuilder log)
+    {
+        d.StartPosition = FormStartPosition.Manual; d.ShowInTaskbar = false; d.Location = new Point(-20000, -20000);
+        d.Show(); Pump(d); Shot(d, dir, name, log);
+        d.Close(); d.Dispose();
     }
 
     static void Pump(Form f)

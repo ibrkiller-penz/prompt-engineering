@@ -40,8 +40,8 @@ class DeckForm : Form
     public static readonly string[] BuiltinCodes = { "#desktop", "#altf4", "#lock", "#mute", "#volup", "#voldown", "#playpause", "#next", "#prev" };
     public static readonly string[] BuiltinNames = { "바탕화면 보기", "맨 앞 창 닫기", "화면 잠그기", "소리 끄기·켜기", "소리 크게", "소리 작게", "재생·멈춤", "다음 곡", "이전 곡" };
     public static readonly string[] BuiltinIconKeys = { "desktop2", "closewin", "lock", "mute", "volup", "voldown", "playpause", "nexttrack", "sd_prev" };   // 동작 목록·끌어 놓기 그림(모음 key)
-    static readonly string[] KindCodes = { "app", "url", "keys", "text", "builtin" };
-    static readonly string[] KindNames = { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "내장 기능" };
+    static readonly string[] KindCodes = { "app", "url", "keys", "text", "builtin", "multi" };
+    static readonly string[] KindNames = { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "내장 기능", "여러 동작" };
     static int libTheme;   // 모음 창에서 마지막에 고른 테마
     static bool themeLoaded;
     static readonly Encoding Euc = Encoding.GetEncoding(51949, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
@@ -107,6 +107,7 @@ class DeckForm : Form
             if (loading) return;
             Cur.Target = txtTarget.Text.Trim();
             if (Cur.IconMode == "auto") { Cur.IconSrc = Cur.Target; iconLater.Stop(); iconLater.Start(); }
+            if (Cur.Kind == "keys") UpdateHelp();
             Changed();
         };
         txtTarget.Leave += delegate {
@@ -118,6 +119,12 @@ class DeckForm : Form
 
         insp.Kind.Picked += delegate (int i) { SetKind(KindCodes[i]); };
         insp.BrowseBtn.Click += delegate { Browse(); };
+        insp.RecordBtn.Click += delegate { RecordKeys(); };
+        insp.OptBtn.Click += delegate { EditOptions(); };
+        insp.StepsBtn.Click += delegate { EditSteps(); };
+        tip.SetToolTip(insp.RecordBtn, "키보드에서 단축키를 그대로 누르면 넣어져요");
+        tip.SetToolTip(insp.OptBtn, "프로그램: 함께 넘길 값·시작 폴더·관리자·열려 있으면 앞으로 / 사이트: 브라우저·새 창 / 글자: 넣고 Enter");
+        tip.SetToolTip(insp.StepsBtn, "칸 하나로 여러 일을 차례대로(예: 한글 열기 → 1초 → 나이스 열기)");
         insp.ClearBtn.Click += delegate { ClearCell(sel); };
         insp.TryBtn.Click += delegate { TrySelected(); };
         insp.IconBoxClicked += delegate { iconMenu.Show(insp, new Point(16, 138)); };
@@ -297,13 +304,59 @@ class DeckForm : Form
     {
         string k = Cur.Kind;
         insp.SetTargetKind(k);
-        if (k == "url") insp.SetHelp("사이트 주소를 넣어요. 예) https://www.naver.com");
-        else if (k == "keys") insp.SetHelp("^ = Ctrl,  + = Shift,  % = Alt.  예) ^c 복사, ^+m, %{F4} 창 닫기, {ENTER} 엔터, {F5}");
-        else if (k == "app") insp.SetHelp("[찾아보기]로 고르거나, 프로그램·바로 가기를 위 칸에 끌어다 놓아요.");
-        else if (k == "none") insp.SetHelp("빈 칸이에요. 위에서 하는 일을 고르거나, 오른쪽 목록에서 끌어다 놓으세요.");
-        else insp.SetHelp("");
+        UpdateHelp();
         bool on = k != "none";
         insp.NameBox.Enabled = insp.ClearBtn.Enabled = insp.IconBtn.Enabled = insp.TryBtn.Enabled = on;   // 빈 칸은 눌러 볼 것도 없다(UI 검수 12)
+    }
+
+    // 대상 줄 아래 도움말: 자세한 설정 요약·단축키 읽는 글·여러 동작 차례
+    void UpdateHelp()
+    {
+        var c = Cur;
+        string k = c.Kind;
+        string sum = OptionsForm.Summary(k, c.Opt);
+        insp.OptBtn.Dot = sum.Length > 0;
+        if (k == "url") insp.SetHelp(sum.Length > 0 ? "자세한 설정: " + sum : "사이트 주소를 넣어요. 예) https://www.naver.com");
+        else if (k == "keys") insp.SetHelp(c.Target.Length > 0 ? "누를 키: " + KeyText.Describe(c.Target) + "    (# = Win, ^ = Ctrl, + = Shift, % = Alt)" : "[눌러서 넣기]를 누르고 키보드에서 단축키를 그대로 눌러요.");
+        else if (k == "app") insp.SetHelp(sum.Length > 0 ? "자세한 설정: " + sum : "[찾아보기]로 고르거나, 프로그램·바로 가기·파일을 위 칸에 끌어다 놓아요.");
+        else if (k == "multi")
+        {
+            var parts = new List<string>();
+            for (int i = 0; i < c.Steps.Count && i < 4; i++) parts.Add((i + 1) + ") " + StepsForm.Line(c.Steps[i]));
+            insp.SetHelp(c.Steps.Count == 0 ? "[동작 차례 고치기]에서 할 일을 차례대로 넣어요(예: 한글 열기 → 1초 → 나이스 열기)."
+                : c.Steps.Count + "가지: " + string.Join("  →  ", parts.ToArray()) + (c.Steps.Count > 4 ? "  …" : ""));
+        }
+        else if (k == "none") insp.SetHelp("빈 칸이에요. 위에서 하는 일을 고르거나, 오른쪽 목록에서 끌어다 놓으세요.");
+        else insp.SetHelp("");
+    }
+
+    void RecordKeys()
+    {
+        if (Cur.Kind != "keys") return;
+        using (var r = new KeyRecordForm(Cur.Target))
+            if (r.ShowDialog(this) == DialogResult.OK && r.Result.Length > 0) { insp.TargetBox.Box.Text = r.Result; UpdateHelp(); }
+    }
+
+    void EditOptions()
+    {
+        var c = Cur;
+        if (c.Kind != "app" && c.Kind != "url" && c.Kind != "text") return;
+        var o = new Dictionary<string, string>(c.Opt);
+        if (!OptionsForm.Edit(this, c.Kind, o)) return;
+        c.Opt = o;
+        UpdateHelp(); Changed();
+    }
+
+    void EditSteps()
+    {
+        var c = Cur;
+        if (c.Kind != "multi") return;
+        using (var d = new StepsForm(c.Steps, c.Name))
+        {
+            if (d.ShowDialog(this) != DialogResult.OK) return;
+            c.Steps = d.Steps;
+            UpdateHelp(); Changed();
+        }
     }
 
     void SetKind(string k)
@@ -311,6 +364,27 @@ class DeckForm : Form
         var c = Cur;
         if (c.Kind == k) return;
         bool wasNone = c.Kind == "none";
+        if (k == "multi")
+        {   // 여러 동작으로: 지금 하던 일을 첫 동작으로 옮기고 차례 창을 연다
+            c.Steps = new List<DeckStep>();
+            if (!wasNone && c.Target.Trim().Length > 0)
+                c.Steps.Add(new DeckStep { Kind = c.Kind, Target = c.Target, Wait = 1000, Opt = new Dictionary<string, string>(c.Opt) });
+            c.Kind = "multi"; c.Target = ""; c.Opt.Clear();
+            if (wasNone || c.IconMode == "auto" || c.IconMode == "favicon") { c.IconMode = "letter"; c.IconSrc = ""; }
+            Retile(); ShowCell(); Changed();
+            BeginInvoke((Action)EditSteps);
+            return;
+        }
+        if (c.Kind == "multi")
+        {   // 여러 동작에서 하나로: 같은 종류의 첫 동작이 있으면 그것을 살린다
+            var first = c.Steps.Find(s => s.Kind == k);
+            c.Kind = k; c.Steps.Clear();
+            c.Target = first != null ? first.Target : (k == "builtin" ? BuiltinCodes[0] : "");
+            c.Opt = first != null ? new Dictionary<string, string>(first.Opt) : new Dictionary<string, string>();
+            Retile(); ShowCell(); Changed();
+            return;
+        }
+        c.Opt.Clear();   // 자세한 설정은 하는 일마다 다르다
         c.Kind = k;
         if (k == "builtin") c.Target = BuiltinCodes[0];
         else if (k == "text" || wasNone || c.Target.StartsWith("#")) c.Target = "";
@@ -654,6 +728,12 @@ class DeckForm : Form
     // 대상이 비었는지: 'https://' 만 있는 주소도 빈 것으로 본다(UI 검수 3)
     static bool TargetEmpty(DeckCell c)
     {
+        if (c.Kind == "multi")
+        {
+            if (c.Steps.Count == 0) return true;
+            foreach (var s in c.Steps) if ((s.Target ?? "").Trim().Length == 0) return true;
+            return false;
+        }
         string t = (c.Target ?? "").Trim();
         if (t.Length == 0) return true;
         return c.Kind == "url" && Regex.IsMatch(t, "^https?://$", RegexOptions.IgnoreCase);
@@ -671,11 +751,12 @@ class DeckForm : Form
         if (c.Kind == "none" || TargetEmpty(c)) { MessageBox.Show(this, c.Kind == "url" ? "사이트 주소를 먼저 넣어 주세요." : "이 칸은 아직 할 일이 없어요.", "단축키 꾸미기"); return; }
         // 단축키·글자 넣기는 이 창이 아니라 그 전에 쓰던 창에 가야 한다 → 창을 잠깐 내려 두고 한다
         bool toOther = c.Kind == "keys" || c.Kind == "text" || c.Target == "#altf4";
+        if (c.Kind == "multi") foreach (var s in c.Steps) if (s.Kind == "keys" || s.Kind == "text" || s.Target == "#altf4") toOther = true;
         try
         {
             if (toOther) { WindowState = FormWindowState.Minimized; Application.DoEvents(); System.Threading.Thread.Sleep(400); }
-            Helper.TryCell(c.Kind, c.Target);
-            Notify("'" + c.Name + "' 해 봤어요.");
+            DeckRun.Run(c.Clone(), host.Ui, null);
+            Notify("'" + c.Name + "' 해 봤어요." + (c.Kind == "multi" ? " (" + c.Steps.Count + "가지를 차례대로)" : ""));
         }
         catch (Exception ex) { MessageBox.Show(this, "열지 못했어요: " + ex.Message + "\n대상(무엇을 열지)을 확인해 주세요.", "단축키 꾸미기"); }
         finally
@@ -990,7 +1071,7 @@ class DeckForm : Form
             string why = bad.Length > 0 ? "이 글자는 보드에 나오지 않아요: " + bad
                 : Encoding.UTF8.GetByteCount(c.Name) > 39 ? "이름이 너무 길어요."
                 : c.Name.Trim().Length == 0 ? "이름을 넣어 주세요."
-                : TargetEmpty(c) ? (c.Kind == "url" ? "사이트 주소를 넣어 주세요." : "무엇을 열지(대상)를 넣어 주세요.") : null;
+                : TargetEmpty(c) ? (c.Kind == "url" ? "사이트 주소를 넣어 주세요." : c.Kind == "multi" ? "여러 동작의 차례를 채워 주세요(빈 동작이 있어요)." : "무엇을 열지(대상)를 넣어 주세요.") : null;
             if (why != null) { SelectCell(i); MessageBox.Show(this, (i + 1) + "번 칸: " + why, "단축키 꾸미기", MessageBoxButtons.OK, MessageBoxIcon.Warning); return false; }
         }
         work.IsDefault = false;
@@ -1028,6 +1109,22 @@ class DeckForm : Form
     public void PreviewEmpty(int i) { work.Cells[i] = DeckConfig.Empty(); if (i == sel) ShowCell(); board.Invalidate(); }
     public void PreviewDiscard() { dirty = false; UpdateDirty(); }
     public void PreviewName(int i, string name) { work.Cells[i].Name = name; if (i == sel) ShowCell(); MarkDirty(); }
+    // 미리보기 그림용 예시 칸(--preview 에서만)
+    public void PreviewMulti(int i)
+    {
+        var c = new DeckCell { Name = "수업 시작", Kind = "multi", IconMode = "letter" };
+        c.Steps.Add(new DeckStep { Kind = "app", Target = "powerpnt", Wait = 2000, Opt = new Dictionary<string, string> { { "front", "1" } } });
+        c.Steps.Add(new DeckStep { Kind = "url", Target = "https://www.neis.go.kr", Wait = 1000, Opt = new Dictionary<string, string> { { "browser", "msedge" } } });
+        c.Steps.Add(new DeckStep { Kind = "builtin", Target = "#mute", Wait = 0 });
+        c.Tile = DeckIcons.LetterTile(c.Name);
+        work.Cells[i] = c; SelectCell(i); MarkDirty();
+    }
+    public void PreviewKeys(int i)
+    {
+        var c = new DeckCell { Name = "화면 캡처", Kind = "keys", Target = "#+s", IconMode = "letter" };
+        c.Tile = DeckIcons.LetterTile(c.Name);
+        work.Cells[i] = c; SelectCell(i); MarkDirty();
+    }
 }
 
 // 위 띠: 제목 · 저장 안 함 · [한 번에 채우기 ▾] [아이콘 모양: … ▾] [더보기 ▾]

@@ -5,22 +5,50 @@ using System.Drawing;
 using System.Globalization;
 using System.Text;
 
+// '여러 동작' 칸의 한 단계: 하는 일·대상·자세한 설정 + 다음 단계까지 기다릴 시간
+class DeckStep
+{
+    public string Kind = "app";       // app url keys text builtin
+    public string Target = "";
+    public int Wait = 1000;           // 밀리초(0~10000)
+    public Dictionary<string, string> Opt = new Dictionary<string, string>();
+
+    public DeckStep Clone()
+    {
+        var s = (DeckStep)MemberwiseClone();
+        s.Opt = new Dictionary<string, string>(Opt);
+        return s;
+    }
+}
+
 class DeckCell
 {
     public string Name = "";
-    public string Kind = "none";      // app url keys text builtin none
+    public string Kind = "none";      // app url keys text builtin multi none
     public string Target = "";
     public string IconMode = "builtin"; // auto favicon letter file builtin
     public string IconSrc = "";
     public string IconCrc = "";
     public Bitmap Tile;               // 72x72 미리보기(파일에 쓰지 않음, 바뀌면 저장 때 .bin 을 새로 만든다)
+    // 자세한 설정(하는 일마다 다름): app → args·dir·admin·front / url → browser·newwin / text → enter. 값 "1" = 켬
+    public Dictionary<string, string> Opt = new Dictionary<string, string>();
+    public List<DeckStep> Steps = new List<DeckStep>();   // Kind == "multi" 일 때 차례대로
 
     public DeckCell Clone()
     {
         var c = (DeckCell)MemberwiseClone();
         if (Tile != null) c.Tile = new Bitmap(Tile);
+        c.Opt = new Dictionary<string, string>(Opt);
+        c.Steps = new List<DeckStep>();
+        foreach (var s in Steps) c.Steps.Add(s.Clone());
         return c;
     }
+}
+
+static class OptX
+{
+    public static string Get(Dictionary<string, string> o, string k) { string v; return o != null && o.TryGetValue(k, out v) ? v ?? "" : ""; }
+    public static void Set(Dictionary<string, string> o, string k, string v) { if (string.IsNullOrEmpty(v)) o.Remove(k); else o[k] = v; }
 }
 
 class DeckConfig
@@ -79,10 +107,39 @@ class DeckConfig
                 var ic = m.TryGetValue("icon", out o) ? o as Dictionary<string, object> : null;
                 if (ic != null) { c.IconMode = Str(ic, "mode"); c.IconSrc = Str(ic, "src"); c.IconCrc = Str(ic, "crc"); }
                 if (c.IconMode == "") c.IconMode = "builtin";
+                c.Opt = ReadOpt(m);
+                var steps = m.TryGetValue("steps", out o) ? o as List<object> : null;
+                if (steps != null)
+                    foreach (var so in steps)
+                    {
+                        var sm = so as Dictionary<string, object>;
+                        if (sm == null) continue;
+                        var st = new DeckStep { Kind = Str(sm, "kind"), Target = Str(sm, "target"), Opt = ReadOpt(sm) };
+                        object w;
+                        if (sm.TryGetValue("wait", out w) && w is double) st.Wait = Math.Max(0, Math.Min(10000, (int)(double)w));
+                        c.Steps.Add(st);
+                    }
             }
             d.Cells[i] = c;
         }
         return d;
+    }
+
+    static Dictionary<string, string> ReadOpt(Dictionary<string, object> m)
+    {
+        var r = new Dictionary<string, string>();
+        object o;
+        var om = m.TryGetValue("opt", out o) ? o as Dictionary<string, object> : null;
+        if (om != null) foreach (var kv in om) if (kv.Value != null) r[kv.Key] = Convert.ToString(kv.Value, CultureInfo.InvariantCulture);
+        return r;
+    }
+
+    static string OptJson(Dictionary<string, string> o)
+    {
+        var sb = new StringBuilder("{");
+        bool first = true;
+        foreach (var kv in o) { if (!first) sb.Append(", "); first = false; sb.Append(Q(kv.Key)).Append(": ").Append(Q(kv.Value)); }
+        return sb.Append('}').ToString();
     }
 
     static string Str(Dictionary<string, object> m, string k)
@@ -103,7 +160,22 @@ class DeckConfig
             var c = Cells[i];
             sb.Append("    { \"name\": ").Append(Q(c.Name)).Append(", \"kind\": ").Append(Q(c.Kind)).Append(", \"target\": ").Append(Q(c.Target))
               .Append(",\n      \"icon\": { \"mode\": ").Append(Q(c.IconMode)).Append(", \"src\": ").Append(Q(c.IconSrc))
-              .Append(", \"crc\": ").Append(Q(c.IconCrc)).Append(" } }").Append(i < 15 ? ",\n" : "\n");
+              .Append(", \"crc\": ").Append(Q(c.IconCrc)).Append(" }");
+            if (c.Opt.Count > 0) sb.Append(",\n      \"opt\": ").Append(OptJson(c.Opt));
+            if (c.Kind == "multi")
+            {
+                sb.Append(",\n      \"steps\": [");
+                for (int k = 0; k < c.Steps.Count; k++)
+                {
+                    var s = c.Steps[k];
+                    sb.Append(k > 0 ? ",\n        " : "\n        ").Append("{ \"kind\": ").Append(Q(s.Kind)).Append(", \"target\": ").Append(Q(s.Target))
+                      .Append(", \"wait\": ").Append(s.Wait.ToString(CultureInfo.InvariantCulture));
+                    if (s.Opt.Count > 0) sb.Append(", \"opt\": ").Append(OptJson(s.Opt));
+                    sb.Append(" }");
+                }
+                sb.Append(c.Steps.Count > 0 ? "\n      ]" : "]");
+            }
+            sb.Append(" }").Append(i < 15 ? ",\n" : "\n");
         }
         sb.Append("  ]\n}\n");
         return sb.ToString();

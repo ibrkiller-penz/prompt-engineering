@@ -90,8 +90,9 @@ class ActionList : Control
         var first = new ActRow { IsGroup = true, Group = FirstGroup };
         var list = new List<ActRow>();
         string[,] kinds = { { "프로그램 열기", "kind:app", "프로그램", "sd_open" }, { "사이트 열기", "kind:url", "사이트", "sd_website" },
-            { "단축키 누르기", "kind:keys", "단축키", "sd_hotkey" }, { "글자 넣기", "kind:text", "글자", "sd_text" } };
-        for (int i = 0; i < 4; i++)
+            { "단축키 누르기", "kind:keys", "단축키", "sd_hotkey" }, { "글자 넣기", "kind:text", "글자", "sd_text" },
+            { "여러 동작 묶기", "kind:multi", "여러", "sd_multi" } };
+        for (int i = 0; i < kinds.GetLength(0); i++)
             list.Add(new ActRow { Group = FirstGroup, Title = kinds[i, 0], Action = kinds[i, 1], Tag = kinds[i, 2], IconKey = kinds[i, 3],
                 Tip = "빈 칸에 놓으면 하는 일만 정해져요. 찬 칸이면 이름은 그대로" });
         for (int i = 0; i < DeckForm.BuiltinCodes.Length; i++)
