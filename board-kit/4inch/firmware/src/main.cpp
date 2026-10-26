@@ -2188,11 +2188,18 @@ static void onTile(lv_event_t *) {
   if (s_page != P_SET) closePw();
 }
 static void goPage(int p) {
+  if (p < 0 || p >= P_COUNT) return;
   lv_obj_set_tile_id(s_tv, p, 0, LV_ANIM_OFF);
-  s_page = p; markDots();
-  if (p == P_FIND && s_findGridDirty) fillFinderGrid();
-  if (p == P_FIND) renderFinder();
-  if (p == P_DECK) deckStateText();
+  onTile(nullptr);                            // 장이 바뀔 때 할 일(점·찾기·설정·단축키·교장 목록)을 한곳에서
+}
+// 쓸어 넘기기 대신 누르기(사용자 요청 2026-10-26): 화면 왼쪽 1/4 을 누르면 이전 장, 오른쪽 1/4 은 다음 장. 가운데·단추는 그대로.
+// 판(box)은 누르기를 받지 않으므로 빈 곳을 누르면 장(tile)이 받는다. 좌표는 터치에서 이미 180도 돌려 놓은 화면 좌표다.
+static void onTileTap(lv_event_t *) {
+  lv_point_t pt; lv_indev_t *in = lv_indev_get_act();
+  if (!in) return;
+  lv_indev_get_point(in, &pt);
+  if (pt.x < W / 4) goPage(s_page - 1);
+  else if (pt.x >= W * 3 / 4) goPage(s_page + 1);
 }
 
 // ── 화면 만들기  ──
@@ -2704,10 +2711,12 @@ static void buildUI() {
   s_tv = lv_tileview_create(scr);
   lv_obj_set_style_bg_color(s_tv, lv_color_hex(D_BG), 0);
   lv_obj_set_scrollbar_mode(s_tv, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_clear_flag(s_tv, LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM);
   for (int i = 0; i < P_COUNT; i++) {
-    lv_dir_t dir = (lv_dir_t)((i > 0 ? LV_DIR_LEFT : 0) | (i < P_COUNT - 1 ? LV_DIR_RIGHT : 0));
-    s_tile[i] = lv_tileview_add_tile(s_tv, i, 0, dir);
+    s_tile[i] = lv_tileview_add_tile(s_tv, i, 0, LV_DIR_NONE);   // 쓸어 넘기기 끔 — 좌우를 눌러 넘긴다(onTileTap)
     lv_obj_set_scrollbar_mode(s_tile[i], LV_SCROLLBAR_MODE_OFF);
+    lv_obj_add_flag(s_tile[i], LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(s_tile[i], onTileTap, LV_EVENT_CLICKED, nullptr);
   }
   lv_obj_add_event_cb(s_tv, onTile, LV_EVENT_VALUE_CHANGED, nullptr);
   buildClock(); buildToday(); buildWeek(); buildDeck(); buildFinder(); buildSettings();
@@ -2723,6 +2732,10 @@ static void buildUI() {
     s_dot[i] = box(dots, D_LINE, 0, 4);
     lv_obj_set_size(s_dot[i], 7, 7);
   }
+  // 누르는 자리 알림: 아래 양쪽 끝의 작은 화살표(왼쪽을 누르면 이전, 오른쪽은 다음)
+  lv_obj_t *al = label(scr, &kr14, D_MUTED, LV_SYMBOL_LEFT); lv_obj_set_pos(al, 10, H - 17);
+  lv_obj_t *ar = label(scr, &kr14, D_MUTED, LV_SYMBOL_RIGHT); lv_obj_set_pos(ar, W - 22, H - 17);
+  lv_obj_clear_flag(al, LV_OBJ_FLAG_CLICKABLE); lv_obj_clear_flag(ar, LV_OBJ_FLAG_CLICKABLE);
   markDots();
 }
 
