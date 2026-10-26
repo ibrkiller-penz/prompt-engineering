@@ -58,5 +58,11 @@ with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
             z.writestr(zi, fh.read())
 meta["helper"] = {"file": name, "bytes": os.path.getsize(path), "date": datetime.date.today().isoformat(), "files": len(pkg)}
 print(name, meta["helper"]["bytes"], "bytes,", len(pkg), "files")
+# penedu.web.app/deck 에서 바로 받는 exe(주소에 한글이 없게 영문 이름으로, 받을 때 이름은 쪽에서 정한다)
+exe_name = "penedu-deck-helper.exe"
+with open(os.path.join(hd, "교실알림판_도우미.exe"), "rb") as fh, open(os.path.join(OUT, exe_name), "wb") as out:
+    out.write(fh.read())
+meta["helperExe"] = {"file": exe_name, "bytes": os.path.getsize(os.path.join(OUT, exe_name)), "date": datetime.date.today().isoformat()}
+print(exe_name, meta["helperExe"]["bytes"], "bytes")
 with open(os.path.join(ROOT, "content", "board", "kits.json"), "w", encoding="utf-8") as fh:
     json.dump(meta, fh, ensure_ascii=False, indent=2)

@@ -1861,10 +1861,47 @@ static uint32_t s_pcLast = 0;           // 마지막 '@pc on' 받은 때(millis)
 static uint32_t s_deckSentAt = 0;       // 마지막으로 보내거나 답을 받은 때(60초 뒤 안내 글로 되돌린다)
 static int s_deckWaitKey = -1;          // 보내고 답을 기다리는 단추(5초 안에 답이 없으면 알린다)
 static uint32_t s_deckWaitAt = 0;
+// 도우미가 없을 때 단축키를 누르면 뜨는 안내 창(맨 위 층): 컴퓨터에서 짧은 주소로 도우미를 받아 설치하게 한다(2026-10-26).
+// 바깥 덮개나 [닫기]를 누르면 닫히고, 도우미가 이어지면(deckPoll) 저절로 닫힌다. 주소는 사이트(firebase.json)의 /deck 과 같게.
+#define DECK_HELP_URL "penedu.web.app/deck"
+static lv_obj_t *s_deckHelp = nullptr;
+static void closeDeckHelp() { if (s_deckHelp) { lv_obj_del_async(s_deckHelp); s_deckHelp = nullptr; } }   // 자기 이벤트 안에서도 지울 수 있게 async
+static void showDeckHelp() {
+  if (s_deckHelp) return;
+  const bool small = s_W <= 800;
+  s_deckHelp = box(lv_layer_top(), 0x000000, 0, 0);
+  lv_obj_set_style_bg_opa(s_deckHelp, LV_OPA_70, 0);
+  lv_obj_set_size(s_deckHelp, s_W, s_H); lv_obj_set_pos(s_deckHelp, 0, 0);
+  lv_obj_add_flag(s_deckHelp, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(s_deckHelp, [](lv_event_t *) { closeDeckHelp(); }, LV_EVENT_CLICKED, nullptr);
+  const int CW = small ? 600 : 700, TW = CW - 56;
+  lv_obj_t *card = box(s_deckHelp, D_PANEL, D_SUB, 16);
+  lv_obj_set_size(card, CW, LV_SIZE_CONTENT); lv_obj_center(card);
+  lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);                 // 카드를 눌러도 닫히지 않게(바깥 덮개만 닫는다)
+  lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_pad_all(card, small ? 22 : 28, 0); lv_obj_set_style_pad_row(card, small ? 8 : 12, 0);
+  auto line = [&](const lv_font_t *f, uint32_t col, const char *t) {
+    lv_obj_t *l = label(card, f, col, t);
+    lv_obj_set_width(l, TW); lv_label_set_long_mode(l, LV_LABEL_LONG_WRAP);
+    return l;
+  };
+  line(&kr28, D_TEXT, "컴퓨터에 도우미가 필요해요");
+  line(&kr16, D_SUB, "단축키로 컴퓨터 프로그램을 열려면, 이 보드를 꽂은 컴퓨터에 작은 도우미 프로그램을 한 번 깔아야 해요.");
+  line(&kr20, D_TEXT, "1. 컴퓨터 인터넷 창의 주소 칸에 이 주소를 쳐요");
+  lv_obj_t *url = box(card, D_ROW, D_LINE, 10);
+  lv_obj_set_size(url, TW, LV_SIZE_CONTENT); lv_obj_set_style_pad_ver(url, 10, 0);
+  lv_obj_t *ul = label(url, &kr28, C_DUTY, DECK_HELP_URL); lv_obj_center(ul);
+  line(&kr20, D_TEXT, "2. [도우미 받기]를 누르고, 받은 파일을 더블클릭해요");
+  line(&kr20, D_TEXT, "3. 컴퓨터 화면 오른쪽 아래 아이콘이 초록이 되면 다시 눌러요");
+  line(&kr14, D_MUTED, "깔았는데도 안 되면: 이 보드가 'UART' 단자로 컴퓨터에 꽂혀 있는지 보세요(데이터 케이블).");
+  lv_obj_t *cb = button(card, "닫기", 120, 44, D_ROW, D_TEXT);
+  lv_obj_add_event_cb(cb, [](lv_event_t *) { closeDeckHelp(); }, LV_EVENT_CLICKED, nullptr);
+}
 static void onDeck(lv_event_t *e) {
   const int i = (int)(intptr_t)lv_event_get_user_data(e);
   if (i < 0 || i >= 16) return;
   if (!s_usbOn) {
+    showDeckHelp();
     if (s_deckState) {
       lv_label_set_text(s_deckState, "컴퓨터 도우미와 연결되지 않았습니다 · UART 선과 컴퓨터의 도우미 프로그램을 확인하세요");
       lv_obj_set_style_text_color(s_deckState, lv_color_hex(NOW_TAG), 0);
@@ -1889,7 +1926,7 @@ static void onDeck(lv_event_t *e) {
 static void deckStateText() {
   if (!s_deckState) return;
   setTextIf(s_deckState, s_usbOn ? LV_SYMBOL_OK "  컴퓨터와 연결됨 · 단추를 누르면 프로그램이 열립니다"
-                                 : LV_SYMBOL_WARNING "  컴퓨터 도우미를 기다리는 중 · UART 선을 꽂고 컴퓨터에서 도우미를 켜 주세요");
+                                 : LV_SYMBOL_WARNING "  컴퓨터 도우미를 기다리는 중 · 처음이면 컴퓨터에서 " DECK_HELP_URL " 로 받아요");
   setTextColIf(s_deckState, s_usbOn ? C_OK : D_MUTED);   // 기다리는 것은 문제가 아니다(노랑은 '지금'·문제에만)
 }
 static void deckIconsDim() {   // 도우미가 꺼져 있으면 아이콘을 흐리게(누를 수 없다는 뜻)
@@ -1931,6 +1968,7 @@ static void deckPoll(uint32_t ms) {
         if (t >= 0 && t < THEME_N) { s_prefs.putInt("theme", t); s_themeIdx = t; Serial.printf("@theme ok %d", t); Serial.println(); s_themeRestartAt = ms ? ms : 1; }
       }
       else if (!strncmp(buf, "@view ", 6)) { const int v = atoi(buf + 6); if (v >= 0 && v <= 4) { lock(); showView((View)v); lv_disp_trig_activity(NULL); unlock(); } }
+      else if (!strcmp(buf, "@deckhelp")) { lock(); showDeckHelp(); lv_disp_trig_activity(NULL); unlock(); }   // 도우미 안내 창 미리 보기(화면 찍기 시험용)
       else if (!strncmp(buf, "@deck ok ", 9) && s_deckState) {
         s_deckWaitKey = -1;
         lock(); lv_label_set_text_fmt(s_deckState, LV_SYMBOL_OK "  '%s' 열었습니다", deckLabel(buf + 9));
@@ -1947,6 +1985,7 @@ static void deckPoll(uint32_t ms) {
     else n = 0;
   }
   s_usbOn = s_pcLast && ms - s_pcLast < 15000;
+  if (s_usbOn && s_deckHelp) { lock(); closeDeckHelp(); unlock(); }   // 도우미를 깔아 이어졌으면 안내 창을 닫는다
 }
 static void buildDeck(lv_obj_t *scr, int top) {
   const bool small = s_W <= 800;
@@ -3403,6 +3442,7 @@ static void rebuildUi() {
   const uint32_t t0 = millis();
   lock();
   s_th = &THEMES[s_themeIdx];
+  if (s_deckHelp) { lv_obj_del(s_deckHelp); s_deckHelp = nullptr; }   // 맨 위 층의 안내 창은 옛 색이라 지운다
   lv_obj_clean(lv_scr_act());
   buildUI();
   s_batPct = -99; s_lastMin = -1;                        // 배터리·시계 글을 다음 바퀴에 다시 쓰게

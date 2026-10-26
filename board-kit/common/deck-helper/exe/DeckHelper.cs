@@ -230,6 +230,7 @@ class Helper : ApplicationContext
                 }
         }
         catch { return; }
+        if (File.Exists(StopFile)) return;   // 찾는 사이(1~2초) '잠깐 멈춤'이 생겼으면 새로 열지 않는다(굽기·화면 찍기가 포트를 바로 쓰게)
         foreach (var k in new List<string>(fails.Keys)) if (!found.ContainsKey(k)) fails.Remove(k);   // 뽑았다 꽂으면 다시 처음부터
         foreach (var kv in found)
         {

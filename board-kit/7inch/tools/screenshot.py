@@ -18,7 +18,8 @@ a = ap.parse_args()
 if not a.port:
     sys.exit("--port COM번호 를 주세요")
 os.makedirs(a.out, exist_ok=True)
-stop = os.path.join(tempfile.gettempdir(), "deck_helper.stop")
+# 도우미(PowerShell·exe)는 %TEMP% 를 본다. tempfile 은 TMPDIR(백신 알약이 바꿔 둠)을 먼저 봐서 다른 폴더가 될 수 있다(2026-10-26)
+stop = os.path.join(os.environ.get("TEMP") or tempfile.gettempdir(), "deck_helper.stop")
 made_stop = not os.path.exists(stop)
 if made_stop:
     open(stop, "w").close(); time.sleep(2)

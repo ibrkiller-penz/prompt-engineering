@@ -16,6 +16,7 @@ import { TeacherHome, TeacherLesson } from "./pages/prompt/Teacher";
 import EssayPage from "./pages/prompt/EssayPage";
 import BoardLayout from "./pages/board/BoardLayout";
 import BoardHome from "./pages/board/BoardHome";
+import DeckGet from "./pages/board/DeckGet";
 import BoardBuy from "./pages/board/Buy";
 import BoardPc from "./pages/board/PcSetup";
 import BoardFlash from "./pages/board/Flash";
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="help" element={<BoardHelp />} />
         <Route path="brief" element={<BoardBrief />} />
       </Route>
+      <Route path="/deck" element={<DeckGet />} />
       <Route path="/mathplay" element={<MathplayHome />} />
       <Route path="/mathplay/busan/*" element={<Navigate to="/mathplay" replace />} />
       <Route path="/mathplay/puzzle" element={<Navigate to="/mathplay?g=calendar" replace />} />

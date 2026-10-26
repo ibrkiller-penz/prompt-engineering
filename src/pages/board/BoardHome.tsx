@@ -213,6 +213,10 @@ export default function BoardHome() {
           없음). 작업 표시줄에 아이콘이 생기고 보드와 이어지면 초록으로 바뀌어요. 컴퓨터를 켤 때 저절로 켜져요. 학교 백신이 exe를 막으면 압축을
           풀고 <b>설치.bat</b>을 써요.{kits.helper?.bytes ? ` · ${mb(kits.helper.bytes)}` : ""}
         </p>
+        <p className="mt-2 text-sm leading-relaxed">
+          짧은 주소: <Link to="/deck" className="font-bold text-accent underline">penedu.web.app/deck</Link> — 도우미가 없을 때 보드에서 단축키를 누르면 이
+          주소가 화면에 떠요. 그 컴퓨터의 인터넷 창에 치면 exe 를 바로 받는 쪽이 열려요.
+        </p>
         <a
           href={`/board/${kits.helper.file}`}
           download
