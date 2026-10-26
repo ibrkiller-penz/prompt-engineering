@@ -3,6 +3,8 @@
 //   5초마다 '@pc on' 을 보내고, '@board ok' 로 답하는 포트만 쥔다. 답이 없으면 놓고, 처음엔 1분 뒤(켠 직후 늦은 알림판),
 //   두 번째부터는 10분 뒤에 다시 본다(같은 칩을 쓰는 다른 장치를 자꾸 잡지 않게).
 //   %TEMP%\deck_helper.stop 파일이 있으면 포트를 놓고 기다린다(키트의 quick_start 가 보드를 구울 때 쓴다).
+//   '단축키 꾸미기'(DeckForm.cs)로 칸을 바꾸면 deck.json 에 저장하고, 보드에 이름·아이콘을 줄 단위로 보낸다(설계_단축키꾸미기.md 2~4장).
+//   보드가 '@deck s3' 를 보내면 deck.json 의 칸 3 을, '@deck explorer' 같은 영문 키면 apps.txt/기본값을 연다(옛 보드 호환).
 // 만들기: build_exe.ps1 (윈도우에 들어 있는 .NET Framework 4 의 csc.exe — C# 5 문법만 쓴다)
 using System;
 using System.Collections.Generic;
@@ -21,7 +23,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("교실 알림판 단축키 도우미")]
 [assembly: AssemblyProduct("교실 알림판 단축키 도우미")]
-[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
 
 static class Program
 {
@@ -38,24 +40,47 @@ static class Program
     }
 }
 
+// 포트 감싸개(시험 때 가짜 보드로 바꿔 끼울 수 있게)
+class Link
+{
+    readonly SerialPort sp;
+    public Link(SerialPort p) { sp = p; }
+    protected Link() { }
+    public virtual void Write(string s) { sp.Write(s); }
+    public virtual string ReadExisting() { return sp.ReadExisting(); }
+    public virtual void Close() { sp.Close(); }
+}
+
 class Board
 {
     public string Name;          // COM 이름
     public string Kind;          // 7인치 / 4인치
-    public SerialPort Port;
+    public Link Port;
     public string Buf = "";
     public bool Ok;              // '@board ok' 를 받았나
     public DateTime Opened;
+    // 아이콘 보내기
+    public volatile bool Pushing;   // 보내는 스레드가 포트를 쓰는 중(이때 Loop 는 읽지도 쓰지도 않는다)
+    public bool CanDeck;            // '@board ok deck=' 를 받음 = 새 보드
+    public bool OldBoard;           // '@board ok' 뒤 3초 안에 deck= 이 안 옴 = 옛 보드(절대 안 보냄)
+    public DateTime OkAt = DateTime.MinValue;
+    public volatile string Hash;    // 보드가 가진 cfg 해시("0" = 내장)
+    public int PushFails;
+    public DateTime NextTry = DateTime.MinValue;
+    public bool PushStopped;        // 3번 잇달아 실패 → 설정 창에서 다시 보낼 때까지 멈춤
+    public DateTime LastBeat, StopChk;
 }
 
 class Helper : ApplicationContext
 {
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     const string RunName = "PeneduBoardDeckHelper";
-    static readonly string Dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PeneduBoard");
+    static readonly string Dir = Environment.GetEnvironmentVariable("PENEDU_DECK_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PeneduBoard");   // 시험용으로 바꿀 수 있음
     static readonly string AppsFile = Path.Combine(Dir, "apps.txt");
     static readonly string LogFile = Path.Combine(Path.GetTempPath(), "deck_helper.log");
     static readonly string StopFile = Path.Combine(Path.GetTempPath(), "deck_helper.stop");
+    static readonly string DeckFile = Path.Combine(Dir, "deck.json");
+    static readonly string IconDir = Path.Combine(Dir, "icons");
 
     // 보드 단추 이름 → 열 것. apps.txt(이름 = 열 것)가 있으면 그 값이 먼저다. #desktop = 바탕화면 보기, #altf4 = 맨 앞 창 닫기
     static readonly string[,] DefaultApps = {
@@ -79,6 +104,16 @@ class Helper : ApplicationContext
     readonly SynchronizationContext ui;
     volatile bool quit;
     volatile string lastTip = "";   // 보드 스레드가 만든 상태 글(화면 스레드는 이것만 읽는다)
+    // 단축키 꾸미기
+    readonly object deckLock = new object();
+    DeckConfig deck;                // 저장된 설정(없으면 null = 꾸민 적 없음)
+    byte[] cfgBytes; string cfgHash = "";
+    volatile bool forcePush, resetPending;
+    volatile string deckTip = "보드가 연결되지 않았어요";
+    volatile string pushState = "";
+    DeckForm form;
+    public event Action<string> PushProgress;   // 보드 스레드에서 온다(창은 ui.Post 로 받는다)
+    public SynchronizationContext Ui { get { return ui; } }
 
     public Helper(bool testMode)
     {
@@ -90,8 +125,9 @@ class Helper : ApplicationContext
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(miState);
+        menu.Items.Add("단축키 꾸미기…", null, delegate { OpenDeckForm(); });
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("여는 프로그램 바꾸기(메모장)", null, delegate { OpenAppsFile(); });
+        menu.Items.Add("여는 프로그램 바꾸기(옛 보드용, 메모장)", null, delegate { OpenAppsFile(); });
         menu.Items.Add("기록 보기", null, delegate { ShellOpen(LogFile); });
         menu.Items.Add(miPause);
         menu.Items.Add(miAuto);
@@ -112,6 +148,11 @@ class Helper : ApplicationContext
         Directory.CreateDirectory(Dir);
         if (!test) Install();
         Log("도우미(exe) 시작");
+        DeckIcons.ExtractBuiltins(Path.Combine(IconDir, "기본"));
+        DeckLibrary.Extract(Path.Combine(IconDir, "모음"));
+        if (File.Exists(DeckFile))
+            try { RefreshCfg(DeckConfig.Parse(File.ReadAllText(DeckFile, Encoding.UTF8))); }
+            catch (Exception ex) { Log("deck.json 을 읽지 못함: " + ex.Message); }
         var th = new Thread(Loop) { IsBackground = true, Name = "deck" };
         th.Start();
     }
@@ -214,20 +255,33 @@ class Helper : ApplicationContext
                 if ((now - lastBeat).TotalSeconds >= 5)
                 {
                     lastBeat = now;
-                    lock (boards) foreach (var n in new List<string>(boards.Keys)) Send(n, "@pc on");
+                    lock (boards) foreach (var n in new List<string>(boards.Keys)) if (!boards[n].Pushing) Send(n, "@pc on");   // 보내는 중에는 보내는 스레드가 아이콘 사이에 보낸다
+                }
+                if (forcePush)
+                {
+                    forcePush = false;
+                    lock (boards) foreach (var b in boards.Values) { b.PushFails = 0; b.PushStopped = false; b.NextTry = DateTime.MinValue; }
                 }
                 lock (boards)
                     foreach (var n in new List<string>(boards.Keys))
                     {
                         var b = boards[n];
+                        if (b.Pushing) continue;
                         if (!b.Ok && (now - b.Opened).TotalSeconds >= 40)
                         {
                             int f; fails.TryGetValue(n, out f); fails[n] = ++f;
                             int wait = f >= 2 ? 10 : 1;
                             Drop(n, "알림판 아님(답 없음, " + wait + "분 뒤 다시)"); skip[n] = now.AddMinutes(wait);
+                            continue;
                         }
+                        if (b.Ok && !b.CanDeck && !b.OldBoard && b.OkAt != DateTime.MinValue && (now - b.OkAt).TotalSeconds > 3)
+                        {
+                            b.OldBoard = true;
+                            Log("아이콘 받기를 못 하는 옛 보드: " + n + " (보내지 않음)");
+                        }
+                        MaybePush(b, now);
                     }
-                lock (boards) foreach (var n in new List<string>(boards.Keys)) Read(n);
+                lock (boards) foreach (var n in new List<string>(boards.Keys)) if (!boards[n].Pushing) Read(n);
                 UpdateTray();
             }
             catch (Exception ex) { Log("오류: " + ex.Message); }
@@ -264,7 +318,7 @@ class Helper : ApplicationContext
                 sp.DtrEnable = false; sp.RtsEnable = false;   // 열 때 보드가 다시 시작되지 않게
                 sp.ReadTimeout = 50; sp.WriteTimeout = 500; sp.NewLine = "\n"; sp.Encoding = Encoding.UTF8;
                 sp.Open();
-                lock (boards) boards[kv.Key] = new Board { Name = kv.Key, Kind = kv.Value, Port = sp, Opened = now };
+                lock (boards) boards[kv.Key] = new Board { Name = kv.Key, Kind = kv.Value, Port = new Link(sp), Opened = now };
                 Send(kv.Key, "@pc on");
                 Log("포트 열어 봄: " + kv.Key);
             }
@@ -302,7 +356,14 @@ class Helper : ApplicationContext
         {
             string line = b.Buf.Substring(0, k).Trim();
             b.Buf = b.Buf.Substring(k + 1);
-            if (line == "@board ok") { if (!b.Ok) Confirm(b); }
+            if (line == "@board ok") { if (!b.Ok) Confirm(b); if (!b.CanDeck && b.OkAt == DateTime.MinValue) b.OkAt = DateTime.Now; }
+            else if (line.StartsWith("@board ok deck="))   // 새 보드: 가진 설정의 해시
+            {
+                if (!b.Ok) Confirm(b);
+                if (!b.CanDeck) Log("아이콘 받기가 되는 보드: " + n + " (deck=" + line.Substring(15).Trim() + ")");
+                b.CanDeck = true; b.OldBoard = false; b.OkAt = DateTime.MinValue;
+                b.Hash = line.Substring(15).Trim();
+            }
             else if (line == "@pc?") { if (!b.Ok) Confirm(b); Send(n, "@pc on"); Log("보드가 연결을 다시 확인함(새로 고침): " + n); }   // 보드의 [새로 고침] 단추: 바로 답한다
             else if (line.StartsWith("@deck "))
             {
@@ -311,7 +372,7 @@ class Helper : ApplicationContext
                 bool ok = OpenApp(key);
                 Send(n, (ok ? "@deck ok " : "@deck fail ") + key);
             }
-            else if (Regex.IsMatch(line, "^(sync|reset reason|health|download|index|where|schedule|weather|meal|air|heap|pc helper|backlight|restart)"))
+            else if (Regex.IsMatch(line, "^(sync|reset reason|health|download|index|where|schedule|weather|meal|air|heap|pc helper|backlight|restart|deck)"))
                 BoardLog(n, line);
         }
         if (b.Buf.Length > 4096) b.Buf = "";
@@ -340,12 +401,48 @@ class Helper : ApplicationContext
     // ── 프로그램 열기(화면 스레드에서) ──
     bool OpenApp(string key)
     {
-        string t = Apps(key);
-        if (t == null) { Log("모르는 단추: " + key); return false; }
+        string kind, t;
+        var m = Regex.Match(key, "^s([0-9]|1[0-5])$");
+        if (m.Success)   // 사용자 설정 칸 번호(새 보드)
+        {
+            DeckCell c = null;
+            lock (deckLock) if (deck != null) c = deck.Cells[int.Parse(m.Groups[1].Value)];
+            if (c == null || c.Kind == "none" || c.Target.Length == 0) { Log("설정이 없는 칸: " + key); return false; }
+            kind = c.Kind; t = c.Target;
+        }
+        else
+        {
+            t = Apps(key);
+            if (t == null) { Log("모르는 단추: " + key); return false; }
+            kind = t.StartsWith("#") ? "builtin" : "app";
+        }
         bool ok = false;
         ui.Send(delegate {
-            try
-            {
+            try { Exec(kind, t); ok = true; }
+            catch (Exception ex) { Log("열기 실패: " + key + " (" + ex.Message + ")"); }
+        }, null);
+        if (ok) Log("열기: " + key);
+        return ok;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool LockWorkStation();
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, int flags, IntPtr extra);
+    // 소리·음악 키(아이콘 모음의 '소리 크게'·'재생/멈춤' 등)
+    static readonly Dictionary<string, byte> MediaKeys = new Dictionary<string, byte> {
+        { "#volup", 0xAF }, { "#voldown", 0xAE }, { "#playpause", 0xB3 }, { "#next", 0xB0 }, { "#prev", 0xB1 } };
+
+    // 칸 하나 실행(화면 스레드): 프로그램·사이트 열기 / 단축키 / 글자 붙여 넣기 / 내장 기능
+    static void Exec(string kind, string t)
+    {
+        switch (kind)
+        {
+            case "keys": SendKeys.SendWait(t); return;
+            case "text": Clipboard.SetText(t); SendKeys.SendWait("^v"); return;
+            case "url":
+                if (!Regex.IsMatch(t, "^[a-zA-Z][a-zA-Z0-9+.-]*:")) t = "https://" + t;
+                Process.Start(new ProcessStartInfo(t) { UseShellExecute = true });
+                return;
+            case "builtin":
                 if (t == "#desktop")
                 {
                     var sh = Type.GetTypeFromProgID("Shell.Application");
@@ -353,13 +450,15 @@ class Helper : ApplicationContext
                     sh.InvokeMember("ToggleDesktop", BindingFlags.InvokeMethod, null, o, null);
                 }
                 else if (t == "#altf4") SendKeys.SendWait("%{F4}");
-                else Process.Start(new ProcessStartInfo(t) { UseShellExecute = true });
-                ok = true;
-            }
-            catch (Exception ex) { Log("열기 실패: " + key + " (" + ex.Message + ")"); }
-        }, null);
-        if (ok) Log("열기: " + key);
-        return ok;
+                else if (t == "#lock") LockWorkStation();
+                else if (t == "#mute") { keybd_event(0xAD, 0, 0, IntPtr.Zero); keybd_event(0xAD, 0, 2, IntPtr.Zero); }
+                else if (MediaKeys.ContainsKey(t)) { byte vk = MediaKeys[t]; keybd_event(vk, 0, 0, IntPtr.Zero); keybd_event(vk, 0, 2, IntPtr.Zero); }
+                else throw new ArgumentException("모르는 내장 기능 " + t);
+                return;
+            default:
+                Process.Start(new ProcessStartInfo(t) { UseShellExecute = true });
+                return;
+        }
     }
 
     static string Apps(string key)
@@ -399,6 +498,367 @@ class Helper : ApplicationContext
         try { if (!File.Exists(f)) File.WriteAllText(f, ""); Process.Start("notepad.exe", "\"" + f + "\""); } catch { }
     }
 
+    // ════ 단축키 꾸미기: 설정 창과의 접점 ════
+    void OpenDeckForm()
+    {
+        if (form != null && !form.IsDisposed) { form.WindowState = FormWindowState.Normal; form.Activate(); return; }
+        form = new DeckForm(this);
+        form.Show();
+    }
+
+    public static string AppFor(string key) { return Apps(key); }
+
+    // deck.json 읽기(없으면 기본 16개). 미리보기 그림(Tile)도 채운다
+    public DeckConfig LoadDeck()
+    {
+        DeckConfig c = null;
+        if (File.Exists(DeckFile))
+            try { c = DeckConfig.Parse(File.ReadAllText(DeckFile, Encoding.UTF8)); } catch (Exception ex) { Log("deck.json 을 읽지 못함: " + ex.Message); }
+        if (c == null) c = DeckConfig.Default(Apps);
+        for (int i = 0; i < 16; i++)
+        {
+            var cell = c.Cells[i];
+            string png = Path.Combine(IconDir, "cell_" + i + ".png");
+            if (cell.IconMode == "builtin") cell.Tile = DeckIcons.Builtin(cell.IconSrc.Length > 0 ? cell.IconSrc : DeckConfig.Keys[i]);
+            else if (File.Exists(png))
+                try { using (var fs = new FileStream(png, FileMode.Open, FileAccess.Read)) using (var im = Image.FromStream(fs)) cell.Tile = new Bitmap(im); } catch { }
+            if (cell.Tile == null && cell.IconMode != "builtin") cell.Tile = DeckIcons.MakeTile(cell, png);
+        }
+        return c;
+    }
+
+    // deck.json 쓰기 + icons\cell_i.bin/.png 다시 만들기 + crc 채우기(화면 스레드에서 부른다)
+    public void SaveDeck(DeckConfig c)
+    {
+        Directory.CreateDirectory(IconDir);
+        for (int i = 0; i < 16; i++)
+        {
+            var cell = c.Cells[i];
+            string png = Path.Combine(IconDir, "cell_" + i + ".png"), bin = Path.Combine(IconDir, "cell_" + i + ".bin");
+            if (cell.Kind == "none") { cell.Name = ""; cell.Target = ""; cell.IconMode = "builtin"; cell.IconSrc = ""; cell.Tile = null; }
+            if (cell.IconMode == "builtin")
+            {
+                cell.IconCrc = "";
+                try { File.Delete(png); File.Delete(bin); } catch { }
+                continue;
+            }
+            var t = cell.Tile ?? DeckIcons.MakeTile(cell, png);
+            var data = DeckIcons.ToBin(t);
+            t.Save(png, System.Drawing.Imaging.ImageFormat.Png);
+            File.WriteAllBytes(bin, data);
+            cell.IconCrc = DeckIcons.Crc32Hex(data);
+            if (cell.Tile == null) cell.Tile = t;
+        }
+        File.WriteAllText(DeckFile, c.ToJson(), new UTF8Encoding(false));
+        c.Exists = true;
+        if (!c.IsDefault) resetPending = false;   // 새로 꾸몄으면 되돌리기 예약은 버린다(보낸 뒤 바로 지워지지 않게)
+        RefreshCfg(c);
+        Log("단축키 설정 저장(해시 " + cfgHash + (c.IsDefault ? ", 기본값" : "") + ")");
+    }
+
+    // 보드 스레드에 "보내라"(force = 3번 실패로 멈춘 것도 다시)
+    public void RequestPush(bool force)
+    {
+        if (force) forcePush = true;
+        SetPushState("");
+    }
+
+    // 보드를 내장 16개로 되돌리기('@deckreset')
+    public void RequestReset()
+    {
+        resetPending = true;
+        forcePush = true;
+    }
+
+    // 설정 창 상태 줄(보드 스레드가 만든 글)
+    public string DeckStatus() { return deckTip; }
+    public bool HasDeckBoard() { return deckTip.StartsWith("보드:") && deckTip.IndexOf("못 해요") < 0; }
+
+    void RefreshCfg(DeckConfig c)
+    {
+        var copy = c.Clone();
+        foreach (var cell in copy.Cells) cell.Tile = null;
+        var bytes = copy.CfgBytes();
+        lock (deckLock) { deck = copy; cfgBytes = bytes; cfgHash = DeckIcons.Crc32Hex(bytes); }
+    }
+
+    void SetPushState(string s)
+    {
+        pushState = s;
+        var h = PushProgress;
+        if (h != null && s.Length > 0) try { h(s); } catch { }
+    }
+
+    string DeckStateText()
+    {
+        var parts = new List<string>();
+        bool active; string hash;
+        lock (deckLock) { active = deck != null && !deck.IsDefault; hash = cfgHash; }
+        lock (boards)
+            foreach (var b in boards.Values)
+            {
+                if (!b.Ok) continue;
+                string s;
+                if (b.Pushing) s = pushState.Length > 0 ? pushState : "보내는 중";
+                else if (b.OldBoard) s = "이 보드는 아이콘 받기를 못 해요(보드 프로그램을 새로 구워야 해요)";
+                else if (!b.CanDeck || b.Hash == null) s = "연결됨 · 확인하는 중";
+                else if (resetPending && b.Hash != "0") s = "기본 아이콘으로 되돌리는 중";
+                else if (!active) s = b.Hash == "0" ? "연결됨 · 보드는 기본 아이콘" : "연결됨 · 보드에 예전에 보낸 설정이 있어요";
+                else if (b.Hash == hash) s = "연결됨 · 보드와 같음";
+                else if (b.PushStopped) s = "보내지 못해 멈췄어요 · [저장하고 보드에 보내기]를 다시 눌러 주세요";
+                else s = "연결됨 · 곧 보내요";
+                parts.Add(b.Kind + " " + s);
+            }
+        return parts.Count == 0 ? "보드가 연결되지 않았어요" : "보드: " + string.Join(" / ", parts.ToArray());
+    }
+
+    // Loop 안(boards 잠금 중): 보낼지 정한다
+    void MaybePush(Board b, DateTime now)
+    {
+        if (!b.Ok || !b.CanDeck || b.Hash == null || now < b.NextTry) return;
+        bool reset = resetPending && b.Hash != "0";
+        if (!reset)
+        {
+            if (b.PushStopped) return;
+            lock (deckLock) if (deck == null || deck.IsDefault || b.Hash == cfgHash) return;
+        }
+        b.Pushing = true;
+        var th = new Thread(delegate () { PushJob(b, reset); }) { IsBackground = true, Name = "push " + b.Name };
+        th.SetApartmentState(ApartmentState.STA);   // 아이콘을 다시 만들 때 셸 COM 을 쓴다
+        th.Start();
+    }
+
+    // ════ 보내기(lock-step, 설계 2-3) — 이 스레드만 그 보드의 포트를 쓴다 ════
+    class PushAbort : Exception { public PushAbort(string m) : base(m) { } }
+
+    void PushJob(Board b, bool reset)
+    {
+        bool ok = false;
+        string why = "";
+        try
+        {
+            b.LastBeat = DateTime.Now;
+            if (reset)
+            {
+                SetPushState("기본 아이콘으로 되돌리는 중");
+                ok = Ask(b, "@deckreset", 5000, 2, delegate (string l) { return l == "@deckreset ok"; }) != null;
+                if (ok) { b.Hash = "0"; resetPending = false; Log("보드를 기본 아이콘으로 되돌림: " + b.Name); SetPushState("보드를 기본 아이콘으로 되돌렸어요"); }
+                else why = "되돌리기 답 없음";
+            }
+            else ok = Push(b, out why);
+        }
+        catch (PushAbort ex) { why = ex.Message; }
+        catch (Exception ex) { why = "포트 문제: " + ex.Message; }
+        finally
+        {
+            if (!ok) { try { b.Port.Write("@deckabort\n"); } catch { } }
+            b.Buf = "";
+            lock (boards)
+            {
+                if (ok) { b.PushFails = 0; b.PushStopped = false; }
+                else
+                {
+                    b.PushFails++;
+                    b.NextTry = DateTime.Now.AddSeconds(60);
+                    Log("보내기 실패(" + b.PushFails + "번째): " + b.Name + " — " + why);
+                    if (b.PushFails >= 3)
+                    {
+                        b.PushStopped = true;
+                        SetPushState("보드에 보내지 못했어요");
+                        Balloon("보드에 보내지 못했어요. 도우미 메뉴 '단축키 꾸미기'에서 다시 보내 주세요", ToolTipIcon.Warning);
+                    }
+                    else
+                    {
+                        SetPushState("보드에 보내지 못했어요(1분 뒤 다시 해 봅니다)");
+                        Balloon("보드에 보내지 못했어요(다시 해 봅니다)", ToolTipIcon.Warning);
+                    }
+                }
+                b.Pushing = false;
+            }
+        }
+    }
+
+    bool Push(Board b, out string why)
+    {
+        why = "";
+        // 보낼 것 한 벌(이 동안 설정 창이 저장해도 섞이지 않게)
+        DeckConfig snap; byte[] cfg; string hash;
+        lock (deckLock) { snap = deck.Clone(); cfg = cfgBytes; hash = cfgHash; }
+        var bins = new byte[16][];
+        bool fixedAny = false;
+        for (int i = 0; i < 16; i++)
+        {
+            var c = snap.Cells[i];
+            if (c.IconMode == "builtin") continue;
+            string bin = Path.Combine(IconDir, "cell_" + i + ".bin"), png = Path.Combine(IconDir, "cell_" + i + ".png");
+            byte[] d = null;
+            try { if (File.Exists(bin)) d = File.ReadAllBytes(bin); } catch { }
+            if (d == null || d.Length != DeckIcons.BinLen)   // 파일이 없으면 다시 만든다
+            {
+                using (var t = DeckIcons.MakeTile(c, png)) { d = DeckIcons.ToBin(t); try { t.Save(png, System.Drawing.Imaging.ImageFormat.Png); } catch { } }
+                File.WriteAllBytes(bin, d);
+            }
+            string crc = DeckIcons.Crc32Hex(d);
+            if (crc != c.IconCrc) { c.IconCrc = crc; fixedAny = true; }
+            bins[i] = d;
+        }
+        if (fixedAny)   // 아이콘 파일이 바뀌어 있었다 → deck.json 고치고 해시 다시
+        {
+            File.WriteAllText(DeckFile, snap.ToJson(), new UTF8Encoding(false));
+            RefreshCfg(snap);
+            lock (deckLock) { cfg = cfgBytes; hash = cfgHash; }
+            Log("아이콘 파일을 다시 만들어 deck.json 을 고침");
+        }
+
+        // ① 보드가 가진 것
+        SetPushState("보드에 확인하는 중");
+        string ls = Ask(b, "@deckls", 3000, 3, delegate (string l) { return l.StartsWith("@deckls "); });
+        if (ls == null) { why = "@deckls 답 없음"; return false; }
+        var tok = ls.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tok.Length < 18) { why = "@deckls 형식: " + ls; return false; }
+        var todo = new List<int>();
+        for (int i = 0; i < 16; i++) if (bins[i] != null && tok[2 + i] != snap.Cells[i].IconCrc) todo.Add(i);
+        if (tok[1] == hash && todo.Count == 0) { b.Hash = hash; return true; }
+
+        // ② 시작(와이파이 받기 중이면 15초씩 기다림, 최대 5분)
+        for (int k = 0; ; k++)
+        {
+            string r = Ask(b, "@deckbegin " + hash + " " + todo.Count, 3000, 3,
+                delegate (string l) { return l == "@deckbegin ok" || l == "@deckbusy" || l.StartsWith("@deckbegin fail"); });
+            if (r == null) { why = "@deckbegin 답 없음"; return false; }
+            if (r == "@deckbegin ok") break;
+            if (r.StartsWith("@deckbegin fail")) { why = r; return false; }
+            if (k >= 19) { why = "보드가 계속 받기 중"; return false; }
+            SetPushState("보드가 날씨·시간표를 받는 중이라 기다려요");
+            var until = DateTime.Now.AddSeconds(15);
+            while (DateTime.Now < until) { Beat(b); NextLine(b, 200); }
+        }
+        Log("보내기 시작: " + b.Name + " 아이콘 " + todo.Count + "개, 해시 " + hash);
+
+        // ③④⑤ 아이콘(바뀐 것만) → cfg(맨 끝)
+        for (int k = 0; k < todo.Count; k++)
+        {
+            Beat(b);
+            SetPushState("아이콘 보내는 중 " + (k + 1) + "/" + todo.Count);
+            if (!SendItem(b, todo[k].ToString(), bins[todo[k]], out why)) return false;
+        }
+        Beat(b);
+        SetPushState("설정 보내는 중");
+        if (!SendItem(b, "c", cfg, out why)) return false;
+
+        // ⑥ 끝(보드가 검사하고 화면을 한 번 그린다)
+        string e = Ask(b, "@deckend", 10000, 1, delegate (string l) { return l.StartsWith("@deckend "); });
+        if (e == null) { why = "@deckend 답 없음"; return false; }
+        if (!e.StartsWith("@deckend ok")) { why = e; return false; }
+        b.Hash = e.Substring(11).Trim();
+        if (b.Hash != hash) Log("보드 해시가 다름: " + b.Hash + " / " + hash);
+        Log("보내기 끝: " + b.Name + " (해시 " + b.Hash + ")");
+        SetPushState("보드에 보냈어요");
+        Balloon(b.Kind + " 알림판에 새 단축키를 보냈어요", ToolTipIcon.Info);
+        return true;
+    }
+
+    // 하나(아이콘 칸 번호 또는 c)를 192바이트 조각으로
+    bool SendItem(Board b, string id, byte[] data, out string why)
+    {
+        why = "";
+        string crc = DeckIcons.Crc32Hex(data);
+        for (int redo = 0; redo < 3; redo++)
+        {
+            string r = Ask(b, "@deckitem " + id + " " + data.Length + " " + crc, 3000, 3,
+                delegate (string l) { return l == "@deckitem ok " + id || l == "@deckitem fail " + id || l.StartsWith("@deckitem fail " + id + " "); });
+            if (r == null) { why = "@deckitem " + id + " 답 없음"; return false; }
+            if (r.StartsWith("@deckitem fail")) { why = r; return false; }
+            int n = (data.Length + 191) / 192;
+            for (int seq = 0; seq < n; seq++)
+            {
+                int len = Math.Min(192, data.Length - seq * 192);
+                string line = "@deckdata " + id + " " + seq + " " + Convert.ToBase64String(data, seq * 192, len);
+                string okL = "@deckdata ok " + id + " " + seq, errL = "@deckdata err " + id + " " + seq;
+                bool got = false;
+                for (int t = 0; t < 4 && !got; t++)
+                {
+                    string a = Ask(b, line, 2000, 1, delegate (string l) { return l == okL || l == errL || l.StartsWith(errL + " "); });
+                    if (a == okL) got = true;
+                    else if (a != null) Log("조각 다시: " + a);
+                }
+                if (!got) { why = "조각 " + id + "/" + seq + " 답 없음"; return false; }
+            }
+            string end = Ask(b, "@deckitem end " + id, 5000, 1,
+                delegate (string l) { return l == "@deckitem done " + id || l == "@deckitem bad " + id || l.StartsWith("@deckitem bad " + id + " "); });
+            if (end == null) { why = "@deckitem end " + id + " 답 없음"; return false; }
+            if (end == "@deckitem done " + id) return true;
+            Log("다시 보냄: " + end);
+        }
+        why = "칸 " + id + " 이(가) 계속 깨짐";
+        return false;
+    }
+
+    // 아이콘 사이에만 '@pc on'(5초마다)
+    void Beat(Board b)
+    {
+        if ((DateTime.Now - b.LastBeat).TotalSeconds < 5) return;
+        b.LastBeat = DateTime.Now;
+        Write(b, "@pc on");
+    }
+
+    void Write(Board b, string line)
+    {
+        if (quit) throw new PushAbort("끝냄");
+        if ((DateTime.Now - b.StopChk).TotalMilliseconds > 500)   // '잠깐 멈추기'(보드 굽기)면 보내기도 멈춘다
+        {
+            b.StopChk = DateTime.Now;
+            if (File.Exists(StopFile)) throw new PushAbort("잠깐 멈춤");
+        }
+        b.Port.Write(line + "\n");
+    }
+
+    // 한 줄 보내고, 맞는 답이 올 때까지 기다림(시간이 지나면 같은 줄을 다시, tries 번까지)
+    string Ask(Board b, string line, int timeoutMs, int tries, Predicate<string> match)
+    {
+        for (int t = 0; t < tries; t++)
+        {
+            Write(b, line);
+            var until = DateTime.Now.AddMilliseconds(timeoutMs);
+            while (DateTime.Now < until)
+            {
+                string l = NextLine(b, (int)Math.Max(1, (until - DateTime.Now).TotalMilliseconds));
+                if (l != null && match(l)) return l;
+            }
+        }
+        return null;
+    }
+
+    // '@deck…' 답 한 줄(다른 줄은 여기서 처리하거나 버린다). 없으면 null
+    string NextLine(Board b, int waitMs)
+    {
+        var until = DateTime.Now.AddMilliseconds(waitMs);
+        while (true)
+        {
+            int k;
+            while ((k = b.Buf.IndexOf('\n')) >= 0)
+            {
+                string line = b.Buf.Substring(0, k).Trim();
+                b.Buf = b.Buf.Substring(k + 1);
+                if (line.StartsWith("@deck "))   // 보내기 직전에 누른 칸: 버리지 않고 연다
+                {
+                    string key = line.Substring(6).Trim();
+                    Write(b, (OpenApp(key) ? "@deck ok " : "@deck fail ") + key);
+                    continue;
+                }
+                if (line.StartsWith("@deck")) return line;
+                if (line.StartsWith("@board ok deck=")) b.Hash = line.Substring(15).Trim();
+                else if (line == "@pc?") Write(b, "@pc on");
+                else if (Regex.IsMatch(line, "^(sync|heap|deck|restart|reset reason)")) BoardLog(b.Name, line);
+            }
+            if (b.Buf.Length > 8192) b.Buf = "";
+            if (DateTime.Now >= until) return null;
+            string s = b.Port.ReadExisting();   // 끊기면 예외 → 보내기 끝
+            if (string.IsNullOrEmpty(s)) Thread.Sleep(2); else b.Buf += s;
+            if (quit) throw new PushAbort("끝냄");
+        }
+    }
+
     // ── 작업 표시줄 아이콘 ──
     string StateText()
     {
@@ -410,6 +870,7 @@ class Helper : ApplicationContext
 
     void UpdateTray()
     {
+        deckTip = DeckStateText();
         string st = StateText();
         if (st == lastTip) return;
         lastTip = st;

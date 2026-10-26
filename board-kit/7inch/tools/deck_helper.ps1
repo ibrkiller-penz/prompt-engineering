@@ -1,4 +1,5 @@
 ﻿# 교실 알림판 '단축키' 도우미 (컴퓨터에서 켜 두는 작은 프로그램)
+#   ※ 옛 판입니다. 칸 꾸미기(설정 창·아이콘 보내기)는 exe 판(교실알림판_도우미.exe)에만 있어요.
 #   보드의 UART 선(CH343)으로 오는 '@deck 이름' 줄을 받아 프로그램·사이트를 연다.
 #   5초마다 보드에 '@pc on' 을 보내 "컴퓨터가 켜져 있다"고 알려 준다(컴퓨터가 꺼지면 보드가 화면을 끈다).
 #   켜기: powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File deck_helper.ps1

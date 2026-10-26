@@ -1,0 +1,1437 @@
+[
+ {
+  "key": "word",
+  "name": "워드",
+  "group": "마이크로소프트",
+  "kind": "app",
+  "target": "winword"
+ },
+ {
+  "key": "excel",
+  "name": "엑셀",
+  "group": "마이크로소프트",
+  "kind": "app",
+  "target": "excel"
+ },
+ {
+  "key": "powerpoint",
+  "name": "PPT",
+  "group": "마이크로소프트",
+  "kind": "app",
+  "target": "powerpnt"
+ },
+ {
+  "key": "outlook",
+  "name": "아웃룩",
+  "group": "마이크로소프트",
+  "kind": "app",
+  "target": "outlook"
+ },
+ {
+  "key": "onenote",
+  "name": "원노트",
+  "group": "마이크로소프트",
+  "kind": "app",
+  "target": "onenote"
+ },
+ {
+  "key": "teams",
+  "name": "팀즈",
+  "group": "마이크로소프트",
+  "kind": "app",
+  "target": "ms-teams:"
+ },
+ {
+  "key": "onedrive",
+  "name": "원드라이브",
+  "group": "마이크로소프트",
+  "kind": "app",
+  "target": "onedrive"
+ },
+ {
+  "key": "edge",
+  "name": "엣지",
+  "group": "마이크로소프트",
+  "kind": "app",
+  "target": "msedge"
+ },
+ {
+  "key": "copilot",
+  "name": "코파일럿",
+  "group": "마이크로소프트",
+  "kind": "url",
+  "target": "https://copilot.microsoft.com"
+ },
+ {
+  "key": "explorer2",
+  "name": "탐색기",
+  "group": "윈도",
+  "kind": "app",
+  "target": "explorer.exe"
+ },
+ {
+  "key": "calc",
+  "name": "계산기",
+  "group": "윈도",
+  "kind": "app",
+  "target": "calc"
+ },
+ {
+  "key": "notepad",
+  "name": "메모장",
+  "group": "윈도",
+  "kind": "app",
+  "target": "notepad"
+ },
+ {
+  "key": "paint",
+  "name": "그림판",
+  "group": "윈도",
+  "kind": "app",
+  "target": "mspaint"
+ },
+ {
+  "key": "snip",
+  "name": "캡처 도구",
+  "group": "윈도",
+  "kind": "keys",
+  "target": "#{S}"
+ },
+ {
+  "key": "settings",
+  "name": "설정",
+  "group": "윈도",
+  "kind": "app",
+  "target": "ms-settings:"
+ },
+ {
+  "key": "taskmgr",
+  "name": "작업 관리자",
+  "group": "윈도",
+  "kind": "keys",
+  "target": "^+{ESC}"
+ },
+ {
+  "key": "cmd2",
+  "name": "CMD",
+  "group": "윈도",
+  "kind": "app",
+  "target": "cmd.exe"
+ },
+ {
+  "key": "pwsh",
+  "name": "파워셸",
+  "group": "윈도",
+  "kind": "app",
+  "target": "powershell.exe"
+ },
+ {
+  "key": "terminal",
+  "name": "터미널",
+  "group": "윈도",
+  "kind": "app",
+  "target": "wt.exe"
+ },
+ {
+  "key": "trash",
+  "name": "휴지통",
+  "group": "윈도",
+  "kind": "app",
+  "target": "shell:RecycleBinFolder"
+ },
+ {
+  "key": "controlpanel",
+  "name": "제어판",
+  "group": "윈도",
+  "kind": "app",
+  "target": "control"
+ },
+ {
+  "key": "downloads",
+  "name": "다운로드",
+  "group": "윈도",
+  "kind": "app",
+  "target": "shell:Downloads"
+ },
+ {
+  "key": "documents",
+  "name": "문서",
+  "group": "윈도",
+  "kind": "app",
+  "target": "shell:Personal"
+ },
+ {
+  "key": "pictures",
+  "name": "사진",
+  "group": "윈도",
+  "kind": "app",
+  "target": "shell:My Pictures"
+ },
+ {
+  "key": "printer",
+  "name": "프린터",
+  "group": "윈도",
+  "kind": "app",
+  "target": "control printers"
+ },
+ {
+  "key": "photoshop",
+  "name": "포토샵",
+  "group": "어도비",
+  "kind": "app",
+  "target": "photoshop"
+ },
+ {
+  "key": "illustrator",
+  "name": "일러",
+  "group": "어도비",
+  "kind": "app",
+  "target": "illustrator"
+ },
+ {
+  "key": "premiere",
+  "name": "프리미어",
+  "group": "어도비",
+  "kind": "app",
+  "target": "premiere"
+ },
+ {
+  "key": "aftereffects",
+  "name": "애프터",
+  "group": "어도비",
+  "kind": "app",
+  "target": "afterfx"
+ },
+ {
+  "key": "acrobat",
+  "name": "PDF",
+  "group": "어도비",
+  "kind": "app",
+  "target": "acrobat"
+ },
+ {
+  "key": "indesign",
+  "name": "인디자인",
+  "group": "어도비",
+  "kind": "app",
+  "target": "indesign"
+ },
+ {
+  "key": "lightroom",
+  "name": "라이트룸",
+  "group": "어도비",
+  "kind": "app",
+  "target": "lightroom"
+ },
+ {
+  "key": "adobeexpress",
+  "name": "익스프레스",
+  "group": "어도비",
+  "kind": "url",
+  "target": "https://new.express.adobe.com"
+ },
+ {
+  "key": "chrome",
+  "name": "크롬",
+  "group": "구글",
+  "kind": "app",
+  "target": "chrome"
+ },
+ {
+  "key": "gmail",
+  "name": "지메일",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://mail.google.com"
+ },
+ {
+  "key": "gdrive",
+  "name": "드라이브",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://drive.google.com"
+ },
+ {
+  "key": "gdocs",
+  "name": "구글 문서",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://docs.google.com"
+ },
+ {
+  "key": "gsheets",
+  "name": "구글 시트",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://sheets.google.com"
+ },
+ {
+  "key": "gslides",
+  "name": "구글 슬라이드",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://slides.google.com"
+ },
+ {
+  "key": "gclassroom",
+  "name": "클래스룸",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://classroom.google.com"
+ },
+ {
+  "key": "gmeet",
+  "name": "구글 미트",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://meet.google.com"
+ },
+ {
+  "key": "gcalendar",
+  "name": "캘린더",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://calendar.google.com"
+ },
+ {
+  "key": "gmaps",
+  "name": "지도",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://maps.google.com"
+ },
+ {
+  "key": "youtube2",
+  "name": "유튜브",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://www.youtube.com"
+ },
+ {
+  "key": "ytmusic",
+  "name": "유튜브 뮤직",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://music.youtube.com"
+ },
+ {
+  "key": "gemini2",
+  "name": "제미나이",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://gemini.google.com"
+ },
+ {
+  "key": "gtranslate",
+  "name": "번역",
+  "group": "구글",
+  "kind": "url",
+  "target": "https://translate.google.com"
+ },
+ {
+  "key": "chatgpt",
+  "name": "GPT",
+  "group": "인공지능",
+  "kind": "url",
+  "target": "https://chatgpt.com"
+ },
+ {
+  "key": "claude2",
+  "name": "Claude",
+  "group": "인공지능",
+  "kind": "app",
+  "target": "claude:"
+ },
+ {
+  "key": "perplexity",
+  "name": "퍼플렉시티",
+  "group": "인공지능",
+  "kind": "url",
+  "target": "https://www.perplexity.ai"
+ },
+ {
+  "key": "wrtn",
+  "name": "뤼튼",
+  "group": "인공지능",
+  "kind": "url",
+  "target": "https://wrtn.ai"
+ },
+ {
+  "key": "notebooklm",
+  "name": "노트북LM",
+  "group": "인공지능",
+  "kind": "url",
+  "target": "https://notebooklm.google.com"
+ },
+ {
+  "key": "hwp2",
+  "name": "한글",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "hwp"
+ },
+ {
+  "key": "hcell",
+  "name": "한셀",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "hcell"
+ },
+ {
+  "key": "hshow",
+  "name": "한쇼",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "hshow"
+ },
+ {
+  "key": "naver2",
+  "name": "네이버",
+  "group": "한컴·국내",
+  "kind": "url",
+  "target": "https://www.naver.com"
+ },
+ {
+  "key": "whale",
+  "name": "웨일",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "whale"
+ },
+ {
+  "key": "kakao2",
+  "name": "카카오톡",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "kakaotalk:"
+ },
+ {
+  "key": "coolmsg2",
+  "name": "쿨메신저",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "CoolMessenger"
+ },
+ {
+  "key": "bandizip",
+  "name": "반디집",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "bandizip"
+ },
+ {
+  "key": "alzip",
+  "name": "알집",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "alzip"
+ },
+ {
+  "key": "gom",
+  "name": "곰플레이어",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "gom"
+ },
+ {
+  "key": "potplayer",
+  "name": "팟플레이어",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "potplayer"
+ },
+ {
+  "key": "bandicam",
+  "name": "반디캠",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "bdcam"
+ },
+ {
+  "key": "obs",
+  "name": "OBS",
+  "group": "한컴·국내",
+  "kind": "app",
+  "target": "obs64"
+ },
+ {
+  "key": "neis2",
+  "name": "나이스",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.neis.go.kr"
+ },
+ {
+  "key": "eduportal",
+  "name": "업무포털",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.eduptl.kr"
+ },
+ {
+  "key": "edufine",
+  "name": "에듀파인",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://klef.go.kr"
+ },
+ {
+  "key": "ehaksup",
+  "name": "e학습터",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://cls.edunet.net"
+ },
+ {
+  "key": "ebs",
+  "name": "EBS",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.ebs.co.kr"
+ },
+ {
+  "key": "classting",
+  "name": "클래스팅",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.classting.com"
+ },
+ {
+  "key": "hiclass",
+  "name": "하이클래스",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.hiclass.net"
+ },
+ {
+  "key": "padlet",
+  "name": "패들렛",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://padlet.com"
+ },
+ {
+  "key": "thinkerbell",
+  "name": "띵커벨",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.tkbell.co.kr"
+ },
+ {
+  "key": "canva",
+  "name": "캔바",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.canva.com"
+ },
+ {
+  "key": "miricanvas",
+  "name": "미리캔버스",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.miricanvas.com"
+ },
+ {
+  "key": "dtextbook",
+  "name": "디지털교과서",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://webdt.edunet.net"
+ },
+ {
+  "key": "zoom",
+  "name": "줌",
+  "group": "학교·교육",
+  "kind": "app",
+  "target": "zoommtg:"
+ },
+ {
+  "key": "notion",
+  "name": "노션",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.notion.so"
+ },
+ {
+  "key": "school",
+  "name": "학교 누리집",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://"
+ },
+ {
+  "key": "timer",
+  "name": "타이머",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://www.google.com/search?q=timer"
+ },
+ {
+  "key": "attendance",
+  "name": "출석",
+  "group": "학교·교육",
+  "kind": "url",
+  "target": "https://"
+ },
+ {
+  "key": "pptstart",
+  "name": "발표 시작",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "{F5}"
+ },
+ {
+  "key": "pptnext",
+  "name": "다음 장",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "{RIGHT}"
+ },
+ {
+  "key": "pptprev",
+  "name": "이전 장",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "{LEFT}"
+ },
+ {
+  "key": "blackscreen",
+  "name": "화면 검게",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "b"
+ },
+ {
+  "key": "fullscreen",
+  "name": "전체 화면",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "{F11}"
+ },
+ {
+  "key": "zoomin",
+  "name": "크게 보기",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "^{ADD}"
+ },
+ {
+  "key": "zoomout",
+  "name": "작게 보기",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "^{SUBTRACT}"
+ },
+ {
+  "key": "micoff",
+  "name": "마이크 끄기",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "%a"
+ },
+ {
+  "key": "camoff",
+  "name": "카메라 끄기",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "%v"
+ },
+ {
+  "key": "sharescreen",
+  "name": "화면 공유",
+  "group": "수업·발표",
+  "kind": "keys",
+  "target": "%s"
+ },
+ {
+  "key": "volup",
+  "name": "소리 크게",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "volup"
+ },
+ {
+  "key": "voldown",
+  "name": "소리 작게",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "voldown"
+ },
+ {
+  "key": "mute",
+  "name": "소리 끄기",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "mute"
+ },
+ {
+  "key": "playpause",
+  "name": "재생/멈춤",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "playpause"
+ },
+ {
+  "key": "nexttrack",
+  "name": "다음 곡",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "next"
+ },
+ {
+  "key": "screenshot",
+  "name": "화면 캡처",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "#+s"
+ },
+ {
+  "key": "lock",
+  "name": "화면 잠금",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "lock"
+ },
+ {
+  "key": "desktop2",
+  "name": "바탕화면",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "desktop"
+ },
+ {
+  "key": "closewin",
+  "name": "창 닫기",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "altf4"
+ },
+ {
+  "key": "minimize",
+  "name": "창 내리기",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "#{DOWN}"
+ },
+ {
+  "key": "switchwin",
+  "name": "창 바꾸기",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "%{TAB}"
+ },
+ {
+  "key": "copy",
+  "name": "복사",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "^c"
+ },
+ {
+  "key": "paste",
+  "name": "붙여넣기",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "^v"
+ },
+ {
+  "key": "undo",
+  "name": "되돌리기",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "^z"
+ },
+ {
+  "key": "refresh",
+  "name": "새로 고침",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "{F5}"
+ },
+ {
+  "key": "save",
+  "name": "저장",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "^s"
+ },
+ {
+  "key": "print",
+  "name": "인쇄",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "^p"
+ },
+ {
+  "key": "emoji",
+  "name": "이모지",
+  "group": "컴퓨터 조작",
+  "kind": "keys",
+  "target": "#."
+ },
+ {
+  "key": "stickynotes",
+  "name": "스티커 메모",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-stickynotes:"
+ },
+ {
+  "key": "magnifier",
+  "name": "돋보기",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#{ADD}"
+ },
+ {
+  "key": "osk",
+  "name": "화상 키보드",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "osk"
+ },
+ {
+  "key": "clockapp",
+  "name": "알람·시계",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-clock:"
+ },
+ {
+  "key": "camera",
+  "name": "카메라",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "microsoft.windows.camera:"
+ },
+ {
+  "key": "photos",
+  "name": "사진 앱",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-photos:"
+ },
+ {
+  "key": "mediaplayer",
+  "name": "미디어 플레이어",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "mswindowsmusic:"
+ },
+ {
+  "key": "recorder",
+  "name": "녹음기",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-callrecording:"
+ },
+ {
+  "key": "store",
+  "name": "스토어",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-windows-store:"
+ },
+ {
+  "key": "weatherapp",
+  "name": "날씨",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "msnweather:"
+ },
+ {
+  "key": "calendarapp",
+  "name": "일정",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "outlookcal:"
+ },
+ {
+  "key": "charmap",
+  "name": "문자표",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "charmap"
+ },
+ {
+  "key": "run",
+  "name": "실행",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#r"
+ },
+ {
+  "key": "search",
+  "name": "검색",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#s"
+ },
+ {
+  "key": "taskview",
+  "name": "작업 보기",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#{TAB}"
+ },
+ {
+  "key": "newdesktop",
+  "name": "새 데스크톱",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "^#d"
+ },
+ {
+  "key": "clipboard",
+  "name": "클립보드 기록",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#v"
+ },
+ {
+  "key": "voicetype",
+  "name": "음성 입력",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#h"
+ },
+ {
+  "key": "project",
+  "name": "화면 연결",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#p"
+ },
+ {
+  "key": "quicksettings",
+  "name": "빠른 설정",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#a"
+ },
+ {
+  "key": "notifications",
+  "name": "알림 센터",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#n"
+ },
+ {
+  "key": "widgets",
+  "name": "위젯",
+  "group": "윈도 도구",
+  "kind": "keys",
+  "target": "#w"
+ },
+ {
+  "key": "display",
+  "name": "화면 설정",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-settings:display"
+ },
+ {
+  "key": "sound",
+  "name": "소리 설정",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-settings:sound"
+ },
+ {
+  "key": "wifi",
+  "name": "와이파이 설정",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-settings:network-wifi"
+ },
+ {
+  "key": "bluetooth",
+  "name": "블루투스",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-settings:bluetooth"
+ },
+ {
+  "key": "nightlight",
+  "name": "야간 모드",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-settings:nightlight"
+ },
+ {
+  "key": "winupdate",
+  "name": "윈도 업데이트",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-settings:windowsupdate"
+ },
+ {
+  "key": "apps",
+  "name": "앱 목록",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "ms-settings:appsfeatures"
+ },
+ {
+  "key": "devmgr",
+  "name": "장치 관리자",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "devmgmt.msc"
+ },
+ {
+  "key": "diskclean",
+  "name": "디스크 정리",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "cleanmgr"
+ },
+ {
+  "key": "thispc",
+  "name": "내 PC",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "shell:MyComputerFolder"
+ },
+ {
+  "key": "desktopfolder",
+  "name": "바탕화면 폴더",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "shell:Desktop"
+ },
+ {
+  "key": "music",
+  "name": "음악 폴더",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "shell:My Music"
+ },
+ {
+  "key": "videos",
+  "name": "동영상 폴더",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "shell:My Video"
+ },
+ {
+  "key": "signout",
+  "name": "로그아웃",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "shutdown /l"
+ },
+ {
+  "key": "sleep",
+  "name": "절전",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "rundll32.exe powrprof.dll,SetSuspendState 0,1,0"
+ },
+ {
+  "key": "restart",
+  "name": "다시 시작",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "shutdown /r /t 60"
+ },
+ {
+  "key": "shutdown",
+  "name": "끄기",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "shutdown /s /t 60"
+ },
+ {
+  "key": "shutdowncancel",
+  "name": "끄기 취소",
+  "group": "윈도 도구",
+  "kind": "app",
+  "target": "shutdown /a"
+ },
+ {
+  "key": "sd_open",
+  "name": "열기",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": ""
+ },
+ {
+  "key": "sd_website",
+  "name": "웹사이트",
+  "group": "스트림덱 기본",
+  "kind": "url",
+  "target": "https://"
+ },
+ {
+  "key": "sd_hotkey",
+  "name": "단축키",
+  "group": "스트림덱 기본",
+  "kind": "keys",
+  "target": ""
+ },
+ {
+  "key": "sd_hotkeyswitch",
+  "name": "단축키 전환",
+  "group": "스트림덱 기본",
+  "kind": "keys",
+  "target": ""
+ },
+ {
+  "key": "sd_text",
+  "name": "글 입력",
+  "group": "스트림덱 기본",
+  "kind": "text",
+  "target": ""
+ },
+ {
+  "key": "sd_multi",
+  "name": "여러 동작",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_folder",
+  "name": "폴더(묶음)",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_back",
+  "name": "뒤로",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_nextpage",
+  "name": "다음 쪽",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_prevpage",
+  "name": "이전 쪽",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_profile",
+  "name": "프로필 바꾸기",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_brightness",
+  "name": "밝기",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_timer",
+  "name": "타이머",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_stopwatch",
+  "name": "스톱워치",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_clock",
+  "name": "시계",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_counter",
+  "name": "숫자 세기",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_cpu",
+  "name": "CPU",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": "taskmgr"
+ },
+ {
+  "key": "sd_ram",
+  "name": "메모리",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": "taskmgr"
+ },
+ {
+  "key": "sd_soundboard",
+  "name": "효과음",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_play",
+  "name": "재생",
+  "group": "스트림덱 기본",
+  "kind": "builtin",
+  "target": "playpause"
+ },
+ {
+  "key": "sd_stop",
+  "name": "정지",
+  "group": "스트림덱 기본",
+  "kind": "builtin",
+  "target": "playpause"
+ },
+ {
+  "key": "sd_prev",
+  "name": "이전 곡",
+  "group": "스트림덱 기본",
+  "kind": "keys",
+  "target": ""
+ },
+ {
+  "key": "sd_record",
+  "name": "녹화",
+  "group": "스트림덱 기본",
+  "kind": "keys",
+  "target": ""
+ },
+ {
+  "key": "sd_live",
+  "name": "방송 시작",
+  "group": "스트림덱 기본",
+  "kind": "keys",
+  "target": ""
+ },
+ {
+  "key": "sd_scene",
+  "name": "장면 바꾸기",
+  "group": "스트림덱 기본",
+  "kind": "keys",
+  "target": ""
+ },
+ {
+  "key": "sd_mic",
+  "name": "마이크",
+  "group": "스트림덱 기본",
+  "kind": "keys",
+  "target": ""
+ },
+ {
+  "key": "sd_headphones",
+  "name": "헤드폰",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_speaker",
+  "name": "스피커",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_light",
+  "name": "조명",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_screenshot",
+  "name": "화면 찍기",
+  "group": "스트림덱 기본",
+  "kind": "keys",
+  "target": "#+s"
+ },
+ {
+  "key": "sd_dnd",
+  "name": "방해 금지",
+  "group": "스트림덱 기본",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "sd_discord",
+  "name": "디스코드",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": "discord:"
+ },
+ {
+  "key": "sd_spotify",
+  "name": "스포티파이",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": "spotify:"
+ },
+ {
+  "key": "sd_twitch",
+  "name": "트위치",
+  "group": "스트림덱 기본",
+  "kind": "url",
+  "target": "https://www.twitch.tv"
+ },
+ {
+  "key": "sd_slack",
+  "name": "슬랙",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": "slack:"
+ },
+ {
+  "key": "sd_steam",
+  "name": "스팀",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": "steam:"
+ },
+ {
+  "key": "sd_obs",
+  "name": "OBS",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": "obs64"
+ },
+ {
+  "key": "sd_x",
+  "name": "X(트위터)",
+  "group": "스트림덱 기본",
+  "kind": "url",
+  "target": "https://x.com"
+ },
+ {
+  "key": "sd_instagram",
+  "name": "인스타그램",
+  "group": "스트림덱 기본",
+  "kind": "url",
+  "target": "https://www.instagram.com"
+ },
+ {
+  "key": "sd_github",
+  "name": "깃허브",
+  "group": "스트림덱 기본",
+  "kind": "url",
+  "target": "https://github.com"
+ },
+ {
+  "key": "sd_vscode",
+  "name": "VS Code",
+  "group": "스트림덱 기본",
+  "kind": "app",
+  "target": "code"
+ },
+ {
+  "key": "star",
+  "name": "별",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "heart",
+  "name": "하트",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "bulb",
+  "name": "아이디어",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "home",
+  "name": "홈",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "mail2",
+  "name": "메일",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "web",
+  "name": "웹",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "music2",
+  "name": "음악",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "movie",
+  "name": "동영상",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "clock2",
+  "name": "시계",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "question",
+  "name": "도움말",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "chat",
+  "name": "대화",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "users",
+  "name": "사람들",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "flag",
+  "name": "깃발",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ },
+ {
+  "key": "rocket",
+  "name": "로켓",
+  "group": "모양",
+  "kind": "",
+  "target": ""
+ }
+]

@@ -21,6 +21,8 @@
 #include <esp_system.h>
 #include <time.h>
 #include <math.h>
+#include <mbedtls/base64.h>
+#include "esp_rom_crc.h"
 #include "Arduino_GFX_Library.h"
 #include "TouchDrvGT911.hpp"
 #include "WS_CH32_IO.h"
@@ -2008,6 +2010,17 @@ static void onScan(lv_event_t *) {
 static uint32_t s_forgetArmed = 0, s_rebootArmed = 0;
 static lv_obj_t *s_forgetBtn = nullptr, *s_rebootBtn = nullptr;
 static const char *FORGET_TXT = "저장한 와이파이 지우기", *REBOOT_TXT = "다시 켜기";
+// [기본 아이콘]: 컴퓨터에서 받은 단축키 그림·이름을 지우고 내장 16개로(받은 설정이 있을 때만 보인다)
+static uint32_t s_deckResetArmed = 0;
+static lv_obj_t *s_deckResetBtn = nullptr;
+static volatile bool s_deckResetReq = false;   // loop(deckPoll)가 처리
+static const char *DECKRESET_TXT = "기본 아이콘";
+static void onDeckResetBtn(lv_event_t *e) {
+  lv_obj_t *b = lv_event_get_current_target(e);
+  if (!s_deckResetArmed || millis() - s_deckResetArmed > 3000) { s_deckResetArmed = millis(); lv_label_set_text(lv_obj_get_child(b, 0), "한 번 더"); return; }
+  s_deckResetArmed = 0; lv_label_set_text(lv_obj_get_child(b, 0), DECKRESET_TXT);
+  s_deckResetReq = true;
+}
 static void onForget(lv_event_t *e) {
   lv_obj_t *b = lv_event_get_current_target(e);
   if (!s_forgetArmed || millis() - s_forgetArmed > 3000) { s_forgetArmed = millis(); lv_label_set_text(lv_obj_get_child(b, 0), "한 번 더 누르면 지웁니다"); return; }
@@ -2024,6 +2037,7 @@ static void onReboot(lv_event_t *e) {
 static void disarmButtons() {   // loop 에서: 3초 지난 '한 번 더' 글을 되돌린다
   if (s_forgetArmed && millis() - s_forgetArmed > 3000) { s_forgetArmed = 0; if (s_forgetBtn) lv_label_set_text(lv_obj_get_child(s_forgetBtn, 0), FORGET_TXT); }
   if (s_rebootArmed && millis() - s_rebootArmed > 3000) { s_rebootArmed = 0; if (s_rebootBtn) lv_label_set_text(lv_obj_get_child(s_rebootBtn, 0), REBOOT_TXT); }
+  if (s_deckResetArmed && millis() - s_deckResetArmed > 3000) { s_deckResetArmed = 0; if (s_deckResetBtn) lv_label_set_text(lv_obj_get_child(s_deckResetBtn, 0), DECKRESET_TXT); }
 }
 static void onPickTT(lv_event_t *) {
   const int sel = (int)lv_dropdown_get_selected(s_ttPick);
@@ -2067,6 +2081,87 @@ static lv_obj_t *s_deckImg[16];           // 아이콘(도우미가 꺼져 있�
 static uint32_t s_deckSentAt = 0;         // 마지막으로 보내거나 답을 받은 때(60초 뒤 안내 글로 되돌린다)
 static int s_deckWaitKey = -1;            // 보내고 답을 기다리는 단추(5초 안에 답이 없으면 알린다)
 static uint32_t s_deckWaitAt = 0;
+// ── 단축키 꾸미기(2026-10-26): 컴퓨터 도우미가 보낸 이름·아이콘을 /deck/ 에 두고 켤 때 읽는다(설계_단축키꾸미기.md 5장) ──
+#define DECK_ICON_BYTES 15552                     // 72×72×3(RGB565 작은끝 + 알파)
+static bool s_deckCustom = false;                 // 받은 설정을 쓰나(아니면 내장 16개)
+static char s_deckHash[9] = "0";                  // /deck/cfg.json 의 CRC-32(없으면 "0")
+static char s_deckName[16][40];                   // 칸 이름(UTF-8)
+static const lv_img_dsc_t *s_deckIco[16];         // 칸 아이콘(받은 것 또는 내장)
+static uint32_t s_deckCrc[16];                    // 받은 아이콘 crc(@deckls 답)
+static bool s_deckCrcOk[16];                      // 그 칸이 받은 아이콘을 쓰나
+static uint8_t *s_deckPix = nullptr;              // PSRAM 16×15552
+static lv_img_dsc_t s_deckDsc[16];
+static lv_obj_t *s_deckLbl[16];                   // 칸 이름표(받기 끝에 한 번 다시 쓴다)
+static volatile bool s_deckUp = false;            // 컴퓨터에서 받는 중
+static const lv_img_dsc_t *deckIcon(int i) { return s_deckCustom && s_deckIco[i] ? s_deckIco[i] : DECK[i].icon; }
+static const char *deckName(int i) { return s_deckCustom ? s_deckName[i] : DECK[i].label; }
+static bool deckBlank(int i) { return s_deckCustom && !s_deckName[i][0]; }   // 이름 없는 칸: 흐리게, 눌러도 안 보냄
+static void deckCopyName(char *dst, const char *src) {   // 39바이트 안에서 글자 가운데를 자르지 않게
+  size_t n = 0, i = 0;
+  while (src[i]) {
+    const uint8_t c = (uint8_t)src[i];
+    const size_t k = c < 0x80 ? 1 : (c >> 5) == 6 ? 2 : (c >> 4) == 14 ? 3 : (c >> 3) == 30 ? 4 : 1;
+    if (n + k > 39) break;
+    for (size_t j = 0; j < k && src[i]; j++) dst[n++] = src[i++];
+  }
+  dst[n] = 0;
+}
+static void deckClean(bool onlyTmp) {   // /deck/ 안 임시(.tmp) 또는 전부 지우기
+  static char paths[40][20]; int np = 0;
+  File d = LittleFS.open("/deck");
+  if (!d) return;
+  if (d.isDirectory())
+    for (File f = d.openNextFile(); f && np < 40; f = d.openNextFile()) {
+      const char *nm = f.name(); const size_t L = strlen(nm);
+      if (!onlyTmp || (L > 4 && !strcmp(nm + L - 4, ".tmp"))) snprintf(paths[np++], sizeof paths[0], "/deck/%s", nm);
+      f.close();
+    }
+  d.close();
+  for (int i = 0; i < np; i++) LittleFS.remove(paths[i]);
+}
+// 켤 때·받기 끝에: cfg.json 을 읽어 이름·아이콘을 PSRAM 에 올린다. 없거나 틀리면 내장 16개.
+// 화면이 켜진 뒤에는 lock() 안에서 부른다(그리는 중인 그림을 덮어쓰므로).
+static void deckLoad() {
+  s_deckCustom = false; strcpy(s_deckHash, "0");
+  for (int i = 0; i < 16; i++) { s_deckCrcOk[i] = false; s_deckCrc[i] = 0; s_deckIco[i] = DECK[i].icon; }
+  File f = LittleFS.open("/deck/cfg.json", "r");
+  if (!f) return;
+  const size_t len = f.size();
+  if (len == 0 || len > 4096) { f.close(); Serial.println("deck cfg bad (size)"); return; }
+  char *raw = (char *)heap_caps_malloc(len + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (!raw) { f.close(); return; }
+  const size_t got = f.read((uint8_t *)raw, len); f.close(); raw[got] = 0;
+  const uint32_t hash = esp_rom_crc32_le(0, (const uint8_t *)raw, got);
+  JsonDocument d(&s_alloc);
+  const bool ok = got == len && !deserializeJson(d, (const char *)raw, got) && d["v"].as<int>() == 1 &&
+                  d["n"].size() == 16 && d["ic"].size() == 16;
+  heap_caps_free(raw);
+  if (!ok) { Serial.println("deck cfg bad"); return; }
+  if (!s_deckPix) s_deckPix = (uint8_t *)heap_caps_malloc(16 * DECK_ICON_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  for (int i = 0; i < 16; i++) {
+    deckCopyName(s_deckName[i], d["n"][i] | "");
+    const char *ic = d["ic"][i] | "";
+    if (!strncmp(ic, "builtin:", 8)) {
+      for (int k = 0; k < 16; k++) if (!strcmp(DECK[k].key, ic + 8)) s_deckIco[i] = DECK[k].icon;
+    } else if (strlen(ic) == 8 && s_deckPix) {
+      const uint32_t want = strtoul(ic, nullptr, 16);
+      char p[16]; snprintf(p, sizeof p, "/deck/%d.bin", i);
+      uint8_t *px = s_deckPix + i * DECK_ICON_BYTES;
+      File b = LittleFS.open(p, "r");
+      if (b && b.size() == DECK_ICON_BYTES && b.read(px, DECK_ICON_BYTES) == DECK_ICON_BYTES && esp_rom_crc32_le(0, px, DECK_ICON_BYTES) == want) {
+        lv_img_dsc_t &ds = s_deckDsc[i];
+        memset(&ds, 0, sizeof ds);
+        ds.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA; ds.header.w = 72; ds.header.h = 72;
+        ds.data_size = DECK_ICON_BYTES; ds.data = px;
+        s_deckIco[i] = &ds; s_deckCrc[i] = want; s_deckCrcOk[i] = true;
+      } else Serial.printf("deck icon %d missing\n", i);
+      if (b) b.close();
+    }
+  }
+  snprintf(s_deckHash, sizeof s_deckHash, "%08lx", (unsigned long)hash);
+  s_deckCustom = true;
+  Serial.printf("deck custom %s\n", s_deckHash);
+}
 // 도우미가 없을 때 단축키를 누르면 뜨는 안내 창(맨 위 층): 컴퓨터에서 짧은 주소로 도우미를 받아 설치하게 한다(2026-10-26).
 // 바깥 덮개나 [닫기]를 누르면 닫히고, 도우미가 이어지면(deckPoll) 저절로 닫힌다. 주소는 사이트(firebase.json)의 /deck 과 같게.
 #define DECK_HELP_URL "penedu.web.app/deck"
@@ -2104,13 +2199,13 @@ static void showDeckHelp() {
   lv_obj_add_event_cb(cb, [](lv_event_t *) { closeDeckHelp(); }, LV_EVENT_CLICKED, nullptr);
 }
 static void deckStateText() {
-  if (!s_deckState) return;
+  if (!s_deckState || s_deckUp) return;   // 받는 중에는 진행 글을 그대로 둔다
   setTextIf(s_deckState, s_usbOn ? LV_SYMBOL_OK "  컴퓨터와 연결됨 · 단추를 누르면 컴퓨터에서 프로그램이 열립니다"
                                  : LV_SYMBOL_WARNING "  컴퓨터 도우미를 기다리는 중 · 처음이면 컴퓨터에서 " DECK_HELP_URL " 로 받아요");
   setTextColIf(s_deckState, s_usbOn ? C_OK : D_MUTED);   // 기다리는 것은 문제가 아니다(노랑은 '지금'·문제에만)
 }
 static void deckIconsDim() {   // 도우미가 꺼져 있으면 아이콘을 흐리게(누를 수 없다는 뜻)
-  for (int i = 0; i < 16; i++) if (s_deckImg[i]) lv_obj_set_style_img_opa(s_deckImg[i], s_usbOn ? LV_OPA_COVER : LV_OPA_50, 0);
+  for (int i = 0; i < 16; i++) if (s_deckImg[i]) lv_obj_set_style_img_opa(s_deckImg[i], deckBlank(i) ? LV_OPA_20 : s_usbOn ? LV_OPA_COVER : LV_OPA_50, 0);
 }
 static void deckSay(uint32_t col, const char *fmt, ...) {   // 상태 글 한 줄(색과 함께)
   if (!s_deckState) return;
@@ -2127,7 +2222,8 @@ static void onDeckRefresh(lv_event_t *) {
 }
 static void onDeck(lv_event_t *e) {
   const int i = (int)(intptr_t)lv_event_get_user_data(e);
-  if (i < 0 || i >= 16) return;
+  if (i < 0 || i >= 16 || deckBlank(i)) return;
+  if (s_deckUp) { deckSay(C_WARN, LV_SYMBOL_REFRESH "  받는 중입니다 · 잠시 뒤 누르세요"); return; }
   if (!s_usbOn) {
     showDeckHelp();
     deckSay(NOW_TAG, LV_SYMBOL_WARNING "  컴퓨터 도우미와 연결되지 않았습니다 · USB 선과 컴퓨터의 도우미 프로그램을 확인하세요");
@@ -2136,16 +2232,21 @@ static void onDeck(lv_event_t *e) {
   }
   static uint32_t lastMs = 0; static int lastI = -1;
   if (i == lastI && millis() - lastMs < 2000) {         // 2초 안에 같은 단추를 또 누르면 보내지 않는다(창이 두 개 열리지 않게) — 대신 알린다
-    deckSay(C_WARN, "'%s' 이미 보냈습니다 · 잠시 기다리세요", DECK[i].label);
+    deckSay(C_WARN, "'%s' 이미 보냈습니다 · 잠시 기다리세요", deckName(i));
     return;
   }
   lastI = i; lastMs = millis();
-  Serial.printf("\n@deck %s\n", DECK[i].key);   // 앞의 줄바꿈: 다른 기록 줄과 섞이지 않게
-  deckSay(C_OK, "'%s' 보냈습니다 · 여는 중", DECK[i].label);
+  if (s_deckCustom) Serial.printf("\n@deck s%d\n", i);   // 받은 설정: 칸 번호(무엇을 여는지는 컴퓨터가 안다)
+  else Serial.printf("\n@deck %s\n", DECK[i].key);         // 앞의 줄바꿈: 다른 기록 줄과 섞이지 않게
+  deckSay(C_OK, "'%s' 보냈습니다 · 여는 중", deckName(i));
   s_deckSentAt = millis();
   s_deckWaitKey = i; s_deckWaitAt = millis();
 }
-static const char *deckLabel(const char *key) { for (int i = 0; i < 16; i++) if (!strcmp(DECK[i].key, key)) return DECK[i].label; return key; }
+static const char *deckLabel(const char *key) {
+  if (key[0] == 's' && isdigit((unsigned char)key[1])) { const int i = atoi(key + 1); if (i >= 0 && i < 16) return deckName(i); }
+  for (int i = 0; i < 16; i++) if (!strcmp(DECK[i].key, key)) return DECK[i].label;
+  return key;
+}
 // 화면 찍기(7인치 tools/screenshot.py 와 같은 형식): '@shot' 을 받으면 지금 화면(프레임 버퍼, RGB565)을
 // [개수 1~255][값 작은끝 2바이트] 묶음으로 보내고 개수 0 으로 끝낸다. 보내는 동안 화면 그리기를 잠가 찍는 사이 바뀌지 않게 한다.
 // 180도로 돌려 쓰면 프레임 버퍼도 돌아가 있다(7인치와 같다 → screenshot.py 가 바로 세운다). 머리 줄 끝 r180/r0 은 참고용.
@@ -2183,15 +2284,139 @@ static void screenShot() {
   unlock();
   Serial.println(ok ? "\n@shot end" : "\n@shot fail");
 }
+// ── 단축키 받기(lock-step): 한 줄 받으면 답 한 줄. 줄 약속은 설계_단축키꾸미기.md 2-3 ──
+static File s_deckUpFile;
+static uint32_t s_deckUpAt = 0, s_deckUpWant = 0, s_deckUpWantCrc = 0, s_deckUpLen = 0, s_deckUpCrc = 0;
+static int s_deckUpItem = -1, s_deckUpSeq = 0, s_deckUpN = 0, s_deckUpDone = 0;
+static bool s_deckUpGotCfg = false;
+static void deckTmpPath(char *p, size_t n, int item, bool tmp) {
+  if (item == 16) snprintf(p, n, tmp ? "/deck/cfg.tmp" : "/deck/cfg.json");
+  else snprintf(p, n, tmp ? "/deck/%d.tmp" : "/deck/%d.bin", item);
+}
+static int deckSlot(const char *t) {   // "c" = cfg(16), "0"~"15"
+  if (!strcmp(t, "c")) return 16;
+  if (!isdigit((unsigned char)t[0])) return -1;
+  const int v = atoi(t); return v >= 0 && v <= 15 ? v : -1;
+}
+static void deckUpStop() {   // 받기 끝내기(임시 파일 지움)
+  if (s_deckUpFile) s_deckUpFile.close();
+  deckClean(true);
+  s_deckUp = false; s_deckUpItem = -1;
+}
+static void deckRedraw() {   // 16칸을 한 번 다시 그린다(받기 끝·되돌리기). lock() 안에서
+  lv_img_cache_invalidate_src(NULL);
+  for (int i = 0; i < 16; i++) {
+    if (s_deckImg[i]) { lv_img_set_src(s_deckImg[i], deckIcon(i)); lv_obj_invalidate(s_deckImg[i]); }
+    if (s_deckLbl[i]) lv_label_set_text(s_deckLbl[i], deckName(i));
+  }
+  deckIconsDim();
+  if (s_deckResetBtn) show(s_deckResetBtn, s_deckCustom);
+}
+static void deckDoReset(uint32_t ms) {   // '@deckreset' · 설정 장 [기본 아이콘]
+  if (s_deckUp) deckUpStop();
+  deckClean(false);
+  lock(); deckLoad(); deckRedraw(); deckSay(C_OK, LV_SYMBOL_OK "  기본 아이콘으로 되돌렸습니다"); unlock();
+  s_deckSentAt = ms ? ms : 1;
+  Serial.println("deck reset");
+}
+static void deckProgress() {   // 안내 줄: '아이콘 받는 중 3/16' (칸마다 한 번)
+  lock();
+  if (s_deckUpItem == 16) deckSay(D_SUB, LV_SYMBOL_REFRESH "  설정 받는 중");
+  else deckSay(D_SUB, LV_SYMBOL_REFRESH "  아이콘 받는 중 %d/%d", s_deckUpItem < 0 ? s_deckUpDone : s_deckUpDone + 1, s_deckUpN);
+  unlock();
+}
+static bool deckUpLine(char *buf, uint32_t ms) {   // 받기 줄이면 처리하고 true
+  if (strncmp(buf, "@deck", 5) || buf[5] == ' ' || !strcmp(buf, "@deckhelp")) return false;
+  s_pcLast = ms ? ms : 1; s_usbSeen = true;   // 도우미가 살아 있다
+  s_deckUpAt = ms;
+  if (!strcmp(buf, "@deckls")) {
+    static char out[200]; int o = snprintf(out, sizeof out, "\n@deckls %s", s_deckHash);
+    for (int i = 0; i < 16; i++) o += s_deckCrcOk[i] ? snprintf(out + o, sizeof out - o, " %08lx", (unsigned long)s_deckCrc[i]) : snprintf(out + o, sizeof out - o, " -");
+    Serial.printf("%s\n", out);
+  } else if (!strncmp(buf, "@deckbegin ", 11)) {
+    char h[12] = ""; int cnt = -1;
+    sscanf(buf + 11, "%10s %d", h, &cnt);
+    if (s_sync != SYNC_IDLE) { Serial.printf("\n@deckbusy\n"); return true; }
+    if (cnt < 0 || cnt > 16) { Serial.printf("\n@deckbegin fail count\n"); return true; }
+    if (s_deckUp) deckUpStop(); else deckClean(true);
+    if (!LittleFS.exists("/deck")) LittleFS.mkdir("/deck");
+    s_deckUp = true; s_deckUpN = cnt; s_deckUpDone = 0; s_deckUpGotCfg = false; s_deckUpItem = -1; s_deckWaitKey = -1;
+    deckProgress();
+    Serial.printf("deck upload begin %s %d\n@deckbegin ok\n", h, cnt);
+  } else if (!strncmp(buf, "@deckitem end ", 14)) {
+    const char *t = buf + 14; const int slot = deckSlot(t);
+    if (!s_deckUp || slot < 0 || slot != s_deckUpItem) { Serial.printf("\n@deckitem bad %s item\n", t); return true; }
+    if (s_deckUpFile) s_deckUpFile.close();
+    char tp[20], fp[20]; deckTmpPath(tp, sizeof tp, slot, true); deckTmpPath(fp, sizeof fp, slot, false);
+    s_deckUpItem = -1;
+    if (s_deckUpLen != s_deckUpWant || s_deckUpCrc != s_deckUpWantCrc) { LittleFS.remove(tp); Serial.printf("\n@deckitem bad %s %s\n", t, s_deckUpLen != s_deckUpWant ? "len" : "crc"); return true; }
+    if (LittleFS.exists(fp)) LittleFS.remove(fp);
+    if (!LittleFS.rename(tp, fp)) { LittleFS.remove(tp); Serial.printf("\n@deckitem bad %s rename\n", t); return true; }
+    if (slot == 16) s_deckUpGotCfg = true; else s_deckUpDone++;
+    Serial.printf("\n@deckitem done %s\n", t);
+  } else if (!strncmp(buf, "@deckitem ", 10)) {
+    char t[8] = ""; unsigned long len = 0, crc = 0;
+    sscanf(buf + 10, "%7s %lu %lx", t, &len, &crc);
+    const int slot = deckSlot(t);
+    if (!s_deckUp) { Serial.printf("\n@deckitem fail %s state\n", t); return true; }
+    if (slot < 0) { Serial.printf("\n@deckitem fail %s slot\n", t); return true; }
+    if ((slot < 16 && len != DECK_ICON_BYTES) || (slot == 16 && (len == 0 || len > 4096))) { Serial.printf("\n@deckitem fail %s size\n", t); return true; }
+    if (s_deckUpFile) s_deckUpFile.close();
+    char tp[20]; deckTmpPath(tp, sizeof tp, slot, true);
+    s_deckUpFile = LittleFS.open(tp, "w");
+    if (!s_deckUpFile) { s_deckUpItem = -1; Serial.printf("\n@deckitem fail %s open\n", t); return true; }
+    s_deckUpItem = slot; s_deckUpWant = len; s_deckUpWantCrc = crc; s_deckUpLen = 0; s_deckUpCrc = 0; s_deckUpSeq = 0;
+    deckProgress();
+    Serial.printf("\n@deckitem ok %s\n", t);
+  } else if (!strncmp(buf, "@deckdata ", 10)) {
+    char *t = buf + 10, *sp = strchr(t, ' ');
+    if (!sp) return true;
+    *sp = 0; char *q = sp + 1, *sp2 = strchr(q, ' ');
+    if (!sp2) { Serial.printf("\n@deckdata err %s 0 form\n", t); return true; }
+    *sp2 = 0; const int seq = atoi(q); char *b64 = sp2 + 1;
+    size_t bl = strlen(b64); while (bl && (b64[bl - 1] == ' ' || b64[bl - 1] == '\t')) b64[--bl] = 0;
+    const int slot = deckSlot(t);
+    if (!s_deckUp || slot < 0 || slot != s_deckUpItem || !s_deckUpFile) { Serial.printf("\n@deckdata err %s %d item\n", t, seq); return true; }
+    if (seq == s_deckUpSeq - 1) { Serial.printf("\n@deckdata ok %s %d\n", t, seq); return true; }   // 같은 조각이 또 옴: 쓰지 않고 답만
+    if (seq != s_deckUpSeq) { Serial.printf("\n@deckdata err %s %d seq\n", t, seq); return true; }
+    static uint8_t dec[256]; size_t ol = 0;
+    if (mbedtls_base64_decode(dec, sizeof dec, &ol, (const uint8_t *)b64, bl) != 0 || ol == 0) { Serial.printf("\n@deckdata err %s %d b64\n", t, seq); return true; }
+    if (s_deckUpLen + ol > s_deckUpWant) { Serial.printf("\n@deckdata err %s %d size\n", t, seq); return true; }
+    if (s_deckUpFile.write(dec, ol) != ol) { Serial.printf("\n@deckdata err %s %d write\n", t, seq); return true; }
+    s_deckUpCrc = esp_rom_crc32_le(s_deckUpCrc, dec, ol); s_deckUpLen += ol; s_deckUpSeq++;
+    Serial.printf("\n@deckdata ok %s %d\n", t, seq);
+  } else if (!strcmp(buf, "@deckend")) {
+    if (!s_deckUp) { Serial.printf("\n@deckend fail state\n"); return true; }
+    const bool gotCfg = s_deckUpGotCfg;
+    deckUpStop();
+    if (!gotCfg) { lock(); deckStateText(); unlock(); Serial.printf("\n@deckend fail nocfg\n"); return true; }
+    lock();
+    deckLoad(); deckRedraw();   // 화면은 여기서 한 번만 다시 그린다
+    if (s_deckCustom) deckSay(C_OK, LV_SYMBOL_OK "  새 단축키를 받았습니다");
+    else deckSay(NOW_TAG, LV_SYMBOL_WARNING "  받은 설정을 읽지 못했습니다 · 도우미가 다시 보냅니다");
+    unlock();
+    s_deckSentAt = ms ? ms : 1;
+    if (s_deckCustom) Serial.printf("\n@deckend ok %s\n", s_deckHash); else Serial.printf("\n@deckend fail cfg\n");
+  } else if (!strcmp(buf, "@deckabort")) {
+    deckUpStop();
+    lock(); deckStateText(); unlock();
+    Serial.printf("\n@deckabort ok\n");
+  } else if (!strcmp(buf, "@deckreset")) {
+    deckDoReset(ms);
+    Serial.printf("\n@deckreset ok\n");
+  } else return false;
+  return true;
+}
 // USB 로 들어온 줄 읽기(loop 에서). '@pc on' 이면 컴퓨터가 켜져 있다. '@deck ok 키' / '@deck fail 키' 는 도우미의 답.
 // '@shot' 화면 찍기 · '@view 장번호'(0 시계 ~ 5 설정) 장 바꾸기 · '@theme N'(0~4) 화면 색 바꾸기
 static void deckPoll(uint32_t ms) {
-  static char buf[32]; static uint8_t n = 0;
+  static char buf[320]; static uint16_t n = 0;   // 가장 긴 줄: @deckdata + base64 256자
   while (Serial.available()) {
     const char c = (char)Serial.read();
     if (c == '\n' || c == '\r') {
       buf[n] = 0;
-      if (!strcmp(buf, "@pc on")) { s_pcLast = ms ? ms : 1; s_usbSeen = true; Serial.printf("@board ok\n"); }   // 한 번에 보낸다(중간에 다른 기록이 끼지 않게)
+      if (!strcmp(buf, "@pc on")) { s_pcLast = ms ? ms : 1; s_usbSeen = true; Serial.printf("@board ok\n@board ok deck=%s\n", s_deckHash); }   // 두 줄을 한 번에(첫 줄은 옛 도우미용)
+      else if (deckUpLine(buf, ms)) {}
       else if (!strcmp(buf, "@shot")) screenShot();
       else if (!strcmp(buf, "@deckhelp")) { lock(); showDeckHelp(); lv_disp_trig_activity(NULL); unlock(); }   // 도우미 안내 창 미리 보기(화면 찍기 시험용)
       else if (!strncmp(buf, "@view ", 6)) { const int v = atoi(buf + 6); if (v >= 0 && v < P_COUNT) { lock(); goPage(v); lv_disp_trig_activity(NULL); unlock(); Serial.printf("@view ok %d\n", v); } }
@@ -2223,6 +2448,13 @@ static void deckPoll(uint32_t ms) {
       lock(); deckStateText(); deckIconsDim(); showDeckHelp(); unlock();
     }
   }
+  if (s_deckUp && ms - s_deckUpAt > 30000) {           // 30초 동안 받기 줄이 없다 → 스스로 멈춤
+    deckUpStop();
+    lock(); deckSay(NOW_TAG, LV_SYMBOL_WARNING "  받기를 멈췄습니다 · 도우미가 다시 보냅니다"); unlock();
+    s_deckSentAt = ms ? ms : 1;
+    Serial.println("deck upload timeout");
+  }
+  if (s_deckResetReq) { s_deckResetReq = false; deckDoReset(ms); }
   s_usbOn = s_pcLast && ms - s_pcLast < 15000;
   if (s_usbOn && s_deckHelp) { lock(); closeDeckHelp(); unlock(); }   // 도우미를 깔아 이어졌으면 안내 창을 닫는다
 }
@@ -2528,12 +2760,16 @@ static void buildSettings() {
   lv_obj_set_style_text_font(s_wifiList, &kr14, 0);
   lv_obj_set_style_bg_color(s_wifiList, lv_color_hex(D_ROW), 0);
   lv_obj_set_style_border_color(s_wifiList, lv_color_hex(D_LINE), 0);
-  lv_obj_t *bForget = s_forgetBtn = button(p, FORGET_TXT, 220, 30, D_ROW, D_MUTED);
+  lv_obj_t *bForget = s_forgetBtn = button(p, FORGET_TXT, 196, 30, D_ROW, D_MUTED);
   lv_obj_set_pos(bForget, 12, 200);
   lv_obj_add_event_cb(bForget, onForget, LV_EVENT_CLICKED, nullptr);
   s_rebootBtn = button(p, REBOOT_TXT, 120, 30, D_ROW, D_MUTED);   // 3초 안에 두 번 누르면 다시 켠다
   lv_obj_set_pos(s_rebootBtn, PW - 12 - 120, 200);
   lv_obj_add_event_cb(s_rebootBtn, onReboot, LV_EVENT_CLICKED, nullptr);
+  s_deckResetBtn = button(p, DECKRESET_TXT, 108, 30, D_ROW, D_MUTED);   // 받은 단축키 → 내장 16개(3초 안에 두 번)
+  lv_obj_set_pos(s_deckResetBtn, 214, 200);
+  lv_obj_add_event_cb(s_deckResetBtn, onDeckResetBtn, LV_EVENT_CLICKED, nullptr);
+  show(s_deckResetBtn, s_deckCustom);
 
   lv_obj_t *hr = box(p, D_LINE, 0, 0);
   lv_obj_set_size(hr, PW - 24, 1); lv_obj_set_pos(hr, 12, 238);
@@ -2628,9 +2864,12 @@ static void buildDeck() {
     lv_obj_add_flag(cell, LV_OBJ_FLAG_CLICKABLE);   // box() 는 누르기를 끄므로 칸만 다시 켠다(옆으로 밀기는 tileview 가 받는다)
     lv_obj_add_event_cb(cell, onDeck, LV_EVENT_CLICKED, (void *)(intptr_t)i);
     lv_obj_t *img = s_deckImg[i] = lv_img_create(cell);
-    lv_img_set_src(img, DECK[i].icon);
+    lv_img_set_src(img, deckIcon(i));
     lv_obj_align(img, LV_ALIGN_TOP_MID, 0, 3);
-    lv_obj_t *l = label(cell, &kr14, D_SUB, DECK[i].label);
+    lv_obj_t *l = s_deckLbl[i] = label(cell, &kr14, D_SUB, deckName(i));
+    lv_obj_set_size(l, CWD - 10, lv_font_get_line_height(&kr14));   // 받은 긴 이름은 … 로 자른다
+    lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(l, LV_ALIGN_BOTTOM_MID, 0, -3);
   }
   const int RB = 46;                                     // 오른쪽 아래 [새로 고침] 단추 폭(가운데 맞춘 상태 글과 겹치지 않게 양쪽을 비운다)
@@ -2850,12 +3089,16 @@ static void rebuildUi() {
 SET_LOOP_TASK_STACK_SIZE(16 * 1024);   // loop 스택 8→16KB(교장 화면 그리기·HTTPS 가 깊다)
 
 void setup() {
+  Serial.setRxBufferSize(2048);   // 단축키 받기 줄(최대 273자)이 넘치지 않게 — begin 앞에
   Serial.begin(115200);
 #if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT
   Serial.setTxTimeoutMs(20);   // 컴퓨터가 안 읽어도 화면·터치가 오래 멈추지 않게(기본 100ms)
 #endif
   Serial.printf("\n" BOARD_TITLE " v%s\n", FW_VERSION);
   if (!LittleFS.begin(true)) Serial.println("LittleFS mount failed");
+  if (!LittleFS.exists("/deck")) LittleFS.mkdir("/deck");
+  deckClean(true);   // 지난번 받다 만 임시 파일
+  deckLoad();        // 받은 단축키(없으면 내장 16개) — buildDeck 앞
   s_prefs.begin("board", false);
   s_pickName = s_prefs.getString("ttname", BOARD_DEFAULT_TT);
   s_lastOkT = (time_t)s_prefs.getULong("lastok", 0);
@@ -3045,7 +3288,7 @@ void loop() {
     static bool deferLogged = false;   // 켠 직후 첫 받기와 [지금 받기]는 바로
     if (due && s_triedOnce && inClassNow()) { if (!deferLogged) { deferLogged = true; Serial.println("sync: defer (class)"); } due = false; }
     if (due) deferLogged = false;
-    if ((s_syncReq || due) && ms >= 5000) { s_syncReq = false; startSync(); }
+    if ((s_syncReq || due) && ms >= 5000 && !s_deckUp) { s_syncReq = false; startSync(); }   // 단축키 받는 중이면 끝난 뒤로
   } else if (s_sync == SYNC_CONNECTING) {
     if (WiFi.isConnected()) {
       s_sync = SYNC_TIME; s_syncStart = ms; s_wifiFails = 0; s_lastWifiKind = 0;
@@ -3251,7 +3494,7 @@ void loop() {
     lastHealth = ms;
     time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
     const unsigned big = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
-    if (tm.tm_hour == 3 && s_sync == SYNC_IDLE && ms > 3600000UL && (big < 40000 || s_failCount >= 4)) {
+    if (tm.tm_hour == 3 && s_sync == SYNC_IDLE && !s_deckUp && ms > 3600000UL && (big < 40000 || s_failCount >= 4)) {
       lock(); const uint32_t idle = lv_disp_get_inactive_time(NULL); unlock();
       if (s_blOff || idle > 10UL * 60 * 1000) {
         Serial.printf("health restart (internal largest %u, fails %d)\n", big, s_failCount);
@@ -3263,17 +3506,17 @@ void loop() {
 
   {   // 컴퓨터 도우미: 받은 줄은 0.2초마다 읽고, 상태 글은 바뀔 때만 바꾼다
     static bool lastUsb = false; static uint32_t lastUsbChk = 0;
-    if (ms - lastUsbChk > 200) {
+    if (s_deckUp || ms - lastUsbChk > 200) {   // 받는 중에는 매 바퀴
       lastUsbChk = ms;
       deckPoll(ms);
       if (lastUsb != s_usbOn) { lastUsb = s_usbOn; Serial.printf("pc helper %s\n", s_usbOn ? "on" : "off"); lock(); deckStateText(); deckIconsDim(); unlock(); }
       if (s_deckWaitKey >= 0 && ms - s_deckWaitAt > 5000) {   // 보냈는데 5초 안에 도우미 답이 없다 → 성공처럼 남기지 않는다
         const int k = s_deckWaitKey; s_deckWaitKey = -1;
-        lock(); deckSay(NOW_TAG, LV_SYMBOL_WARNING "  '%s' 컴퓨터 답이 없습니다 · 도우미를 다시 켜 주세요", DECK[k].label); unlock();
+        lock(); deckSay(NOW_TAG, LV_SYMBOL_WARNING "  '%s' 컴퓨터 답이 없습니다 · 도우미를 다시 켜 주세요", deckName(k)); unlock();
         s_deckSentAt = ms ? ms : 1;
       }
-      if (s_deckSentAt && ms - s_deckSentAt > 60000) { s_deckSentAt = 0; lock(); deckStateText(); unlock(); }   // '보냈습니다' 글은 1분 뒤 안내로
-      if (s_forgetArmed || s_rebootArmed) { lock(); disarmButtons(); unlock(); }                                // '한 번 더' 글은 3초 뒤 되돌린다
+      if (s_deckSentAt && !s_deckUp && ms - s_deckSentAt > 60000) { s_deckSentAt = 0; lock(); deckStateText(); unlock(); }   // '보냈습니다' 글은 1분 뒤 안내로
+      if (s_forgetArmed || s_rebootArmed || s_deckResetArmed) { lock(); disarmButtons(); unlock(); }                                // '한 번 더' 글은 3초 뒤 되돌린다
     }
   }
 
