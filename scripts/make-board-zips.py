@@ -58,10 +58,15 @@ with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
             z.writestr(zi, fh.read())
 meta["helper"] = {"file": name, "bytes": os.path.getsize(path), "date": datetime.date.today().isoformat(), "files": len(pkg)}
 print(name, meta["helper"]["bytes"], "bytes,", len(pkg), "files")
-# penedu.web.app/deck 에서 바로 받는 exe(주소에 한글이 없게 영문 이름으로, 받을 때 이름은 쪽에서 정한다)
-exe_name = "penedu-deck-helper.exe"
-with open(os.path.join(hd, "교실알림판_도우미.exe"), "rb") as fh, open(os.path.join(OUT, exe_name), "wb") as out:
-    out.write(fh.read())
+# penedu.web.app/deck 에서 받는 것: exe 하나만 든 압축. Firebase 무료(Spark) 요금제는 .exe 파일을 올리지 못하게 막는다(2026-10-26).
+# 압축 안의 exe 는 풀지 않고 더블클릭해도 된다(처음 켤 때 %LOCALAPPDATA%\PeneduBoard 로 자기를 복사한다).
+exe_name = "penedu-deck-helper-exe.zip"
+with zipfile.ZipFile(os.path.join(OUT, exe_name), "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+    zi = zipfile.ZipInfo("교실알림판_도우미.exe", date_time=(2026, 10, 6, 0, 0, 0))
+    zi.compress_type = zipfile.ZIP_DEFLATED
+    zi.external_attr = 0o644 << 16
+    with open(os.path.join(hd, "교실알림판_도우미.exe"), "rb") as fh:
+        z.writestr(zi, fh.read())
 meta["helperExe"] = {"file": exe_name, "bytes": os.path.getsize(os.path.join(OUT, exe_name)), "date": datetime.date.today().isoformat()}
 print(exe_name, meta["helperExe"]["bytes"], "bytes")
 with open(os.path.join(ROOT, "content", "board", "kits.json"), "w", encoding="utf-8") as fh:

@@ -15,8 +15,8 @@ export default function DeckGet() {
   }, []);
   const steps = [
     <>
-      받은 <b>교실알림판_도우미.exe</b> 를 더블클릭해요. 파란 <b>“Windows의 PC 보호”</b> 창이 뜨면 <b>[추가 정보] → [실행]</b>. 인터넷 창이 “흔하지
-      않은 파일”이라고 하면 <b>[유지]</b>를 눌러요.
+      받은 압축 파일을 더블클릭해 열고, 안의 <b>교실알림판_도우미.exe</b> 를 더블클릭해요(압축을 풀지 않아도 돼요). 파란 <b>“Windows의 PC 보호”</b> 창이
+      뜨면 <b>[추가 정보] → [실행]</b>. 인터넷 창이 “흔하지 않은 파일”이라고 하면 <b>[유지]</b>를 눌러요.
     </>,
     <>
       화면 오른쪽 아래 작업 표시줄(<b>^</b> 안쪽)에 알림판 아이콘이 생겨요. 보드와 이어지면 <b>초록</b>으로 바뀌어요. 관리자 권한은 필요 없고, 컴퓨터를
@@ -35,10 +35,10 @@ export default function DeckGet() {
 
       <a
         href={`/board/${kits.helperExe.file}`}
-        download="교실알림판_도우미.exe"
+        download="교실알림판_도우미.zip"
         className="mt-6 flex min-h-[64px] items-center justify-center rounded-card bg-accent px-6 text-lg font-extrabold text-accent-ink hover:brightness-110"
       >
-        ⬇ 도우미 받기 (교실알림판_도우미.exe{kb(kits.helperExe.bytes)})
+        ⬇ 도우미 받기 (교실알림판_도우미{kb(kits.helperExe.bytes)})
       </a>
 
       <ol className="mt-8 space-y-4">
