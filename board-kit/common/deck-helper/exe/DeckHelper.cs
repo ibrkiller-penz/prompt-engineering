@@ -130,6 +130,10 @@ class Helper : ApplicationContext
                 SetAuto(true, home);
                 if (firstTime) tray.ShowBalloonTip(6000, "교실 알림판 도우미", "설치했어요. 컴퓨터를 켤 때 저절로 켜져요.\n아이콘을 오른쪽 클릭하면 메뉴가 나와요.", ToolTipIcon.Info);
             }
+            // 예전 판은 레지스트리 Run 에 등록했는데, 재부팅 뒤 켜지지 않은 적이 있다(백신이 막은 것으로 보임, 2026-10-26) → 시작프로그램 폴더 바로 가기로 옮긴다
+            using (var k = Registry.CurrentUser.OpenSubKey(RunKey))
+                if (k != null && k.GetValue(RunName) != null) { SetAuto(true, home); Log("자동 켜기를 시작프로그램 폴더로 옮김"); }
+            if (File.Exists(home)) MakeLnk(MenuLnk, home);   // 시작 메뉴에서 '교실알림판 도우미'로 다시 켤 수 있게
             // 예전 방식(PowerShell 스크립트 도우미)과 같이 돌면 같은 보드를 서로 잡으려 한다 → 끄고 등록도 지운다
             string vbs = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "교실알림판_단축키도우미.vbs");
             if (File.Exists(vbs)) { File.Delete(vbs); Log("예전 스크립트 도우미 자동 켜기를 지움"); }
@@ -144,20 +148,37 @@ class Helper : ApplicationContext
         catch (Exception ex) { Log("설치 중 문제: " + ex.Message); }
     }
 
-    static bool IsAuto()
-    {
-        using (var k = Registry.CurrentUser.OpenSubKey(RunKey)) return k != null && k.GetValue(RunName) != null;
-    }
+    // 저절로 켜기 = 시작프로그램 폴더의 바로 가기(사용자가 탐색기에서 보고 지울 수도 있다)
+    static readonly string StartupLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "교실알림판 도우미.lnk");
+    static readonly string MenuLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "교실알림판 도우미.lnk");
+
+    static bool IsAuto() { return File.Exists(StartupLnk); }
 
     void SetAuto(bool on) { SetAuto(on, Path.Combine(Dir, "교실알림판_도우미.exe")); }
     void SetAuto(bool on, string exe)
     {
         if (test) return;
         if (!File.Exists(exe)) exe = Application.ExecutablePath;
-        using (var k = Registry.CurrentUser.CreateSubKey(RunKey))
+        try { using (var k = Registry.CurrentUser.CreateSubKey(RunKey)) k.DeleteValue(RunName, false); } catch { }   // 예전 판의 등록은 지운다
+        if (on) MakeLnk(StartupLnk, exe);
+        else try { File.Delete(StartupLnk); } catch { }
+    }
+
+    // 바로 가기(.lnk) 만들기 — 윈도우에 들어 있는 WScript.Shell 을 쓴다(C# 5 라 dynamic 대신 InvokeMember)
+    static void MakeLnk(string lnk, string target)
+    {
+        try
         {
-            if (on) k.SetValue(RunName, "\"" + exe + "\""); else k.DeleteValue(RunName, false);
+            var t = Type.GetTypeFromProgID("WScript.Shell");
+            object sh = Activator.CreateInstance(t);
+            object sc = t.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, sh, new object[] { lnk });
+            var st = sc.GetType();
+            st.InvokeMember("TargetPath", BindingFlags.SetProperty, null, sc, new object[] { target });
+            st.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, sc, new object[] { Path.GetDirectoryName(target) });
+            st.InvokeMember("Description", BindingFlags.SetProperty, null, sc, new object[] { "교실 알림판 단축키 도우미" });
+            st.InvokeMember("Save", BindingFlags.InvokeMethod, null, sc, null);
         }
+        catch (Exception ex) { Log("바로 가기를 만들지 못함: " + ex.Message); }
     }
 
     void TogglePause()
@@ -282,6 +303,7 @@ class Helper : ApplicationContext
             string line = b.Buf.Substring(0, k).Trim();
             b.Buf = b.Buf.Substring(k + 1);
             if (line == "@board ok") { if (!b.Ok) Confirm(b); }
+            else if (line == "@pc?") { if (!b.Ok) Confirm(b); Send(n, "@pc on"); }   // 보드의 [새로 고침] 단추: 바로 답한다
             else if (line.StartsWith("@deck "))
             {
                 if (!b.Ok) Confirm(b);

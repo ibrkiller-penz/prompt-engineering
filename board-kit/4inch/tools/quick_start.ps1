@@ -138,7 +138,8 @@ if ($paused) { Remove-Item $stop -ErrorAction SilentlyContinue }
 Step 7 '단축키 도우미(선택: 보드의 단축키 단추로 이 컴퓨터의 프로그램 열기)'
 $vbs = Join-Path ([Environment]::GetFolderPath('Startup')) '교실알림판_단축키도우미.vbs'
 $run = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).PeneduBoardDeckHelper
-if ($run -or (Test-Path $vbs)) { Ok '이미 등록됨' }
+$lnk = Join-Path ([Environment]::GetFolderPath('Startup')) '교실알림판 도우미.lnk'   # exe 판의 저절로 켜기
+if ($run -or (Test-Path $vbs) -or (Test-Path $lnk)) { Ok '이미 등록됨' }
 elseif (Yes '도우미(작업 표시줄 아이콘)를 켜고, 컴퓨터를 켤 때 저절로 켜지게 할까요?') {
   # 7인치·4인치 공통 exe(common\deck-helper). 처음 켜면 %LOCALAPPDATA%\PeneduBoard 로 복사하고 저절로 켜기를 등록한다
   Start-Process (Join-Path $root 'common\deck-helper\교실알림판_도우미.exe')

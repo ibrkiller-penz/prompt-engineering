@@ -57,6 +57,10 @@ export default function DeckGet() {
           <b className="text-ink">USB-C</b> 단자예요.
         </li>
         <li>
+          컴퓨터를 다시 켠 뒤 아이콘이 안 보이면: <b className="text-ink">시작 메뉴</b>에서 <b className="text-ink">‘교실알림판 도우미’</b>를 눌러 켜요. 보드
+          단축키 화면 오른쪽 아래 <b className="text-ink">⟳</b> 단추를 누르면 연결을 바로 다시 확인해요.
+        </li>
+        <li>
           아이콘이 회색에서 바뀌지 않으면: 아이콘 오른쪽 클릭 → <b className="text-ink">기록 보기</b>. “알림판 아님”이 보이면 보드 프로그램이 예전 것이라 다시
           구워야 해요.
         </li>

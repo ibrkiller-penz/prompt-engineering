@@ -2098,6 +2098,7 @@ static void showDeckHelp() {
   lv_obj_t *ul = label(url, &kr20, C_DUTY, DECK_HELP_URL); lv_obj_center(ul);
   line(&kr16, D_TEXT, "2. [도우미 받기]를 누르고, 받은 파일을 더블클릭해요");
   line(&kr16, D_TEXT, "3. 컴퓨터 화면 오른쪽 아래 아이콘이 초록이 되면 다시 눌러요");
+  line(&kr14, C_DUTY, "이미 깔았는데 안 되면: 컴퓨터 시작 메뉴에서 '교실알림판 도우미'를 눌러 켜요.");
   line(&kr14, D_MUTED, "깔았는데도 안 되면: 이 보드가 USB-C 단자로 컴퓨터에 꽂혀 있는지 보세요(데이터 케이블).");
   lv_obj_t *cb = button(card, "닫기", 100, 40, D_ROW, D_TEXT);
   lv_obj_add_event_cb(cb, [](lv_event_t *) { closeDeckHelp(); }, LV_EVENT_CLICKED, nullptr);
@@ -2115,6 +2116,14 @@ static void deckSay(uint32_t col, const char *fmt, ...) {   // 상태 글 한 �
   if (!s_deckState) return;
   static char b[200]; va_list ap; va_start(ap, fmt); vsnprintf(b, sizeof b, fmt, ap); va_end(ap);
   setTextIf(s_deckState, b); setTextColIf(s_deckState, col);
+}
+// [새로 고침] 단추(단축키 판 오른쪽 아래): 컴퓨터에 '@pc?' 를 보내 도우미가 살아 있는지 바로 확인한다(2026-10-26).
+// 6초 안에 '@pc on' 이 새로 오면 연결됨(새 도우미는 바로, 예전 도우미도 5초마다 보낸다), 안 오면 도우미가 꺼진 것 → 안내 창.
+static uint32_t s_deckPingAt = 0;   // 누른 때(0 = 기다리지 않음). 판정은 deckPoll 에서
+static void onDeckRefresh(lv_event_t *) {
+  s_deckPingAt = millis() ? millis() : 1;
+  Serial.printf("\n@pc?\n");
+  deckSay(D_SUB, LV_SYMBOL_REFRESH "  컴퓨터 도우미를 찾는 중...");
 }
 static void onDeck(lv_event_t *e) {
   const int i = (int)(intptr_t)lv_event_get_user_data(e);
@@ -2202,6 +2211,17 @@ static void deckPoll(uint32_t ms) {
       n = 0;
     } else if (n < sizeof buf - 1) buf[n++] = c;
     else n = 0;
+  }
+  if (s_deckPingAt) {                                    // [새로 고침] 판정
+    if (s_pcLast && (int32_t)(s_pcLast - s_deckPingAt) >= 0) {   // 누른 뒤에 답이 왔다
+      s_deckPingAt = 0;
+      s_usbOn = true;
+      lock(); deckStateText(); deckIconsDim(); unlock();
+    } else if (ms - s_deckPingAt > 6000) {               // 답이 없다 → 도우미가 꺼졌다고 보고 안내 창
+      s_deckPingAt = 0; s_pcLast = 0;
+      s_usbOn = false;
+      lock(); deckStateText(); deckIconsDim(); showDeckHelp(); unlock();
+    }
   }
   s_usbOn = s_pcLast && ms - s_pcLast < 15000;
   if (s_usbOn && s_deckHelp) { lock(); closeDeckHelp(); unlock(); }   // 도우미를 깔아 이어졌으면 안내 창을 닫는다
@@ -2613,10 +2633,14 @@ static void buildDeck() {
     lv_obj_t *l = label(cell, &kr14, D_SUB, DECK[i].label);
     lv_obj_align(l, LV_ALIGN_BOTTOM_MID, 0, -3);
   }
+  const int RB = 46;                                     // 오른쪽 아래 [새로 고침] 단추 폭(가운데 맞춘 상태 글과 겹치지 않게 양쪽을 비운다)
   s_deckState = label(p, &kr14, D_MUTED, "");
-  lv_obj_set_width(s_deckState, PW - 24); lv_label_set_long_mode(s_deckState, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(s_deckState, PW - 24 - 2 * (RB + 6)); lv_label_set_long_mode(s_deckState, LV_LABEL_LONG_WRAP);
   lv_obj_set_style_text_align(s_deckState, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_pos(s_deckState, 12, PH - 44);
+  lv_obj_set_pos(s_deckState, 12 + RB + 6, PH - 44);
+  lv_obj_t *rb = button(p, LV_SYMBOL_REFRESH, RB, 36, D_ROW, D_TEXT);
+  lv_obj_set_pos(rb, PW - 10 - RB, PH - 44);
+  lv_obj_add_event_cb(rb, onDeckRefresh, LV_EVENT_CLICKED, nullptr);
   deckStateText();
   deckIconsDim();
 }

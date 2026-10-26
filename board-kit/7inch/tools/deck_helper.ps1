@@ -106,6 +106,7 @@ while ($true) {
           $line = $bufs[$p].Substring(0, $k).Trim()
           $bufs[$p] = $bufs[$p].Substring($k + 1)
           if ($line -eq '@board ok') { if (-not $okp[$p]) { $okp[$p] = $true; $fails.Remove($p); Log "알림판 확인: $p" } }
+          elseif ($line -eq '@pc?') { $okp[$p] = $true; $fails.Remove($p); try { $ports[$p].Write("@pc on`n") } catch {} }   # 보드의 [새로 고침] 단추: 바로 답한다
           elseif ($line.StartsWith('@deck ')) {
             $okp[$p] = $true
             $key = $line.Substring(6).Trim()

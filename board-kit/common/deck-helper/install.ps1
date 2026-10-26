@@ -25,6 +25,7 @@ if ($old.Count) { Info "켜져 있던 도우미 $($old.Count)개를 껐어요"; 
 $exe = @(Get-Process -Name '교실알림판_도우미' -ErrorAction SilentlyContinue)
 foreach ($p in $exe) { try { $p.Kill() } catch {} }
 Remove-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'PeneduBoardDeckHelper' -ErrorAction SilentlyContinue
+Remove-Item (Join-Path ([Environment]::GetFolderPath('Startup')) '교실알림판 도우미.lnk') -ErrorAction SilentlyContinue   # exe 판의 저절로 켜기(시작프로그램 바로 가기)
 if ($exe.Count) { Info 'exe 도우미를 끄고 이 방식으로 바꿨어요' }
 Remove-Item (Join-Path $env:TEMP 'deck_helper.stop') -ErrorAction SilentlyContinue   # '잠깐 멈춤' 표시가 남아 있으면 지운다
 
