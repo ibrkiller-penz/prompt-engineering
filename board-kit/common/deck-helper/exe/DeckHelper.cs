@@ -303,7 +303,7 @@ class Helper : ApplicationContext
             string line = b.Buf.Substring(0, k).Trim();
             b.Buf = b.Buf.Substring(k + 1);
             if (line == "@board ok") { if (!b.Ok) Confirm(b); }
-            else if (line == "@pc?") { if (!b.Ok) Confirm(b); Send(n, "@pc on"); }   // 보드의 [새로 고침] 단추: 바로 답한다
+            else if (line == "@pc?") { if (!b.Ok) Confirm(b); Send(n, "@pc on"); Log("보드가 연결을 다시 확인함(새로 고침): " + n); }   // 보드의 [새로 고침] 단추: 바로 답한다
             else if (line.StartsWith("@deck "))
             {
                 if (!b.Ok) Confirm(b);
