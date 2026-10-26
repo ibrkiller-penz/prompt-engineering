@@ -1,6 +1,7 @@
 ﻿// 교실 알림판 '단축키' 도우미 — exe 판(7인치·4인치 공통). tools/deck_helper.ps1 과 같은 일을 하고, 작업 표시줄에 아이콘을 둔다.
 //   보드가 보내는 '@deck 이름' 줄을 받아 프로그램·사이트를 열고 '@deck ok 이름' / '@deck fail 이름' 으로 답한다.
-//   5초마다 '@pc on' 을 보내고, '@board ok' 로 답하는 포트만 쥔다(같은 칩을 쓰는 다른 장치는 놓고 1분 뒤 다시 본다).
+//   5초마다 '@pc on' 을 보내고, '@board ok' 로 답하는 포트만 쥔다. 답이 없으면 놓고, 처음엔 1분 뒤(켠 직후 늦은 알림판),
+//   두 번째부터는 10분 뒤에 다시 본다(같은 칩을 쓰는 다른 장치를 자꾸 잡지 않게).
 //   %TEMP%\deck_helper.stop 파일이 있으면 포트를 놓고 기다린다(키트의 quick_start 가 보드를 구울 때 쓴다).
 // 만들기: build_exe.ps1 (윈도우에 들어 있는 .NET Framework 4 의 csc.exe — C# 5 문법만 쓴다)
 using System;
@@ -74,6 +75,7 @@ class Helper : ApplicationContext
     readonly Icon iconOn, iconOff, iconPause;
     readonly Dictionary<string, Board> boards = new Dictionary<string, Board>();
     readonly Dictionary<string, DateTime> skip = new Dictionary<string, DateTime>();
+    readonly Dictionary<string, int> fails = new Dictionary<string, int>();   // 잇달아 답이 없던 횟수(확인되거나 뽑히면 지운다)
     readonly SynchronizationContext ui;
     volatile bool quit;
     volatile string lastTip = "";   // 보드 스레드가 만든 상태 글(화면 스레드는 이것만 읽는다)
@@ -197,7 +199,12 @@ class Helper : ApplicationContext
                     foreach (var n in new List<string>(boards.Keys))
                     {
                         var b = boards[n];
-                        if (!b.Ok && (now - b.Opened).TotalSeconds >= 40) { Drop(n, "알림판 아님(답 없음)"); skip[n] = now.AddMinutes(1); }
+                        if (!b.Ok && (now - b.Opened).TotalSeconds >= 40)
+                        {
+                            int f; fails.TryGetValue(n, out f); fails[n] = ++f;
+                            int wait = f >= 2 ? 10 : 1;
+                            Drop(n, "알림판 아님(답 없음, " + wait + "분 뒤 다시)"); skip[n] = now.AddMinutes(wait);
+                        }
                     }
                 lock (boards) foreach (var n in new List<string>(boards.Keys)) Read(n);
                 UpdateTray();
@@ -223,6 +230,7 @@ class Helper : ApplicationContext
                 }
         }
         catch { return; }
+        foreach (var k in new List<string>(fails.Keys)) if (!found.ContainsKey(k)) fails.Remove(k);   // 뽑았다 꽂으면 다시 처음부터
         foreach (var kv in found)
         {
             lock (boards) if (boards.ContainsKey(kv.Key)) continue;
@@ -289,6 +297,7 @@ class Helper : ApplicationContext
     void Confirm(Board b)
     {
         b.Ok = true;
+        fails.Remove(b.Name);
         Log("알림판 확인: " + b.Name + " (" + b.Kind + ")");
         Balloon(b.Kind + " 알림판과 연결됐어요 (" + b.Name + ")", ToolTipIcon.Info);
     }
