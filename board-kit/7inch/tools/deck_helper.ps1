@@ -87,8 +87,8 @@ while ($true) {
       try { $ports[$p].Write("@pc on`n") } catch { try { $ports[$p].Close() } catch {}; $ports.Remove($p); Log "포트 끊김: $p" }
     }
   }
-  foreach ($p in @($ports.Keys)) {                  # 15초 안에 답이 없으면 알림판이 아니다 → 놓기
-    if (-not $okp[$p] -and ($now - $opened[$p]).TotalSeconds -ge 15) {
+  foreach ($p in @($ports.Keys)) {                  # 40초 안에 답이 없으면 알림판이 아니다(켠 직후 받는 중에는 답이 늦다) → 놓기
+    if (-not $okp[$p] -and ($now - $opened[$p]).TotalSeconds -ge 40) {
       try { $ports[$p].Close() } catch {}; $ports.Remove($p); $skip[$p] = $now.AddMinutes(10); Log "알림판 아님(답 없음): $p"
     }
   }
