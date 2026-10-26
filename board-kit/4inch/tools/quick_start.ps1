@@ -1,7 +1,7 @@
 ﻿# 교실 알림판 4인치 — 한 번에 하기(프로용: AI 토큰을 거의 쓰지 않는다)
 #   powershell -ExecutionPolicy Bypass -File tools\quick_start.ps1
 #   powershell -ExecutionPolicy Bypass -File tools\quick_start.ps1 -Port COM7    # 보드 찾기를 건너뛰고 바로
-# 차례: 1 프로그램 확인 → 2 샘플 자료 → 3 Firebase 올리기 → 4 내 값 → 5 빌드 → 6 보드 찾기·굽기
+# 차례: 1 프로그램 확인 → 2 샘플 자료 → 3 Firebase 올리기 → 4 내 값 → 5 빌드 → 6 보드 찾기·굽기 → 7 단축키 도우미(선택)
 # 이미 끝난 단계는 건너뛴다. 여러 번 돌려도 된다. 멈추면 빨간 X 줄만 AI에게 붙여 넣으면 된다.
 # 4인치는 보드의 USB-C 단자 하나(칩 안쪽 USB, VID 303A)로 굽고 기록도 본다. 보드 종류는 하나뿐이다.
 # 이 파일은 UTF-8 BOM 으로 저장해야 한다(Windows PowerShell 5.1 이 한글을 깨뜨리지 않게).
@@ -120,14 +120,25 @@ if ($LASTEXITCODE -ne 0) { Bad '빌드 실패 — 위의 빨간 줄을 AI에게 
 
 # 6. 보드 찾기·굽기 — 칩 안쪽 USB 는 VID 303A 로 보인다(포트를 열지 않고 목록만 본다)
 Step 6 '보드 찾기·굽기'
+$stop = Join-Path $env:TEMP 'deck_helper.stop'
+if (-not (Test-Path $stop)) { New-Item -ItemType File $stop | Out-Null; $paused = $true; Start-Sleep 2 }  # 단축키 도우미가 포트를 쥐고 있으면 잠깐 놓게
 if (-not $Port) {
   $s3 = @(& python -c "import serial.tools.list_ports as l; [print(p.device) for p in l.comports() if p.vid == 0x303A]" 2>$null | ForEach-Object { "$_".Trim() } | Where-Object { $_ })
-  if ($s3.Count -eq 0) { Bad '보드를 못 찾았어요(데이터 케이블 · 다른 USB 구멍 · BOOT 단추를 누른 채 꽂기)'; exit 1 }
+  if ($s3.Count -eq 0) { Bad '보드를 못 찾았어요(데이터 케이블 · 다른 USB 구멍 · BOOT 단추를 누른 채 꽂기)'; if ($paused) { Remove-Item $stop }; exit 1 }
   $Port = if ($s3.Count -eq 1) { $s3[0] } else { Ask ("보드가 여럿이에요: " + ($s3 -join ', ') + " 중 어느 것?") $s3[0] }
 }
 Ok "보드: $Port (ESP32-S3)"
 if (Yes "$Port 보드에 올릴까요? (저장한 와이파이는 지워지지 않아요)") {
   & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build_board.ps1') -Port $Port
   if ($LASTEXITCODE -ne 0) { Bad '굽기 실패 — 위의 빨간 줄을 AI에게 붙여 넣으세요' } else { Ok '보드에 올렸어요. 화면 ⑥ 설정 → 찾기에서 와이파이를 넣으세요.' }
+}
+if ($paused) { Remove-Item $stop -ErrorAction SilentlyContinue }
+
+# 7. 단축키 도우미(선택) — 7인치·4인치 공통 설치 파일(common\deck-helper)을 그대로 쓴다. 다른 컴퓨터에는 사이트의 도우미 꾸러미로
+Step 7 '단축키 도우미(선택: 보드의 단축키 단추로 이 컴퓨터의 프로그램 열기)'
+$vbs = Join-Path ([Environment]::GetFolderPath('Startup')) '교실알림판_단축키도우미.vbs'
+if (Test-Path $vbs) { Ok '이미 등록됨' }
+elseif (Yes '이 컴퓨터를 켤 때 도우미가 창 없이 켜지게 등록할까요?') {
+  & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'common\deck-helper\install.ps1')
 }
 Write-Host ""; Write-Host "끝! 막히면 빨간 X 줄만 AI에게 붙여 넣으세요." -ForegroundColor Yellow

@@ -37,5 +37,25 @@ for board in ("7inch", "4inch"):
                 z.writestr(zi, fh.read())
     meta[board] = {"file": name, "bytes": os.path.getsize(path), "date": datetime.date.today().isoformat(), "files": len(seen)}
     print(name, meta[board]["bytes"], "bytes,", len(seen), "files")
+# 단축키 도우미 단독 꾸러미(7인치·4인치 공통): 키트 없이 다른 컴퓨터에 설치.bat 만 눌러 깔기(2026-10-26)
+helpers = [os.path.join(KIT, b, "tools", "deck_helper.ps1") for b in ("7inch", "4inch")]
+hb = [open(h, "rb").read() for h in helpers]
+if hb[0] != hb[1]:
+    sys.exit("7inch/tools/deck_helper.ps1 과 4inch/tools/deck_helper.ps1 이 다르다 — 한쪽을 고쳤으면 다른 쪽에도 똑같이 복사할 것")
+name = "penedu-board-deck-helper.zip"
+path = os.path.join(OUT, name)
+pkg = {"deck_helper.ps1": helpers[0]}
+hd = os.path.join(KIT, "common", "deck-helper")
+for f in sorted(os.listdir(hd)):
+    pkg[f] = os.path.join(hd, f)
+with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+    for rel in sorted(pkg):
+        zi = zipfile.ZipInfo(f"penedu-board-deck-helper/{rel}", date_time=(2026, 10, 6, 0, 0, 0))
+        zi.compress_type = zipfile.ZIP_DEFLATED
+        zi.external_attr = 0o644 << 16
+        with open(pkg[rel], "rb") as fh:
+            z.writestr(zi, fh.read())
+meta["helper"] = {"file": name, "bytes": os.path.getsize(path), "date": datetime.date.today().isoformat(), "files": len(pkg)}
+print(name, meta["helper"]["bytes"], "bytes,", len(pkg), "files")
 with open(os.path.join(ROOT, "content", "board", "kits.json"), "w", encoding="utf-8") as fh:
     json.dump(meta, fh, ensure_ascii=False, indent=2)

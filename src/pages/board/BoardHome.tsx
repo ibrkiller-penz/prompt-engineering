@@ -206,6 +206,20 @@ export default function BoardHome() {
       <p className="mt-3 text-sm text-muted">
         압축은 <b>영문 경로</b>(예: <code>C:\dev</code>)에 풀어 주세요. 한글 폴더에서는 빌드가 멈춰요.
       </p>
+      <div className="mt-4 flex flex-col rounded-card border border-line bg-surface p-4">
+        <p className="font-extrabold">⌨️ 단축키 도우미만 (7인치·4인치 공통)</p>
+        <p className="mt-1 text-sm leading-relaxed text-muted">
+          이미 구운 보드를 <b>다른 컴퓨터</b>에 꽂아 단축키를 쓸 때. 압축을 풀고 <b>설치.bat</b>을 더블클릭하면 끝이에요(관리자 권한 필요 없음, 컴퓨터를
+          켤 때 저절로 켜져요). 끄려면 <b>끄기.bat</b>.{kits.helper?.bytes ? ` · ${mb(kits.helper.bytes)}` : ""}
+        </p>
+        <a
+          href={`/board/${kits.helper.file}`}
+          download
+          className="mt-3 inline-flex min-h-[44px] items-center justify-center self-start rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110"
+        >
+          ⬇ {kits.helper.file}
+        </a>
+      </div>
 
       <H2>시작하기 전에 알아 둘 것</H2>
       <Callout tone="bad" title="시간표를 올릴 때 개인정보">
