@@ -46,21 +46,29 @@ def shot(sp, path):
             raise RuntimeError("보드가 화면을 꺼내지 못했습니다")
         if line.startswith("@shot "):
             w, h = map(int, line.split()[1:3]); break
-    px = bytearray(w * h * 3); k = 0; total = w * h
-    sp.timeout = 5
-    while True:
-        hdr = sp.read(1)
-        if not hdr:
-            raise RuntimeError("받다가 끊겼습니다(%d/%d)" % (k, total))
-        cnt = hdr[0]
+    # 먼저 끝까지 한꺼번에 받아 두고(큰 덩어리로 읽기) 그다음 푼다.
+    # 4인치(칩 내장 USB)는 빨라서 한 바이트씩 읽으면 보드 쪽 전송이 기다리다 떨어져 그림이 깨졌다(2026-10-26).
+    total = w * h; raw = bytearray(); sp.timeout = 0.3; idle = 0
+    while idle < 10:                                   # 3초 동안 새 자료가 없으면 끝
+        chunk = sp.read(65536)
+        if chunk:
+            raw += chunk; idle = 0
+            if b"@shot end" in raw[-64:]:
+                break
+        else:
+            idle += 1
+    px = bytearray(total * 3); k = 0; i = 0
+    while i + 2 < len(raw) and k < total:
+        cnt = raw[i]
         if cnt == 0:
             break
-        lo, hi = sp.read(2)
-        v = lo | (hi << 8)
+        v = raw[i + 1] | (raw[i + 2] << 8); i += 3
         r = (v >> 11) & 0x1F; g = (v >> 5) & 0x3F; b = v & 0x1F
         rgb = bytes(((r << 3) | (r >> 2), (g << 2) | (g >> 4), (b << 3) | (b >> 2)))
         n = min(cnt, total - k)
         px[k * 3:(k + n) * 3] = rgb * n; k += n
+    if k < total:
+        raise RuntimeError("받다가 끊겼습니다(%d/%d 점)" % (k, total))
     # 이 보드는 화면을 거꾸로 달아 프레임 버퍼가 180도 돌아가 있다(MIRROR_X·Y) → 바로 세워 저장
     Image.frombytes("RGB", (w, h), bytes(px)).rotate(180).save(path)
     return path

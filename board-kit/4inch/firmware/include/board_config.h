@@ -45,6 +45,11 @@
 #define SCHEDULE_URL ""
 #endif
 
+// 화면을 180도 돌려 보이기(보드를 거꾸로 달 때). 1 = 돌림(화면·터치 함께), 0 = 원래 방향.
+#ifndef BOARD_ROTATE_180
+#define BOARD_ROTATE_180 1
+#endif
+
 // ⑦ 교시 시작 시간(1~7교시). 한 교시는 50분으로 계산합니다.                  ← 내 값으로 바꾸기
 //   점심시간은 12:30~13:30 으로 고정입니다(main.cpp 의 "12:30", "13:30" 을 찾아 바꾸세요).
 #ifndef BOARD_PERIOD_START
