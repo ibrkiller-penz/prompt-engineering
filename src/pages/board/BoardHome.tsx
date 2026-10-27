@@ -33,7 +33,7 @@ export default function BoardHome() {
 
       {mode === "pro" && <ProPath />}
       {mode === "max" && (
-        <p className="mt-2 max-w-3xl rounded-card border border-line bg-surface p-4">
+        <p className="mt-2 max-w-3xl 2xl:max-w-4xl rounded-card border border-line bg-surface p-4">
           <b>맥스용</b>으로 보고 있어요. 아래 <a href="#flow" className="font-semibold text-accent underline">순서</a>대로 한 쪽씩 읽으며, 마지막 쪽의{" "}
           <Link to="/board/brief" className="font-semibold text-accent underline">맥스용 작업지시서</Link>를 AI에게 주면 AI가 한 단계씩 같이 해요.
         </p>
@@ -68,7 +68,7 @@ export default function BoardHome() {
       </div>
 
       <H2>어떤 보드로 할까</H2>
-      <p className="mt-3 max-w-3xl leading-relaxed">
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
         <BoardChip board="7" /> 가 이 쪽의 <b>중심</b>이에요. 가로로 넓어서 주간 시간표가 한 화면에 다 들어와요. 같은 7인치에
         해상도가 더 높은 <b>7인치 B(1024×600)</b>도 같은 키트로 만들 수 있어요(빌드할 때 보드 종류만 골라요).{" "}
         <BoardChip board="4" /> 는 <b>작고 정사각형</b>이라 화면 왼쪽·오른쪽을 눌러 장을 넘겨요. 모든 보드가 같은 시간표 자료를 써요.
@@ -86,7 +86,7 @@ export default function BoardHome() {
       />
 
       <H3>기능 차이</H3>
-      <p className="mt-2 max-w-3xl text-[0.95rem] text-muted">
+      <p className="mt-2 max-w-3xl 2xl:max-w-4xl text-[0.95rem] text-muted">
         자료(시간표·날씨·급식)와 기본 기능은 같고, <b>화면을 보여 주는 방식</b>이 달라요.
       </p>
       <Table
@@ -114,12 +114,12 @@ export default function BoardHome() {
           ["화면 흔들림 대책", <>같은 원리, 설정이 조금 달라요 — <Link to="/board/shake" className="font-semibold text-accent underline">화면 흔들림</Link></>, "같은 원리, 그림 그리는 방식부터 공장 방식"],
         ]}
       />
-      <p className="mt-2 max-w-3xl text-sm text-muted">
+      <p className="mt-2 max-w-3xl 2xl:max-w-4xl text-sm text-muted">
         표는 직접 만들어 쓰며 확인한 동작을 적은 거예요. 시작 프로젝트의 버전에 따라 조금 달라질 수 있어요.
       </p>
 
       <H3>색 테마 5가지 (7인치·7인치 B)</H3>
-      <p className="mt-2 max-w-3xl text-[0.95rem] text-muted">
+      <p className="mt-2 max-w-3xl 2xl:max-w-4xl text-[0.95rem] text-muted">
         설정 → <b>화면 색</b>에서 고르면 보드가 1초쯤 뒤 다시 켜지며 바뀌어요. 다섯 가지 모두 3m 거리에서 읽히도록 글자 명암비를 맞췄고, 빨강은 결강·경고에만 써요. 견본의 시간표는 지어낸 거예요.
       </p>
       <ThemePreview />
@@ -128,7 +128,7 @@ export default function BoardHome() {
       <ScreenPreview4 />
 
       <H2 id="principal">교장실 모드</H2>
-      <p className="mt-3 max-w-3xl leading-relaxed">
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
         교장·교감 선생님 책상에 두는 화면이에요. 수업 시간표 대신 <b>학교 일정</b>을 크게 보여 줘요. 설정 → <b>볼 시간표</b>에서 맨 앞의{" "}
         <b>[교장]</b> 또는 <b>[교감]</b> 단추를 누르면 바로 바뀌고, 다른 선생님을 고르면 원래 화면으로 돌아와요. 7인치·7인치 B에서 돼요.
       </p>
@@ -176,7 +176,7 @@ export default function BoardHome() {
       </ul>
 
       <H2 id="download">내려받기</H2>
-      <p className="mt-3 max-w-3xl leading-relaxed">
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
         학교·교사 이름, 학교 코드, 주소가 <b>하나도 들어 있지 않은</b> 시작 프로젝트예요. 샘플 시간표가 들어 있어서, 내 자료를 넣기 전에도 화면이 떠요.
       </p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">

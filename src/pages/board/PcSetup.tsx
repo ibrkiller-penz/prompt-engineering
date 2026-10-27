@@ -13,7 +13,7 @@ export default function PcSetup() {
       />
       {mode === "pro" && (
         <>
-          <p className="max-w-3xl font-semibold">프로용이면 이 쪽은 읽지 않아도 돼요. 키트의 스크립트가 설치를 확인하고 없는 것을 깔아 줘요. 아래는 원리가 궁금하거나 막혔을 때 보세요.</p>
+          <p className="max-w-3xl 2xl:max-w-4xl font-semibold">프로용이면 이 쪽은 읽지 않아도 돼요. 키트의 스크립트가 설치를 확인하고 없는 것을 깔아 줘요. 아래는 원리가 궁금하거나 막혔을 때 보세요.</p>
           <ProPath compact />
         </>
       )}
@@ -57,7 +57,7 @@ npm install -g firebase-tools`}</Code>
       </Steps>
 
       <H2>로그인 3가지는 직접</H2>
-      <p className="mt-3 max-w-3xl leading-relaxed">
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
         이름·메일·계정이 필요한 일은 AI가 대신하지 않고 <b>여러분이 직접</b> 해요. 비밀번호나 열쇠를 AI에게 붙여 넣지 마세요.
       </p>
       <Code>{`git config --global user.name "영문이름"
@@ -69,7 +69,7 @@ firebase login`}</Code>
       </p>
 
       <H2>보드 USB 드라이버</H2>
-      <ul className="mt-3 max-w-3xl list-disc space-y-1 pl-5 leading-relaxed">
+      <ul className="mt-3 max-w-3xl 2xl:max-w-4xl list-disc space-y-1 pl-5 leading-relaxed">
         <li>
           <b>7인치</b> — ‘UART’ 표시된 USB-C에 꽂으면 CH343 변환 칩이 COM 포트를 만들어요. Windows 11은 보통 저절로 잡혀요. 안 보이면 칩 제조사(WCH)의 CH343 드라이버를
           설치해요.

@@ -120,7 +120,7 @@ export function ModeSwitch() {
 /** 프로용 3단계(첫 쪽·PC 준비·처음 굽기에서 함께 쓴다) */
 export function ProPath({ compact }: { compact?: boolean }) {
   return (
-    <section className="mt-2 max-w-3xl rounded-card border-2 border-accent bg-accent-soft p-4 sm:p-5">
+    <section className="mt-2 max-w-3xl 2xl:max-w-4xl rounded-card border-2 border-accent bg-accent-soft p-4 sm:p-5">
       <p className="font-extrabold">프로용 · 이렇게만 하면 돼요 {compact ? "" : "(7인치·7인치 B)"}</p>
       <ol className="mt-3 space-y-3">
         <li>

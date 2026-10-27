@@ -19,7 +19,7 @@ export function PageTitle({ tag, title, lead }: { tag: string; title: string; le
     <header className="mb-6">
       <p className="text-sm font-semibold tracking-widest text-accent">{tag}</p>
       <h1 className="mt-1 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">{title}</h1>
-      {lead && <p className="mt-3 max-w-3xl text-lg text-muted">{lead}</p>}
+      {lead && <p className="mt-3 max-w-3xl 2xl:max-w-4xl text-lg text-muted">{lead}</p>}
     </header>
   );
 }
@@ -37,7 +37,7 @@ export function H3({ children }: { children: ReactNode }) {
 }
 
 export function P({ children }: { children: ReactNode }) {
-  return <p className="mt-3 max-w-3xl leading-relaxed">{children}</p>;
+  return <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">{children}</p>;
 }
 
 const TONES = {
@@ -58,7 +58,7 @@ export function Callout({
 }) {
   const t = TONES[tone];
   return (
-    <aside className={`mt-5 max-w-3xl rounded-card border p-4 ${t.box}`} role="note">
+    <aside className={`mt-5 max-w-3xl 2xl:max-w-4xl rounded-card border p-4 ${t.box}`} role="note">
       <p className={`text-sm font-bold ${t.text}`}>{title ?? t.tag}</p>
       <div className="mt-1 leading-relaxed [&_code]:rounded [&_code]:bg-white/70 [&_code]:px-1">{children}</div>
     </aside>
@@ -69,7 +69,7 @@ export function Callout({
 export function Code({ children, label = "복사" }: { children: string; label?: string }) {
   const text = children.replace(/\n$/, "");
   return (
-    <div className="mt-3 max-w-3xl overflow-hidden rounded-card border border-line bg-[#1f2328]">
+    <div className="mt-3 max-w-3xl 2xl:max-w-4xl overflow-hidden rounded-card border border-line bg-[#1f2328]">
       <div className="flex justify-end border-b border-white/10 bg-white/5 px-2 py-1">
         <CopyButton text={text} label={label} />
       </div>
@@ -83,7 +83,7 @@ export function Code({ children, label = "복사" }: { children: string; label?:
 /** 번호 단계: 1 2 3 … */
 export function Steps({ children }: { children: ReactNode[] }) {
   return (
-    <ol className="mt-4 max-w-3xl space-y-5">
+    <ol className="mt-4 max-w-3xl 2xl:max-w-4xl space-y-5">
       {children.map((c, i) => (
         <li key={i} className="flex gap-3">
           <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-ink">
@@ -98,7 +98,7 @@ export function Steps({ children }: { children: ReactNode[] }) {
 
 export function Check({ children }: { children: ReactNode[] }) {
   return (
-    <ul className="mt-3 max-w-3xl space-y-2">
+    <ul className="mt-3 max-w-3xl 2xl:max-w-4xl space-y-2">
       {children.map((c, i) => (
         <li key={i} className="flex gap-2">
           <span aria-hidden className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-ok text-xs text-ok">

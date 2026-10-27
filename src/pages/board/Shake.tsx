@@ -99,7 +99,7 @@ export default function Shake() {
         ]}
       />
       <H3>7인치 B (1024×600) 보드</H3>
-      <p className="mt-2 max-w-3xl text-[0.95rem] text-muted">
+      <p className="mt-2 max-w-3xl 2xl:max-w-4xl text-[0.95rem] text-muted">
         화면이 크면 한 장을 보내는 데 걸리는 시간도 길어져요. 7인치 B는 ‘밀림’보다 <b>초당 장수가 낮아 미묘하게 일렁이는 것</b>이 문제였어요.
       </p>
       <Table
@@ -248,7 +248,7 @@ custom_sdkconfig =
       </Callout>
 
       <H2>참고한 것</H2>
-      <ul className="mt-3 max-w-3xl list-disc space-y-1 pl-5 leading-relaxed">
+      <ul className="mt-3 max-w-3xl 2xl:max-w-4xl list-disc space-y-1 pl-5 leading-relaxed">
         <li>
           <Ext href="https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/lcd.html">Espressif ESP-FAQ — LCD</Ext> (drift 원인과 XIP+bounce buffer 방법)
         </li>
@@ -262,7 +262,7 @@ custom_sdkconfig =
           <Ext href="https://docs.waveshare.com/ESP32-S3-Touch-LCD-7">Waveshare ESP32-S3-Touch-LCD-7 문서</Ext>
         </li>
       </ul>
-      <p className="mt-3 max-w-3xl text-sm text-muted">
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl text-sm text-muted">
         이 쪽의 ‘우리가 겪은 일’은 직접 만들며 남긴 작업 기록이에요. 보드 개별 차이(부품 편차·전원·공유기)로 같은 설정에서도 결과가 다를 수 있어요. 막히면{" "}
         <Link to="/board/help" className="font-semibold text-accent underline">
           막힐 때

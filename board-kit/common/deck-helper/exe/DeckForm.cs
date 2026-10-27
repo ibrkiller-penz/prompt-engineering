@@ -27,7 +27,8 @@ class DeckForm : Form
     readonly Inspector insp;
     readonly BoardView board;
     readonly ContextMenuStrip cellMenu = new ContextMenuStrip(), presetMenu = new ContextMenuStrip(), themeMenu = new ContextMenuStrip();
-    readonly ContextMenuStrip moreMenu = new ContextMenuStrip(), builtinMenu = new ContextMenuStrip();
+    readonly ContextMenuStrip moreMenu = new ContextMenuStrip(), builtinMenu = new ContextMenuStrip(), manualMenu = new ContextMenuStrip();
+    TourOverlay tour; PracticePanel practice;   // 둘러보기 안내 · 연습 과제(DeckTour.cs)
     readonly ContextMenuStrip iconMenu;
     ToolStripMenuItem cellIconSub;
     readonly ToolTip tip = DarkTip.Make();
@@ -94,6 +95,15 @@ class DeckForm : Form
         top.Preset.DropMenu = presetMenu;
         top.ThemeBtn.DropMenu = themeMenu;
         top.More.DropMenu = moreMenu;
+        top.Manual.DropMenu = manualMenu;
+        manualMenu.Items.AddRange(new ToolStripItem[] {
+            Item("설명서 보기(그림과 따라 하기)", delegate { DeckManual.Open(this, null); }),
+            Item("둘러보기 안내 다시 보기", delegate { StartTour(); }),
+            Item("연습 과제 해 보기", delegate { StartPractice(); }),
+            new ToolStripSeparator(),
+            Item("설명서 PDF(인터넷)", delegate { DeckManual.OpenPdf(this); }) });
+        Theme.DarkMenu(manualMenu);
+        tip.SetToolTip(top.Manual, "설명서 · 둘러보기 안내 · 연습 과제 (F1)");
         top.ThemeBtn.Text = "아이콘 모양: " + DeckLibrary.ThemeNames[libTheme];
         tip.SetToolTip(insp.TryBtn, "보드 없이 이 컴퓨터에서 바로 해 봐요(저장 전에도 돼요)");
         tip.SetToolTip(top.Preset, "16칸을 한 번에: 이 컴퓨터에 깔린 프로그램으로, 또는 수업용·업무용·발표용 묶음으로");
@@ -102,7 +112,7 @@ class DeckForm : Form
 
         // 바꾸면 바로 미리보기
         var txtName = insp.NameBox.Box; var txtTarget = insp.TargetBox.Box; var txtText = insp.TextBox.Box;
-        txtName.TextChanged += delegate { if (loading) return; Cur.Name = txtName.Text; CheckName(); if (Cur.IconMode == "letter") Retile(); Changed(); };
+        txtName.TextChanged += delegate { if (loading) return; Prac("name"); Cur.Name = txtName.Text; CheckName(); if (Cur.IconMode == "letter") Retile(); Changed(); };
         txtTarget.TextChanged += delegate {
             if (loading) return;
             Cur.Target = txtTarget.Text.Trim();
@@ -167,6 +177,70 @@ class DeckForm : Form
         Theme.DarkTitle(Handle);
     }
 
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        if (!Helper.IsPreview && DeckPrefs.Get("tour", "0") != "1") BeginInvoke((Action)StartTour);   // 처음 한 번만
+    }
+
+    // ── 둘러보기 안내 · 연습 과제 ──
+    Rectangle Rel(Control c, Rectangle r) { return RectangleToClient(c.RectangleToScreen(r)); }
+    Rectangle Rel(Control c) { return Rel(c, c.ClientRectangle); }
+
+    public void StartTour()
+    {
+        if (tour != null) return;
+        var st = new List<TourStep> {
+            new TourStep { Title = "단축키 꾸미기 창이에요", Body = "보드의 단추 16개를 여기서 바꿔요. 어디에 무엇이 있는지 차례로 보여 드릴게요.\n[다음]을 누르거나 키보드의 → 를 누르세요. 그만 보려면 Esc." },
+            new TourStep { Title = "① 보드 모양", Body = "보드와 똑같은 16칸이에요. 칸을 누르면 고를 수 있어요. 칸을 끌어 다른 칸에 놓으면 두 칸의 자리가 바뀌어요. 오른쪽 위에서 7인치·4인치 모양을 바꿔 볼 수 있어요.", Target = () => Rel(board) },
+            new TourStep { Title = "② 동작 목록", Body = "칸에 넣을 수 있는 것들이 모여 있어요. 줄 하나를 마우스로 끌어 칸에 놓으면 이름·하는 일·그림이 한꺼번에 들어가요. 맨 위 찾기 칸에 '한글', '소리'처럼 쳐 보세요.", Target = () => Rel(actions) },
+            new TourStep { Title = "③ 칸 설정", Body = "고른 칸의 이름, 하는 일, 대상을 고쳐요. 이름은 보드 칸 아래에 나오는 글자예요. 한글 6자 안쪽이 보기 좋아요.", Target = () => Rel(insp) },
+            new TourStep { Title = "④ 하는 일", Body = "프로그램 열기 · 사이트 열기 · 단축키 누르기 · 글자 넣기 · 컴퓨터 기능 · 여러 동작 중에서 골라요. '여러 동작'을 고르면 칸 하나로 여러 일을 차례대로 해요.", Target = () => Rel(insp.Kind) },
+            new TourStep { Title = "⑤ 아이콘", Body = "그림을 누르면 아이콘을 바꿀 수 있어요. 아이콘 모음 205개에서 고르거나, 내 그림 파일을 여기에 끌어다 놓아도 돼요.", Target = () => Rel(insp, new Rectangle(16, 16, 120, 160)) },
+            new TourStep { Title = "⑥ 눌러 보기", Body = "보드가 없어도 이 컴퓨터에서 바로 해 볼 수 있어요. 저장하기 전에 잘 되는지 먼저 확인하세요.", Target = () => Rel(insp.TryBtn) },
+            new TourStep { Title = "⑦ 한 번에 채우기 · 아이콘 모양", Body = "처음이라면 [한 번에 채우기]에서 시작하세요. 이 컴퓨터에 깔린 프로그램으로 16칸을 한 번에 채워 줘요. [아이콘 모양]은 보드 색에 맞춰 그림 모양을 한꺼번에 바꿔요.", Target = () => Rectangle.Union(Rel(top.Preset), Rel(top.ThemeBtn)) },
+            new TourStep { Title = "⑧ 저장하고 보드에 보내기", Body = "다 고쳤으면 꼭 이 단추를 누르세요. 보드 화면에 '새 단축키를 받았습니다'가 나오면 끝이에요. 보드가 꽂혀 있지 않으면 다음에 꽂을 때 저절로 보내요.", Target = () => Rel(status.BtnSave) },
+            new TourStep { Title = "⑨ 설명서", Body = "언제든 여기서 그림 설명서를 보거나, 이 안내를 다시 보거나, 연습 과제를 해 볼 수 있어요(키보드 F1).\n지금 연습 과제를 해 보면 금방 익숙해져요.", Target = () => Rel(top.Manual) },
+        };
+        tour = new TourOverlay(this, st);
+        Controls.Add(tour);
+        tour.Finished += delegate { tour = null; DeckPrefs.Set("tour", "1"); DeckPrefs.Save(); };
+        tour.PracticeAsked += delegate { StartPractice(); };
+        tour.Start();
+    }
+
+    public void StartPractice()
+    {
+        if (practice != null) { practice.BringToFront(); return; }
+        practice = new PracticePanel();
+        practice.Closed += delegate { if (practice != null) { Controls.Remove(practice); practice.Dispose(); practice = null; } };
+        Controls.Add(practice);
+        PlacePractice();
+        practice.BringToFront();
+        Notify("연습 과제를 시작해요. 왼쪽 아래 목록을 하나씩 해 보세요.");
+    }
+
+    void PlacePractice()
+    {
+        if (practice == null) return;
+        var b = Rel(board);
+        practice.Location = new Point(b.Left + 16, Math.Max(b.Top + 16, b.Bottom - practice.Height - 16));
+    }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        PlacePractice();
+        if (tour != null) { var t = tour; tour = null; t.Visible = false; Controls.Remove(t); t.Dispose(); StartTour(); }   // 창 크기가 바뀌면 안내를 새 모습으로
+    }
+
+    void Prac(string k) { if (practice != null) practice.Done(k); }
+    public void PreviewTour(int steps) { StartTour(); for (int i = 0; i < steps; i++) tour.Next(); }
+    public void PreviewTourEnd() { if (tour != null) { var t = tour; tour = null; Controls.Remove(t); t.Dispose(); } }
+    public void PreviewPractice() { StartPractice(); Prac("select"); Prac("drop"); }
+    public Control PreviewTourLayer { get { return tour; } }
+    public Control PreviewPracticeLayer { get { return practice; } }
+
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
@@ -208,6 +282,7 @@ class DeckForm : Form
     {
         if (keyData == (Keys.Control | Keys.S)) { Save(); return true; }
         if (keyData == (Keys.Control | Keys.F)) { actions.FocusFind(); return true; }
+        if (keyData == Keys.F1) { DeckManual.Open(this, null); return true; }
         return base.ProcessCmdKey(ref msg, keyData);
     }
 
@@ -262,6 +337,7 @@ class DeckForm : Form
         sel = i;
         ShowCell();
         board.Invalidate();
+        Prac("select");
     }
 
     static string ModeName(string m)
@@ -510,6 +586,7 @@ class DeckForm : Form
     public void ApplyAction(int cell, string action, bool iconOnly)
     {
         if (cell < 0 || cell > 15 || string.IsNullOrEmpty(action) || work == null) return;
+        Prac("drop");
         SelectCell(cell);
         var c = Cur;
         int n = cell + 1;
@@ -798,6 +875,7 @@ class DeckForm : Form
                 if (IsDisposed) return;
                 Status("'" + nm + "' " + why + ". [동작 차례 고치기]에서 확인해 주세요."); lastMsg = DateTime.Now.AddSeconds(6);
             });
+            Prac("try");
             Notify("'" + c.Name + "' 해 봤어요." + (c.Kind == "multi" ? " (" + c.Steps.Count + "가지를 차례대로)" : ""));
         }
         catch (Exception ex)
@@ -829,6 +907,7 @@ class DeckForm : Form
         var t = work.Cells[a]; work.Cells[a] = work.Cells[b]; work.Cells[b] = t;
         SelectCell(b); Changed();
         Status((a + 1) + "번 칸과 " + (b + 1) + "번 칸을 바꿨어요."); lastMsg = DateTime.Now;
+        Prac("swap");
     }
 
     // 그림 파일을 칸에 끌어다 놓았을 때: 아이콘만 바꾼다
@@ -1144,6 +1223,7 @@ class DeckForm : Form
         Status(host.HasDeckBoard() ? "저장했어요. 보드에 보내요(7인치는 1분쯤 걸려요)." : "저장했어요. 보드를 꽂으면 저절로 보내요.");
         lastMsg = DateTime.Now.AddSeconds(2);
         ShowCell(); board.Invalidate();
+        Prac("save");
         return true;
     }
 
@@ -1190,7 +1270,7 @@ class DeckForm : Form
 // 위 띠: 제목 · 저장 안 함 · [한 번에 채우기 ▾] [아이콘 모양: … ▾] [더보기 ▾]
 class TopBar : Control
 {
-    public readonly FlatButton Preset = new FlatButton(), ThemeBtn = new FlatButton(), More = new FlatButton();
+    public readonly FlatButton Preset = new FlatButton(), ThemeBtn = new FlatButton(), More = new FlatButton(), Manual = new FlatButton();
     bool dirty;
 
     public TopBar()
@@ -1201,8 +1281,9 @@ class TopBar : Control
         Preset.Text = "한 번에 채우기"; Preset.Glyph = BtnGlyph.Down; Preset.Size = new Size(150, 32);
         ThemeBtn.Glyph = BtnGlyph.Down; ThemeBtn.Size = new Size(200, 32);
         More.Text = "더보기"; More.Glyph = BtnGlyph.Down; More.Style = BtnStyle.Ghost; More.Size = new Size(96, 32);
-        Controls.AddRange(new Control[] { Preset, ThemeBtn, More });
-        Preset.TabIndex = 0; ThemeBtn.TabIndex = 1; More.TabIndex = 2;
+        Manual.Text = "설명서"; Manual.Glyph = BtnGlyph.Down; Manual.Style = BtnStyle.Ghost; Manual.Size = new Size(100, 32);
+        Controls.AddRange(new Control[] { Preset, ThemeBtn, More, Manual });
+        Preset.TabIndex = 0; ThemeBtn.TabIndex = 1; More.TabIndex = 2; Manual.TabIndex = 3;
     }
 
     public bool Dirty { get { return dirty; } set { if (dirty != value) { dirty = value; Invalidate(); } } }
@@ -1214,6 +1295,7 @@ class TopBar : Control
         x -= More.Width; More.Location = new Point(x, y);
         x -= 8 + ThemeBtn.Width; ThemeBtn.Location = new Point(x, y);
         x -= 8 + Preset.Width; Preset.Location = new Point(x, y);
+        x -= 8 + Manual.Width; Manual.Location = new Point(x, y);
     }
 
     protected override void OnPaint(PaintEventArgs e)

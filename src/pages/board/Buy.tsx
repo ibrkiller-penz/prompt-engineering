@@ -80,7 +80,7 @@ export default function Buy() {
           ["선택", "스탠드·케이스, 3.7V 리튬 배터리(단일 셀) — 없어도 돼요"],
         ]}
       />
-      <p className="mt-3 max-w-3xl text-sm text-muted">
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl text-sm text-muted">
         가격과 파는 곳은 시기마다 달라서 적지 않았어요. 쿠팡·알리익스프레스·Waveshare 공식몰 등에서 위 이름으로 찾아보세요.
       </p>
 

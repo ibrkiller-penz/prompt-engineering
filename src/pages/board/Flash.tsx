@@ -18,7 +18,7 @@ export default function Flash() {
       />
       {mode === "pro" && (
         <>
-          <p className="max-w-3xl font-semibold">프로용이면 이 쪽은 읽지 않아도 돼요. 키트의 스크립트가 빌드와 굽기를 줘요. 아래는 원리가 궁금하거나 막혔을 때 보세요.</p>
+          <p className="max-w-3xl 2xl:max-w-4xl font-semibold">프로용이면 이 쪽은 읽지 않아도 돼요. 키트의 스크립트가 빌드와 굽기를 줘요. 아래는 원리가 궁금하거나 막혔을 때 보세요.</p>
           <ProPath compact />
         </>
       )}
@@ -82,7 +82,7 @@ export default function Flash() {
         )}
 
         <H2>2. 내 값 넣기</H2>
-        <p className="mt-3 max-w-3xl leading-relaxed">
+        <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
           <code>{seven ? "7inch" : "4inch"}\firmware\include\board_config.h</code> 한 파일에 <b>사람마다 다른 값</b>이 모여 있어요. 처음에는 샘플 값 그대로 두고 <b>먼저 화면부터 띄워</b> 봐도 돼요.
           시간표 자료 주소와 학교 코드는{" "}
           <Link to="/board/data" className="font-semibold text-accent underline">
@@ -107,11 +107,11 @@ export default function Flash() {
         </p>
 
         <H2>3. 빌드하고 올리기</H2>
-        <p className="mt-3 max-w-3xl leading-relaxed">
+        <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
           PowerShell을 <b><code>{seven ? "7inch" : "4inch"}</code> 폴더</b>에서 열고 실행해요.
         </p>
         <Code>{`powershell -NoProfile -ExecutionPolicy Bypass -File tools\\build_board.ps1 -Port COM3`}</Code>
-        <p className="mt-3 max-w-3xl leading-relaxed">
+        <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
           끝에 <code>[SUCCESS]</code> 와 <code>Hard resetting via RTS pin...</code> 이 나오면 보드에 올라간 거예요. 올리지 않고 빌드만 해 보려면 <code>-NoUpload</code> 를 붙여요.
         </p>
         <Callout tone="info" title="처음에는 왜 25~45분이나 걸릴까요">
@@ -146,7 +146,7 @@ export default function Flash() {
             </>
           )}
         </Check>
-        <p className="mt-3 max-w-3xl leading-relaxed">
+        <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
           보드가 하는 말(기록)은 30초만 읽고 끝나는 도구로 봐요. 무한정 기다리는 명령은 쓰지 마세요.
         </p>
         <Code>{`python tools/serial_log.py 30 --port COM3 --grep "sync,download,weather,meal"`}</Code>
@@ -158,7 +158,7 @@ export default function Flash() {
           </Callout>
         )}
 
-        <p className="mt-6 max-w-3xl">
+        <p className="mt-6 max-w-3xl 2xl:max-w-4xl">
           <BoardChip board={b} /> 막히면{" "}
           <Link to="/board/help" className="font-semibold text-accent underline">
             막힐 때

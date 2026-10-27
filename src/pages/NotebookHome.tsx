@@ -43,7 +43,7 @@ export default function NotebookHome() {
   }, []);
   return (
     <div className="min-h-screen">
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:py-12 xl:max-w-6xl 2xl:max-w-7xl lg:px-8">
         <Link to="/" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
           <img src="/icon-192.png" alt="" width={32} height={32} className="h-8 w-8" />
           {HUB_NAME}
@@ -59,7 +59,7 @@ export default function NotebookHome() {
           올려 둔 자료만 근거로 답하고 결과물을 만들어 주는 구글의 AI 노트북이에요. 수업 자료로 슬라이드·퀴즈·오디오 같은 것을 만들 수 있어요.
         </p>
 
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {MENUS.map((m) => (
             <li key={m.path}>
               <Link

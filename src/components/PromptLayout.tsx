@@ -28,7 +28,7 @@ export default function PromptLayout() {
         본문으로 건너뛰기
       </a>
       <header className="no-print sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-1 sm:gap-4">
+        <div className="mx-auto flex max-w-5xl xl:max-w-6xl 2xl:max-w-7xl items-center gap-2 px-4 py-1 sm:gap-4">
           <Link to="/prompt" className="flex min-h-[44px] min-w-0 items-center gap-2 font-extrabold tracking-tight">
             <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-ink">
               ↻
@@ -51,7 +51,7 @@ export default function PromptLayout() {
         </div>
         {level && (
           <div className="border-t border-line">
-            <nav aria-label="메뉴" className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4">
+            <nav aria-label="메뉴" className="mx-auto flex max-w-5xl xl:max-w-6xl 2xl:max-w-7xl gap-1 overflow-x-auto px-4">
               {[
                 { to: `/prompt/${level}`, label: "전체보기", end: true, show: true },
                 { to: `/prompt/${level}/lab`, label: "프롬프트 실험실", end: false, show: true },
@@ -80,12 +80,12 @@ export default function PromptLayout() {
         )}
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-8">
+      <main id="main" className="mx-auto w-full max-w-5xl xl:max-w-6xl 2xl:max-w-7xl flex-1 px-4 py-6 sm:py-8">
         <Outlet />
       </main>
 
       <footer className="no-print border-t border-line bg-surface">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-6 text-sm text-muted">
+        <div className="mx-auto flex max-w-5xl xl:max-w-6xl 2xl:max-w-7xl items-center gap-4 px-4 py-6 text-sm text-muted">
           <Link to="/" className="shrink-0" aria-label="살빠진 임선생과 함께하는 교육자료">
             <img src="/icon-192.png" alt="" width={56} height={56} className="h-14 w-14 drop-shadow-sm" />
           </Link>

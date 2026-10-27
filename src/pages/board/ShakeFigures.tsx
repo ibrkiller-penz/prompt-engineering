@@ -5,7 +5,7 @@ export function PathFigure() {
   const box = "fill-surface stroke-line";
   const bad = "fill-bad-soft stroke-bad";
   return (
-    <figure className="mt-5 max-w-3xl">
+    <figure className="mt-5 max-w-3xl 2xl:max-w-4xl">
       <svg
         viewBox="0 0 760 330"
         role="img"
@@ -150,7 +150,7 @@ export function SymptomFigure() {
     </g>
   );
   return (
-    <figure className="mt-5 max-w-3xl">
+    <figure className="mt-5 max-w-3xl 2xl:max-w-4xl">
       <svg viewBox="0 0 680 184" role="img" aria-label="증상 세 가지. 정상, 줄이 들쭉날쭉 떨리는 지지직 떨림, 그림 전체가 옆으로 밀려 글자가 반대편에 걸리는 밀림" className="w-full rounded-card border border-line bg-surface">
         <Screen x={14} shifts={[0, 0, 0, 0, 0]} label="정상" sub="줄이 가지런해요" tone="fill-ok" />
         <Screen x={240} shifts={[0, 7, -5, 9, -3]} label="지지직 떨림" sub="줄마다 들쭉날쭉, 가끔 번쩍" tone="fill-warn" />

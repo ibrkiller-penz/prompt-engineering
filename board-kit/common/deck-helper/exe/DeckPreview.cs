@@ -41,6 +41,13 @@ static class DeckPreview
             var o = new System.Collections.Generic.Dictionary<string, string> { { "front", "1" }, { "args", "D:/수업/오늘.pptx" } };
             Dialog(OptionsForm.Build("app", o), outDir, "13_자세히_프로그램.png", log);
             Dialog(OptionsForm.Build("url", new System.Collections.Generic.Dictionary<string, string> { { "browser", "chrome" } }), outDir, "14_자세히_사이트.png", log);
+            // 둘러보기 안내·연습 과제(2026-10-27)
+            f.SelectCell(3);
+            // DrawToBitmap 은 겹친 자식의 앞뒤를 거꾸로 그려서, 안내 덮개는 덮개만 따로 찍는다(덮개가 창 모습을 품고 있다)
+            f.PreviewTour(0); Pump(f); Layer(f, null, outDir, "15_둘러보기_시작.png", log);
+            f.PreviewTourEnd(); f.PreviewTour(2); Pump(f); Layer(f, null, outDir, "16_둘러보기_동작목록.png", log);
+            f.PreviewTourEnd(); f.PreviewTour(9); Pump(f); Layer(f, null, outDir, "17_둘러보기_끝.png", log);
+            f.PreviewTourEnd(); f.PreviewPractice(); Pump(f); Layer(f, f.PreviewPracticeLayer, outDir, "18_연습과제.png", log);
             f.PreviewDiscard();                            // 닫을 때 묻지 않게
             f.Close(); f.Dispose();
             log.AppendLine("글꼴 에스코어 드림 읽음: " + DeckFonts.Loaded);
@@ -53,6 +60,28 @@ static class DeckPreview
             log.AppendLine("실패: " + ex);
             try { File.WriteAllText(Path.Combine(outDir, "preview.txt"), log.ToString(), new UTF8Encoding(false)); } catch { }
             return 1;
+        }
+    }
+
+    static void Layer(DeckForm f, Control over, string dir, string name, StringBuilder log)
+    {
+        Control top = over ?? f.PreviewTourLayer;
+        if (over == null && top != null)
+        {
+            using (var b = new Bitmap(top.Width, top.Height)) { top.DrawToBitmap(b, new Rectangle(0, 0, top.Width, top.Height)); b.Save(Path.Combine(dir, name), System.Drawing.Imaging.ImageFormat.Png); }
+            log.AppendLine(name); return;
+        }
+        Shot(f, dir, name, log);
+        if (top == null) return;
+        string p = Path.Combine(dir, name);
+        Bitmap baseImg; using (var fs = File.OpenRead(p)) baseImg = new Bitmap(Image.FromStream(fs));
+        using (baseImg)
+        using (var g = Graphics.FromImage(baseImg))
+        using (var b = new Bitmap(top.Width, top.Height))
+        {
+            top.DrawToBitmap(b, new Rectangle(0, 0, top.Width, top.Height));
+            g.DrawImage(b, top.Left, top.Top);
+            baseImg.Save(p, System.Drawing.Imaging.ImageFormat.Png);
         }
     }
 

@@ -59,7 +59,10 @@ export default function DeckGet() {
     </>,
   ];
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10 sm:py-16">
+    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10 sm:py-16 lg:max-w-6xl lg:px-8 2xl:max-w-7xl">
+      {/* 넓은 화면: 위는 [소개·받기 | 화면 그림], 아래는 [깔기·안 될 때 | 칸 꾸미기] 두 단 */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center lg:gap-12">
+      <div>
       <p className="text-sm font-semibold tracking-widest text-accent">교실 알림판 · 7인치·4인치 공통 · 윈도 PC용</p>
       <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">단축키 도우미 받기</h1>
       <p className="mt-3 leading-relaxed text-muted">
@@ -89,17 +92,24 @@ export default function DeckGet() {
           {mb(kits.helper.bytes)}
         </a>
       </p>
-
-      <h2 className="mt-10 text-xl font-extrabold">① 깔기</h2>
-      <Steps items={install} />
-
-      <h2 className="mt-10 text-xl font-extrabold">② 칸 꾸미기 (스트림덱처럼)</h2>
+      </div>
       <img
         src="/board/deck-helper-screen.png"
         alt="단축키 꾸미기 창: 가운데 보드 미리보기, 오른쪽 동작 목록, 아래 칸 설정"
-        className="mt-4 w-full rounded-card border border-line"
+        className="mt-8 w-full rounded-card border border-line shadow-lg lg:mt-0"
         loading="lazy"
       />
+      </div>
+
+      <div className="lg:mt-6 lg:grid lg:grid-cols-2 lg:gap-12">
+      <div>
+      <h2 className="mt-10 text-xl font-extrabold">① 깔기</h2>
+      <Steps items={install} />
+      <TroubleShoot />
+      </div>
+
+      <div>
+      <h2 className="mt-10 text-xl font-extrabold">② 칸 꾸미기 (스트림덱처럼)</h2>
       <Steps items={custom} />
       <ul className="mt-4 list-disc space-y-2 pl-5 leading-relaxed text-muted">
         <li>
@@ -123,7 +133,23 @@ export default function DeckGet() {
         </li>
         <li>키보드: 화살표 칸 옮기기 · Enter 눌러 보기 · Delete 비우기 · Ctrl+C/V 복사·붙여넣기 · Ctrl+S 저장</li>
       </ul>
+      </div>
+      </div>
 
+      <p className="mt-10 text-sm text-muted">
+        알림판을 직접 만들어 보려면{" "}
+        <Link to="/board" className="font-semibold text-accent underline">
+          시간표 단말 만들기
+        </Link>
+        로 가요. · 글꼴: 에스코어 드림(S-Core)
+      </p>
+    </main>
+  );
+}
+
+function TroubleShoot() {
+  return (
+    <>
       <h2 className="mt-10 text-xl font-extrabold">안 될 때</h2>
       <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed text-muted">
         <li>
@@ -143,14 +169,6 @@ export default function DeckGet() {
           <b className="text-ink">끄기.bat</b>.
         </li>
       </ul>
-
-      <p className="mt-10 text-sm text-muted">
-        알림판을 직접 만들어 보려면{" "}
-        <Link to="/board" className="font-semibold text-accent underline">
-          시간표 단말 만들기
-        </Link>
-        로 가요. · 글꼴: 에스코어 드림(S-Core)
-      </p>
-    </main>
+    </>
   );
 }

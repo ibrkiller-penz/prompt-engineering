@@ -5,7 +5,7 @@ import { BOARD_PAGES } from "./kit";
 import { BoardModeProvider, ModeSwitch } from "./mode";
 
 // 넓은 화면(1024px~): 왼쪽에 쪽 목록, 가운데 본문, 오른쪽(1280px~)에 이 쪽의 차례. 좁은 화면은 위쪽 가로 메뉴 그대로.
-const WIDE = "mx-auto w-full max-w-[1600px] px-4 lg:px-8";
+const WIDE = "mx-auto w-full max-w-[1600px] px-4 lg:px-8 2xl:max-w-[1840px]";
 
 type TocItem = { id: string; text: string };
 

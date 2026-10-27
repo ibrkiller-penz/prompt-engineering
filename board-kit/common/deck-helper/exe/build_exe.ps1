@@ -9,7 +9,7 @@ if (-not (Test-Path $csc)) { $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framewo
 if (-not (Test-Path $csc)) { throw '.NET Framework 4 컴파일러(csc.exe)를 못 찾았어요' }
 $out = Join-Path (Split-Path -Parent $PSScriptRoot) '교실알림판_도우미.exe'
 # 소스: DeckHelper.cs(통신) + DeckConfig.cs(deck.json) + DeckIcons.cs(아이콘) + DeckForm.cs('단축키 꾸미기' 창) + 화면 부품(DeckTheme·DeckControls·DeckBoardView·DeckActionList·DeckInspector) + DeckPreview.cs(--preview 그림)
-$src = 'DeckHelper.cs', 'DeckConfig.cs', 'DeckIcons.cs', 'DeckForm.cs', 'DeckLibrary.cs', 'DeckFonts.cs', 'DeckTheme.cs', 'DeckControls.cs', 'DeckBoardView.cs', 'DeckActionList.cs', 'DeckInspector.cs', 'DeckPreview.cs', 'DeckActions.cs', 'DeckDialogs.cs' | ForEach-Object { Join-Path $PSScriptRoot $_ }
+$src = 'DeckHelper.cs', 'DeckConfig.cs', 'DeckIcons.cs', 'DeckForm.cs', 'DeckLibrary.cs', 'DeckFonts.cs', 'DeckTheme.cs', 'DeckControls.cs', 'DeckBoardView.cs', 'DeckActionList.cs', 'DeckInspector.cs', 'DeckPreview.cs', 'DeckActions.cs', 'DeckDialogs.cs', 'DeckTour.cs' | ForEach-Object { Join-Path $PSScriptRoot $_ }
 # 기본 그림 16개를 exe 안에 묻는다(처음 켤 때 %LOCALAPPDATA%\PeneduBoard\icons\기본 에 풀림). 없으면 7inch\tools\export_deck_icons.py 로 만든다
 $icons = Join-Path (Split-Path -Parent $PSScriptRoot) 'icons\기본'
 $keys = 'explorer','claude','gemini','gpt','cmd','powershell','neis','naver','youtube','coolmsg','kakao','excel','ppt','close','hwp','desktop'
@@ -40,6 +40,23 @@ foreach ($n in 3, 4, 5) {
 $lic = Join-Path $PSScriptRoot 'fonts\LICENSE_SCDream.txt'
 if (-not (Test-Path $lic)) { throw "글꼴 사용 조건 파일이 없어요: $lic" }
 $res = @($res) + "/resource:$lic,deck.fontlicense"
+# 설명서(HTML): manual\사용설명서.html + img + img2 + 글꼴 을 manual.zip 하나로 묻는다(꾸미기 창 [설명서] → 도우미 폴더에 풀어 브라우저로 연다)
+$man = Join-Path (Split-Path -Parent $PSScriptRoot) 'manual'
+if (Test-Path (Join-Path $man '사용설명서.html')) {
+  $mzip = Join-Path $env:TEMP 'penedu_deck_manual.zip'
+  if (Test-Path $mzip) { Remove-Item $mzip }
+  $mz = [IO.Compression.ZipFile]::Open($mzip, 'Create')
+  # 글꼴 경로: 저장소에서는 ../exe/fonts/, 풀린 곳에서는 fonts/
+  $html = [IO.File]::ReadAllText((Join-Path $man '사용설명서.html'), [Text.Encoding]::UTF8).Replace('../exe/fonts/', 'fonts/')
+  $e = $mz.CreateEntry('사용설명서.html', 'Optimal'); $w = New-Object IO.StreamWriter($e.Open(), (New-Object Text.UTF8Encoding($false))); $w.Write($html); $w.Dispose()
+  foreach ($sub in 'img', 'img2') {
+    $d = Join-Path $man $sub
+    if (Test-Path $d) { Get-ChildItem $d -File | ForEach-Object { [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($mz, $_.FullName, "$sub/" + $_.Name, 'Optimal') } }
+  }
+  Get-ChildItem (Join-Path $PSScriptRoot 'fonts') -File | ForEach-Object { [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($mz, $_.FullName, 'fonts/' + $_.Name, 'Optimal') }
+  $mz.Dispose()
+  $res = @($res) + "/resource:$mzip,deck.manual.zip"
+}
 & $csc /nologo /codepage:65001 /target:winexe /optimize+ /platform:anycpu `
   "/win32icon:$(Join-Path $PSScriptRoot 'icon.ico')" "/out:$out" `
   /r:System.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Management.dll /r:System.Core.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `

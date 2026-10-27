@@ -23,13 +23,13 @@ export default function MyData() {
           [<code key="c">where.json</code>, "‘선생님 찾기’용. 선생님별 앞으로 며칠의 수업 위치"],
         ]}
       />
-      <p className="mt-3 max-w-3xl text-sm text-muted">
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl text-sm text-muted">
         칸 하나는 <code>[종류, 과목, 교실, 꼬리표]</code> 네 값이에요. 종류는 수업·동아리·지도·행사 등으로 색이 달라요. 필드 하나하나는 키트의{" "}
         <code>common\tools\data-format.md</code> 에 정리돼 있어요.
       </p>
 
       <H2>1단계 · 샘플로 먼저 해 보기</H2>
-      <p className="mt-3 max-w-3xl leading-relaxed">
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
         내 학교 자료를 만들기 전에, 키트에 든 <b>가짜 시간표</b>로 ‘올리기 → 보드에서 받기’ 전체 길을 한 번 돌려 봐요. 이 길이 되면 나머지는 자료를 바꾸는 일뿐이에요.
       </p>
       <Steps>

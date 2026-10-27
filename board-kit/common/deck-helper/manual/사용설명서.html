@@ -8,7 +8,8 @@
 @font-face { font-family: "SCD"; font-weight: 300; src: url("../exe/fonts/SCDream3.otf"); }
 @font-face { font-family: "SCD"; font-weight: 400; src: url("../exe/fonts/SCDream4.otf"); }
 @font-face { font-family: "SCD"; font-weight: 600; src: url("../exe/fonts/SCDream5.otf"); }
-@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; @bottom-center { content: counter(page); font-family: "SCD", sans-serif; font-size: 8.5pt; color: #8a92a5; } }
+@page :first { @bottom-center { content: none; } }
 :root { --ink: #1c2230; --muted: #5b6478; --line: #d9dee8; --accent: #3b6fe0; --soft: #eef3ff; --warn: #b4560a; --dark: #1a1e27; }
 * { box-sizing: border-box; }
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -26,6 +27,8 @@ figure.half img { width: 50%; margin: 0 auto; }
 figure.w80 img { width: 80%; margin: 0 auto; }
 figure.w72 img { width: 72%; margin: 0 auto; }
 figure.w64 img { width: 64%; margin: 0 auto; }
+figure.w56 img { width: 56%; margin: 0 auto; }
+figure.w36 img { width: 36%; margin: 0 auto; }
 figcaption { font-size: 8.6pt; color: var(--muted); margin-top: 1.5mm; text-align: center; }
 ol, ul { margin: 0 0 2.5mm; padding-left: 6mm; }
 li { margin: 0.8mm 0; }
@@ -60,6 +63,38 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
 .toc li { display: flex; justify-content: space-between; border-bottom: 1px dotted #c8ceda; padding: 1.4mm 0; margin: 0; }
 .toc { list-style: none; padding: 0; }
 .toc .n { color: var(--accent); font-weight: 600; width: 9mm; display: inline-block; }
+
+/* 표지의 두 부분 안내 · 두 칸 차례 */
+.cover .parts { margin-top: 7mm; display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.cover .parts div { border: 1px solid #3a4256; border-radius: 2.5mm; padding: 3mm 3.4mm; font-size: 10pt; color: #c3cad9; font-weight: 300; }
+.cover .parts b { display: block; color: #fff; font-size: 11.5pt; margin-bottom: 1mm; }
+.cover .sub.big { font-size: 17pt; font-weight: 600; color: #fff; margin-bottom: 2mm; }
+.toc-two { display: grid; grid-template-columns: 1fr 1fr; gap: 7mm; }
+.toc-two h3 { margin-top: 2mm; }
+.toc-two .toc li { justify-content: flex-start; font-size: 9.6pt; }
+.toc .n.w { width: 15mm; flex: none; }
+.toc .n { flex: none; }
+/* ── 자세한 설명서(과정 1~15) ── */
+a { color: inherit; text-decoration: none; }
+a.pg { font-weight: 600; color: var(--accent); }
+.toc li a:first-child { flex: 1; }
+.toc .pgn { margin-left: auto; color: var(--muted); font-weight: 400; font-size: 9pt; padding-left: 2mm; }
+h3.big { font-size: 13.5pt; color: var(--accent); margin-top: 3mm; }
+.goal { border: 1.5px solid var(--accent); border-radius: 2mm; padding: 2.4mm 3.4mm; margin: 0 0 2mm; background: #fff; break-inside: avoid; font-size: 9.8pt; }
+.goal b:first-child { color: var(--accent); margin-right: 1.5mm; }
+.check, .fail { border-radius: 2mm; padding: 2.6mm 3.4mm; margin: 3mm 0; break-inside: avoid; font-size: 9.6pt; }
+.check { background: #eaf7ef; border-left: 1.2mm solid #1f9d55; }
+.check b:first-child { color: #17763f; margin-right: 1.5mm; }
+.fail { background: #fff4e8; border-left: 1.2mm solid var(--warn); }
+.fail b:first-child { color: var(--warn); display: block; margin-bottom: 1mm; }
+.check ul, .fail ul { margin: 1mm 0 0; padding-left: 5mm; }
+.fail li, .check li { margin: 0.8mm 0; }
+.part { break-before: page; }
+.part h1 { font-size: 26pt; }
+.part .toc2 { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 8mm; font-size: 9.2pt; color: #c3cad9; }
+.part .toc2 li { border-bottom: 1px dotted #3a4256; padding: 1.1mm 0; margin: 0; }
+.part .toc2 .n { color: #8fb0ff; font-weight: 600; display: inline-block; width: 15mm; }
+.steps > li figure { margin-top: 2mm; }
 </style>
 </head>
 <body>
@@ -69,6 +104,10 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
     <div class="eyebrow">교실 알림판 · 7인치 · 4인치 공통 · 윈도 PC용</div>
     <h1>단축키 도우미<br>사용 설명서</h1>
     <div class="sub">보드 단추를 누르면 컴퓨터의 프로그램·사이트가 열려요.<br>16칸을 스트림덱처럼 마음대로 꾸밀 수 있어요.</div>
+    <div class="parts">
+      <div><b>앞 · 간단 설명서</b>1~15장. 기능을 찾아볼 때 봐요.</div>
+      <div><b>뒤 · 자세한 설명서</b>과정 1~15. 처음부터 하나씩 따라 해요.</div>
+    </div>
   </div>
   <img src="img/02.png" alt="단축키 꾸미기 창">
   <div class="foot"><span>받는 곳 penedu.web.app/deck</span><span>2026년 10월판</span></div>
@@ -76,68 +115,94 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
 
 <section>
   <h2>차례</h2>
-  <ol class="toc">
-    <li><span><span class="n">1</span>도우미는 무엇을 하나요</span></li>
-    <li><span><span class="n">2</span>받기와 깔기</span></li>
-    <li><span><span class="n">3</span>보드와 연결하기</span></li>
-    <li><span><span class="n">4</span>꾸미기 창 둘러보기</span></li>
-    <li><span><span class="n">5</span>칸 채우기 — 끌어다 놓기·한 번에 채우기</span></li>
-    <li><span><span class="n">6</span>하는 일 6가지</span></li>
-    <li><span><span class="n">7</span>단축키 눌러서 넣기</span></li>
-    <li><span><span class="n">8</span>여러 동작 묶기</span></li>
-    <li><span><span class="n">9</span>자세한 설정</span></li>
-    <li><span><span class="n">10</span>아이콘 — 모음·테마·내 그림·인공지능으로 만들기</span></li>
-    <li><span><span class="n">11</span>저장하고 보드에 보내기</span></li>
-    <li><span><span class="n">12</span>다른 선생님과 나누기 — 내보내기·가져오기</span></li>
-    <li><span><span class="n">13</span>키보드로 쓰기</span></li>
-    <li><span><span class="n">14</span>끄기·지우기</span></li>
-    <li><span><span class="n">15</span>안 될 때</span></li>
-  </ol>
-
-  </section>
-<section>
+  <div class="tip"><b>어디부터 볼까요</b> 처음이면 <b>자세한 설명서 과정 1</b>부터 차례로 따라 해요. 이미 써 봤고 기능 하나만 찾으면 <b>간단 설명서</b>를 봐요.</div>
+  <div class="toc-two">
+    <div>
+      <h3>간단 설명서 <span class="small">찾아볼 때</span></h3>
+      <ol class="toc">
+      <li><a href="#q1"><span class="n">1</span>도우미는 무엇을 하나요</a><a class="pg pgn" href="#q1">3</a></li>
+      <li><a href="#q2"><span class="n">2</span>받기와 깔기</a><a class="pg pgn" href="#q2">4</a></li>
+      <li><a href="#q3"><span class="n">3</span>보드와 연결하기</a><a class="pg pgn" href="#q3">4</a></li>
+      <li><a href="#q4"><span class="n">4</span>꾸미기 창 둘러보기</a><a class="pg pgn" href="#q4">5</a></li>
+      <li><a href="#q5"><span class="n">5</span>칸 채우기 — 끌어다 놓기·한 번에 채우기</a><a class="pg pgn" href="#q5">6</a></li>
+      <li><a href="#q6"><span class="n">6</span>하는 일 6가지</a><a class="pg pgn" href="#q6">7</a></li>
+      <li><a href="#q7"><span class="n">7</span>단축키 눌러서 넣기</a><a class="pg pgn" href="#q7">8</a></li>
+      <li><a href="#q8"><span class="n">8</span>여러 동작 묶기</a><a class="pg pgn" href="#q8">9</a></li>
+      <li><a href="#q9"><span class="n">9</span>자세한 설정</a><a class="pg pgn" href="#q9">10</a></li>
+      <li><a href="#q10"><span class="n">10</span>아이콘 — 모음·테마·인공지능</a><a class="pg pgn" href="#q10">11</a></li>
+      <li><a href="#q11"><span class="n">11</span>저장하고 보드에 보내기</a><a class="pg pgn" href="#q11">13</a></li>
+      <li><a href="#q12"><span class="n">12</span>다른 선생님과 나누기 — 내보내기·가져오기</a><a class="pg pgn" href="#q12">13</a></li>
+      <li><a href="#q13"><span class="n">13</span>키보드로 쓰기</a><a class="pg pgn" href="#q13">13</a></li>
+      <li><a href="#q14"><span class="n">14</span>끄기·지우기</a><a class="pg pgn" href="#q14">14</a></li>
+      <li><a href="#q15"><span class="n">15</span>안 될 때</a><a class="pg pgn" href="#q15">14</a></li>
+      </ol>
+    </div>
+    <div>
+      <h3>자세한 설명서 <span class="small">따라 할 때</span></h3>
+      <ol class="toc">
+      <li><a href="#p1"><span class="n w">과정 1</span>시작 전에 준비할 것</a><a class="pg pgn" href="#p1">16</a></li>
+      <li><a href="#p2"><span class="n w">과정 2</span>도우미 받고 깔기</a><a class="pg pgn" href="#p2">18</a></li>
+      <li><a href="#p3"><span class="n w">과정 3</span>보드 꽂고 연결 확인</a><a class="pg pgn" href="#p3">21</a></li>
+      <li><a href="#p4"><span class="n w">과정 4</span>꾸미기 창 처음 열기</a><a class="pg pgn" href="#p4">23</a></li>
+      <li><a href="#p5"><span class="n w">과정 5</span>따라 하기① 빈 칸에 ‘한글’</a><a class="pg pgn" href="#p5">27</a></li>
+      <li><a href="#p6"><span class="n w">과정 6</span>따라 하기② 나이스와 브라우저</a><a class="pg pgn" href="#p6">30</a></li>
+      <li><a href="#p7"><span class="n w">과정 7</span>따라 하기③ 화면 캡처 단축키</a><a class="pg pgn" href="#p7">33</a></li>
+      <li><a href="#p8"><span class="n w">과정 8</span>따라 하기④ ‘수업 시작’ 여러 동작</a><a class="pg pgn" href="#p8">36</a></li>
+      <li><a href="#p9"><span class="n w">과정 9</span>따라 하기⑤ 내 그림·인공지능 아이콘</a><a class="pg pgn" href="#p9">39</a></li>
+      <li><a href="#p10"><span class="n w">과정 10</span>한 번에 채우기와 아이콘 모양</a><a class="pg pgn" href="#p10">42</a></li>
+      <li><a href="#p11"><span class="n w">과정 11</span>보드로 보내고 확인</a><a class="pg pgn" href="#p11">45</a></li>
+      <li><a href="#p12"><span class="n w">과정 12</span>다른 선생님께 나누기</a><a class="pg pgn" href="#p12">48</a></li>
+      <li><a href="#p13"><span class="n w">과정 13</span>문제 해결 순서도</a><a class="pg pgn" href="#p13">51</a></li>
+      <li><a href="#p14"><span class="n w">과정 14</span>자주 묻는 질문</a><a class="pg pgn" href="#p14">56</a></li>
+      <li><a href="#p15"><span class="n w">과정 15</span>낱말 풀이</a><a class="pg pgn" href="#p15">57</a></li>
+      </ol>
+    </div>
+  </div>
+</section>
+<section id="q1">
     <h2><span class="no">1</span>도우미는 무엇을 하나요</h2>
-    <p>교실 알림판의 <b>단축키</b> 화면에는 단추 16개가 있어요. 단추를 누르면 보드가 USB 선으로 컴퓨터에 알려 주고, 컴퓨터에 깔린 <b>단축키 도우미</b>가 프로그램·사이트를 열거나 단축키를 눌러 줘요.</p>
+    <p>교실 알림판(이 설명서에서는 <b>보드</b>라고 불러요)의 <b>단축키</b> 화면에는 단추 16개가 있어요. 단추를 누르면 보드가 USB 선으로 컴퓨터에 알려 줘요. 그러면 컴퓨터에 깔린 <b>단축키 도우미</b>가 프로그램·사이트를 열어 줘요. 단축키(여러 키를 함께 누르는 일, 예: Ctrl+C 복사)를 대신 눌러 주기도 해요.</p>
     <figure><img src="img/board.png" alt="보드 단축키 화면"><figcaption>보드의 단축키 화면(7인치). 칸 이름과 그림은 도우미에서 바꿔 보낼 수 있어요.</figcaption></figure>
     <ul>
       <li><b>보드 단추로 열기</b> — 한글, 나이스, 유튜브, 수업 PPT…</li>
-      <li><b>16칸 꾸미기</b> — 이름·하는 일·아이콘을 바꾸면 보드로 보내요. 보드를 다시 굽지 않아도 돼요.</li>
+      <li><b>16칸 꾸미기</b> — 이름·하는 일·아이콘을 바꾸면 보드로 보내요. 보드를 다시 굽지(보드에 프로그램을 새로 넣지) 않아도 돼요.</li>
       <li><b>화면 켜고 끄기 도움</b> — 컴퓨터가 켜져 있는 동안 보드 화면을 끄지 않고, 컴퓨터가 꺼지면 보드도 화면을 꺼요.</li>
     </ul>
 </section>
 
-<section>
+<section id="q2">
   <h2><span class="no">2</span>받기와 깔기</h2>
   <ol class="steps">
     <li>인터넷 창에서 <b>penedu.web.app/deck</b> 에 들어가 <span class="btn">도우미 받기</span>를 눌러요. “흔하지 않은 파일”이라고 나오면 <span class="btn">유지</span>.</li>
-    <li>받은 압축 파일을 더블클릭해 열고, 안의 <b>교실알림판_도우미.exe</b> 를 더블클릭해요(압축을 풀지 않아도 돼요).</li>
+    <li>받은 압축 파일(여러 파일을 하나로 묶은 파일, 이름 끝이 .zip)을 두 번 클릭해 열어요. 안의 <b>교실알림판_도우미.exe</b>(실행 파일)를 두 번 클릭해요. 압축은 풀지 않아도 돼요.</li>
     <li>파란 <b>“Windows의 PC 보호”</b> 창이 뜨면 <span class="btn">추가 정보</span> → <span class="btn">실행</span>. 서명이 없는 프로그램이라 처음 한 번만 나와요.</li>
-    <li>화면 오른쪽 아래 작업 표시줄(<b>^</b> 안쪽)에 알림판 아이콘이 생기면 끝이에요.</li>
+    <li>작업 표시줄(화면 맨 아래 막대) 오른쪽 끝의 <b>^</b>를 눌러요. 회색 둥근 네모 아이콘(<b>도우미 아이콘</b>)이 보이면 끝이에요.</li>
   </ol>
-  <div class="tip"><b>알아 두기</b>관리자 권한은 필요 없어요. 컴퓨터를 켤 때마다 저절로 켜져요. 설정은 <code>%LOCALAPPDATA%\PeneduBoard</code> 에 저장돼요.</div>
-  <div class="note"><b>학교 백신이 막으면</b>백신의 ‘예외(허용)’ 목록에 교실알림판_도우미.exe 를 넣어 주세요.</div>
+  <div class="tip"><b>알아 두기</b> 관리자 권한은 필요 없어요. 컴퓨터를 켤 때마다 저절로 켜져요. 꾸민 설정은 이 컴퓨터 안에 저장돼요.</div>
+  <div class="note"><b>학교 백신이 막으면</b> 백신의 ‘예외(허용)’ 목록에 교실알림판_도우미.exe 를 넣어 주세요.</div>
 
-  <section class="flow">
+  <section class="flow" id="q3">
     <h2><span class="no">3</span>보드와 연결하기</h2>
     <ol class="steps">
       <li>보드를 <b>데이터 케이블</b>로 컴퓨터에 꽂아요. <b>7인치</b>는 ‘UART’ 라고 적힌 단자, <b>4인치</b>는 USB-C 단자예요.</li>
-      <li>5초쯤 지나면 작업 표시줄 아이콘이 <b>초록</b>으로 바뀌고 “알림판과 연결됐어요” 알림이 떠요.</li>
-      <li>보드 단축키 화면 아래에 “컴퓨터와 연결됨”이 보이면 단추를 눌러 보세요.</li>
+      <li>5초쯤 지나면 도우미 아이콘이 <b>초록</b>으로 바뀌어요. “7인치 알림판과 연결됐어요 (…)” 알림도 떠요. 괄호 안 글자는 컴퓨터마다 달라요.</li>
+      <li>보드에서 단축키 화면을 열어요. 7인치는 화면 맨 위 띠의 <b>단축키</b>를 눌러요. 4인치는 화면을 옆으로 밀어 네 번째 장으로 가요(과정 3).</li>
+      <li>단축키 화면 아래에 “컴퓨터와 연결됨”이 보이면 단추를 눌러 보세요.</li>
     </ol>
     <table>
       <tr><th class="c">아이콘 색</th><th>뜻</th></tr>
       <tr><td class="c">회색</td><td>알림판을 찾는 중이에요.</td></tr>
       <tr><td class="c">초록</td><td>연결됐어요.</td></tr>
-      <tr><td class="c">주황</td><td>잠깐 멈춤(보드에 프로그램을 구울 때 씀).</td></tr>
+      <tr><td class="c">주황</td><td>잠깐 멈춤(보드에 프로그램을 새로 넣을 때, 곧 ‘구울’ 때 씀).</td></tr>
     </table>
-    <p>아이콘을 <b>오른쪽 클릭</b>하면 <span class="btn">단축키 꾸미기…</span> · 기록 보기 · 잠깐 멈추기 · 컴퓨터를 켤 때 저절로 켜기 · 끝내기가 있어요. 아이콘을 <b>두 번 클릭</b>해도 꾸미기 창이 열려요.</p>
-    <div class="tip"><b>보드의 ⟳ 단추</b>보드 단축키 화면 오른쪽 아래 ⟳ 를 누르면 도우미 연결을 바로 다시 확인해요.</div>
+    <p>도우미 아이콘을 <b>오른쪽 클릭</b>하면 <span class="btn">단축키 꾸미기…</span> · 예전 보드만 쓰는 프로그램 목록 · 기록 보기 · 잠깐 멈추기(보드 굽기 전에) · 컴퓨터를 켤 때 저절로 켜기 · 끝내기가 있어요. ‘예전 보드만 쓰는 프로그램 목록’은 새 보드에서는 쓰지 않아요. 아이콘을 <b>두 번 클릭</b>해도 꾸미기 창이 열려요.</p>
+    <div class="tip"><b>보드의 ⟳ 단추</b> 보드 단축키 화면 오른쪽 아래 ⟳ 를 누르면 도우미 연결을 바로 다시 확인해요.</div>
   </section>
 </section>
 
-<section>
+<section id="q4">
   <h2><span class="no">4</span>꾸미기 창 둘러보기</h2>
-  <p>작업 표시줄 아이콘 오른쪽 클릭 → <span class="btn">단축키 꾸미기…</span></p>
+  <p>도우미 아이콘 오른쪽 클릭 → <span class="btn">단축키 꾸미기…</span>. 열리는 ‘단축키 꾸미기’ 창을 줄여서 <b>꾸미기 창</b>이라고 불러요.</p>
   <figure class="w72"><img src="img/01.png" alt="꾸미기 창 처음 모습"><figcaption>처음 열었을 때의 꾸미기 창</figcaption></figure>
   <table>
     <tr><th style="width:24%">자리</th><th>하는 일</th></tr>
@@ -151,50 +216,50 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
     <figure><img src="img/03.png" alt="4인치 모양"><figcaption>4인치 모양으로 보기(4×4)</figcaption></figure>
     <figure><img src="img/04.png" alt="찾기"><figcaption>동작 목록에서 ‘소리’ 찾기</figcaption></figure>
   </div>
-  <div class="note"><b>칸 번호</b>7인치는 윗줄 1~8, 아랫줄 9~16번이고, 4인치는 1~4번이 첫 줄이에요. 같은 번호 칸이 같은 일을 해요. 칸 설정 위에 “7인치 윗줄 3번째 · 4인치 1줄 3번째”처럼 알려 줘요.</div>
+  <div class="note"><b>칸 번호</b> 7인치는 윗줄 1~8, 아랫줄 9~16번이고, 4인치는 1~4번이 첫 줄이에요. 같은 번호 칸이 같은 일을 해요. 칸 설정 위에 “7인치 윗줄 3번째 · 4인치 1줄 3번째”처럼 알려 줘요.</div>
 </section>
 
-<section>
+<section id="q5">
   <h2><span class="no">5</span>칸 채우기</h2>
   <h3>끌어다 놓기</h3>
   <ul>
     <li><b>동작 목록 → 칸</b> : 이름·하는 일·아이콘이 한꺼번에 들어가요. <span class="key">Shift</span>를 누른 채 놓으면 아이콘만 바뀌어요.</li>
     <li><b>칸 → 다른 칸</b> : 두 칸의 자리가 바뀌어요. <span class="key">Ctrl</span>을 누른 채 끌면 복사돼요.</li>
     <li><b>바탕화면의 프로그램·바로 가기·인터넷 주소 → 칸</b> : 이름·대상·아이콘이 저절로 채워져요.</li>
-    <li><b>그림 파일 → 칸</b> : 그 칸의 아이콘만 바뀌어요(10장).</li>
+    <li><b>그림 파일 → 칸</b> : 그 칸의 아이콘만 바뀌어요(10장 · <a class="pg" href="#q10">11</a>쪽).</li>
   </ul>
   <h3>한 번에 채우기</h3>
   <p>위 띠의 <span class="btn">한 번에 채우기</span>에서 고르면 16칸이 한 번에 바뀌어요. 바꾸기 전에 어떤 칸이 들어가는지 보여 주고 물어봐요.</p>
   <table>
-    <tr><th style="width:30%">묶음</th><th>들어가는 것</th></tr>
+    <tr><th style="width:34%">메뉴 이름</th><th>들어가는 것</th></tr>
     <tr><td>이 컴퓨터에 깔린 프로그램으로</td><td>탐색기·한글·워드·엑셀·PPT·크롬·카카오톡·쿨메신저·포토샵… 중 <b>실제로 깔린 것</b>만, 모자라면 나이스·GPT 등으로 채움</td></tr>
-    <tr><td>수업용</td><td>한글·PPT·발표 시작·이전/다음 장·화면 검게·전체 화면·타이머·패들렛·클래스룸·소리 크게/작게</td></tr>
-    <tr><td>업무용</td><td>한글·엑셀·워드·나이스·업무포털·쿨메신저·카카오톡·GPT·제미나이·계산기·캡처·인쇄</td></tr>
-    <tr><td>발표·원격수업용</td><td>슬라이드 넘기기·크게/작게 보기·화면 공유·마이크/카메라 끄기·줌·팀즈·구글 미트</td></tr>
+    <tr><td>수업용 (한글·PPT·발표 넘기기·타이머·소리)</td><td>탐색기·한글·PPT·크롬·유튜브·발표 시작·이전 장·다음 장·화면 검게·전체 화면·타이머·패들렛·클래스룸·소리 크게·소리 작게·바탕화면</td></tr>
+    <tr><td>업무용 (나이스·업무포털·메신저·문서·AI)</td><td>한글·엑셀·워드·나이스·업무포털·쿨메신저·카카오톡·GPT·제미나이·계산기·캡처·인쇄</td></tr>
+    <tr><td>발표·원격수업용 (슬라이드·마이크·카메라·화면 공유)</td><td>슬라이드 넘기기·크게/작게 보기·화면 공유·마이크/카메라 끄기·줌·팀즈·구글 미트</td></tr>
   </table>
   <h3>칸 오른쪽 클릭</h3>
-  <p>▶ 눌러 보기 · 복사 · 붙여넣기 · 비우기 · 아이콘 바꾸기</p>
-  <div class="tip"><b>저장 안 함 표시</b>고친 뒤 저장하지 않으면 창 제목에 ●, 위 띠에 ‘저장 안 함’, 저장 단추에 점이 보여요. 이름이 너무 긴 칸에는 주황 점, 보드에 나오지 않는 글자가 있거나 이름이 빈 칸에는 빨간 점이 찍혀요.</div>
+  <p>눌러 보기(이 컴퓨터에서) · 복사 · 붙여넣기 · 비우기 · 아이콘 바꾸기</p>
+  <div class="tip"><b>저장 안 함 표시</b> 고친 뒤 저장하지 않으면 창 제목에 ●, 위 띠에 ‘저장 안 함’, 저장 단추에 점이 보여요. 이름이 너무 긴 칸에는 주황 점, 보드에 나오지 않는 글자가 있거나 이름이 빈 칸에는 빨간 점이 찍혀요.</div>
 </section>
 
-<section>
+<section id="q6">
   <h2><span class="no">6</span>하는 일 6가지</h2>
   <figure><img src="img/02.png" alt="칸 설정"><figcaption>칸을 고르면 아래에서 이름·하는 일·대상을 고쳐요.</figcaption></figure>
   <table>
     <tr><th style="width:18%">하는 일</th><th style="width:34%">대상에 넣는 것</th><th>예</th></tr>
     <tr><td>프로그램 열기</td><td>프로그램·바로 가기·파일·폴더 경로. <span class="btn">찾아보기…</span>로 골라요.</td><td>한글, 수업 폴더, 오늘.pptx</td></tr>
     <tr><td>사이트 열기</td><td>인터넷 주소</td><td>https://www.neis.go.kr</td></tr>
-    <tr><td>단축키 누르기</td><td>누를 키. <span class="btn">눌러서 넣기</span>로 키보드에서 바로(7장)</td><td>Ctrl+C 복사, Win+Shift+S 화면 캡처</td></tr>
+    <tr><td>단축키 누르기</td><td>누를 키. <span class="btn">눌러서 넣기</span>로 키보드에서 바로(7장 · <a class="pg" href="#q7">8</a>쪽)</td><td>Ctrl+C 복사, Win+Shift+S 화면 캡처</td></tr>
     <tr><td>글자 넣기</td><td>넣을 글(여러 줄 가능). 지금 쓰고 있는 칸에 붙여 넣어요.</td><td>학교 주소, 자주 쓰는 인사말</td></tr>
-    <tr><td>컴퓨터 기능</td><td>목록에서 고르기</td><td>바탕화면 보기·창 닫기·화면 잠그기·소리 끄기/크게/작게·재생·다음 곡·이전 곡</td></tr>
-    <tr><td>여러 동작</td><td>위 다섯 가지를 차례대로(8장)</td><td>PPT 열기 → 2초 → 나이스 열기</td></tr>
+    <tr><td>컴퓨터 기능</td><td>목록에서 고르기</td><td>바탕화면 보기 · 맨 앞 창 닫기 · 화면 잠그기 · 소리 끄기·켜기 · 소리 크게 · 소리 작게 · 재생·멈춤 · 다음 곡 · 이전 곡</td></tr>
+    <tr><td>여러 동작</td><td>위 다섯 가지를 차례대로(8장 · <a class="pg" href="#q8">9</a>쪽)</td><td>PPT 열기 → 2초 → 나이스 열기</td></tr>
   </table>
   <h3>이름</h3>
   <p>보드 칸 아래에 나오는 글자예요. <b>한글 6자, 영문 10자 안쪽</b>이 좋아요. 보드 글꼴은 한글 2,350자(자주 쓰는 완성형)만 있어서, 그 밖의 글자·이모지·한자는 빨갛게 알려 줘요.</p>
-  <div class="warn"><b>글자 넣기 주의</b>글자는 복사해서 붙여 넣는 방식이라, 원래 복사해 둔 내용은 바뀌어요.</div>
+  <div class="warn"><b>글자 넣기 주의</b> 글자는 복사해서 붙여 넣는 방식이라, 원래 복사해 둔 내용은 바뀌어요.</div>
 </section>
 
-<section>
+<section id="q7">
   <h2><span class="no">7</span>단축키 눌러서 넣기</h2>
   <p>‘단축키 누르기’ 칸에서 <span class="btn">눌러서 넣기</span>를 누르고, 키보드에서 단축키를 <b>그대로</b> 눌러요. 화면에 “Ctrl + Shift + M”처럼 보이면 <span class="btn">확인</span>.</p>
   <figure class="half"><img src="img/12.png" alt="단축키 눌러서 넣기"><figcaption>단축키 눌러서 넣기 창 — Win + Shift + S(화면 캡처)를 넣은 모습</figcaption></figure>
@@ -205,6 +270,7 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
   </ul>
   <figure class="w64"><img src="img/10.png" alt="단축키 칸"><figcaption>대상 칸 아래에 “누를 키: Win + Shift + S”처럼 읽기 쉬운 글이 나와요.</figcaption></figure>
   <h3>직접 쓸 때의 기호(알면 편해요)</h3>
+  <p class="small">꼭 외울 필요는 없어요. <span class="btn">눌러서 넣기</span>를 쓰면 이 기호가 저절로 들어가요.</p>
   <table>
     <tr><th class="c">기호</th><th>뜻</th><th class="c">기호</th><th>뜻</th></tr>
     <tr><td class="c"><code>^</code></td><td>Ctrl</td><td class="c"><code>{ENTER}</code> <code>{TAB}</code> <code>{ESC}</code></td><td>Enter · Tab · Esc</td></tr>
@@ -215,21 +281,21 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
   <p class="small">예) <code>^c</code> 복사 · <code>^+m</code> Ctrl+Shift+M · <code>%{F4}</code> 창 닫기 · <code>#+s</code> 화면 캡처</p>
 </section>
 
-<section>
+<section id="q8">
   <h2><span class="no">8</span>여러 동작 묶기</h2>
   <p>칸 하나를 누르면 여러 일을 <b>차례대로</b> 해요. 예) 수업 시작 칸 = 파워포인트 열기 → 2초 기다리기 → 나이스 열기 → 소리 끄기</p>
   <ol class="steps">
     <li>하는 일에서 <span class="btn">여러 동작</span>을 고르면 <b>차례 고치기 창</b>이 열려요. 그 칸이 하던 일은 첫 동작으로 옮겨져요.</li>
     <li><span class="btn">+ 동작 더하기</span>로 하는 일을 골라 넣고, 아래에서 대상을 채워요(단축키는 <span class="btn">눌러서 넣기</span>, 컴퓨터 기능은 목록).</li>
     <li><b>다음 동작까지 기다리기</b>를 정해요(바로·0.3초~5초). 프로그램이 뜨는 데 시간이 걸리니 1~2초를 권해요.</li>
-    <li><span class="btn">위로</span> <span class="btn">아래로</span>로 차례를 바꾸고, <span class="btn">▶ 차례대로 해 보기</span>로 확인한 뒤 <span class="btn">확인</span>.</li>
+    <li><span class="btn">위로</span>·<span class="btn">아래로</span> 단추로 차례를 바꾸고, <span class="btn">▶ 차례대로 해 보기</span>로 확인한 뒤 <span class="btn">확인</span>.</li>
   </ol>
   <figure class="w72"><img src="img/11.png" alt="여러 동작 차례 창"><figcaption>여러 동작 차례 고치기 창(최대 12가지)</figcaption></figure>
   <figure class="w72"><img src="img/09.png" alt="여러 동작 칸"><figcaption>칸 설정 아래에 차례가 요약돼요.</figcaption></figure>
-  <div class="note"><b>빈 동작</b>대상이 빈 동작이 있으면 저장할 때 “3번째 동작이 비어 있어요”처럼 알려 줘요.</div>
+  <div class="note"><b>빈 동작</b> 대상이 빈 동작이 있으면 저장할 때 “3번째 동작이 비어 있어요”처럼 알려 줘요.</div>
 </section>
 
-<section>
+<section id="q9">
   <h2><span class="no">9</span>자세한 설정</h2>
   <p>‘프로그램 열기’, ‘사이트 열기’, ‘글자 넣기’ 칸의 대상 옆 <span class="btn">자세히…</span>를 눌러요. 설정이 있으면 단추에 점이 찍히고, 아래에 요약이 나와요.</p>
   <div class="two">
@@ -240,7 +306,7 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
     <tr><th style="width:18%">하는 일</th><th style="width:32%">설정</th><th>쓰는 곳</th></tr>
     <tr><td rowspan="4">프로그램 열기</td><td>함께 넘길 값</td><td>열 파일을 함께 줘요. 예) 한글 + 오늘 수업.hwp</td></tr>
     <tr><td>시작 폴더</td><td>프로그램이 처음 보는 폴더</td></tr>
-    <tr><td>이미 열려 있으면 그 창을 앞으로</td><td>메신저처럼 하나만 띄울 프로그램(함께 넘길 값이 있으면 새로 열어요)</td></tr>
+    <tr><td>이미 열려 있으면 그 창을 앞으로</td><td>메신저처럼 창을 하나만 띄우는 프로그램에 써요. 함께 넘길 값이 있으면 새로 열어요.</td></tr>
     <tr><td>관리자 권한으로 열기</td><td>누를 때마다 윈도가 물어봐요</td></tr>
     <tr><td rowspan="2">사이트 열기</td><td>브라우저 고르기</td><td>기본·크롬·엣지·웨일·파이어폭스. 없으면 기본 브라우저로 열어요.</td></tr>
     <tr><td>새 창으로 열기</td><td>기본 브라우저가 아닐 때만 돼요</td></tr>
@@ -248,12 +314,12 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
   </table>
 </section>
 
-<section>
+<section id="q10">
   <h2><span class="no">10</span>아이콘</h2>
   <p>칸 설정 왼쪽의 아이콘 상자를 누르거나 <span class="btn">아이콘 바꾸기</span>를 눌러요.</p>
   <table>
     <tr><th style="width:22%">방식</th><th>설명</th></tr>
-    <tr><td>자동</td><td>프로그램의 아이콘을 가져와 보드 모양(어두운 사각)으로</td></tr>
+    <tr><td>자동(프로그램에서)</td><td>프로그램의 아이콘을 가져와 보드 모양(어두운 사각)으로</td></tr>
     <tr><td>글자</td><td>이름 첫 글자로 만든 아이콘</td></tr>
     <tr><td>사이트 아이콘 받기</td><td>사이트의 작은 아이콘을 받아서(인터넷 필요)</td></tr>
     <tr><td>그림 파일</td><td>내 그림. <b>틀에 넣기</b>(기호만 있는 그림에 테두리를 씌움) / <b>그대로</b>(테두리까지 그린 완성 그림)</td></tr>
@@ -262,16 +328,16 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
   </table>
   <h3>아이콘 모양(테마)</h3>
   <p>위 띠의 <span class="btn">아이콘 모양</span>에서 고르면 모음에서 고른 아이콘이 모두 그 모양으로 바뀌어요. 보드의 색 테마와 맞추면 예뻐요.</p>
-  <figure><img src="img/themes.png" alt="테마 비교"><figcaption>위부터 기본 · 따뜻함 · 남색밤 · 밝은종이 · 고대비 · 숲초록</figcaption></figure>
+  <figure><img src="img/themes.png" alt="테마 비교"><figcaption>위부터 기본(다크) · 따뜻함 · 남색밤 · 밝은종이 · 고대비 · 숲초록</figcaption></figure>
 </section>
 
-<section>
+<section id="q10b">
   <h2><span class="no">10</span>아이콘 — 인공지능으로 만들기</h2>
-  <p>보드 칸의 그림은 <b>72×72 점</b>이에요. 크게 만들면 도우미가 알아서 줄여요.</p>
+  <p>보드 칸의 그림은 아주 작아요. 가로 72개, 세로 72개의 작은 점(픽셀)으로 그려요. 크게 만들어도 도우미가 알아서 줄여요.</p>
   <table>
     <tr><th style="width:22%">항목</th><th>권장</th></tr>
     <tr><td>크기</td><td><b>정사각형 1024×1024</b>(512 이상)</td></tr>
-    <tr><td>파일</td><td>PNG, 배경 <b>투명</b></td></tr>
+    <tr><td>파일</td><td>PNG(그림 파일의 한 종류), 배경 <b>투명</b></td></tr>
     <tr><td>그림</td><td>가운데 <b>기호 하나</b>, 칸의 80%, 굵은 선, 색 2~3개</td></tr>
     <tr><td>피할 것</td><td>작은 글씨·가는 선·사진 같은 그림·복잡한 배경</td></tr>
   </table>
@@ -282,10 +348,10 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
 색은 [밝은 초록] 한 가지와 흰색만. 글씨·그림자·배경 무늬는 넣지 마.
 아주 작게(72픽셀) 줄여도 알아볼 수 있게 단순하게.</pre>
   <p>만든 그림을 칸에 끌어다 놓고 <b>틀에 넣기</b>를 고르면 다른 칸과 같은 모양이 돼요.</p>
-  <div class="note"><b>배경이 하얗게 나오면</b>“배경 투명”을 다시 부탁하거나 캔바의 ‘배경 제거’를 쓰세요. 회사 로고는 그대로 베끼지 말고 그 회사 색의 글자 한두 개로 만드세요.</div>
+  <div class="note"><b>배경이 하얗게 나오면</b> “배경 투명”을 다시 부탁하거나 캔바의 ‘배경 제거’를 쓰세요. 회사 로고는 그대로 베끼지 말고 그 회사 색의 글자 한두 개로 만드세요.</div>
 </section>
 
-<section>
+<section id="q11">
   <h2><span class="no">11</span>저장하고 보드에 보내기</h2>
   <ol class="steps">
     <li>맨 아래 <span class="btn">저장하고 보드에 보내기</span>를 눌러요(<span class="key">Ctrl</span>+<span class="key">S</span>).</li>
@@ -295,20 +361,20 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
   <ul>
     <li>보드가 꽂혀 있지 않으면 다음에 꽂을 때 <b>저절로</b> 보내요.</li>
     <li>보드가 날씨·시간표를 받는 중이면 끝난 뒤 보내요.</li>
-    <li>보드를 처음 상태로: <span class="btn">더보기</span> → <span class="btn">기본값으로</span>, 또는 보드 단축키 화면의 <span class="btn">기본 아이콘</span>을 3초 안에 두 번.</li>
+    <li>보드를 처음 상태로: <span class="btn">더보기</span> → <span class="btn">기본값으로 되돌리기…</span>, 또는 보드 단축키 화면의 <span class="btn">기본 아이콘</span>을 3초 안에 두 번.</li>
   </ul>
-  <div class="warn"><b>예전 보드</b>창 아래에 “이 보드는 아이콘 받기를 못 해요”가 보이면 보드 프로그램을 새로 구워야 해요. 단추로 프로그램 열기는 예전 보드에서도 돼요.</div>
+  <div class="warn"><b>예전 보드라면</b> 꾸미기 창 맨 아래에 “이 보드는 아이콘 받기를 못 해요”가 보여요. 이때는 보드 프로그램을 새로 구워야(보드에 프로그램을 새로 넣어야) 해요. 정보 담당 선생님께 부탁해요. 단추로 프로그램 열기는 예전 보드에서도 돼요.</div>
 
-  <section class="flow">
+  <section class="flow" id="q12">
     <h2><span class="no">12</span>다른 선생님과 나누기</h2>
     <ul>
-      <li><span class="btn">더보기</span> → <span class="btn">내보내기</span> : 지금 16칸(이름·하는 일·아이콘·여러 동작·자세한 설정)을 zip 파일 하나로 저장해요.</li>
-      <li><span class="btn">더보기</span> → <span class="btn">가져오기</span> : 받은 zip 을 불러와요. 저장하지 않은 수정이 있으면 먼저 물어봐요. 확인한 뒤 <span class="btn">저장하고 보드에 보내기</span>를 눌러야 보드로 가요.</li>
+      <li><span class="btn">더보기</span> → <span class="btn">내보내기…</span> : 지금 16칸(이름·하는 일·아이콘·여러 동작·자세한 설정)을 압축 파일(.zip) 하나로 저장해요.</li>
+      <li><span class="btn">더보기</span> → <span class="btn">가져오기…</span> : 받은 압축 파일을 불러와요. 저장하지 않은 수정이 있으면 먼저 물어봐요. 확인한 뒤 <span class="btn">저장하고 보드에 보내기</span>를 눌러야 보드로 가요.</li>
     </ul>
-    <div class="note"><b>프로그램 경로</b>보낸 컴퓨터와 받은 컴퓨터의 프로그램 위치가 다를 수 있어요. 열리지 않는 칸은 대상을 고쳐 주세요.</div>
+    <div class="note"><b>프로그램 경로</b> 보낸 컴퓨터와 받은 컴퓨터의 프로그램 위치가 다를 수 있어요. 열리지 않는 칸은 대상을 고쳐 주세요.</div>
   </section>
 
-  <section class="flow">
+  <section class="flow" id="q13">
     <h2><span class="no">13</span>키보드로 쓰기</h2>
     <table>
       <tr><th class="c">키</th><th>하는 일</th><th class="c">키</th><th>하는 일</th></tr>
@@ -320,29 +386,785 @@ pre { font-family: "SCD", sans-serif; font-weight: 300; font-size: 9pt; backgrou
   </section>
 </section>
 
-<section>
+<section id="q14">
   <h2><span class="no">14</span>끄기·지우기</h2>
   <ul>
-    <li><b>잠깐 끄기</b> : 아이콘 오른쪽 클릭 → <span class="btn">끝내기</span>. 다시 켜려면 시작 메뉴의 ‘교실알림판 도우미’.</li>
-    <li><b>저절로 켜지 않기</b> : 아이콘 오른쪽 클릭 → ‘컴퓨터를 켤 때 저절로 켜기’를 끔.</li>
-    <li><b>지우기</b> : 받은 꾸러미의 <b>끄기.bat</b> 을 더블클릭. 꾸민 설정까지 지울지 물어봐요.</li>
+    <li><b>잠깐 끄기</b> : 도우미 아이콘 오른쪽 클릭 → <span class="btn">끝내기</span>. 다시 켜려면 시작 메뉴의 ‘교실알림판 도우미’.</li>
+    <li><b>저절로 켜지 않기</b> : 도우미 아이콘 오른쪽 클릭 → ‘컴퓨터를 켤 때 저절로 켜기’를 끔.</li>
+    <li><b>지우기</b> : 도우미를 받을 때 받은 압축 파일 안의 <b>끄기.bat</b>(도우미를 끄고 지우는 파일)을 두 번 클릭해요. 꾸민 설정까지 지울지 물어봐요.</li>
   </ul>
 
-  <section class="flow">
+  <section class="flow" id="q15">
     <h2><span class="no">15</span>안 될 때</h2>
-    <p>아이콘 오른쪽 클릭 → <span class="btn">기록 보기</span>에서 마지막 줄을 봐요.</p>
+    <p>도우미 아이콘 오른쪽 클릭 → <span class="btn">기록 보기</span>에서 마지막 줄을 봐요.</p>
     <table>
       <tr><th style="width:36%">증상·기록</th><th>해결</th></tr>
-      <tr><td>‘포트 열어 봄’이 없어요</td><td>컴퓨터가 보드를 못 봐요. 데이터 케이블인지, 7인치는 ‘UART’ 단자인지, 다른 USB 구멍에 꽂아 봐요. 7인치는 CH343 드라이버가 필요할 수 있어요.</td></tr>
-      <tr><td>‘알림판 아님(답 없음)’</td><td>보드 프로그램이 예전 것이거나, 같은 칩을 쓰는 다른 장치예요. 1분 뒤 다시 확인해요.</td></tr>
+      <tr><td>‘포트 열어 봄’이 없어요<br><span class="small">(포트 = 보드가 이어지는 연결 구멍)</span></td><td>컴퓨터가 보드를 못 봐요. 데이터 케이블인지, 7인치는 ‘UART’ 단자인지 봐요. 다른 USB 구멍에도 꽂아 봐요. 7인치는 CH343 드라이버(보드를 쓰게 해 주는 작은 프로그램)가 필요할 수 있어요. 정보 담당 선생님께 부탁해요.</td></tr>
+      <tr><td>‘알림판 아님(답 없음)’</td><td>보드 프로그램이 예전 것이거나, 같은 방식으로 연결되는 다른 장치예요. 1분 뒤 다시 확인해요.</td></tr>
       <tr><td>‘알림판 확인’까지 있는데 안 열려요</td><td>칸의 대상(프로그램 경로·주소)을 고치고 <span class="btn">▶ 눌러 보기</span>로 확인해요.</td></tr>
       <tr><td>단축키가 안 먹어요</td><td>단축키는 <b>맨 앞에 있는 창</b>에 들어가요. 보낼 프로그램 창을 먼저 눌러 두세요. Win 키 조합은 ‘Win 키도 함께’를 켰는지 봐요.</td></tr>
       <tr><td>여러 동작 중 일부가 안 돼요</td><td>앞 프로그램이 뜨기 전에 다음 동작이 와서 그래요. 기다리기를 1~2초 늘려요.</td></tr>
-      <tr><td>“설정 파일이 깨져 있어 기본값으로 시작해요”</td><td>원본은 <code>deck.json.broken</code> 으로 남아 있어요. 내보내 둔 zip 이 있으면 가져오기로 되살려요.</td></tr>
+      <tr><td>“설정 파일이 깨져 있어 기본값으로 시작해요”</td><td>원래 설정은 이름 뒤에 ‘.broken’이 붙은 파일로 남아 있어요. 내보내 둔 압축 파일이 있으면 가져오기로 되살려요.</td></tr>
       <tr><td>컴퓨터를 켠 뒤 아이콘이 없어요</td><td>시작 메뉴에서 ‘교실알림판 도우미’를 눌러 켜요.</td></tr>
     </table>
     <p class="small" style="margin-top:6mm">글꼴: 에스코어 드림 (S-Core) · 아이콘 일부: Tabler Icons (MIT) · 받는 곳 penedu.web.app/deck</p>
   </section>
+</section>
+
+
+<!-- ════════ 자세한 설명서 ════════ -->
+<div class="cover part">
+  <div>
+    <div class="eyebrow">자세한 설명서 · 과정 1~15</div>
+    <h1>자세한 설명서</h1>
+    <div class="sub big">처음부터 하나씩 따라 해요</div>
+    <div class="sub">도우미를 받는 날부터 보드 단추로 프로그램이 열릴 때까지,<br>한 단계씩 같이 가요.</div>
+  </div>
+  <img src="img/01.png" alt="단축키 꾸미기 창">
+  <ol class="toc2">
+    <li><span class="n">과정 1</span>시작 전에 준비할 것</li>
+    <li><span class="n">과정 9</span>따라 하기⑤ 내 그림·인공지능 아이콘</li>
+    <li><span class="n">과정 2</span>도우미 받고 깔기</li>
+    <li><span class="n">과정 10</span>한 번에 채우기와 아이콘 모양</li>
+    <li><span class="n">과정 3</span>보드 꽂고 연결 확인</li>
+    <li><span class="n">과정 11</span>보드로 보내고 확인</li>
+    <li><span class="n">과정 4</span>꾸미기 창 처음 열기</li>
+    <li><span class="n">과정 12</span>다른 선생님께 나누기</li>
+    <li><span class="n">과정 5</span>따라 하기① 빈 칸에 ‘한글’</li>
+    <li><span class="n">과정 13</span>문제 해결 순서도</li>
+    <li><span class="n">과정 6</span>따라 하기② 나이스와 브라우저</li>
+    <li><span class="n">과정 14</span>자주 묻는 질문</li>
+    <li><span class="n">과정 7</span>따라 하기③ 화면 캡처 단축키</li>
+    <li><span class="n">과정 15</span>낱말 풀이</li>
+    <li><span class="n">과정 8</span>따라 하기④ ‘수업 시작’ 여러 동작</li>
+    <li></li>
+  </ol>
+  <div class="foot"><span>앞의 간단 설명서는 찾아볼 때, 여기는 따라 할 때 봐요.</span><span>처음부터 과정 11까지 약 30분</span></div>
+</div>
+
+<!-- ───────── 과정 1 ───────── -->
+<section id="p1">
+  <h2><span class="no">과정 1</span>시작 전에 준비할 것</h2>
+  <div class="goal"><b>이 과정의 목표</b> 보드, 케이블, 컴퓨터 세 가지를 갖추고, 보드의 어느 구멍에 꽂을지 알아 둬요.</div>
+  <p class="small">걸리는 시간 약 5분 · 필요한 것: 보드, 케이블, 윈도 컴퓨터</p>
+  <figure><img src="img2/01_준비물.png" alt="준비물 세 가지"><figcaption>준비물은 세 가지예요.</figcaption></figure>
+  <ol class="steps">
+    <li><b>보드 크기 보기</b> → 내 보드가 7인치인지 4인치인지 봐요. 화면 모양을 보면 알 수 있어요.
+      <ul>
+        <li>7인치: 가로로 긴 화면이에요(공책을 옆으로 눕힌 크기). 단축키 화면의 단추 칸이 2줄, 한 줄에 8칸이에요.</li>
+        <li>4인치: 거의 정사각형인 작은 화면이에요(손바닥만 해요). 단추 칸이 4줄, 한 줄에 4칸이에요.</li>
+      </ul>
+      그래도 모르겠으면 보드를 준비해 준 분께 물어봐요.</li>
+    <li><b>케이블 고르기</b> → <b>데이터 케이블</b>(자료를 주고받는 선)이 필요해요. 충전만 되는 선은 안 돼요.
+      <div class="tip"><b>구별하는 법</b> 휴대폰을 그 선으로 컴퓨터에 꽂아 봐요. 탐색기(폴더 창)에서 휴대폰 안의 사진이 보이면 데이터 케이블이에요. 안 보이면 휴대폰 화면 위쪽 알림을 눌러 ‘파일 전송’을 골라요(휴대폰마다 이름이 조금 달라요). 그래도 안 보이면 충전만 되는 선이에요.</div></li>
+    <li><b>꽂을 단자(선을 꽂는 구멍) 찾기</b> → 보드 옆면을 봐요.
+      <ul>
+        <li>7인치: ‘UART’ 글자가 적힌 단자에 꽂아요.</li>
+        <li>4인치: USB-C 단자에 꽂아요.</li>
+      </ul>
+      <figure class="w80"><img src="img2/02_단자위치.png" alt="단자 위치"><figcaption>① 7인치는 ‘UART’ 단자, ② 4인치는 USB-C 단자예요.</figcaption></figure></li>
+    <li><b>컴퓨터 보기</b> → 윈도 컴퓨터여야 해요. 빈 USB 구멍도 하나 있어야 해요. 인터넷은 세 가지 때 필요해요. 도우미를 받을 때, ‘사이트 열기’ 칸을 누를 때, ‘사이트 아이콘 받기’를 할 때예요.</li>
+    <li><b>시간 잡기</b> → 처음부터 과정 11까지 약 30분 걸려요.</li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> 아래 세 칸에 모두 표시할 수 있으면 준비 끝이에요.
+    <table style="margin-top:2mm">
+      <tr><th class="c" style="width:12%">표시</th><th>준비물</th></tr>
+      <tr><td class="c">□</td><td>보드(7인치 또는 4인치)</td></tr>
+      <tr><td class="c">□</td><td>데이터 케이블</td></tr>
+      <tr><td class="c">□</td><td>인터넷이 되는 윈도 컴퓨터</td></tr>
+    </table>
+  </div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>케이블이 하나뿐이고, 데이터 케이블인지 모르겠어요 → 우선 그 선으로 해 봐요. 과정 3에서 도우미 아이콘이 초록으로 안 바뀌면 그때 케이블부터 바꿔요.</li>
+      <li>보드에 단자가 두 개 있어요 → 단자 옆에 적힌 작은 글자를 봐요. 단자 자리는 보드마다 조금 달라요.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───────── 과정 2 ───────── -->
+<section id="p2">
+  <h2><span class="no">과정 2</span>도우미 받고 깔기</h2>
+  <div class="goal"><b>이 과정의 목표</b> 도우미를 깔고, 알림 영역(작업 표시줄 오른쪽 끝, 시계 옆)에 도우미 아이콘이 생긴 것을 봐요.</div>
+  <p class="small">걸리는 시간 약 5분 · 필요한 것: 인터넷이 되는 윈도 컴퓨터 · 관리자 권한은 필요 없어요</p>
+  <ol class="steps">
+    <li><b>누르기</b> 인터넷 창(엣지나 크롬)을 열어요 → 맨 위 주소 칸을 눌러요 → <code>penedu.web.app/deck</code> 를 그대로 쳐요 → <span class="key">Enter</span><br>
+      <b>보이는 것</b> 도우미를 받는 쪽이 열려요.
+      <figure class="w80"><img src="img2/03_주소입력.png" alt="주소 넣기"><figcaption>① 주소 칸에 그대로 치고 Enter를 눌러요.</figcaption></figure></li>
+    <li><b>누르기</b> <span class="btn">도우미 받기</span> 단추를 눌러요.<br>
+      <b>보이는 것</b> 인터넷 창 오른쪽 위에 받은 파일 목록이 보여요.<br>
+      “흔하지 않은 파일” 같은 경고가 보이면 파일 줄의 <b>…</b>(점 세 개)를 누르고 <span class="btn">유지</span>를 눌러요.
+      <figure class="w80"><img src="img2/04_받기유지.png" alt="받기와 유지"><figcaption>① 도우미 받기 → ② 점 세 개 → ③ 유지. 단추 이름과 모양은 인터넷 창에 따라 조금 다를 수 있어요.</figcaption></figure></li>
+    <li><b>누르기</b> 받은 파일 목록에서 <b>파일 열기</b>를 눌러요. 또는 탐색기(폴더 창)를 열고 왼쪽의 <b>다운로드</b> 폴더에서 받은 압축 파일(여러 파일을 하나로 묶은 파일)을 두 번 눌러요.<br>
+      <b>보이는 것</b> 압축 파일 안에 <b>교실알림판_도우미.exe</b> 가 보여요. 이름 끝의 .exe는 ‘실행하는 프로그램’이라는 뜻이에요. 이것을 두 번 눌러요. 압축은 풀지 않아도 돼요.
+      <figure class="w80"><img src="img2/05_압축열기.png" alt="압축 파일 열기"><figcaption>① 다운로드 폴더 → ② 받은 압축 파일 → ③ 교실알림판_도우미.exe. 압축 파일 이름은 화면에 따라 조금 다를 수 있어요.</figcaption></figure></li>
+    <li><b>보이는 것</b> 파란 <b>“Windows의 PC 보호”</b> 창이 뜰 수 있어요.<br>
+      <b>누르기</b> 작은 글씨 <span class="btn">추가 정보</span>를 눌러요 → 아래에 생긴 <span class="btn">실행</span>을 눌러요.<br>
+      만든 사람 확인 표시(서명)가 없는 프로그램이라 그래요. 처음 한 번만 나와요.
+      <figure class="w80"><img src="img2/06_PC보호.png" alt="Windows의 PC 보호 창"><figcaption>① 추가 정보 → ② 실행</figcaption></figure></li>
+    <li><b>보이는 것</b> 화면 오른쪽 아래에 풍선 알림이 떠요. “설치했어요. 컴퓨터를 켤 때 저절로 켜져요.”</li>
+    <li><b>누르기</b> 작업 표시줄(화면 맨 아래 막대) 오른쪽 끝의 <b>^</b>(숨은 아이콘 보기)를 눌러요.<br>
+      <b>보이는 것</b> 위로 펼쳐진 작은 상자 안에 <b>회색</b> 둥근 네모 아이콘이 있어요. 이것이 <b>도우미 아이콘</b>이에요. 이 설명서에서는 앞으로 ‘도우미 아이콘’이라고 불러요.
+      <figure class="w64"><img src="img2/07_알림영역아이콘.png" alt="알림 영역의 도우미 아이콘"><figcaption>① ^ 를 누르면 ② 회색 도우미 아이콘이 보여요.</figcaption></figure></li>
+    <li><b>늘 보이게 하기(권해요)</b> 도우미 아이콘은 평소 <b>^</b> 안에 숨어 있어요. 회색 아이콘을 마우스로 누른 채, <b>^</b> 바깥의 시계 옆 작업 표시줄로 끌어서 놓아요.<br>
+      <b>보이는 것</b> 시계 옆에 회색 아이콘이 늘 보여요.
+      <p class="small">끌어 놓기가 안 되면: 시작 단추 → 설정 → 개인 설정 → 작업 표시줄 → ‘기타 시스템 트레이 아이콘’을 펼치고 ‘교실 알림판 단축키 도우미’를 켜요. 윈도 판에 따라 이름과 자리가 조금 다를 수 있어요. 이 단계는 건너뛰어도 돼요. 그때는 늘 <b>^</b>를 눌러 아이콘을 찾아요.</p></li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> 회색 아이콘이 보이면 성공이에요. 회색은 “아직 보드를 찾는 중”이라는 뜻이에요. 보드를 아직 안 꽂았으니 정상이에요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>두 번 눌러도 아무 일이 없어요 → 작업 표시줄 오른쪽 끝의 <b>^</b> 단추(6번 단계)를 눌러, 아이콘이 이미 있는지 봐요. 벌써 켜져 있을 수 있어요.</li>
+      <li>학교 백신(바이러스 막는 프로그램)이 막아요 → 백신의 ‘예외(허용)’ 목록에 교실알림판_도우미.exe 를 넣어야 해요. 정보 담당 선생님(학교 컴퓨터를 맡은 선생님)께 부탁해요.</li>
+      <li>컴퓨터를 다시 켰더니 아이콘이 없어요 → 시작 메뉴에서 ‘교실알림판 도우미’를 눌러요.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───────── 과정 3 ───────── -->
+<section id="p3">
+  <h2><span class="no">과정 3</span>보드 꽂고 연결 확인</h2>
+  <div class="goal"><b>이 과정의 목표</b> 도우미 아이콘이 초록이 되고, 보드 단추를 누르면 컴퓨터에 탐색기(폴더 창)가 열리는 것을 봐요.</div>
+  <p class="small">걸리는 시간 약 5분 · 필요한 것: 보드, 데이터 케이블, 도우미를 깐 컴퓨터</p>
+  <ol class="steps">
+    <li><b>꽂기</b> 데이터 케이블로 보드와 컴퓨터를 이어요. 7인치는 ‘UART’ 단자, 4인치는 USB-C 단자예요.<br>
+      <b>보이는 것</b> 보드는 이 선으로 전기도 받아요. 보드 화면이 꺼져 있었다면 켜져요. 처음 켜지면 시간표나 시계 화면이 보여요.</li>
+    <li><b>누르기</b> 보드에서 <b>단축키</b> 화면을 열어요.
+      <ul>
+        <li>7인치: 화면 맨 위 띠의 다섯 단추(시간표 · 시계 · 단축키 · 찾기 · 설정) 가운데 <b>단축키</b>를 손가락으로 눌러요.</li>
+        <li>4인치: 화면을 손가락으로 옆으로 밀어 넘겨요. 시계 → 오늘 시간표 → 주간 시간표 다음, 네 번째 장이 단축키예요.</li>
+      </ul>
+      <figure class="w80"><img src="img2/56_보드첫화면.png" alt="보드에서 단축키 화면 열기"><figcaption>① 7인치는 맨 위 띠의 단축키 단추. 4인치는 옆으로 밀어 넘겨요. 선생님 이름 자리는 가렸어요.</figcaption></figure>
+      <b>보이는 것</b> 단추 16개가 있는 단축키 화면이 열려요. 아래 줄에 “컴퓨터 도우미를 기다리는 중 …”이 보여요.</li>
+    <li><b>기다리기</b> 5초쯤 기다려요.<br>
+      <b>보이는 것</b> 도우미 아이콘이 <b>초록</b>으로 바뀌어요. 아이콘이 <b>^</b> 안에 숨어 있으면 <b>^</b>를 눌러 봐요. 풍선 알림 “7인치 알림판과 연결됐어요 (…)”가 떠요. 괄호 안 글자는 컴퓨터마다 달라요.
+      <figure class="w64"><img src="img2/08_아이콘색.png" alt="아이콘 색 세 가지"><figcaption>회색 = 찾는 중 · 초록 = 연결됨 · 주황 = 잠깐 멈춤. ① 초록이 되면 성공이에요.</figcaption></figure></li>
+    <li><b>누르기</b> 도우미 아이콘을 <b>오른쪽 클릭</b>(마우스 오른쪽 단추로 한 번 누르기)해요.<br>
+      <b>보이는 것</b> 메뉴가 열려요. 맨 위 회색 줄이 <b>연결됨: 7인치(…)</b> 이면 잘 붙은 거예요.
+      <figure class="w64"><img src="img2/09_도우미메뉴.png" alt="도우미 메뉴"><figcaption>① 단축키 꾸미기… ② 기록 보기 ③ 잠깐 멈추기(보드 굽기 전에)</figcaption></figure>
+      메뉴 이름도 함께 익혀 둬요.
+      <ul>
+        <li><span class="btn">단축키 꾸미기…</span> : 16칸을 꾸미는 창을 열어요(과정 4).</li>
+        <li><span class="btn">기록 보기</span> : 안 될 때 원인을 찾아봐요(과정 13).</li>
+        <li><span class="btn">잠깐 멈추기(보드 굽기 전에)</span> : 보드에 프로그램을 새로 넣을 때(이것을 ‘굽기’라고 해요)만 써요. 평소에는 꺼 둬요.</li>
+      </ul>
+      나머지 줄(예전 보드만 쓰는 프로그램 목록 · 컴퓨터를 켤 때 저절로 켜기 · 끝내기)은 처음에는 안 눌러도 돼요. ‘예전 보드만 쓰는 프로그램 목록’은 새 보드에서는 쓰지 않아요.<br>
+      메뉴를 닫으려면 <span class="key">Esc</span>를 눌러요.</li>
+    <li><b>보이는 것</b> 보드 아래 줄 글이 “컴퓨터와 연결됨 · 단추를 누르면 프로그램이 열립니다”로 바뀌어요.
+      <figure><img src="img2/10_보드연결글.png" alt="보드 아래 줄"><figcaption>① 보드 아래 줄 글 ② 새로 고침 단추</figcaption></figure></li>
+    <li><b>누르기</b> 보드의 1번 칸 <b>탐색기</b>를 손가락으로 눌러요.<br>
+      <b>보이는 것</b> 컴퓨터에 탐색기(폴더 창)가 열려요. 확인했으면 탐색기 창은 닫아요.</li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> 세 가지가 모두 보이면 성공이에요.
+    <ul>
+      <li>컴퓨터의 도우미 아이콘이 초록</li>
+      <li>보드 아래 줄에 “컴퓨터와 연결됨”</li>
+      <li>보드 1번 칸을 누르면 탐색기가 열림</li>
+    </ul>
+  </div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>도우미 아이콘이 회색 그대로예요 → 오른쪽 클릭 메뉴 맨 위가 “알림판을 찾는 중 — 7인치는 UART 단자 …”예요. 꽂은 단자를 다시 보고, 다른 케이블로 바꿔 봐요. 그래도 안 되면 과정 13 순서도로 가요.</li>
+      <li>아이콘이 주황이에요 → 메뉴의 <span class="btn">잠깐 멈추기(보드 굽기 전에)</span>가 켜져 있어요. 한 번 눌러서 꺼요.</li>
+      <li>컴퓨터 아이콘은 초록인데 보드 글만 안 바뀌어요 → 보드 단축키 화면 오른쪽 아래 새로 고침(⟳) 단추를 눌러요.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───────── 과정 4 ───────── -->
+<section id="p4">
+  <h2><span class="no">과정 4</span>꾸미기 창 처음 열기</h2>
+  <div class="goal"><b>이 과정의 목표</b> 꾸미기 창을 열어 다섯 구역을 알아보고, 칸 하나를 골라 <span class="btn">▶ 눌러 보기</span>까지 해 봐요.</div>
+  <p class="small">걸리는 시간 약 10분 · 필요한 것: 도우미를 깐 컴퓨터(보드는 없어도 돼요)</p>
+  <ol class="steps">
+    <li><b>누르기</b> 도우미 아이콘을 <b>두 번 클릭</b>해요(<b>^</b> 안에 숨어 있으면 <b>^</b>를 먼저 눌러요). 또는 오른쪽 클릭 → <span class="btn">단축키 꾸미기…</span><br>
+      <b>보이는 것</b> “단축키 꾸미기” 창이 열려요. 이 설명서에서는 줄여서 <b>꾸미기 창</b>이라고 불러요.</li>
+    <li><b>보이는 것</b> 처음 열면 창 가운데에 <b>둘러보기 안내</b>가 떠요. 제목은 “단축키 꾸미기 창이에요”, 왼쪽 위에 “1 / 10”이 보여요.<br>
+      <b>누르기</b> <span class="btn">다음</span>을 눌러 끝까지 봐요. 그만 보려면 <span class="btn">그만 보기</span>를 눌러요.
+      <figure class="w64"><img src="img2/12_둘러보기안내.png" alt="둘러보기 안내"><figcaption>① 다음 ② 그만 보기. 마지막 장에서는 다음 대신 끝이 보여요.</figcaption></figure>
+      <p class="small">다시 보고 싶으면 위 띠 <span class="btn">설명서 ▾</span> → <span class="btn">둘러보기 안내 다시 보기</span>를 눌러요.</p></li>
+    <li><b>알아 두기</b> 창은 다섯 구역으로 나뉘어요. 이름만 기억해 두면 돼요. 구역마다 하는 일은 간단 설명서 4장(<a class="pg" href="#q4">5</a>쪽) 표에 있어요.
+      <figure><img src="img2/11_창다섯구역.png" alt="꾸미기 창 다섯 구역"><figcaption>① 위 띠 ② 보드 모양(16칸) ③ 동작 목록 ④ 칸 설정 ⑤ 맨 아래 줄</figcaption></figure></li>
+    <li><b>누르기</b> 보드 모양 위쪽의 안내 띠에서 <span class="btn">알겠어요</span>를 눌러요(안 눌러도 돼요).<br>
+      <b>보이는 것</b> 안내 띠가 사라져요.</li>
+    <li><b>누르기</b> 보드 모양에서 1번 칸 <b>탐색기</b>를 한 번 눌러요.<br>
+      <b>보이는 것</b> 칸에 파란 테두리가 생겨요. 아래 칸 설정에 “1번 칸 · 7인치 윗줄 1번째 · 4인치 1줄 1번째”가 보여요.
+      <figure><img src="img2/13_칸고르고눌러보기.png" alt="칸 고르고 눌러 보기"><figcaption>① 1번 칸 ② 칸 위치 글 ③ ▶ 눌러 보기</figcaption></figure></li>
+    <li><b>누르기</b> 오른쪽의 <span class="btn">▶ 눌러 보기</span>를 눌러요.<br>
+      <b>보이는 것</b> 보드가 없어도 탐색기가 열려요. 확인했으면 탐색기 창은 닫아요.</li>
+    <li><b>읽기</b> 맨 아래 왼쪽 글을 봐요.
+      <ul>
+        <li>보드가 꽂혀 있으면: “보드: 7인치 연결됨 · 보드는 기본 아이콘”</li>
+        <li>보드가 없으면: “보드가 연결되지 않았어요”</li>
+      </ul>
+      <figure><img src="img2/14_연결글과닫기.png" alt="맨 아래 줄"><figcaption>① 연결 상태 글 ② 닫기 ③ 저장하고 보드에 보내기(과정 11에서 써요)</figcaption></figure></li>
+    <li><b>연습하고 싶으면</b> 위 띠 <span class="btn">설명서 ▾</span> → <span class="btn">연습 과제 해 보기</span>를 눌러요.<br>
+      <b>보이는 것</b> 창 왼쪽 위에 연습 과제 6가지 목록이 떠요. 하나씩 해 보면 저절로 ✓ 표시가 생겨요. 다 했거나 그만하려면 목록의 <span class="btn">닫기</span>를 눌러요.
+      <figure class="w64"><img src="img2/16_연습과제.png" alt="연습 과제"><figcaption>① 해 보면 저절로 ✓ ② 목록 닫기</figcaption></figure>
+      <div class="warn"><b>마지막 줄은 하지 마세요</b> 연습 과제의 마지막 줄 ‘[저장하고 보드에 보내기] 누르기’를 하면 연습한 것이 정말로 저장되고 보드로 가요. 셋째 줄(칸 자리 바꾸기)을 했다면 칸 번호도 바뀌어서, 과정 5~9와 맞지 않아요. 연습이 끝나면 다음 단계처럼 <span class="btn">닫기</span> → <span class="btn">아니요</span>로 닫고 다시 열어요.</div></li>
+    <li><b>누르기</b> 맨 아래 <span class="btn">닫기</span>를 눌러요.<br>
+      <b>보이는 것</b> 무언가를 고쳤다면 “저장하지 않은 변경이 있어요. 저장할까요?”라고 물어요.
+      <ul>
+        <li><span class="btn">예</span> = 고친 것을 저장하고 <b>보드로 바로 보내요</b>. 보드 칸이 바뀌어요.</li>
+        <li><span class="btn">아니요</span> = 고친 것을 버리고 닫아요. <b>연습만 했으면 아니요</b>를 눌러요.</li>
+        <li><span class="btn">취소</span> = 닫지 않고 꾸미기 창으로 돌아가요.</li>
+      </ul>
+      <figure class="w64"><img src="img2/15_저장물음.png" alt="저장 물음 창"><figcaption>① 연습만 했으면 아니요. 예를 누르면 저장하고 보드로 보내요.</figcaption></figure></li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> <span class="btn">▶ 눌러 보기</span>를 눌렀을 때 탐색기가 열리면 성공이에요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>창이 화면 밖으로 잘려요 → 창 맨 위 제목 띠를 끌어서 옮겨요. 또는 제목 띠를 두 번 눌러 크게 만들어요.</li>
+      <li>아이콘을 두 번 클릭해도 창이 안 열려요 → 오른쪽 클릭 → <span class="btn">단축키 꾸미기…</span>로 열어요.</li>
+      <li>둘러보기 안내가 안 떠요 → 전에 이미 본 거예요. <span class="btn">설명서 ▾</span> → <span class="btn">둘러보기 안내 다시 보기</span>.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───────── 과정 5 ───────── -->
+<section id="p5">
+  <h2><span class="no">과정 5</span>따라 하기① 빈 칸에 ‘한글’ 넣기</h2>
+  <div class="goal"><b>이 과정의 목표</b> 16번 칸(바탕화면)을 비우고, 동작 목록에서 ‘한글’을 끌어 넣어요. 그다음 <span class="btn">▶ 눌러 보기</span>로 한글 프로그램이 열리는 것을 봐요.</div>
+  <p class="small">걸리는 시간 약 5분 · 필요한 것: 꾸미기 창, 컴퓨터에 깔린 한글 프로그램</p>
+  <div class="note"><b>이어지는 이야기</b> 과정 5부터 과정 9까지는 칸 다섯 개를 차례로 바꿔요. 16번 → 한글, 6번 → 나이스, 2번 → 화면 캡처, 1번 → 수업 시작, 3번 → 내 그림이에요. 저장은 과정 10 첫 단계에서 한 번, 과정 11에서 한 번 해요. 중간에 창을 닫아야 하면 먼저 <span class="key">Ctrl</span>+<span class="key">S</span>로 저장해요(저장하면 보드로도 가요). 15번 칸에도 한글이 있지만, 여기서는 연습으로 16번에 넣어 봐요.</div>
+  <ol class="steps">
+    <li><b>누르기</b> 보드 모양의 16번 칸 <b>바탕화면</b>을 오른쪽 클릭해요.<br>
+      <b>보이는 것</b> 작은 메뉴가 열려요. <span class="btn">비우기</span>를 눌러요.
+      <figure class="w56"><img src="img2/17_칸메뉴.png" alt="칸 오른쪽 클릭 메뉴"><figcaption>① 비우기</figcaption></figure>
+      <b>보이는 것</b> 16번 칸에 ‘+’ 표시와 “끌어다 놓기” 글자가 보여요. 아래 칸 설정에는 “빈 칸이에요. 위에서 하는 일을 고르거나, 오른쪽 목록에서 끌어다 놓으세요.”가 나와요.
+      <figure><img src="img2/18_빈칸모습.png" alt="빈 칸"><figcaption>① 빈 16번 칸 ② 빈 칸 도움말</figcaption></figure></li>
+    <li><b>누르기</b> 오른쪽 위 찾기 칸(“찾기 (예: 한글, 소리, 유튜브)”라고 흐리게 적힌 칸)을 눌러요 → <code>한글</code> 을 그대로 쳐요.<br>
+      <b>보이는 것</b> 동작 목록에 ‘한글’ 줄이 보여요.
+      <figure class="w56"><img src="img2/19_찾기칸.png" alt="찾기 칸"><figcaption>① 찾기 칸. ‘소리’를 친 예예요. ‘한글’도 똑같이 쳐요.</figcaption></figure></li>
+    <li><b>끌어 놓기</b> ‘한글’ 줄을 마우스 왼쪽 단추로 누른 채, 16번 칸 위까지 끌고 가서 손을 떼요.<br>
+      <b>보이는 것</b> 16번 칸에 ‘한’ 아이콘과 이름 ‘한글’이 생겨요. 맨 아래 왼쪽에 “16번 칸에 '한글'을 넣었어요.”가 나와요.
+      <figure class="w80"><img src="img2/20_끌어놓기.png" alt="끌어 놓기"><figcaption>① 목록의 줄을 누른 채 ② 칸 위로 끌어서 놓아요.</figcaption></figure>
+      <div class="tip"><b>끌기가 어려우면</b> 16번 칸을 먼저 한 번 눌러 골라요 → ‘한글’ 줄을 오른쪽 클릭 → <span class="btn">고른 칸에 넣기</span>를 눌러요. 결과는 같아요.</div></li>
+    <li><b>읽기</b> 아래 칸 설정을 봐요.
+      <ul>
+        <li>이름: <code>한글</code></li>
+        <li>하는 일: <span class="btn">프로그램 열기</span>가 파랗게 켜져 있어요.</li>
+        <li>대상(무엇을 열지): <code>hwp</code> (윈도가 한글 프로그램을 찾는 이름이에요)</li>
+      </ul>
+      <figure><img src="img2/21_칸설정읽기.png" alt="칸 설정 읽기"><figcaption>① 이름 ② 하는 일 ③ 대상 ④ ▶ 눌러 보기. 그림은 다른 칸의 예예요. 한글 칸도 같은 모양이에요.</figcaption></figure></li>
+    <li><b>누르기</b> <span class="btn">▶ 눌러 보기</span>를 눌러요.<br>
+      <b>보이는 것</b> 한글 프로그램이 열려요. 확인했으면 한글 창은 닫아요.</li>
+    <li><b>보이는 것</b> 위 띠 제목 옆에 “저장 안 함”이 생겼어요. 아직 저장하지 않았다는 뜻이에요. 지금은 저장하지 않아도 돼요. 과정 10 첫 단계에서 저장해요.</li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> 16번 칸 이름이 ‘한글’이고, <span class="btn">▶ 눌러 보기</span>로 한글이 열리면 성공이에요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>“열지 못했어요: … 대상(무엇을 열지)을 확인해 주세요.”가 떠요 → 이 컴퓨터에서는 한글 프로그램의 경로(파일이 있는 자리)가 달라요. 바탕화면의 ‘한글’ 바로 가기 아이콘을 16번 칸 위에 끌어다 놓아요. 바탕화면에 없으면 시작 단추 → 모든 앱에서 ‘한글’을 찾아 바탕화면으로 끌어다 놓아요. 바로 가기가 생기면 그것을 16번 칸에 끌어다 놓아요. 대상 옆 <span class="btn">찾아보기…</span>로 골라도 돼요.</li>
+      <li>찾기 칸에 “찾는 것이 없어요”가 떠요 → 글자를 지우고 다시 쳐요. 띄어쓰기 없이 <code>한글</code> 두 글자만 쳐요.</li>
+      <li>다른 칸에 잘못 놓았어요 → 그 칸을 오른쪽 클릭 → <span class="btn">비우기</span>. 또는 <span class="btn">닫기</span> → <span class="btn">아니요</span>로 닫고 처음부터 다시 해요.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="p6">
+  <h2><span class="no">과정 6</span>따라 하기② 사이트(나이스) 넣고 브라우저 고르기</h2>
+  <div class="goal"><b>이 과정의 목표</b> 6번 칸(파워셸)을 ‘나이스’ 사이트를 여는 칸으로 바꿔요. 그리고 엣지로 열리게 정해요.</div>
+  <p class="small">걸리는 시간 약 5분 · 필요한 것: 꾸미기 창(과정 4), 인터넷 연결</p>
+  <div class="note"><b>‘사이트 열기’는</b> 칸을 누르면 브라우저(인터넷 창)가 열리고, 정해 둔 주소로 바로 가는 기능이에요.</div>
+  <div class="tip"><b>더 짧은 길(익숙해지면)</b> 6번 칸을 누른 뒤, 오른쪽 찾기 칸에 <code>나이스</code> 를 쳐요. 목록의 ‘나이스’ 줄을 6번 칸에 끌어 놓으면 이름·주소·아이콘이 한꺼번에 들어가요. 그다음 5번 단계(브라우저 고르기)만 하면 돼요. 처음이면 아래 1번 단계부터 차례로 해요.</div>
+  <ol class="steps">
+    <li><b>누르기</b> 보드 모양에서 6번 칸 <b>파워셸</b>을 눌러요.<br>
+      <b>보이는 것</b> 6번 칸에 파란 테두리가 생겨요. 아래 칸 설정 위에 “6번 칸”이 보여요.</li>
+    <li><b>누르기</b> ‘하는 일’ 줄에서 <span class="btn">사이트 열기</span>를 눌러요.<br>
+      <b>보이는 것</b> <span class="btn">사이트 열기</span>가 파랗게 바뀌어요. 대상 칸 아래에 “사이트 주소를 넣어요. 예) https://www.naver.com”이 보여요.
+      <figure class="w80"><img src="img2/22_사이트열기고르기.png" alt="사이트 열기 고르기"><figcaption>① 사이트 열기 ② 대상(무엇을 열지) 칸 ③ 자세히… 단추. 그림은 제미나이 칸의 예예요. 주소만 나이스로 바꿔요.</figcaption></figure>
+      <div class="tip"><b>알아 두기</b> 대상 칸에는 원래 글(<code>powershell.exe</code>)이 그대로 남아 있어요. 다음 단계에서 지워요.</div></li>
+    <li><b>누르기</b> 대상 칸을 눌러요 → <span class="key">Ctrl</span>+<span class="key">A</span>를 눌러 남은 글을 모두 고르고 → <span class="key">Delete</span>로 지워요 → <code>https://www.neis.go.kr</code> 를 그대로 쳐요.<br>
+      <b>보이는 것</b> 대상 칸에 주소가 들어가요. 맨 앞 <code>https://</code> 까지 빠짐없이 쳐야 해요.</li>
+    <li><b>누르기</b> ‘이름’ 칸을 눌러 “파워셸”을 지우고 <code>나이스</code> 라고 쳐요.<br>
+      <b>보이는 것</b> 이름 칸 옆에 “보드 칸 아래에 나오는 이름이에요.”가 보여요. 보드 모양 6번 칸 아래 글도 ‘나이스’로 바뀌어요.
+      <figure class="w72"><img src="img2/23_이름경고.png" alt="이름 경고"><figcaption>① 이름 칸 ② 알림 글. 이름이 길면 이렇게 주황 테두리와 “조금 길어요. 끝이 … 로 잘려요.”가 나와요. 한글 6자 안쪽으로 써요.</figcaption></figure></li>
+    <li><b>누르기</b> 대상 칸 옆 <span class="btn">자세히…</span>를 눌러요.<br>
+      <b>보이는 것</b> “사이트 열기 · 자세한 설정” 창이 열려요. 맨 위에 “어느 브라우저로 열까요?”가 있어요.<br>
+      <b>누르기</b> <span class="btn">엣지</span>를 눌러요(크롬을 쓰면 <span class="btn">크롬</span>) → <span class="btn">확인</span>.
+      <figure class="w72"><img src="img2/24_브라우저고르기.png" alt="브라우저 고르기"><figcaption>① 엣지 ② 새 창으로 열기 — 보통은 켜지 않아도 돼요 ③ 확인</figcaption></figure></li>
+    <li><b>보이는 것</b> 창이 닫혀요. 대상 칸 아래 글이 “자세한 설정: 엣지”로 바뀌어요. <span class="btn">자세히…</span> 단추에 작은 점이 찍혀요. 점은 “자세한 설정이 있어요”라는 뜻이에요.</li>
+    <li><b>누르기</b> 아이콘을 바꿔요. 지금은 파워셸 그림이 그대로예요. 칸 설정 왼쪽 <span class="btn">아이콘 바꾸기 ▾</span> → <span class="btn">사이트 아이콘 받기</span>를 눌러요.<br>
+      <b>보이는 것</b> 잠깐 뒤 나이스 사이트의 작은 아이콘이 들어가요. 인터넷이 있어야 해요.
+      <figure class="w64"><img src="img2/25_아이콘메뉴.png" alt="아이콘 바꾸기 메뉴"><figcaption>① 사이트 아이콘 받기 ② 모음에서 고르기… 하는 일에 맞지 않는 줄은 흐리게 보여요.</figcaption></figure>
+      <div class="tip"><b>다른 길</b> <span class="btn">아이콘 바꾸기 ▾</span> → <span class="btn">모음에서 고르기…</span> → 위 ‘찾기’ 칸에 <code>나이스</code> 를 쳐요 → 그림을 하나 누르고 <span class="btn">고르기</span>. 모음 창은 과정 9에서 자세히 봐요.</div></li>
+    <li><b>누르기</b> <span class="btn">▶ 눌러 보기</span>를 눌러요.<br>
+      <b>보이는 것</b> 엣지가 열리고 나이스 첫 화면이 보여요. 보드가 없어도 돼요. 확인했으면 엣지 창을 닫아요.</li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> 세 가지를 봐요. ① 6번 칸 이름이 ‘나이스’예요. ② 대상 칸 아래에 “자세한 설정: 엣지”가 보여요. ③ <span class="btn">▶ 눌러 보기</span>로 엣지에서 나이스가 열려요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>엣지가 아닌 다른 인터넷 창이 열려요 → 고른 브라우저가 이 컴퓨터에 없으면 기본 브라우저(늘 쓰는 인터넷 창)로 열어요. 고장이 아니에요.</li>
+      <li>“먼저 사이트 주소를 넣어 주세요.” 창이 떠요 → 3번 단계(주소 넣기)를 먼저 해요.</li>
+      <li>“사이트 아이콘을 받지 못했어요(인터넷 연결을 확인해 주세요). 글자 아이콘으로 둘게요.” 창이 떠요 → 인터넷을 확인해요. 글자 아이콘 그대로 두어도 되고, 모음에서 골라도 돼요.</li>
+      <li>이름 옆에 빨간 글 “이 글자는 보드에 나오지 않아요: …”가 보여요 → 글 끝에 나온 글자(특수 기호, 그림 문자 등)를 이름에서 빼요.</li>
+      <li>나이스가 아닌 엉뚱한 쪽이 열려요 → 주소에 틀린 글자가 있어요. 3번 단계를 다시 해요.</li>
+    </ul>
+  </div>
+  <div class="warn"><b>개인정보 지키기</b> 업무 사이트의 아이디·비밀번호는 칸에 넣지 마세요. ‘글자 넣기’로 비밀번호를 넣게 만들지도 마세요. 로그인은 늘 직접 해요.</div>
+</section>
+
+<!-- ───────── 과정 7 ───────── -->
+<section id="p7">
+  <h2><span class="no">과정 7</span>따라 하기③ ‘화면 캡처’ 단축키 눌러서 넣기</h2>
+  <div class="goal"><b>이 과정의 목표</b> 2번 칸(Claude)을 ‘화면 캡처’ 칸으로 바꿔요. 보드 단추를 누르면 <span class="key">Win</span>+<span class="key">Shift</span>+<span class="key">S</span>가 눌려요.</div>
+  <p class="small">걸리는 시간 약 5분 · 필요한 것: 꾸미기 창, 키보드</p>
+  <div class="note"><b>단축키란</b> 여러 키를 함께 눌러 일을 시키는 방법이에요. 예를 들어 <span class="key">Ctrl</span>+<span class="key">C</span>는 복사예요. 보드 단추를 누르면 컴퓨터가 이 키를 대신 눌러 줘요. <span class="key">Win</span>+<span class="key">Shift</span>+<span class="key">S</span>를 누르면 화면 일부를 그림으로 찍는 도구가 나와요.</div>
+  <div class="tip"><b>더 짧은 길(익숙해지면)</b> 찾기 칸에 <code>캡처</code> 를 쳐요. ‘컴퓨터 조작’ 묶음의 ‘화면 캡처’ 줄을 2번 칸에 끌어 놓으면 똑같이 들어가요. 처음이면 아래 1번 단계부터 차례로 해요.</div>
+  <ol class="steps">
+    <li><b>누르기</b> 보드 모양에서 2번 칸 <b>Claude</b>를 눌러요 → ‘이름’ 칸의 글을 지우고 <code>화면 캡처</code> 라고 쳐요.<br>
+      <b>보이는 것</b> 보드 모양 2번 칸 아래 글이 ‘화면 캡처’로 바뀌어요.</li>
+    <li><b>누르기</b> ‘하는 일’ 줄에서 <span class="btn">단축키 누르기</span>를 눌러요.<br>
+      <b>보이는 것</b> 대상 칸 옆 단추가 <span class="btn">눌러서 넣기</span>로 바뀌어요.
+      <figure class="w80"><img src="img2/26_단축키고르기.png" alt="단축키 누르기 고르기"><figcaption>① 단축키 누르기 ② 눌러서 넣기. 그림은 다 넣은 뒤의 모습이에요. 지금은 대상 칸에 다른 글이 남아 있어요.</figcaption></figure></li>
+    <li><b>지우기</b> 대상 칸에는 원래 글(<code>claude:</code>)이 남아 있어요. 대상 칸을 누르고 <span class="key">Ctrl</span>+<span class="key">A</span> → <span class="key">Delete</span>로 지워요.<br>
+      <b>보이는 것</b> 대상 칸 아래에 “[눌러서 넣기]를 누르고 키보드에서 단축키를 그대로 눌러요.”가 보여요.</li>
+    <li><b>누르기</b> <span class="btn">눌러서 넣기</span>를 눌러요.<br>
+      <b>보이는 것</b> “단축키 눌러서 넣기” 창이 열려요. 가운데 큰 칸에 “여기서 키를 누르세요”가 보여요.
+      <figure class="w72"><img src="img2/27_눌러넣기창.png" alt="단축키 눌러서 넣기 창"><figcaption>① Win 키도 함께 ② 누른 키가 보이는 곳 ③ 확인. 그림은 키를 다 누른 뒤의 모습이에요. 처음에는 가운데에 “여기서 키를 누르세요”만 보여요.</figcaption></figure></li>
+    <li><b>누르기</b> 먼저 마우스로 “Win 키도 함께(윈도 키는 이 창에서 잡히지 않아 여기서 켜요)” 칸을 눌러 체크해요.<br>
+      <b>까닭</b> <span class="key">Win</span> 키는 윈도가 먼저 가져가요. 그래서 이 창은 <span class="key">Win</span> 키를 못 받아요. 체크가 <span class="key">Win</span> 키를 대신해요.</li>
+    <li><b>누르기</b> 키보드에서 <span class="key">Shift</span>를 누른 채로 <span class="key">S</span>를 눌러요.<br>
+      <b>보이는 것</b> 가운데에 “Win + Shift + S”가 보여요. 그 아래에 “보드에 넣을 글: #+s”가 보여요.
+      <figure class="w72"><img src="img2/28_키보드.png" alt="누를 키"><figcaption>① Shift를 누른 채 ② S를 눌러요. Win 키는 체크로 대신해요.</figcaption></figure></li>
+    <li><b>누르기</b> <span class="btn">확인</span>을 눌러요.<br>
+      <b>보이는 것</b> 창이 닫혀요. 대상 칸에 <code>#+s</code> 가 들어가요. 그 아래에 “누를 키: Win + Shift + S”가 보여요.
+      <figure class="w80"><img src="img2/29_누를키글.png" alt="누를 키 글"><figcaption>① 대상 칸의 #+s ② 읽기 쉬운 글 “누를 키: Win + Shift + S”</figcaption></figure></li>
+    <li><b>누르기</b> 아이콘을 바꿔요. <span class="btn">아이콘 바꾸기 ▾</span> → <span class="btn">글자</span>를 눌러요.<br>
+      <b>보이는 것</b> 이름 첫 글자 ‘화’로 만든 아이콘이 들어가요. 보드 모양 2번 칸도 바뀌어요.
+      <figure class="w36"><img src="img2/30_보드칸화면캡처.png" alt="보드 칸 모습"><figcaption>보드에 보일 모습</figcaption></figure></li>
+    <li><b>누르기</b> <span class="btn">▶ 눌러 보기</span>를 눌러요.<br>
+      <b>보이는 것</b> 꾸미기 창이 잠깐 아래로 내려가요. 화면이 살짝 어두워지고, 위쪽에 캡처 도구가 나와요. 지금은 찍지 않을 거라 <span class="key">Esc</span>를 눌러 취소해요. 1~2초 뒤 꾸미기 창이 다시 올라와요.</li>
+  </ol>
+  <div class="note"><b>기호를 직접 쓰고 싶으면</b> <code>#</code>은 Win, <code>^</code>는 Ctrl처럼 기호로 직접 쓸 수도 있어요. 기호표는 간단 설명서 7장(<a class="pg" href="#q7">8</a>쪽)에 있어요.</div>
+  <div class="check"><b>잘 됐는지 확인</b> 대상 칸 아래에 “누를 키: Win + Shift + S”가 보여요. 그리고 <span class="btn">▶ 눌러 보기</span>를 누르면 캡처 도구가 나와요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>키를 잘못 눌렀어요 → 창의 <span class="btn">다시</span>를 누르고 다시 눌러요.</li>
+      <li>“이 키는 넣을 수 없어요. 다른 키를 눌러 주세요.”가 보여요 → 한/영 키, 한자 키 같은 키는 넣을 수 없어요. 다른 키를 눌러요.</li>
+      <li>가운데에 “Shift + S”만 보여요 → 5번 단계의 체크를 안 했어요. 체크하면 바로 “Win + Shift + S”로 바뀌어요.</li>
+      <li>창을 열자마자 가운데에 이상한 글이 보여요 → 3번 단계에서 남은 글을 안 지웠어요. <span class="btn">다시</span>를 누르고 5~6번 단계를 해요.</li>
+      <li>키보드로 창을 닫고 싶어요 → <span class="key">Ctrl</span>+<span class="key">Enter</span>는 확인, <span class="key">Shift</span>+<span class="key">Esc</span>는 취소예요. 이 창에서 <span class="key">Enter</span>나 <span class="key">Esc</span>만 누르면 그 키가 단축키로 들어가요.</li>
+      <li>보드 단추로 다른 단축키를 눌렀는데 아무 일이 없어요 → 단축키는 <b>맨 앞에 있는 창</b>에 들어가요. 예를 들어 한글에 <span class="key">Ctrl</span>+<span class="key">S</span>(저장)를 보내려면, 한글 창을 먼저 한 번 눌러 둬요. 화면 캡처는 어느 창에서나 돼요.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───────── 과정 8 ───────── -->
+<section id="p8">
+  <h2><span class="no">과정 8</span>따라 하기④ ‘수업 시작’ 여러 동작 만들기</h2>
+  <div class="goal"><b>이 과정의 목표</b> 1번 칸 하나로 세 가지 일을 차례대로 하게 만들어요. ① 파워포인트 열기 ② 나이스 열기 ③ 소리 끄기예요. 일 사이사이에 기다리는 시간(2초, 1초)을 둬요.</div>
+  <p class="small">걸리는 시간 약 10분 · 필요한 것: 꾸미기 창, 파워포인트가 깔린 컴퓨터</p>
+  <figure><img src="img2/34_시간줄.png" alt="여러 동작 시간 줄"><figcaption>단추를 한 번 누르면 세 가지 일이 차례대로 일어나요. 회색 점선은 기다리는 시간이에요.</figcaption></figure>
+  <ol class="steps">
+    <li><b>누르기</b> 보드 모양에서 1번 칸 <b>탐색기</b>를 눌러요 → ‘이름’ 칸의 글을 지우고 <code>수업 시작</code> 이라고 쳐요.<br>
+      <b>보이는 것</b> 보드 모양 1번 칸 아래 글이 ‘수업 시작’으로 바뀌어요.</li>
+    <li><b>누르기</b> ‘하는 일’ 줄에서 <span class="btn">여러 동작</span>을 눌러요.<br>
+      <b>보이는 것</b> “여러 동작 · 수업 시작” 창이 저절로 열려요. 뒤쪽 칸 설정에는 <span class="btn">동작 차례 고치기…</span> 단추가 생겨요. 나중에 이 창을 다시 열 때 이 단추를 눌러요.
+      <figure class="w80"><img src="img2/31_여러동작고르기.png" alt="여러 동작 고르기"><figcaption>① 여러 동작 ② 동작 차례 고치기… (창을 다시 열 때). 그림은 다 만든 뒤의 모습이라 아래에 요약이 보여요.</figcaption></figure></li>
+    <li><b>읽기</b> 창 위쪽 목록을 봐요.<br>
+      <b>보이는 것</b> 1번 줄에 “열기 · explorer”가 이미 들어 있어요(explorer는 윈도가 탐색기를 찾는 이름이에요). 이 칸이 원래 하던 일(탐색기 열기)이 첫 동작으로 옮겨진 거예요.
+      <figure><img src="img2/32_차례창위.png" alt="여러 동작 창 위쪽"><figcaption>① 동작 목록 ② + 동작 더하기 ③ 위로·아래로(차례 바꾸기) ④ 빼기 ⑤ ▶ 차례대로 해 보기</figcaption></figure></li>
+    <li><b>누르기</b> 1번 줄을 눌러요. 아래 ‘고른 동작’에서 <span class="btn">프로그램 열기</span>가 파란지 봐요 → 대상 칸의 글을 지우고 <code>powerpnt</code> 를 그대로 쳐요(윈도가 파워포인트를 찾는 이름이에요. 치기 어려우면 <span class="btn">찾아보기…</span>로 파워포인트를 골라도 돼요) → ‘다음 동작까지 기다리기’ 줄에서 <span class="btn">2초</span>를 눌러요.<br>
+      <b>보이는 것</b> 1번 줄이 “열기 · powerpnt”로 바뀌어요.
+      <figure><img src="img2/33_차례창아래.png" alt="여러 동작 창 아래쪽"><figcaption>① 고른 동작의 하는 일 ② 대상 칸 ③ 기다리기 2초 ④ 확인</figcaption></figure></li>
+    <li><b>누르기</b> <span class="btn">+ 동작 더하기</span>를 눌러요.<br>
+      <b>보이는 것</b> 작은 메뉴가 펼쳐져요. ‘프로그램 열기 · 사이트 열기 · 단축키 누르기 · 글자 넣기 · 컴퓨터 기능’ 다섯 줄이에요.<br>
+      <b>누르기</b> <span class="btn">사이트 열기</span>를 눌러요.<br>
+      <b>보이는 것</b> 1번 줄 바로 아래에 2번 줄 “사이트 · (비어 있어요)”가 생겨요. 아직 비어 있어서 주황 글로 보여요.</li>
+    <li><b>누르기</b> 아래 대상 칸을 눌러 <code>https://www.neis.go.kr</code> 를 그대로 쳐요.<br>
+      <b>보이는 것</b> 2번 줄이 “사이트 · https://www.neis.go.kr”로 바뀌어요. 기다리기는 처음부터 <span class="btn">1초</span>로 골라져 있어요. 그대로 둬요.</li>
+    <li><b>누르기</b> 대상 칸 오른쪽 <span class="btn">자세히…</span> → <span class="btn">엣지</span> → <span class="btn">확인</span>.<br>
+      <b>보이는 것</b> 브라우저 고르는 창이 닫혀요. 과정 6의 5번 단계와 같은 창이에요.</li>
+    <li><b>누르기</b> 2번 줄이 골라진 채로 <span class="btn">+ 동작 더하기</span> → <span class="btn">컴퓨터 기능</span>을 눌러요.<br>
+      <b>보이는 것</b> 3번 줄 “기능 · 바탕화면 보기”가 생겨요. 아래 대상 칸 자리에 “바탕화면 보기”라고 적힌 펼침 단추(누르면 목록이 아래로 펼쳐지는 단추)가 보여요.<br>
+      <b>누르기</b> 그 펼침 단추를 눌러요 → 목록에서 <span class="btn">소리 끄기·켜기</span>를 눌러요.<br>
+      <b>보이는 것</b> 3번 줄이 “기능 · 소리 끄기·켜기”로 바뀌어요.</li>
+    <li><b>읽기</b> 목록을 다시 봐요. 1번 줄 오른쪽에 “↓ 2초 뒤”, 2번 줄 오른쪽에 “↓ 1초 뒤”가 보여요.
+      <ul>
+        <li>차례가 틀렸으면 → 줄을 누르고 <span class="btn">위로</span>나 <span class="btn">아래로</span>.</li>
+        <li>잘못 넣은 줄이 있으면 → 그 줄을 누르고 빨간 <span class="btn">빼기</span>.</li>
+      </ul></li>
+    <li><b>누르기</b> <span class="btn">▶ 차례대로 해 보기</span>를 눌러요.<br>
+      <b>보이는 것</b> 파워포인트가 열려요 → 2초 뒤 엣지에서 나이스가 열려요 → 1초 뒤 소리가 꺼져요.<br>
+      소리를 다시 켜려면 작업 표시줄(화면 맨 아래 막대) 오른쪽의 스피커 그림을 눌러 켜요(화면에 따라 조금 다를 수 있어요). ‘소리 끄기·켜기’는 누를 때마다 끄기와 켜기가 번갈아 돼요. 그래서 소리가 이미 꺼져 있었다면 이번에는 켜져요. 파워포인트와 엣지 창은 닫아요.</li>
+    <li><b>누르기</b> 창 아래 <span class="btn">확인</span>을 눌러요.<br>
+      <b>보이는 것</b> 창이 닫혀요. 칸 설정 아래에 “3가지: 1) 열기 · powerpnt → 2) 사이트 · https://www.neis.go.kr → 3) 기능 · 소리 끄기·켜기”가 보여요.
+      <figure class="w80"><img src="img2/35_차례요약.png" alt="여러 동작 요약"><figcaption>① 칸 설정 아래의 차례 요약. 그림은 다른 칸의 예예요.</figcaption></figure></li>
+    <li><b>누르기</b> 아이콘을 바꿔요. <span class="btn">아이콘 바꾸기 ▾</span> → <span class="btn">글자</span>.<br>
+      <b>보이는 것</b> ‘수’ 글자 아이콘이 들어가요. 보드 모양 1번 칸도 바뀌어요.</li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> 칸 설정 아래에 “3가지: …” 요약이 보여요. 그리고 <span class="btn">▶ 눌러 보기</span>를 누르면 세 가지가 차례대로 일어나요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>“2번째 동작이 비어 있어요. [동작 차례 고치기]에서 채워 주세요.”가 떠요 → <span class="btn">동작 차례 고치기…</span>를 눌러 창을 다시 열어요. 주황 글로 보이는 줄을 눌러 대상을 채워요.</li>
+      <li>나이스가 먼저 뜨고 파워포인트가 그 위를 가려요 → 파워포인트가 뜨는 데 시간이 더 걸려서 그래요. 1번 줄의 기다리기를 <span class="btn">2초</span>에서 <span class="btn">3초</span>로 바꿔요.</li>
+      <li>“열지 못했어요: …”가 떠요 → 이 컴퓨터에 파워포인트가 없거나 다른 자리에 있어요. 1번 줄을 누르고 <span class="btn">찾아보기…</span>로 프로그램을 골라요.</li>
+      <li><span class="btn">+ 동작 더하기</span>가 흐려서 안 눌려요 → 한 칸에는 12가지까지만 넣을 수 있어요.</li>
+      <li>창에서 <span class="btn">취소</span>를 눌렀어요 → 그 창에서 고친 것은 모두 사라져요. <span class="btn">동작 차례 고치기…</span>로 다시 열어 4번 단계부터 해요.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───────── 과정 9 ───────── -->
+<section id="p9">
+  <h2><span class="no">과정 9</span>따라 하기⑤ 내 그림·인공지능 아이콘 넣기</h2>
+  <div class="goal"><b>이 과정의 목표</b> 3번 칸(제미나이)의 아이콘을 내가 만든 그림으로 바꿔요. 그림은 인공지능으로 만들어요.</div>
+  <p class="small">걸리는 시간 약 10분 · 필요한 것: 꾸미기 창, 그림을 만들어 주는 인공지능(제미나이·캔바 등)</p>
+  <ol class="steps">
+    <li><b>누르기</b> 보드 모양에서 3번 칸 <b>제미나이</b>를 눌러요.<br>
+      <b>보이는 것</b> 칸 설정 왼쪽에 큰 아이콘 상자가 있어요. 그 아래에 <span class="btn">아이콘 바꾸기 ▾</span>, 또 그 아래에 “지금: 기본 그림”이 보여요.
+      <figure class="half"><img src="img2/36_아이콘상자.png" alt="아이콘 상자"><figcaption>① 아이콘 상자 ② 아이콘 바꾸기 ③ 지금 쓰는 방식. 그림은 다른 칸(카카오톡)의 예예요. 3번 칸도 같은 모양이에요.</figcaption></figure></li>
+    <li><b>인공지능 열기</b> 인터넷 창에서 그림을 만들어 주는 인공지능(제미나이·캔바 등)에 들어가요. 대부분 로그인(내 계정으로 들어가기)이 필요해요. 로그인은 직접 해요.<br>
+      <b>보이는 것</b> 아래쪽에 글을 쓰는 칸이 있어요.</li>
+    <li><b>줄 말 복사하기</b> 아래 상자의 글을 복사해요. 첫 글자 앞을 마우스로 누른 채 마지막 글자까지 끌어서 고르고 → <span class="key">Ctrl</span>+<span class="key">C</span>. 종이로 보고 있으면 그대로 따라 쳐도 돼요.
+      <pre>[출석부] 를 나타내는 앱 아이콘 기호 하나를 그려 줘.
+정사각형 1024x1024, 배경은 완전히 투명(PNG).
+가운데에 기호 하나만, 화면의 80% 크기. 굵은 선의 평면 스타일,
+색은 [밝은 초록] 한 가지와 흰색만. 글씨·그림자·배경 무늬는 넣지 마.
+아주 작게(72픽셀) 줄여도 알아볼 수 있게 단순하게.</pre></li>
+    <li><b>붙여 넣고 고치기</b> 인공지능의 글 쓰는 칸을 눌러요 → <span class="key">Ctrl</span>+<span class="key">V</span> → <code>[ ]</code> 안의 글만 내 것으로 바꿔요(예: [출석부] → [시간표]). 괄호 [ ]는 지워도 되고 그대로 둬도 돼요 → <span class="key">Enter</span>.<br>
+      <b>보이는 것</b> 잠시 뒤 인공지능이 그림을 만들어 줘요.</li>
+    <li><b>그림 저장하기</b> 그림 위에서 오른쪽 클릭 → ‘다른 이름으로 이미지 저장’(또는 그림 옆 받기 단추)을 눌러요 → 저장 창 왼쪽에서 ‘바탕 화면’ → <span class="btn">저장</span>. 메뉴 이름은 인터넷 창과 인공지능에 따라 조금 달라요.<br>
+      <b>보이는 것</b> 바탕화면에 그림 파일이 생겨요. 이름 끝이 <code>.png</code> 면 좋아요.</li>
+    <li><b>끌어 놓기</b> 끌기가 어렵다면 이 단계 대신 아래 ‘다른 길 ①(메뉴로 그림 고르기)’을 쓰세요. 더 쉬워요.<br>
+      탐색기를 열고 왼쪽에서 ‘바탕 화면’을 눌러요. 탐색기 창 맨 위 제목 띠를 화면 왼쪽 끝까지 끌어 놓으면 창이 화면 반쪽을 차지해요. 오른쪽에 나오는 작은 창들 가운데 꾸미기 창을 누르면 두 창이 나란히 보여요 → 그림 파일을 마우스로 누른 채, 꾸미기 창 보드 모양의 3번 칸 위로 끌어서 놓아요.<br>
+      <b>보이는 것</b> “이 그림을 3번 칸 아이콘으로 넣을까요?” 물음 창이 떠요.
+      <figure class="w64"><img src="img2/37_그림넣기물음.png" alt="그림 넣기 물음"><figcaption>① 예 = 기호만 있는 그림 ② 아니요 = 테두리까지 다 그린 완성 그림</figcaption></figure></li>
+    <li><b>누르기</b> 그림에 맞게 골라요.
+      <ul>
+        <li>가운데 기호 하나만 있는 그림 → <span class="btn">예</span>(틀에 넣기). 다른 칸과 같은 어두운 테두리를 씌워 줘요.</li>
+        <li>테두리와 바탕까지 다 그린 그림 → <span class="btn">아니요</span>(그대로).</li>
+        <li>넣지 않으려면 → <span class="btn">취소</span>.</li>
+      </ul>
+      <figure class="w64"><img src="img2/38_틀에넣기비교.png" alt="틀에 넣기와 그대로"><figcaption>같은 그림을 ‘예(틀에 넣기)’와 ‘아니요(그대로)’로 넣었을 때</figcaption></figure></li>
+    <li><b>보이는 것</b> 보드 모양 3번 칸의 그림이 바뀌어요. 아이콘 상자 아래 글이 “지금: 그림 파일”로 바뀌어요(‘아니요’를 골랐으면 “지금: 그림 그대로”). 맨 아래 왼쪽에 “3번 칸 아이콘을 바꿨어요.”가 나와요.</li>
+  </ol>
+  <h3>다른 길 ① 메뉴로 그림 고르기</h3>
+  <p><span class="btn">아이콘 바꾸기 ▾</span> → <span class="btn">그림 파일…</span>을 눌러요. “아이콘으로 쓸 그림 고르기” 창이 열려요. 왼쪽에서 ‘바탕 화면’을 누르고 → 그림 파일을 누르고 → <span class="btn">열기</span>. “이 그림을 어떻게 넣을까요?” 물음이 뜨면 7번 단계처럼 골라요.</p>
+  <h3>다른 길 ② 모음 205개에서 고르기</h3>
+  <p><span class="btn">아이콘 바꾸기 ▾</span> → <span class="btn">모음에서 고르기…</span>를 눌러요. “아이콘 모음에서 고르기” 창이 열려요.</p>
+  <ul>
+    <li>위쪽 ‘묶음’에서 종류를 고르거나, ‘찾기’ 칸에 이름을 쳐서 찾아요.</li>
+    <li>그림 하나를 누르고 <span class="btn">고르기</span>를 눌러요. 그림을 두 번 눌러도 돼요.</li>
+    <li>아래 “이름·하는 일도 같이 넣기(빈 칸이면 늘 넣음)”는 끈 채로 두세요. 그래야 아이콘만 바뀌어요.</li>
+  </ul>
+  <figure class="w64"><img src="img2/39_모음미리보기.png" alt="아이콘 모음 일부"></figure>
+  <div class="check"><b>잘 됐는지 확인</b> 보드 모양 3번 칸 그림이 내 그림으로 바뀌었어요. 아이콘 상자 아래에 “지금: 그림 파일” 또는 “지금: 그림 그대로”가 보여요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>“이 그림은 열 수 없어요.”가 떠요 → 그림을 이름 끝이 <code>.png</code> 나 <code>.jpg</code> 인 파일로 다시 저장해요.</li>
+      <li>그림 둘레에 하얀 네모가 보여요 → 그림 바탕이 투명하지 않아서 그래요. 인공지능에게 “배경을 투명하게”를 다시 부탁하거나, 캔바의 ‘배경 제거’를 써요.</li>
+      <li>보드 칸에서 너무 작거나 흐려 보여요 → 기호 하나만, 굵은 선으로 다시 만들어요. 알맞은 크기와 모양은 간단 설명서 10장(<a class="pg" href="#q10b">12</a>쪽) 표에 있어요.</li>
+      <li>끌어 놓았는데 물음 창이 안 떠요 → 그림을 칸 바로 위에서 놓았는지 봐요. 안 되면 ‘다른 길 ①’로 넣어요.</li>
+    </ul>
+  </div>
+  <div class="note"><b>그림 쓸 때 지킬 것</b> 회사 로고를 그대로 베끼지 마세요. 그 회사 색의 글자 한두 개로 만들면 돼요.</div>
+</section>
+
+<!-- ───────── 과정 10 ───────── -->
+<section id="p10">
+  <h2><span class="no">과정 10</span>한 번에 채우기와 아이콘 모양</h2>
+  <div class="goal"><b>이 과정의 목표</b> 16칸을 묶음으로 한 번에 채워 보고, 아이콘 모양(테마)을 바꿔 봐요. 끝나면 과정 5~9에서 꾸민 칸으로 되돌려요.</div>
+  <p class="small">걸리는 시간 약 5분 · 필요한 것: 꾸미기 창</p>
+  <div class="warn"><b>먼저 읽어 주세요</b> 한 번에 채우기를 하면 지금 16칸이 모두 바뀌어요. 과정 5~9에서 꾸민 칸도 바뀌어요. 그래서 1번 단계에서 먼저 저장하고, 2번 단계에서 파일로도 지켜 둬요.</div>
+  <ol class="steps">
+    <li><b>저장하기</b> 꾸미기 창 맨 아래 오른쪽의 <span class="btn">저장하고 보드에 보내기</span>를 눌러요(<span class="key">Ctrl</span>+<span class="key">S</span>).<br>
+      <b>보이는 것</b> 위 띠의 “저장 안 함”이 사라져요. 보드가 꽂혀 있으면 보드로도 가요(1분쯤). 보드가 없으면 다음에 꽂을 때 저절로 가요.<br>
+      “3번 칸: …” 같은 창이 뜨면 과정 11의 ‘먼저, 저장 전 표시 읽기’를 보고 그 칸을 고친 뒤 다시 눌러요.</li>
+    <li><b>파일로 지켜 두기</b> 위 띠의 <span class="btn">더보기 ▾</span> → <span class="btn">내보내기…</span>를 눌러요.<br>
+      <b>보이는 것</b> “단축키 설정 내보내기” 창이 열려요. 파일 이름은 ‘알림판_단축키_’ 뒤에 오늘 날짜 네 자리가 붙어 있어요.<br>
+      <b>누르기</b> 왼쪽에서 ‘바탕 화면’을 눌러요 → 이름은 그대로 두고 <span class="btn">저장</span>.<br>
+      <b>보이는 것</b> 맨 아래 왼쪽에 “내보냈어요: …”가 나와요. 바탕화면에 압축 파일(여러 파일을 하나로 묶은 파일)이 하나 생겨요. 내보내기는 과정 12에서 더 자세히 봐요.</li>
+    <li><b>알아 두기</b> 위 띠에는 단추 세 개가 있어요.
+      <figure><img src="img2/40_위띠.png" alt="위 띠"><figcaption>위 띠의 세 단추: ① 한 번에 채우기 ② 아이콘 모양 ③ 더보기</figcaption></figure>
+      <b>누르기</b> ① <span class="btn">한 번에 채우기 ▾</span>를 눌러요.<br>
+      <b>보이는 것</b> 메뉴가 펼쳐져요. ‘이 컴퓨터에 깔린 프로그램으로 · 수업용 · 업무용 · 발표·원격수업용’ 네 줄이에요.
+      <figure class="w64"><img src="img2/41_채우기메뉴.png" alt="한 번에 채우기 메뉴"><figcaption>한 번에 채우기 메뉴의 네 줄. ① 수업용을 눌러요.</figcaption></figure></li>
+    <li><b>누르기</b> <span class="btn">수업용 (한글·PPT·발표 넘기기·타이머·소리)</span>를 눌러요.<br>
+      <b>보이는 것</b> “한 번에 채우기” 물음 창이 떠요. “16칸을 아래처럼 바꿀까요? (지금 칸은 지워져요. 저장을 눌러야 보드로 가요)” 아래에 들어갈 칸 이름이 줄지어 보여요.<br>
+      <b>누르기</b> 칸 이름을 읽어 보고 <span class="btn">예</span>.
+      <figure class="w72"><img src="img2/42_채우기물음.png" alt="한 번에 채우기 물음"><figcaption>① 예를 누르면 16칸이 바뀌어요. 그만두려면 아니요.</figcaption></figure></li>
+    <li><b>보이는 것</b> 보드 모양 16칸이 수업용으로 바뀌어요. 맨 아래에 “16칸을 채웠어요. …”가 나와요.<br>
+      수업용은 모든 칸에 대상이 들어 있어요. 다른 묶음에는 주소가 빈 칸(예: ‘학교 누리집’)이 있을 수 있어요. 그런 칸은 눌러서 대상 칸에 주소를 넣어요. 빈 칸인지 모르겠으면 <span class="btn">▶ 눌러 보기</span>를 눌러 봐요. 비어 있으면 “사이트 주소를 넣어 주세요.” 같은 창이 떠요.</li>
+    <li><b>누르기</b> 위 띠의 <span class="btn">아이콘 모양: 기본(다크) ▾</span>를 눌러요 → 여섯 가지(기본(다크) · 따뜻함 · 남색밤 · 밝은종이 · 고대비 · 숲초록) 가운데 <span class="btn">따뜻함</span>을 눌러요.<br>
+      <b>보이는 것</b> 16칸의 아이콘 색이 바뀌어요. 맨 아래에 “모음 아이콘 16개를 '따뜻함' 모양으로 바꿨어요. 저장하면 보드로 가요.”가 나와요. 위 띠 단추 글은 “아이콘 모양: 따뜻함”이 돼요.
+      <figure><img src="img2/43_테마전후.png" alt="테마 바꾸기 전과 뒤"><figcaption>위는 기본(다크), 아래는 따뜻함이에요. 보드의 색 테마와 같은 것을 고르면 잘 어울려요.</figcaption></figure></li>
+    <li><b>되돌리기</b> 이제 과정 5~9에서 꾸민 칸으로 돌아가요. <span class="btn">더보기 ▾</span> → <span class="btn">가져오기…</span>를 눌러요.<br>
+      <b>보이는 것</b> “단축키 설정 가져오기” 창이 열려요.<br>
+      <b>누르기</b> 왼쪽 ‘바탕 화면’ → 2번 단계에서 만든 파일 → <span class="btn">열기</span>.<br>
+      <b>보이는 것</b> “저장하지 않은 고친 내용이 있어요. 가져오면 지금 16칸이 바뀌고 고친 내용은 사라져요. 가져올까요?”가 떠요 → <span class="btn">예</span>.<br>
+      <b>보이는 것</b> 16칸이 2번 단계 때 모습으로 돌아와요. 맨 아래에 “가져왔어요. …”가 나와요. 아이콘 모양도 처음대로 하려면 <span class="btn">아이콘 모양: 따뜻함 ▾</span>에서 <span class="btn">기본(다크)</span>를 골라요.</li>
+  </ol>
+  <div class="note"><b>다른 되돌리기</b> <span class="btn">닫기</span> → <span class="btn">아니요</span>(저장 안 함)로 닫아도 돼요. 그러면 1번 단계에서 저장한 모습으로 돌아가요. 여기서는 과정 12 연습을 겸해 가져오기로 되돌렸어요.</div>
+  <div class="check"><b>잘 됐는지 확인</b> 4번 단계 뒤 보드 모양 16칸이 수업용 이름으로 바뀌었어요. 6번 단계 뒤 위 띠 단추가 “아이콘 모양: 따뜻함”이에요. 7번 단계 뒤 16번 ‘한글’, 6번 ‘나이스’, 2번 ‘화면 캡처’, 1번 ‘수업 시작’, 3번 내 그림이 다시 보여요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li><span class="btn">이 컴퓨터에 깔린 프로그램으로</span>를 했는데 원하는 프로그램이 빠졌어요 → 이 컴퓨터에 깔린 것만 넣어요. 빠진 칸은 과정 5처럼 끌어다 넣어요.</li>
+      <li>아이콘 모양을 바꿔도 그대로인 칸이 있어요 → 모음에서 고른 아이콘만 바뀌어요. 내 그림, 글자 아이콘, 기본 그림은 그대로예요.</li>
+      <li>묶음마다 어떤 칸이 들어가는지 미리 알고 싶어요 → 간단 설명서 5장(<a class="pg" href="#q5">6</a>쪽) 표를 봐요.</li>
+      <li>1번·2번 단계를 안 하고 채워 버렸어요 → <span class="btn">닫기</span> → <span class="btn">아니요</span>로 닫으면 마지막으로 저장한 모습으로 돌아가요. 다만 저장하지 않았던 칸은 다시 해야 해요.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="p11">
+  <h2><span class="no">과정 11</span>보드로 보내고 확인</h2>
+  <div class="goal"><b>이 과정의 목표</b> 과정 5~10에서 고친 것을 한 번에 저장해서 보드로 보내요. 그리고 보드 단추를 눌러 확인해요.</div>
+  <p class="small">걸리는 시간 약 5분(보내는 데 1분쯤) · 필요한 것: 꾸미기 창, 컴퓨터에 꽂힌 보드</p>
+
+  <h3>먼저, 저장 전 표시 읽기</h3>
+  <p>무엇을 고치고 아직 저장하지 않았으면, 꾸미기 창이 표시로 알려 줘요.</p>
+  <figure><img src="img2/44_저장안함표시.png" alt="저장 안 함 표시"><figcaption>① 위 띠의 ‘저장 안 함’ ② 저장 단추 앞의 점</figcaption></figure>
+  <p>칸 위에 작은 점이 찍히기도 해요. 점의 색마다 뜻이 달라요.</p>
+  <figure class="w72"><img src="img2/45_이름점.png" alt="칸 위의 작은 점"><figcaption>① 주황 점 = 이름이 조금 길어요 ② ③ 빨간 점 = 보드에 없는 글자가 있거나, 이름이 비었어요</figcaption></figure>
+  <table>
+    <tr><th class="c" style="width:16%">점 색</th><th style="width:40%">아래 ‘이름’ 칸 밑에 보이는 글</th><th>할 일</th></tr>
+    <tr><td class="c">주황</td><td>조금 길어요. 끝이 … 로 잘려요.</td><td>그대로 보내도 돼요. 보드에서 이름 끝이 잘려 보여요.</td></tr>
+    <tr><td class="c">빨강</td><td>이 글자는 보드에 나오지 않아요: ★</td><td>이름에서 그 글자를 지워요.</td></tr>
+    <tr><td class="c">빨강</td><td>이름을 넣어 주세요.</td><td>이름을 써 넣어요.</td></tr>
+    <tr><td class="c">점 없음</td><td>(저장을 누르면 창이 떠요) “3번 칸: 사이트 주소를 넣어 주세요.”, “3번 칸: 무엇을 열지(대상)를 넣어 주세요.”</td><td>대상(무엇을 열지)이 비었어요. 주소나 경로(파일이 있는 자리)를 넣어요. 글자 넣기 칸이면 넣을 글을 써요.</td></tr>
+  </table>
+  <div class="warn"><b>저장이 안 되는 두 가지</b> ① 빨간 점이 남아 있을 때 ② 대상(무엇을 열지)이 빈 칸이 있을 때예요. ②는 칸에 점이 찍히지 않아요. 저장을 누르면 “3번 칸: 이름을 넣어 주세요.”나 “3번 칸: 사이트 주소를 넣어 주세요.”처럼 창이 뜨고, 그 칸이 저절로 골라져요. 창의 <span class="btn">확인</span>을 누르고 그 칸을 고쳐요.</div>
+
+  <h3>저장하고 보내기</h3>
+  <ol class="steps">
+    <li><b>보기</b> 보드가 컴퓨터에 꽂혀 있는지 봐요. 알림 영역(작업 표시줄 오른쪽 끝, 시계 옆)의 도우미 아이콘이 <b>초록</b>이면 돼요(과정 3). 아이콘이 <b>^</b> 안에 숨어 있으면 <b>^</b>를 눌러 봐요.</li>
+    <li><b>누르기</b> 꾸미기 창 맨 아래 오른쪽의 <span class="btn">저장하고 보드에 보내기</span>를 눌러요. 키보드로는 <span class="key">Ctrl</span>+<span class="key">S</span> 예요.
+      <figure><img src="img2/46_보내기단추.png" alt="저장하고 보드에 보내기 단추"><figcaption>① 저장하고 보드에 보내기 ② 여기 글이 차례로 바뀌어요</figcaption></figure></li>
+    <li><b>보이는 것</b> 맨 아래 왼쪽 글이 차례로 바뀌어요. 보드 화면 아래 줄도 함께 바뀌어요.
+      <table>
+        <tr><th class="c" style="width:10%">차례</th><th>컴퓨터 — 꾸미기 창 맨 아래</th><th>보드 — 단축키 화면 아래 줄</th></tr>
+        <tr><td class="c">1</td><td>저장했어요. 보드에 보내요(7인치는 1분쯤 걸려요).</td><td></td></tr>
+        <tr><td class="c">2</td><td>보드: 7인치 아이콘 보내는 중 3/16</td><td>아이콘 받는 중 3/16</td></tr>
+        <tr><td class="c">3</td><td>보드: 7인치 보드에 보냈어요</td><td>✓ 새 단축키를 받았습니다</td></tr>
+        <tr><td class="c">4</td><td>보드: 7인치 연결됨 · 보드와 같음</td><td></td></tr>
+      </table>
+      <figure class="w72"><img src="img2/48_보드받음.png" alt="보드 아래 줄"><figcaption>① 다 받으면 보드 아래 줄에 초록 글 “새 단축키를 받았습니다”가 보여요.</figcaption></figure></li>
+    <li><b>기다리기</b> 7인치는 아이콘 하나에 3~7초 걸려요. 16칸을 다 바꿨으면 1분쯤 걸려요. 그동안 <b>선을 빼지 마세요</b>.</li>
+    <li><b>보이는 것</b> 다 보내면 화면 오른쪽 아래에 풍선 알림(잠깐 떴다 사라지는 작은 알림)이 떠요. “7인치 알림판에 새 단축키를 보냈어요”.
+      <figure class="w72"><img src="img2/57_보냄풍선.png" alt="보냈다는 풍선 알림"><figcaption>① 풍선 알림은 몇 초 뒤 사라져요.</figcaption></figure>
+      놓쳐도 괜찮아요. 꾸미기 창 맨 아래 글이 “연결됨 · 보드와 같음”이면 다 보낸 거예요.</li>
+    <li><b>누르기</b> 이제 보드에서 직접 눌러 봐요.
+      <ul>
+        <li>16번 칸 ‘한글’ → 한글이 열려요.</li>
+        <li>6번 칸 ‘나이스’ → 고른 브라우저(인터넷 창)로 나이스가 열려요.</li>
+        <li>2번 칸 ‘화면 캡처’ → 화면이 어두워지고 자를 곳을 고르게 돼요.</li>
+        <li>1번 칸 ‘수업 시작’ → 과정 8에서 만든 차례대로 일이 일어나요.</li>
+        <li>3번 칸 → 보드에도 내 그림 아이콘이 보여요.</li>
+      </ul></li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> 세 가지가 모두 맞으면 끝이에요. ① 꾸미기 창 맨 아래에 “연결됨 · 보드와 같음” ② 보드 아래 줄에 “새 단축키를 받았습니다” ③ 보드 단추를 누르면 그 일이 일어나요.</div>
+
+  <div class="fail"><b>이렇게 안 되면</b>꾸미기 창 맨 아래 글을 읽고, 아래 표에서 같은 글을 찾아요.
+    <table>
+      <tr><th style="width:50%">맨 아래에 보이는 글</th><th>할 일</th></tr>
+      <tr><td>저장했어요. 보드를 꽂으면 저절로 보내요.</td><td>저장은 됐어요. 보드를 꽂으면 저절로 보내요. 기다리면 돼요.</td></tr>
+      <tr><td>보드가 연결되지 않았어요</td><td>보드가 컴퓨터와 이어지지 않았어요. 과정 3을 다시 해요.</td></tr>
+      <tr><td>보드가 날씨·시간표를 받는 중이라 기다려요</td><td>보드가 다른 일을 하는 중이에요. 끝나면 저절로 보내요.</td></tr>
+      <tr><td>보내지 못해 멈췄어요 · [저장하고 보드에 보내기]를 다시 눌러 주세요</td><td>선을 뺐다가 다시 꽂아요. 아이콘이 초록이 되면 <span class="btn">저장하고 보드에 보내기</span>를 다시 눌러요.</td></tr>
+      <tr><td>이 보드는 아이콘 받기를 못 해요(보드 프로그램을 새로 구워야 해요)</td><td>보드 프로그램이 예전 것이에요. 새로 구워야(보드에 프로그램을 새로 넣어야) 해요. 정보 담당 선생님께 부탁해요. 그래도 단추로 프로그램 열기는 돼요.</td></tr>
+    </table>
+    <ul>
+      <li>보드 아래 줄에 “받은 설정이 맞지 않아 기본 아이콘을 씁니다”가 보여요 → <span class="btn">저장하고 보드에 보내기</span>를 한 번 더 눌러요.</li>
+    </ul>
+  </div>
+
+  <h3>처음 상태로 되돌리고 싶을 때</h3>
+  <ol class="steps">
+    <li><b>누르기</b> 위 띠의 <span class="btn">더보기 ▾</span> → <span class="btn">기본값으로 되돌리기…</span>를 눌러요.</li>
+    <li><b>보이는 것</b> “16칸을 처음 상태로 되돌릴까요? 보드도 기본 아이콘으로 돌아가요.”라고 물어요. <span class="btn">예</span>를 눌러요.</li>
+  </ol>
+  <p>보드에서 바로 되돌릴 수도 있어요. 보드 단축키 화면 왼쪽 아래 <span class="btn">기본 아이콘</span>을 <b>3초 안에 두 번</b> 눌러요. 보드 아래 줄에 “기본 아이콘으로 되돌렸습니다”가 보여요.</p>
+  <div class="note"><b>되돌리기 전에</b> 지금 꾸민 16칸이 사라져요. 아깝다면 먼저 과정 12처럼 내보내 두세요.</div>
+  <div class="tip"><b>연습한 16번 칸</b> 15번 칸에도 한글이 있으니, 과정 5에서 연습으로 바꾼 16번 칸은 원래대로 돌려도 돼요. 16번 칸을 고르고 찾기 칸에 <code>바탕화면</code> 을 쳐요 → 나온 ‘바탕화면’ 줄을 16번 칸에 끌어 놓아요 → 저장하고 보드에 보내기.</div>
+</section>
+
+<section id="p12">
+  <h2><span class="no">과정 12</span>다른 선생님께 나누기</h2>
+  <div class="goal"><b>이 과정의 목표</b> 꾸민 16칸을 파일 하나로 만들어 옆 반 선생님께 줘요. 받은 선생님은 그 파일을 가져와 보드로 보내요.</div>
+  <p class="small">걸리는 시간 약 5분 · 필요한 것: 내 꾸미기 창, 파일을 보낼 메신저나 메일</p>
+  <figure><img src="img2/51_나누기흐름.png" alt="나누기 흐름"><figcaption>내보내기 → 파일 하나 → 메신저로 보내기 → 가져오기 → 저장하고 보내기</figcaption></figure>
+
+  <h3 class="big">주는 사람 — 내보내서 보내기</h3>
+  <div class="warn"><b>보내기 전에 살펴요</b> ‘글자 넣기’ 칸에 전화번호나 주소 같은 개인 정보가 있나요? 있으면 그 칸을 먼저 비우고 내보내요. 파일 안에 그 글이 그대로 들어가요.</div>
+  <ol class="steps">
+    <li><b>누르기</b> 꾸미기 창 위 띠의 <span class="btn">더보기 ▾</span>를 눌러요. → <b>보이는 것</b> 메뉴가 펼쳐져요. <span class="btn">내보내기…</span>를 눌러요.
+      <figure class="w64"><img src="img2/49_더보기메뉴.png" alt="더보기 메뉴"><figcaption>① 내보내기… ② 가져오기…</figcaption></figure></li>
+    <li><b>보이는 것</b> “단축키 설정 내보내기” 창이 열려요. <b>누르기</b> 왼쪽 목록에서 <span class="btn">바탕 화면</span>을 눌러요.
+      <figure class="w72"><img src="img2/50_저장창.png" alt="내보내기 창"><figcaption>① 바탕 화면 ② 파일 이름(오늘 날짜가 붙어 있어요) ③ 저장. 창 모양은 컴퓨터에 따라 조금 다를 수 있어요.</figcaption></figure></li>
+    <li><b>보이는 것</b> 파일 이름 칸에 <code>알림판_단축키_1027.zip</code>처럼 오늘 날짜가 붙은 이름이 이미 들어 있어요. 그대로 두고 <span class="btn">저장</span>을 눌러요.</li>
+    <li><b>보이는 것</b> 꾸미기 창 맨 아래에 “내보냈어요: …”가 잠깐 보여요. 바탕화면에 그 이름의 파일이 생겨요.</li>
+    <li><b>누르기</b> 이 파일을 메신저나 메일에 붙여 보내요. 파일을 풀지 말고 <b>그대로</b> 보내요.</li>
+  </ol>
+  <div class="tip"><b>내 것도 지켜 두기</b> 학교 컴퓨터는 바뀌거나 처음 상태로 돌아갈 수 있어요. 내보낸 파일을 USB 메모리에 넣어 두세요. 나중에 가져오기로 금방 되살릴 수 있어요.</div>
+</section>
+
+<section id="p12b">
+  <h2><span class="no">과정 12</span>다른 선생님께 나누기(이어서)</h2>
+  <h3 class="big" style="margin-top:0">받는 사람 — 가져와서 보드로 보내기</h3>
+  <div class="note"><b>먼저</b> 받는 선생님 컴퓨터에도 도우미를 깔아 두세요(과정 2). 도우미 아이콘을 두 번 클릭해 꾸미기 창이 열리면 준비가 된 거예요.</div>
+  <ol class="steps">
+    <li><b>누르기</b> 받은 파일을 바탕화면에 저장해요. 이 파일은 압축 파일(여러 파일을 하나로 묶은 것, 이름 끝이 .zip)이에요. <b>풀지 마세요.</b></li>
+    <li><b>누르기</b> 꾸미기 창 <span class="btn">더보기 ▾</span> → <span class="btn">가져오기…</span>를 눌러요.</li>
+    <li><b>보이는 것</b> “단축키 설정 가져오기” 창이 열려요. 내보내기 창과 모양이 비슷해요. <b>누르기</b> <span class="btn">바탕 화면</span> → 받은 파일 → <span class="btn">열기</span>.</li>
+    <li><b>보이는 것</b> 저장하지 않은 고친 내용이 있으면 “저장하지 않은 고친 내용이 있어요. 가져오면 지금 16칸이 바뀌고 고친 내용은 사라져요. 가져올까요?”라고 물어요. 괜찮으면 <span class="btn">예</span>.</li>
+    <li><b>보이는 것</b> 16칸이 받은 대로 바뀌어요. 맨 아래에 “가져왔어요. 확인하고 [저장하고 보드에 보내기]를 누르세요. (이 컴퓨터에 없는 프로그램 칸은 대상을 고쳐 주세요)”가 보여요.</li>
+    <li><b>누르기</b> 칸을 하나씩 골라 <span class="btn">▶ 눌러 보기</span>를 눌러요. 열리지 않는 칸은 과정 5처럼 대상(무엇을 열지)을 고쳐요. 보낸 컴퓨터와 프로그램 자리가 다를 수 있어서 그래요.</li>
+    <li><b>누르기</b> 다 됐으면 <span class="btn">저장하고 보드에 보내기</span>를 눌러요(과정 11).</li>
+  </ol>
+  <div class="check"><b>잘 됐는지 확인</b> 받은 선생님의 꾸미기 창 16칸이 보낸 선생님 것과 같아요. 저장하고 보낸 뒤 보드 아래 줄에 “새 단축키를 받았습니다”가 보여요.</div>
+  <div class="fail"><b>이렇게 안 되면</b>
+    <ul>
+      <li>“알림판 단축키 설정 파일이 아니에요(deck.json 이 없어요).”(deck.json은 설정 파일 이름이에요) → 압축을 푼 폴더를 골랐어요. 받은 파일을 그대로 골라요.</li>
+      <li>“가져오지 못했어요: zip 파일이 깨져 있어요”(zip = 압축 파일) → 파일이 받는 중에 망가졌어요. 다시 받아요.</li>
+      <li>가져왔는데 보드는 그대로예요 → 아직 <span class="btn">저장하고 보드에 보내기</span>를 누르지 않았어요.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="p13">
+  <h2><span class="no">과정 13</span>문제 해결 순서도</h2>
+  <div class="goal"><b>이 과정의 목표</b> 증상을 고르고, 물음에 ‘예/아니요’로 따라가요. 끝에 할 일이 나와요.</div>
+  <p>순서도에서 <b>마름모</b>는 물음, <b>둥근 네모</b>는 할 일이에요. <b>초록 화살표</b>는 ‘예’, <b>빨간 화살표</b>는 ‘아니요’예요. 간단 설명서 15장(<a class="pg" href="#q15">14</a>쪽) 표는 짧은 답이고, 이 과정은 어디를 보면 되는지 차례로 알려 줘요.</p>
+
+  <h3>먼저, 기록 보기</h3>
+  <p>도우미는 하는 일을 날마다 적어 둬요. 이것을 <b>기록</b>이라고 해요. 막히면 기록의 맨 아래 줄을 보면 까닭을 알 수 있어요.</p>
+  <ol class="steps">
+    <li><b>누르기</b> 알림 영역의 도우미 아이콘을 오른쪽 클릭 → <span class="btn">기록 보기</span>.</li>
+    <li><b>보이는 것</b> 메모장이 열려요. 한 줄에 하나씩, 앞에 날짜와 시각이 있어요.</li>
+    <li><b>누르기</b> <span class="key">Ctrl</span>+<span class="key">End</span>를 눌러 맨 아래로 가요. 마지막 몇 줄을 읽어요.
+      <figure class="w80"><img src="img2/55_기록보기.png" alt="기록 보기"><figcaption>① 맨 아래 줄을 봐요. 앞의 날짜·시각 다음이 하는 일이에요.</figcaption></figure></li>
+  </ol>
+  <table>
+    <tr><th style="width:42%">기록에 보이는 글(앞부분)</th><th>뜻</th></tr>
+    <tr><td>포트 열어 봄: …</td><td>연결 구멍(포트)을 열어 보드를 찾아봤어요. 컴퓨터가 보드를 보고 있어요.</td></tr>
+    <tr><td>알림판 확인: … (7인치)</td><td>보드와 연결됐어요.</td></tr>
+    <tr><td>알림판 아님(답 없음, 1분 뒤 다시)</td><td>보드가 대답하지 않아요. 잠시 뒤 다시 찾아요.</td></tr>
+    <tr><td>열기: …</td><td>보드 단추가 눌려서 그 일을 했어요.</td></tr>
+    <tr><td>열기 실패: … (까닭)</td><td>열려고 했는데 못 했어요. 괄호 안이 까닭이에요.</td></tr>
+  </table>
+  <p class="small">‘…’ 자리의 글은 컴퓨터마다 달라요.</p>
+</section>
+
+<section>
+  <h3 style="margin-top:0">가. 도우미 아이콘이 회색에서 안 바뀌어요</h3>
+  <figure class="w80"><img src="img2/52_순서도_연결.png" alt="순서도 가"><figcaption>순서도 가 — 컴퓨터와 보드가 이어지지 않을 때. 같은 내용을 다음 쪽에 글로도 적었어요.</figcaption></figure>
+</section>
+<section>
+  <h3 style="margin-top:0">가. 순서도를 글로 읽기</h3>
+  <ol class="steps">
+    <li>작업 표시줄(화면 맨 아래 막대)에 도우미 아이콘이 없어요(<b>^</b> 안도 봐요) → 시작 메뉴에서 ‘교실알림판 도우미’를 눌러 켜요. 그래도 없으면 학교 백신(나쁜 프로그램을 막는 프로그램)이 막은 거예요. 예외 목록에 넣어 달라고 해요.</li>
+    <li>아이콘이 <b>주황</b>이에요 → 잠깐 멈춘 상태예요. 아이콘 오른쪽 클릭 → <span class="btn">잠깐 멈추기(보드 굽기 전에)</span>를 다시 눌러 꺼요.</li>
+    <li>7인치는 ‘UART’라고 적힌 단자(선을 꽂는 구멍)에 꽂았나요? 아니면 바꿔 꽂아요.</li>
+    <li>데이터 케이블인가요? 그 선으로 휴대폰을 컴퓨터에 꽂아 사진이 보이면 데이터 케이블이에요. 충전만 되는 선이면 바꿔요.</li>
+    <li>컴퓨터의 다른 USB 구멍에 꽂아 봐요.</li>
+    <li>기록에 “포트 열어 봄”(연결 구멍을 열어 봤다는 뜻)이 없어요 → 컴퓨터가 보드를 못 봐요. 7인치는 CH343 드라이버(보드를 쓰게 해 주는 작은 프로그램)가 필요할 수 있어요. 학교 정보 담당 선생님께 부탁해요.</li>
+    <li>기록에 “알림판 아님(답 없음…)”이 있어요 → 1분 기다려요. 그래도 안 되면 보드 프로그램이 예전 것이에요. 정보 담당 선생님께 새로 구워 달라고 부탁해요.</li>
+  </ol>
+</section>
+
+<section>
+  <h3 style="margin-top:0">나. 보드 단추를 눌러도 안 열려요</h3>
+  <figure class="w80"><img src="img2/53_순서도_단추.png" alt="순서도 나"><figcaption>순서도 나 — 연결은 됐는데 단추가 일을 안 할 때</figcaption></figure>
+  <ol class="steps">
+    <li>보드 단추가 모두 <b>흐리게</b> 보여요 → 도우미가 꺼져 있어요. 시작 메뉴에서 ‘교실알림판 도우미’를 눌러 켜요.</li>
+    <li>보드 아래 줄이 “컴퓨터와 연결됨”이 아니에요 → 순서도 가로 가요.</li>
+    <li>꾸미기 창에서 그 칸을 골라 <span class="btn">▶ 눌러 보기</span>를 눌러요. 여기서도 안 열려요 → 대상이 틀렸어요. 과정 5·6처럼 대상을 고쳐요.</li>
+    <li>단축키 칸이에요 → 단축키는 <b>맨 앞에 있는 창</b>에 들어가요. 보낼 프로그램 창을 먼저 한 번 눌러 두고 보드 단추를 눌러요. Win 키가 들어가면 ‘Win 키도 함께’를 켰는지 봐요(과정 7).</li>
+    <li>여러 동작 칸에서 일부만 돼요 → 앞 프로그램이 뜨기 전에 다음 동작이 와서 그래요. ‘다음 동작까지 기다리기’를 1~2초 늘려요(과정 8).</li>
+  </ol>
+
+  <h3>다. 보드에 새 아이콘이 안 가요</h3>
+  <figure class="w80"><img src="img2/54_순서도_보내기.png" alt="순서도 다"><figcaption>순서도 다 — 저장했는데 보드 그림이 그대로일 때</figcaption></figure>
+  <ol class="steps">
+    <li><span class="btn">저장하고 보드에 보내기</span>를 눌렀나요? 아니면 눌러요.</li>
+    <li>눌렀어요 → 꾸미기 창 맨 아래 글을 읽어요. 과정 11 ‘이렇게 안 되면’ 표에서 같은 글을 찾아요.</li>
+  </ol>
+
+  <h3>그 밖에</h3>
+  <table>
+    <tr><th style="width:46%">보이는 것</th><th>할 일</th></tr>
+    <tr><td>설정 파일이 깨져 있어 기본값으로 시작해요(원본은 deck.json.broken).<br><span class="small">deck.json은 설정 파일 이름이에요.</span></td><td>16칸이 처음 상태로 돌아갔어요. 내보내 둔 파일이 있으면 가져오기로 되살려요(과정 12).</td></tr>
+    <tr><td>내 그림 아이콘이 틀 안에서 하얗게 보여요</td><td>그림 배경이 투명하지 않아서 그래요. 과정 9를 봐요.</td></tr>
+  </table>
+</section>
+
+<section id="p14">
+  <h2><span class="no">과정 14</span>자주 묻는 질문</h2>
+  <h3>관리자 권한이 필요한가요?</h3>
+  <p>아니요. 보통 선생님 계정으로 깔고 쓸 수 있어요.</p>
+  <h3>인터넷이 꼭 있어야 하나요?</h3>
+  <p>세 가지 때만 있으면 돼요. 도우미를 받을 때, ‘사이트 열기’ 칸을 누를 때, ‘사이트 아이콘 받기’를 할 때예요. 나머지는 인터넷 없이 돼요.</p>
+  <h3>컴퓨터를 끄면 보드는 어떻게 되나요?</h3>
+  <p>도우미가 보드에 알려 줘요. 그러면 보드도 화면을 꺼요(간단 설명서 1장(<a class="pg" href="#q1">3</a>쪽)).</p>
+  <h3>칸을 바꿀 때마다 보드를 다시 구워야 하나요?</h3>
+  <p>아니요. <span class="btn">저장하고 보드에 보내기</span>만 누르면 돼요. 굽기는 보드 프로그램이 예전 것일 때만 해요.</p>
+  <h3>7인치와 4인치를 함께 꽂아도 되나요?</h3>
+  <p>돼요. 두 보드에 같은 16칸이 가요. 꾸미기 창 맨 아래 글에 “보드: 7인치 … / 4인치 …”처럼 둘 다 보여요.</p>
+  <h3>다른 컴퓨터로 옮기고 싶어요.</h3>
+  <p>내 컴퓨터에서 내보내고, 새 컴퓨터에서 도우미를 깐 뒤 가져와요(과정 12).</p>
+  <h3>학교 컴퓨터가 켤 때마다 처음 상태로 돌아가요.</h3>
+  <p>도우미와 꾸민 설정이 지워질 수 있어요. 내보낸 파일을 USB 메모리에 넣어 두세요. 지워지면 도우미를 다시 깔고 그 파일을 가져와요.</p>
+  <h3>‘글자 넣기’를 쓰면 복사해 둔 것이 바뀌나요?</h3>
+  <p>네. 글자를 복사해서 붙여 넣는 방식이라, 원래 복사해 둔 내용이 바뀌어요.</p>
+  <h3>칸 이름은 몇 자까지 되나요?</h3>
+  <p>한글 6자 안쪽이 좋아요. 더 길면 끝이 잘려요. 이모지·한자·특수 기호는 보드에 나오지 않아요.</p>
+  <h3>보드 단추가 흐리게 보여요.</h3>
+  <p>컴퓨터의 도우미가 꺼져 있다는 뜻이에요. 시작 메뉴에서 ‘교실알림판 도우미’를 눌러 켜요.</p>
+  <h3>잠깐 끄고 싶어요. 아예 지우고 싶어요.</h3>
+  <p>간단 설명서 14장(<a class="pg" href="#q14">14</a>쪽)을 봐요. 잠깐 끄기는 도우미 아이콘 오른쪽 클릭 → <span class="btn">끝내기</span>예요. 지우기는 도우미를 받을 때 받은 압축 파일 안의 <b>끄기.bat</b>(도우미를 끄고 지우는 파일)을 두 번 클릭해요.</p>
+  <h3>설명서를 다시 보고 싶어요.</h3>
+  <p>꾸미기 창 위 띠의 <span class="btn">설명서 ▾</span> → <span class="btn">설명서 보기(그림과 따라 하기)</span>를 눌러요. <span class="key">F1</span>을 눌러도 돼요. 인터넷에서는 penedu.web.app/deck 에 있어요.</p>
+</section>
+
+<section id="p15">
+  <h2><span class="no">과정 15</span>낱말 풀이</h2>
+  <p>이 설명서에 나오는 낱말을 가나다 차례로 모았어요.</p>
+  <table style="break-inside:auto">
+    <tr><th style="width:22%">낱말</th><th>쉬운 뜻</th><th class="c" style="width:14%">나온 곳</th></tr>
+    <tr><td>경로</td><td>파일이 있는 자리를 적은 주소예요. 예) 바탕 화면 안의 수업 폴더</td><td class="c"><a href="#p5">과정 5</a></td></tr>
+    <tr><td>굽기</td><td>보드에 보드 프로그램을 새로 넣는 일이에요. 칸을 바꿀 때는 하지 않아요.</td><td class="c"><a href="#p3">과정 3</a></td></tr>
+    <tr><td>기록</td><td>도우미가 한 일을 차례로 적어 둔 글이에요. <span class="btn">기록 보기</span>로 열어요.</td><td class="c"><a href="#p13">과정 13</a></td></tr>
+    <tr><td>기본 브라우저</td><td>주소를 누르면 저절로 열리는 인터넷 창이에요.</td><td class="c"><a href="#p6">과정 6</a></td></tr>
+    <tr><td>꾸미기 창</td><td>‘단축키 꾸미기’ 창을 줄인 이름이에요. 16칸을 꾸미는 창이에요.</td><td class="c"><a href="#p4">과정 4</a></td></tr>
+    <tr><td>끌어다 놓기</td><td>마우스 왼쪽 단추를 누른 채 옮긴 뒤 손을 떼는 일이에요.</td><td class="c"><a href="#p5">과정 5</a></td></tr>
+    <tr><td>나이스</td><td>학교 업무를 보는 교육 행정 사이트예요.</td><td class="c"><a href="#p6">과정 6</a></td></tr>
+    <tr><td>내보내기·가져오기</td><td>16칸을 파일 하나로 저장하기, 그 파일을 다시 불러오기예요.</td><td class="c"><a href="#p12">과정 12</a></td></tr>
+    <tr><td>누르기(클릭)</td><td>마우스 왼쪽 단추를 한 번 누르는 일이에요. 보드에서는 손가락으로 누르는 일이에요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>단자</td><td>선을 꽂는 구멍이에요. 7인치는 ‘UART’라고 적힌 단자를 써요.</td><td class="c"><a href="#p1">과정 1</a></td></tr>
+    <tr><td>단축키</td><td>여러 키를 함께 눌러 한 번에 일을 시키는 방법이에요. 예) <span class="key">Ctrl</span>+<span class="key">C</span> 복사</td><td class="c"><a href="#p7">과정 7</a></td></tr>
+    <tr><td>대상</td><td>칸을 누르면 무엇을 열지 적는 곳이에요.</td><td class="c"><a href="#p5">과정 5</a></td></tr>
+    <tr><td>데이터 케이블</td><td>충전뿐 아니라 내용도 주고받을 수 있는 선이에요.</td><td class="c"><a href="#p1">과정 1</a></td></tr>
+    <tr><td>도우미</td><td>컴퓨터에 까는 이 프로그램이에요. 보드 단추를 받아 일을 해 줘요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>도우미 아이콘</td><td>작업 표시줄 오른쪽 끝에 있는 둥근 네모 아이콘이에요. 회색·초록·주황으로 상태를 알려 줘요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>두 번 클릭</td><td>마우스 왼쪽 단추를 빠르게 두 번 누르는 일이에요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>드라이버</td><td>컴퓨터가 장치를 쓸 수 있게 해 주는 작은 프로그램이에요. 7인치는 CH343 드라이버가 필요할 수 있어요.</td><td class="c"><a href="#p13">과정 13</a></td></tr>
+    <tr><td>모음</td><td>도우미에 들어 있는 아이콘 205개예요. 골라서 칸에 넣어요.</td><td class="c"><a href="#p9">과정 9</a></td></tr>
+    <tr><td>묶음</td><td>비슷한 것끼리 모아 둔 무리예요. 한 번에 채우기 메뉴와 동작 목록에서 써요.</td><td class="c"><a href="#p7">과정 7</a></td></tr>
+    <tr><td>바로 가기</td><td>프로그램이나 파일을 여는 작은 아이콘이에요. 바탕화면에 많이 있어요.</td><td class="c"><a href="#p5">과정 5</a></td></tr>
+    <tr><td>백신</td><td>나쁜 프로그램을 막는 프로그램이에요. 가끔 도우미도 막아요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>보드</td><td>교실 알림판 기계예요. 7인치와 4인치가 있어요.</td><td class="c"><a href="#p1">과정 1</a></td></tr>
+    <tr><td>보드 프로그램</td><td>보드 안에 들어 있는 프로그램이에요. 새로 넣는 일을 굽기라고 해요.</td><td class="c"><a href="#p11">과정 11</a></td></tr>
+    <tr><td>브라우저</td><td>인터넷 창이에요. 엣지·크롬·웨일 같은 것이에요.</td><td class="c"><a href="#p6">과정 6</a></td></tr>
+    <tr><td>실행 파일</td><td>두 번 누르면 프로그램이 켜지는 파일이에요. 이름 끝이 .exe 예요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>아이콘 모양(테마)</td><td>모음 아이콘의 색과 모양을 한꺼번에 바꾸는 꾸밈이에요.</td><td class="c"><a href="#p10">과정 10</a></td></tr>
+    <tr><td>알림 영역</td><td>작업 표시줄 오른쪽 끝, 시계 옆이에요. 도우미 아이콘이 여기 있어요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>압축 파일</td><td>여러 파일을 하나로 묶은 파일이에요. 이름 끝이 .zip 이에요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>엣지</td><td>윈도에 처음부터 들어 있는 인터넷 창이에요.</td><td class="c"><a href="#p6">과정 6</a></td></tr>
+    <tr><td>여러 동작</td><td>칸 하나를 누르면 여러 일을 차례대로 하게 하는 기능이에요.</td><td class="c"><a href="#p8">과정 8</a></td></tr>
+    <tr><td>오른쪽 클릭</td><td>마우스 오른쪽 단추를 한 번 누르는 일이에요. 메뉴가 나와요.</td><td class="c"><a href="#p3">과정 3</a></td></tr>
+    <tr><td>작업 표시줄</td><td>화면 맨 아래 막대예요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>정보 담당 선생님</td><td>학교 컴퓨터를 맡은 선생님이에요. 백신·드라이버·굽기를 부탁해요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>칸</td><td>보드 단추 하나예요. 1번부터 16번까지 있어요.</td><td class="c"><a href="#p4">과정 4</a></td></tr>
+    <tr><td>탐색기</td><td>파일과 폴더를 보는 윈도 창(폴더 창)이에요.</td><td class="c"><a href="#p3">과정 3</a></td></tr>
+    <tr><td>투명 배경</td><td>그림의 바탕이 비어 있는 것이에요. 아이콘 그림은 투명 배경이 좋아요.</td><td class="c"><a href="#p9">과정 9</a></td></tr>
+    <tr><td>틀에 넣기</td><td>기호만 있는 내 그림에 다른 칸과 같은 어두운 테두리를 씌우는 일이에요.</td><td class="c"><a href="#p9">과정 9</a></td></tr>
+    <tr><td>펼침 단추</td><td>누르면 고를 목록이 아래로 펼쳐지는 단추예요.</td><td class="c"><a href="#p8">과정 8</a></td></tr>
+    <tr><td>포트</td><td>컴퓨터가 장치와 이어지는 연결 구멍이에요. 기록에 ‘포트 열어 봄’으로 나와요.</td><td class="c"><a href="#p13">과정 13</a></td></tr>
+    <tr><td>풍선 알림</td><td>화면 오른쪽 아래에 잠깐 떴다 사라지는 작은 알림이에요.</td><td class="c"><a href="#p2">과정 2</a></td></tr>
+    <tr><td>UART · USB-C</td><td>보드 단자 이름이에요. 7인치는 ‘UART’라고 적힌 단자, 4인치는 USB-C 단자에 꽂아요.</td><td class="c"><a href="#p1">과정 1</a></td></tr>
+  </table>
+  <p class="small" style="margin-top:6mm">‘나온 곳’은 그 낱말이 처음 자세히 나오는 과정이에요.</p>
 </section>
 
 </body>
