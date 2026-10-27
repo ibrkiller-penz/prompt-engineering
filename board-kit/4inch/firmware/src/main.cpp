@@ -2201,7 +2201,7 @@ static void showDeckHelp() {
 static void deckStateText() {
   if (!s_deckState || s_deckUp) return;   // 받는 중에는 진행 글을 그대로 둔다
   setTextIf(s_deckState, s_usbOn ? LV_SYMBOL_OK "  컴퓨터와 연결됨 · 단추를 누르면 컴퓨터에서 프로그램이 열립니다"
-                                 : LV_SYMBOL_WARNING "  컴퓨터의 탭덱을 기다리는 중 · 처음이면 컴퓨터에서 " DECK_HELP_URL " 로 받아요");
+                                 : LV_SYMBOL_WARNING "  탭덱을 기다리는 중 · 처음이면\n" DECK_HELP_URL " 에서 받아요");
   setTextColIf(s_deckState, s_usbOn ? C_OK : D_MUTED);   // 기다리는 것은 문제가 아니다(노랑은 '지금'·문제에만)
 }
 static void deckIconsDim() {   // 도우미가 꺼져 있으면 아이콘을 흐리게(누를 수 없다는 뜻)
