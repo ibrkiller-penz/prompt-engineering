@@ -247,6 +247,19 @@ const ICONS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
       </g>
     ),
   },
+  // 팝도장 — 도장 손잡이와 찍힌 동그라미
+  "/popstamp/": {
+    from: "#2e9c90",
+    to: "#a8322d",
+    glyph: (
+      <g fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 7c-5 0-6 4-5 8 1 5 7 7 9 11h4c2-4 8-6 9-11 1-4 0-8-5-8z" fill="rgba(255,255,255,.25)" />
+        <path d="M14 33v-3c0-2 2-4 4-4h12c2 0 4 2 4 4v3z" />
+        <path d="M12 37h24" strokeWidth="3.4" />
+        <circle cx="38" cy="38" r="5" strokeWidth="2.4" />
+      </g>
+    ),
+  },
 };
 
 // 전체 주소(https://…/aimath/)와 끝 슬래시 차이를 흡수해서 아이콘을 찾는다

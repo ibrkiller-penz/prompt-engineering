@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팝도장 활동지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5EFE0; --ink:#1C1A17; --soft:#4E473C; --line:#BDB29A; --faint:#E2D9C4;
+  --p1:#2E5D6B; --p2:#B5652A; --p3:#5A3F7A; --red:#A8322D;
+  --serif:"Noto Serif KR",serif; --sans:"Pretendard","Malgun Gothic",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#d9d2c1}
+body{font-family:var(--sans);color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page{size:A4 portrait;margin:0}
+.page{width:210mm;height:297mm;padding:12mm 13mm 11mm;background:#fff;margin:8mm auto;display:flex;flex-direction:column;gap:4.2mm;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+@media print{html{background:#fff}.page{margin:0;box-shadow:none;page-break-after:always}.page:last-child{page-break-after:auto}.no-print{display:none!important}}
+
+.top{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2.4px solid var(--ink);padding-bottom:3mm}
+.top .t small{display:block;font:700 10pt var(--sans);color:var(--soft);letter-spacing:.02em}
+.top .t h1{font:900 21pt var(--serif);line-height:1.2}
+.top .t h1 em{font-style:normal;background:linear-gradient(transparent 58%,#FFD43B 58%)}
+.who{display:flex;gap:4mm;font:700 10.5pt var(--sans)}
+.who span{display:flex;align-items:flex-end;gap:2mm}
+.who i{display:inline-block;border-bottom:1.2px solid var(--ink);height:6mm}
+
+.sec{border:1.4px solid var(--line);border-radius:3.5mm;padding:3.2mm 4mm}
+.sec h2{font:700 12.5pt var(--sans);display:flex;align-items:center;gap:2.2mm;margin-bottom:2.2mm}
+.sec h2 b{display:inline-grid;place-items:center;width:6.4mm;height:6.4mm;border-radius:50%;color:#fff;font:800 10pt var(--sans);background:var(--p1)}
+.sec h2 small{font:500 9pt var(--sans);color:var(--soft);margin-left:auto}
+.sec.c2 h2 b{background:var(--p2)} .sec.c3 h2 b{background:var(--p3)} .sec.cr h2 b{background:var(--red)}
+.ln{display:flex;align-items:flex-end;gap:2.5mm;font:600 10.5pt var(--sans);height:8.6mm}
+.ln i{flex:1;border-bottom:1px solid var(--line);height:100%}
+.ln.big{height:10.5mm}
+.hint{font:500 8.8pt var(--sans);color:var(--soft)}
+
+.row{display:flex;gap:4mm}
+.ck{display:flex;flex-direction:column;gap:2mm}
+.ck label{display:flex;align-items:center;gap:2.2mm;font:600 10.5pt var(--sans)}
+.ck label::before{content:"";width:4.4mm;height:4.4mm;border:1.4px solid var(--ink);border-radius:1mm;flex:none}
+.ck label small{font:500 8.8pt var(--sans);color:var(--soft)}
+
+.draw{flex:none;width:96mm;display:flex;flex-direction:column;align-items:center;gap:1.5mm}
+.draw svg{width:96mm;height:96mm}
+.idea{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}
+.idea div{border:1.2px dashed var(--line);border-radius:2.5mm;padding:2.2mm 2.6mm;height:25mm}
+.idea div b{font:800 10.5pt var(--sans);display:block}
+.idea div span{font:500 8.6pt var(--sans);color:var(--soft)}
+
+.prints{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.prints div{border:1.4px dashed var(--line);border-radius:3mm;height:56mm;position:relative;display:flex;align-items:flex-start;justify-content:center;padding-top:2mm;font:700 10pt var(--sans);color:var(--soft)}
+.prints div::after{content:"";position:absolute;left:50%;top:55%;width:34mm;height:34mm;transform:translate(-50%,-50%);border:1px dotted #d4cab3;border-radius:50%}
+.prob{display:grid;grid-template-columns:repeat(5,1fr);gap:2.4mm;margin-bottom:2mm}
+.prob label{border:1.2px solid var(--line);border-radius:2.5mm;padding:2mm 1.6mm;display:flex;flex-direction:column;align-items:center;gap:1.2mm;font:700 9.4pt var(--sans);text-align:center;line-height:1.25}
+.prob label::before{content:"";width:4mm;height:4mm;border:1.4px solid var(--ink);border-radius:1mm}
+.prob svg{width:100%;height:11mm}
+.three{display:flex;flex-direction:column;gap:1.2mm}
+.friends{display:flex;gap:4mm;align-items:stretch}
+.friends .st{flex:1.2;border:1.4px dashed var(--line);border-radius:3mm;padding:2.4mm 3mm;font:700 10pt var(--sans);color:var(--soft)}
+.friends .fs{flex:1;display:flex;flex-direction:column;gap:1.5mm;font:700 10pt var(--sans);color:var(--soft)}
+.friends .fs .c{display:flex;gap:3mm}
+.friends .fs .c i{width:21mm;height:21mm;border-radius:50%;border:1.2px dashed var(--line)}
+.foot{margin-top:auto;display:flex;justify-content:space-between;font:500 8pt var(--sans);color:#8a8070;border-top:1px solid var(--faint);padding-top:1.6mm}
+.bar{position:fixed;top:10px;right:10px;display:flex;gap:8px;z-index:9}
+.bar button{font:700 14px var(--sans);padding:10px 16px;border-radius:8px;border:2px solid #1F3A6B;background:#1F3A6B;color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="bar no-print"><button onclick="window.print()">인쇄 · PDF 저장</button></div>
+
+<!-- ========== 앞면: 내 도장 설계 ========== -->
+<section class="page">
+  <header class="top">
+    <div class="t"><small>나만의 팝도장 만들기 · 활동지 앞면</small><h1>내 도장 <em>설계</em>하기</h1></div>
+    <div class="who"><span>번호 <i style="width:13mm"></i></span><span>이름 <i style="width:30mm"></i></span></div>
+  </header>
+
+  <div class="sec">
+    <h2><b>1</b>내 도장 이름 <small>“이건 내 거야!”를 알려 주는 이름</small></h2>
+    <div class="ln big"><i></i></div>
+  </div>
+
+  <div class="sec">
+    <h2><b>2</b>누가, 어디에, 왜 쓸까요? <small>그리기 전에 먼저 생각해요</small></h2>
+    <div class="ln">누가 <i></i></div>
+    <div class="ln">어디에 <i></i></div>
+    <div class="ln">왜 (어떤 불편을 풀까요?) <i></i></div>
+  </div>
+
+  <div class="sec" style="flex:1">
+    <h2><b>3</b>밑그림 그리기 <small>점선 안쪽에 그려요</small></h2>
+    <div class="row">
+      <div class="draw">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="96" fill="none" stroke="#1C1A17" stroke-width="2.4"/>
+          <circle cx="100" cy="100" r="77" fill="none" stroke="#BDB29A" stroke-width="1.2" stroke-dasharray="4 4"/>
+          <path d="M100 18v8M100 174v8M18 100h8M174 100h8" stroke="#BDB29A" stroke-width="1"/>
+        </svg>
+        <span class="hint">바깥 동그라미 = 도장 크기 · 점선 = 잉크가 닿는 안전한 곳</span>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4mm">
+        <div>
+          <p style="font:800 11pt var(--sans);margin-bottom:2mm">약속 3가지 체크</p>
+          <div class="ck">
+            <label>새까만 검정만 <small>(회색·색깔 ✕)</small></label>
+            <label>선은 굵게 <small>(사인펜 굵기 이상)</small></label>
+            <label>선으로 단순하게 <small>(꽉 칠하기·작은 무늬 ✕)</small></label>
+          </div>
+        </div>
+        <svg viewBox="0 0 230 70" style="width:100%;height:22mm" aria-hidden="true">
+          <g font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="11" text-anchor="middle">
+            <path d="M38 12 C24 0 4 10 8 26 C12 40 38 52 38 52 C38 52 64 40 68 26 C72 10 52 0 38 12Z" fill="#1C1A17"/>
+            <text x="38" y="66" fill="#A8322D">꽉 채움 ✕</text>
+            <path d="M115 12 C101 0 81 10 85 26 C89 40 115 52 115 52 C115 52 141 40 145 26 C149 10 129 0 115 12Z" fill="none" stroke="#1C1A17" stroke-width="1"/>
+            <text x="115" y="66" fill="#A8322D">얇은 선 ✕</text>
+            <path d="M192 12 C178 0 158 10 162 26 C166 40 192 52 192 52 C192 52 218 40 222 26 C226 10 206 0 192 12Z" fill="none" stroke="#1C1A17" stroke-width="5" stroke-linejoin="round"/>
+            <text x="192" y="66" fill="#2E5D6B">굵은 선 ○</text>
+          </g>
+        </svg>
+        <div>
+          <p style="font:800 11pt var(--sans);margin-bottom:2mm">그림은 이렇게 만들어요</p>
+          <div class="ck">
+            <label>A. 종이에 직접 그리기</label>
+            <label>B. 오토드로우로 그리기</label>
+            <label>C. AI에게 부탁 <small>(선생님과 함께)</small></label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec c3">
+    <h2><b>4</b>발명 생각 <small>잉크 기다리는 동안 하나만 써도 좋아요</small></h2>
+    <div class="idea">
+      <div><b>＋ 더하기</b><span>도장 + 날짜, 도장 + 칭찬 말</span></div>
+      <div><b>－ 빼기</b><span>잉크 패드를 뺐더니 → 팝도장!</span></div>
+      <div><b>↻ 바꾸기</b><span>모양 · 크기 · 쓰는 사람</span></div>
+    </div>
+  </div>
+
+  <footer class="foot"><span>다 그렸으면 도안 생성기(happystamp.web.app)에서 도안을 만들어요</span><span>앞면 · 1차시</span></footer>
+</section>
+
+<!-- ========== 뒷면: 찍어 보고 고치기 ========== -->
+<section class="page">
+  <header class="top">
+    <div class="t"><small>나만의 팝도장 만들기 · 활동지 뒷면</small><h1>찍어 보고 <em>고치기</em></h1></div>
+    <div class="who"><span>번호 <i style="width:13mm"></i></span><span>이름 <i style="width:30mm"></i></span></div>
+  </header>
+
+  <div class="sec c2">
+    <h2><b>1</b>내 도장 찍어 보기 <small>연습 종이에 여러 번 찍고, 여기에도 찍어요</small></h2>
+    <div class="prints">
+      <div>처음 찍은 것</div>
+      <div>제일 잘 나온 것</div>
+    </div>
+  </div>
+
+  <div class="sec cr">
+    <h2><b>2</b>이상했던 점이 있었나요? <small>원인을 알면 다음엔 성공해요</small></h2>
+    <div class="prob">
+      <label><svg viewBox="0 0 80 30"><rect x="6" y="8" width="68" height="16" rx="8" fill="#3F424A"/><ellipse cx="26" cy="14" rx="7" ry="3" fill="#8F68C6"/><ellipse cx="52" cy="16" rx="9" ry="3.5" fill="#8F68C6"/></svg>잉크가<br>위에 떠요</label>
+      <label><svg viewBox="0 0 80 30"><text x="40" y="24" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="800" font-size="22" fill="#5A3F7A" transform="translate(80 0) scale(-1 1)">냥냥</text></svg>글씨가<br>거꾸로예요</label>
+      <label><svg viewBox="0 0 80 30"><rect x="24" y="2" width="32" height="26" fill="none" stroke="#5A3F7A" stroke-width="2" opacity=".6"/><circle cx="40" cy="15" r="10" fill="none" stroke="#5A3F7A" stroke-width="3"/></svg>네모 자국이<br>생겨요</label>
+      <label><svg viewBox="0 0 80 30"><path d="M8 18 Q24 6 40 18" stroke="#5A3F7A" stroke-width="2" fill="none"/><path d="M46 18 Q58 26 72 18" stroke="#5A3F7A" stroke-width="2" fill="none" stroke-dasharray="2 6"/></svg>선이<br>사라졌어요</label>
+      <label><svg viewBox="0 0 80 30"><path d="M26 16 L36 25 L56 6" stroke="#2E5D6B" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>없었어요<br>잘 나왔어요</label>
+    </div>
+    <div class="ln">원인은? <i></i></div>
+  </div>
+
+  <div class="sec c3" style="flex:1">
+    <h2><b>3</b>돌아보기 세 칸 <small>발명가는 원인 찾기 → 고치기를 반복해요</small></h2>
+    <div class="three">
+      <div class="ln">① 내 도장은 누구의 어떤 불편을 풀었나요?</div>
+      <div class="ln"><i></i></div>
+      <div class="ln">② 잘 안 된 점과 그 원인은?</div>
+      <div class="ln"><i></i></div>
+      <div class="ln">③ 다음엔 무엇을 더하고 · 빼고 · 바꿀까요?</div>
+      <div class="ln"><i></i></div>
+    </div>
+  </div>
+
+  <div class="friends">
+    <div class="st">친구 작품 구경하기<br><span class="hint">친구가 붙여 준 “잘된 점” 스티커 자리</span></div>
+    <div class="fs">친구가 찍어 준 도장<div class="c"><i></i><i></i><i></i></div></div>
+  </div>
+
+  <footer class="foot"><span>다 쓰면 선생님께 내요 · 집에서 가족 카드에 찍어 줘도 좋아요</span><span>뒷면 · 2차시</span></footer>
+</section>
+</body>
+</html>
