@@ -49,7 +49,7 @@ export default function BoardHome() {
               ["🍚", "급식", "나이스 급식 정보 (학교 코드만 넣으면 돼요)"],
               ["🏫", "교장실 모드", "학교 일정 사이트와 연동해 오늘·다가오는 일정, 학사 D-day, 지금 수업 중인 선생님 수"],
               ["🔋", "배터리 표시", "7인치 B·4인치는 배터리 남은 양과 충전 중을 보여 줘요"],
-              ["⌨️", "단축키", "아이콘 16개를 누르면 컴퓨터의 프로그램·사이트가 열려요(컴퓨터에 작은 탭덱을 켜 둬요)"],
+              ["⌨️", "단축키", "아이콘 16개를 누르면 컴퓨터의 프로그램·사이트가 열려요(컴퓨터에 탭덱을 켜 둬요 — 아래 ‘단축키와 탭덱’)"],
             ].map(([i, t, d]) => (
               <li key={t} className="rounded-card border border-line bg-surface p-4">
                 <p className="font-bold">
@@ -126,6 +126,33 @@ export default function BoardHome() {
 
       <H3>4인치 화면 예시</H3>
       <ScreenPreview4 />
+
+      <H2 id="tapdeck">단축키와 탭덱</H2>
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
+        보드의 단축키 단추를 누르면 <b>컴퓨터의 프로그램·사이트</b>가 열려요. 보드를 꽂은 윈도 컴퓨터에 작은 프로그램 <b>탭덱(TapDeck)</b>을 켜 두면 되고,
+        16칸의 이름·그림·하는 일을 <b>스트림덱처럼</b> 마음대로 바꿔 보드로 보낼 수 있어요(보드는 다시 굽지 않아요).
+      </p>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <figure>
+          <img src="/board/tapdeck-board.png" alt="보드의 단축키 화면: 탐색기·나이스·유튜브·한글 등 16칸" className="w-full rounded-card border border-line" loading="lazy" />
+          <figcaption className="mt-1.5 text-sm text-muted">보드 — 단추를 누르면 컴퓨터에서 바로 열려요</figcaption>
+        </figure>
+        <figure>
+          <img src="/board/deck-helper-screen.png" alt="탭덱의 단축키 꾸미기 창: 보드 모양 미리보기, 오른쪽 동작 목록, 아래 칸 설정" className="w-full rounded-card border border-line" loading="lazy" />
+          <figcaption className="mt-1.5 text-sm text-muted">컴퓨터 — 탭덱에서 칸을 끌어다 놓아 꾸며요</figcaption>
+        </figure>
+      </div>
+      <p className="mt-3 max-w-3xl 2xl:max-w-4xl text-[0.95rem] text-muted">
+        예) 한 칸을 <b>‘수업 시작’</b>으로: 파워포인트 열기 → 2초 → 나이스 열기 → 소리 끄기를 한 번에. 아이콘 모음 205개, 단축키 눌러서 넣기, 설명서와 따라 하기 안내가 들어 있어요.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link to="/deck" className="inline-flex min-h-[44px] items-center rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110">
+          ⬇ 탭덱 받기
+        </Link>
+        <a href="/board/manual/index.html" target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center rounded-card border border-line bg-surface px-4 font-semibold hover:border-accent">
+          📘 설명서 보기
+        </a>
+      </div>
 
       <H2 id="principal">교장실 모드</H2>
       <p className="mt-3 max-w-3xl 2xl:max-w-4xl leading-relaxed">
@@ -206,30 +233,11 @@ export default function BoardHome() {
       <p className="mt-3 text-sm text-muted">
         압축은 <b>영문 경로</b>(예: <code>C:\dev</code>)에 풀어 주세요. 한글 폴더에서는 빌드가 멈춰요.
       </p>
-      <div className="mt-4 flex flex-col rounded-card border border-line bg-surface p-4">
-        <p className="font-extrabold">⌨️ 탭덱 · PC용 exe (7인치·4인치 공통)</p>
-        <p className="mt-1 text-sm leading-relaxed text-muted">
-          보드를 꽂은 <b>윈도 컴퓨터</b>에 까는 작은 프로그램이에요. <b>탭덱.exe</b> 하나만 더블클릭하면 끝(관리자 권한 필요 없음).
-          작업 표시줄에 아이콘이 생기고 보드와 이어지면 초록으로 바뀌어요. 아이콘 오른쪽 클릭 → <b>[단축키 꾸미기…]</b>에서 16칸을 스트림덱처럼
-          꾸며 보드로 보내요(아이콘 모음 205개 · 한 번에 채우기 · 내보내기/가져오기).{kits.helperExe?.bytes ? ` · ${mb(kits.helperExe.bytes)}` : ""}
-        </p>
-        <img
-          src="/board/deck-helper-screen.png"
-          alt="단축키 꾸미기 창: 가운데 보드 미리보기, 오른쪽 동작 목록, 아래 칸 설정"
-          className="mt-3 w-full max-w-2xl rounded-card border border-line"
-          loading="lazy"
-        />
-        <p className="mt-2 text-sm leading-relaxed">
-          짧은 주소: <Link to="/deck" className="font-bold text-accent underline">penedu.web.app/deck</Link> — 탭덱이 없을 때 보드에서 단축키를 누르면 이
-          주소가 화면에 떠요. 받는 방법과 쓰는 법이 거기에 차례대로 있어요.
-        </p>
-        <Link
-          to="/deck"
-          className="mt-3 inline-flex min-h-[44px] items-center justify-center self-start rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110"
-        >
-          ⬇ 탭덱 받기 · 안내 보기
-        </Link>
-      </div>
+      <p className="mt-4 rounded-card border border-line bg-surface p-4 text-sm leading-relaxed">
+        <b>⌨️ 탭덱(단축키 PC 프로그램)</b>은 따로 받아요 →{" "}
+        <Link to="/deck" className="font-bold text-accent underline">penedu.web.app/deck</Link>
+        {kits.helperExe?.bytes ? ` (${mb(kits.helperExe.bytes)})` : ""} · 위 <a href="#tapdeck" className="font-semibold text-accent underline">단축키와 탭덱</a> 참고
+      </p>
 
       <H2>시작하기 전에 알아 둘 것</H2>
       <Callout tone="bad" title="시간표를 올릴 때 개인정보">

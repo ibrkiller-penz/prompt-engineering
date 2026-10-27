@@ -85,6 +85,6 @@ board-kit\
 | 화면에 "설정 필요"가 보임 | `board_config.h` 에서 비워 둔 값(급식·위치). 나머지 기능은 정상 |
 | 시간표 주소 설정 필요 | `BOARD_BASE_URL` 의 `YOUR-SITE-ID` 를 내 사이트 ID 로 |
 
-자료 형식을 알고 싶으면 `common\tools\data-format.md`, AI 탭덱용 지시서는 `CLAUDE.md` 입니다.
+자료 형식을 알고 싶으면 `common\tools\data-format.md`, AI 도우미용 지시서는 `CLAUDE.md` 입니다.
 
 > 이 키트의 화면 글꼴은 Pretendard(SIL OFL), 화면 라이브러리는 LVGL(MIT)·Espressif ESP32_Display_Panel 등(Apache-2.0)입니다. 각 라이선스 파일이 `firmware\fonts\src`, `firmware\lib\*` 에 들어 있습니다.

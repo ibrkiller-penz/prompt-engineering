@@ -50,7 +50,7 @@ export default function Buy() {
             <li>화면: 4인치 <b>480×480</b> 정사각, 정전식 터치</li>
             <li>칩: ESP32-S3, <b>플래시 16MB + PSRAM 8MB</b> (N16R8)</li>
             <li>와이파이 2.4GHz · 블루투스</li>
-            <li>시계(RTC)·microSD·RS485·CAN, 백라이트·리셋을 맡는 탭덱 칩(CH32V003) 포함</li>
+            <li>시계(RTC)·microSD·RS485·CAN, 백라이트·리셋을 맡는 도우미 칩(CH32V003) 포함</li>
           </ul>
           <Callout tone="warn" title="버전(V4.0)을 확인하세요">
             <p>

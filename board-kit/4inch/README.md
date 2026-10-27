@@ -71,7 +71,7 @@ powershell -ExecutionPolicy Bypass -File tools\build_board.ps1
 | ① 시계 | 큰 시계, 날짜, 수능 D-day, 오늘·내일 날씨와 미세먼지, 지금/다음 수업, 점심·저녁 |
 | ② 오늘 시간표 | 1~7교시와 점심. 지금 교시는 흰 줄, 곧 들어갈 수업은 노란 테두리 |
 | ③ 주간 시간표 | 월~금 × 7교시. 오른쪽 위 ◀ ▶ 로 주 넘기기 |
-| ④ 단축키 | 아이콘 16개 — 누르면 컴퓨터의 프로그램·사이트가 열림(컴퓨터에 탭덱 `common\deck-helper\탭덱.exe` 를 켜 둔다. 칸은 탭덱의 [단축키 꾸미기…]에서 바꾼다). 탭덱이 켜져 있는 동안은 화면을 끄지 않고, 컴퓨터가 꺼지면 끈다 |
+| ④ 단축키 | 아이콘 16개 — 누르면 컴퓨터의 프로그램·사이트가 열림(컴퓨터에 탭덱 `common\deck-helper\탭덱.exe` 를 켜 둔다. 칸은 도우미의 [단축키 꾸미기…]에서 바꾼다). 도우미가 켜져 있는 동안은 화면을 끄지 않고, 컴퓨터가 꺼지면 끈다 |
 | ⑤ 선생님 찾기 | 이름을 누르면 지금 어디 계신지와 오늘 시간표 |
 | ⑥ 설정 | 와이파이 고르기, 볼 시간표 고르기(맨 위 [교장실]·[교감실] = 학교 일정 화면), "지금 받기" |
 
@@ -94,7 +94,7 @@ powershell -ExecutionPolicy Bypass -File tools\build_board.ps1
 ## 7. 이 보드에서 꼭 알아 둘 것 (실제로 겪은 일)
 
 - **화면은 공장 방식으로 그립니다.** 보드 제조사(Waveshare) 공장 프로그램과 같은 방식(ESP-IDF `esp_lcd` RGB 패널, 16MHz, 완충 버퍼 30줄, 화면 버퍼 1장은 PSRAM(보드의 큰 메모리), LVGL(화면 그리는 라이브러리)이 그리는 곳은 **내부 RAM** 10줄)입니다. Arduino GFX 는 화면 칩(ST7701)에 시작 명령을 보낼 때만 씁니다. 데모처럼 Arduino GFX 로 그리면 화면이 떨렸습니다. 이 설정은 바꾸지 마세요.
-- **밝기 숫자가 거꾸로입니다.** 탭덱 칩(CH32)의 밝기 값은 0 = 가장 밝음, 255 = 꺼짐입니다. 255 를 쓰면 화면이 깜깜해지고, 보드를 리셋하거나 프로그램을 다시 넣어도 안 돌아옵니다. **USB(배터리)를 뽑아 완전히 전원을 끊었다 꽂아야** 돌아옵니다.
+- **밝기 숫자가 거꾸로입니다.** 도우미 칩(CH32)의 밝기 값은 0 = 가장 밝음, 255 = 꺼짐입니다. 255 를 쓰면 화면이 깜깜해지고, 보드를 리셋하거나 프로그램을 다시 넣어도 안 돌아옵니다. **USB(배터리)를 뽑아 완전히 전원을 끊었다 꽂아야** 돌아옵니다.
 - **부저가 계속 울리면**: USB 로 강제 재시작(RTS 리셋)을 건 뒤에 그런 적이 있습니다. USB 를 뽑고 10초 뒤 다시 꽂으면 멈춥니다. 로그만 볼 때는 보드를 재시작시키지 마세요(`tools\serial_log.py` 는 읽기만 합니다).
 - **화면이 한쪽으로 밀려 보이면** `custom_sdkconfig` 의 `CONFIG_LCD_RGB_RESTART_IN_VSYNC` 를 켜지 않았는지 확인하세요(켜면 안 됩니다. ESP-IDF 5.5.x 버그 espressif/esp-idf#19070).
   펌웨어에는 밀림 대비책이 더 들어 있습니다: 와이파이를 켜는 동안 화면 박자(PCLK)를 6MHz 로 낮췄다가 끝나면 16MHz 로 되돌리고 박자를 다시 맞춥니다, 1분마다 박자를 다시 맞춥니다, 와이파이 버퍼를 내부 RAM 에 둡니다(`SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n`).
@@ -108,14 +108,14 @@ powershell -ExecutionPolicy Bypass -File tools\build_board.ps1
 ```
 4inch/
 ├─ README.md            이 문서
-├─ CLAUDE.md            AI 코딩 탭덱(Claude Code 등)가 먼저 읽는 짧은 안내판
+├─ CLAUDE.md            AI 코딩 도우미(Claude Code 등)가 먼저 읽는 짧은 안내판
 ├─ docs/                지시서_프로.md(토큰 적게) · 지시서_맥스.md(자세히)
 ├─ firmware/            보드 프로그램(PlatformIO 프로젝트)
 │  ├─ platformio.ini    보드·라이브러리·화면 안정화 설정
 │  ├─ default_16MB.csv  플래시 16MB 나누기표
 │  ├─ include/          board_config.h(내 값), lv_conf.h, 날씨 그림 선언
 │  ├─ src/              main.cpp(전체 화면·동작), wx_icons.c(날씨 그림), fonts/(한글 글꼴)
-│  ├─ lib/WS_CH32_IO/   Waveshare 탭덱 칩 라이브러리(Apache-2.0, 레지스트리에 없어 사본 포함)
+│  ├─ lib/WS_CH32_IO/   Waveshare 도우미 칩 라이브러리(Apache-2.0, 레지스트리에 없어 사본 포함)
 │  ├─ lib/GFX_Library_for_Arduino/  Arduino GFX 1.5.3 (Waveshare 가 고친 사본, 레지스트리판은 빌드 실패 — PATCH_NOTE.txt)
 │  └─ fonts/            한글 글꼴 만드는 스크립트(build_fonts.cjs, Pretendard)
 └─ tools/
