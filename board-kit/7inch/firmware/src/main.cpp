@@ -2058,7 +2058,7 @@ static void deckStateText() {
   if (!s_deckState) return;
   if (s_deckUp) { setTextIf(s_deckState, s_deckUpMsg); setTextColIf(s_deckState, C_DUTY); return; }   // 받는 중에는 진행 글
   setTextIf(s_deckState, s_usbOn ? LV_SYMBOL_OK "  컴퓨터와 연결됨 · 단추를 누르면 프로그램이 열립니다"
-                                 : LV_SYMBOL_WARNING "  컴퓨터의 탭덱을 기다리는 중 · 처음이면 컴퓨터에서 " DECK_HELP_URL " 로 받아요");
+                                 : LV_SYMBOL_WARNING "  컴퓨터의 탭덱을 기다리는 중 · 처음이면 " DECK_HELP_URL " 에서 받아요");
   setTextColIf(s_deckState, s_usbOn ? C_OK : D_MUTED);   // 기다리는 것은 문제가 아니다(노랑은 '지금'·문제에만)
 }
 static void deckIconsDim() {   // 도우미가 꺼져 있으면 아이콘을 흐리게(누를 수 없다는 뜻)
@@ -2323,6 +2323,7 @@ static void buildDeck(lv_obj_t *scr, int top) {
   const int RB = 56;                                     // 오른쪽 아래 [새로 고침] 단추 폭(가운데 맞춘 상태 글과 겹치지 않게 양쪽을 비운다)
   s_deckState = label(panel, small ? &kr14 : &kr16, D_MUTED, "");
   lv_obj_set_width(s_deckState, PW - 2 * M - 2 * (RB + 8)); lv_label_set_long_mode(s_deckState, LV_LABEL_LONG_DOT);
+  lv_obj_set_height(s_deckState, lv_font_get_line_height(small ? &kr14 : &kr16));   // 한 줄로(넘치면 … 로). 두 줄이 되면 단추 줄 밖으로 밀린다
   lv_obj_set_style_text_align(s_deckState, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(s_deckState, LV_ALIGN_BOTTOM_MID, 0, -M);
   lv_obj_t *rb = button(panel, LV_SYMBOL_REFRESH, RB, 38, D_ROW, D_TEXT);
