@@ -22,6 +22,7 @@ import BoardPc from "./pages/board/PcSetup";
 import BoardFlash from "./pages/board/Flash";
 import BoardData from "./pages/board/MyData";
 import BoardShake from "./pages/board/Shake";
+import BoardTapDeck from "./pages/board/TapDeck";
 import BoardHelp from "./pages/board/Help";
 import BoardBrief from "./pages/board/Brief";
 import MathplayHome from "./pages/mathplay/MathplayHome";
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="pc" element={<BoardPc />} />
         <Route path="flash" element={<BoardFlash />} />
         <Route path="data" element={<BoardData />} />
+        <Route path="tapdeck" element={<BoardTapDeck />} />
         <Route path="shake" element={<BoardShake />} />
         <Route path="help" element={<BoardHelp />} />
         <Route path="brief" element={<BoardBrief />} />

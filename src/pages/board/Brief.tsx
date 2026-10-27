@@ -29,7 +29,7 @@ export default function Brief() {
   return (
     <>
       <PageTitle
-        tag="6 · AI에게 시키기"
+        tag="7 · AI에게 시키기"
         title="AI 작업지시서"
         lead="AI 사용량(토큰)에 맞춰 두 가지로 나눴어요. 프로용은 스크립트가 일하고 AI는 막힐 때만, 맥스용은 AI가 한 단계씩 같이 해요."
       />

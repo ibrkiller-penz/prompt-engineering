@@ -152,6 +152,9 @@ export default function BoardHome() {
         <a href="/board/manual/index.html" target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center rounded-card border border-line bg-surface px-4 font-semibold hover:border-accent">
           📘 설명서 보기
         </a>
+        <Link to="/board/tapdeck" className="inline-flex min-h-[44px] items-center rounded-card border border-line bg-surface px-4 font-semibold hover:border-accent">
+          자세히 → 탭덱 쪽
+        </Link>
       </div>
 
       <H2 id="principal">교장실 모드</H2>

@@ -9,6 +9,7 @@ export const BOARD_PAGES = [
   { to: "/board/pc", label: "PC 준비", end: false },
   { to: "/board/flash", label: "처음 굽기", end: false },
   { to: "/board/data", label: "내 시간표", end: false },
+  { to: "/board/tapdeck", label: "탭덱", end: false },
   { to: "/board/shake", label: "화면 흔들림", end: false },
   { to: "/board/help", label: "막힐 때", end: false },
   { to: "/board/brief", label: "AI 작업지시서", end: false },
