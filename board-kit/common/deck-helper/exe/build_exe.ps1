@@ -59,7 +59,7 @@ if (Test-Path (Join-Path $man '사용설명서.html')) {
   $res = @($res) + "/resource:$mzip,deck.manual.zip"
 }
 & $csc /nologo /codepage:65001 /target:winexe /optimize+ /platform:anycpu `
-  "/win32icon:$(Join-Path $PSScriptRoot 'icon.ico')" "/out:$out" `
+  "/win32icon:$(Join-Path $PSScriptRoot 'icon.ico')" "/win32manifest:$(Join-Path $PSScriptRoot 'app.manifest')" "/out:$out" `
   /r:System.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Management.dll /r:System.Core.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `
   $res $src
 if ($LASTEXITCODE -ne 0) { throw "컴파일 실패 ($LASTEXITCODE)" }

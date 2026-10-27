@@ -26,6 +26,27 @@ static class Theme
     public static readonly Color Thumb = C(54, 61, 80), ThumbHover = C(74, 83, 108);
     public static readonly Color BtnHover = C(44, 50, 67), BtnDown = C(31, 36, 48);
 
+    // 화면 배율(윈도 '배율 및 레이아웃' 100% = 1, 150% = 1.5). 처음 한 번만 잰다.
+    // 지금은 프로그램이 배율을 모른 채(dpiAware 끔) 돌아서 늘 1 이 나온다 → 동작은 그대로. 2단계(dpiAware 켜기) 준비
+    static float scale = -1f;
+    public static float Scale
+    {
+        get
+        {
+            if (scale <= 0f)
+            {
+                try { using (var g = Graphics.FromHwnd(IntPtr.Zero)) scale = g.DpiX / 96f; }
+                catch { scale = 1f; }
+                if (scale <= 0f || float.IsNaN(scale)) scale = 1f;
+            }
+            return scale;
+        }
+        internal set { scale = value > 0f ? value : 1f; }   // 미리보기(--scale)에서만 바꾼다
+    }
+    // 100% 기준 픽셀 값을 지금 배율에 맞춘 픽셀 값으로
+    public static int S(int px) { return (int)Math.Round(px * Scale); }
+    public static float S(float px) { return px * Scale; }
+
     // 붓·펜은 색마다 한 번만 만들어 프로그램 끝까지 쓴다(설계 0장 23)
     static readonly Dictionary<int, SolidBrush> brushes = new Dictionary<int, SolidBrush>();
     static readonly Dictionary<long, Pen> pens = new Dictionary<long, Pen>();
@@ -400,7 +421,7 @@ static class DarkTip
         t.Popup += delegate (object s, PopupEventArgs e)
         {
             string txt = t.GetToolTip(e.AssociatedControl);
-            var f = DeckFonts.Light(8.5f);
+            var f = DeckFonts.Regular(8.5f);
             using (var g = Graphics.FromHwnd(IntPtr.Zero))
             {
                 g.TextRenderingHint = Theme.Hint(f);
@@ -414,7 +435,7 @@ static class DarkTip
             var r = e.Bounds;
             g.FillRectangle(Theme.BrRaised, r);
             g.DrawRectangle(Theme.PenLine, 0, 0, r.Width - 1, r.Height - 1);
-            Theme.Text(g, e.ToolTipText, DeckFonts.Light(8.5f), Theme.Text1, new RectangleF(8, 6, r.Width - 12, r.Height - 10),
+            Theme.Text(g, e.ToolTipText, DeckFonts.Regular(8.5f), Theme.Text1, new RectangleF(8, 6, r.Width - 12, r.Height - 10),
                 StringAlignment.Near, StringAlignment.Near, true);
         };
         return t;

@@ -51,6 +51,35 @@ static class Dlg
         parent.Controls.Add(b);
         return b;
     }
+    // 화면(작업 영역)보다 큰 창은 줄인다(1366×768 150% 처럼 작은 화면에서 아래 [확인]·[취소]가 화면 밖으로 나가지 않게. 레이아웃 검수 5).
+    // scroll=true: 자리가 고정된 창 → 안쪽을 스크롤 판에 옮겨 담아 막대로 본다. false: 도킹으로 짜인 창 → 그냥 줄인다
+    public static void FitScreen(Form d, Size limit, bool scroll)
+    {
+        int extraW = d.Width - d.ClientSize.Width, extraH = d.Height - d.ClientSize.Height;
+        int w = Math.Min(d.ClientSize.Width, limit.Width - extraW), h = Math.Min(d.ClientSize.Height, limit.Height - extraH);
+        w = Math.Max(320, w); h = Math.Max(200, h);
+        if (w >= d.ClientSize.Width && h >= d.ClientSize.Height) return;
+        if (scroll)
+        {
+            var p = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = d.BackColor };
+            // 세로 막대가 생길 때 가로 막대까지 같이 생기지 않게, 최소 폭은 막대 폭만큼 뺀다(오른쪽 끝 단추는 16 띄워 놓아 가려지지 않는다)
+            int sbw = h < d.ClientSize.Height ? SystemInformation.VerticalScrollBarWidth : 0;
+            p.AutoScrollMinSize = new Size(d.ClientSize.Width - sbw, d.ClientSize.Height);
+            var kids = new List<Control>();
+            foreach (Control c in d.Controls) kids.Add(c);
+            d.Controls.Clear();
+            foreach (var c in kids) p.Controls.Add(c);
+            d.Controls.Add(p);
+        }
+        d.ClientSize = new Size(w, h);
+    }
+    public static void FitScreen(Form d, bool scroll)
+    {
+        Rectangle wa;
+        try { wa = (d.Owner != null ? Screen.FromControl(d.Owner) : Screen.FromPoint(Cursor.Position)).WorkingArea; } catch { return; }
+        FitScreen(d, wa.Size, scroll);
+    }
+
     // [확인]·[취소] 아래 오른쪽
     public static void OkCancel(Form d, Action onOk)
     {
@@ -60,7 +89,86 @@ static class Dlg
         no.Click += delegate { d.DialogResult = DialogResult.Cancel; d.Close(); };
         d.CancelButton = null;
         d.KeyPreview = true;
-        d.KeyDown += (s, e) => { if (e.KeyCode == Keys.Escape) { d.DialogResult = DialogResult.Cancel; d.Close(); } };
+        d.KeyDown += (s, e) =>
+        {
+            if (e.KeyCode == Keys.Escape) { d.DialogResult = DialogResult.Cancel; d.Close(); return; }
+            // Enter = [확인]. 여러 줄 입력칸(줄바꿈)과 단추(그 단추를 누름) 위에서는 원래대로
+            if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None && !EnterBelongsTo(d.ActiveControl))
+            {
+                e.Handled = true; e.SuppressKeyPress = true;
+                ok.PerformClick();
+            }
+        };
+    }
+
+    // 지금 초점 받은 칸이 Enter 를 스스로 쓰는가(여러 줄 입력칸·단추)
+    static bool EnterBelongsTo(Control a)
+    {
+        if (a == null) return false;
+        var rb = a as RoundBox;
+        if (rb != null) return rb.Multiline || rb.Box.Multiline;
+        var tb = a as TextBox;
+        if (tb != null) return tb.Multiline;
+        return a is Button || a is FlatButton;
+    }
+
+    // 단추 글을 직접 정하는 확인 창. 돌려주는 값 = 누른 단추 번호(Esc·X 는 cancelIndex)
+    //  Enter = defaultIndex 단추(초점이 다른 단추에 있으면 그 단추)
+    public static int Ask(IWin32Window owner, string title, string body, string[] buttons, int defaultIndex, int cancelIndex)
+    {
+        if (buttons == null || buttons.Length == 0) buttons = new string[] { "확인" };
+        defaultIndex = Math.Max(0, Math.Min(defaultIndex, buttons.Length - 1));
+        cancelIndex = Math.Max(0, Math.Min(cancelIndex, buttons.Length - 1));
+        body = body ?? "";
+
+        // 단추 너비(글 길이에 맞게, 최소 96)
+        var widths = new int[buttons.Length];
+        int btnTotal = 0;
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            widths[i] = Math.Max(96, TextRenderer.MeasureText(buttons[i] ?? "", DeckFonts.Medium(9.5f)).Width + 32);
+            btnTotal += widths[i] + (i > 0 ? 8 : 0);
+        }
+        int w = Math.Max(420, btnTotal + 40);
+        int textW = w - 40;
+        Font bodyFont = DeckFonts.Regular(9.5f);
+        int textH = Math.Max(24, TextRenderer.MeasureText(body, bodyFont, new Size(textW, 0), TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl).Height + 6);
+        int h = 22 + textH + 22 + 34 + 16;
+
+        using (var d = Make(title ?? "", w, h))
+        {
+            if (owner == null) d.StartPosition = FormStartPosition.CenterScreen;
+            var l = Lbl(d, body, 20, 22, textW, Theme.Text1, 9.5f);
+            l.Height = textH;
+
+            int result = cancelIndex;
+            var btns = new FlatButton[buttons.Length];
+            int x = w - 20;
+            for (int i = buttons.Length - 1; i >= 0; i--)
+            {
+                x -= widths[i];
+                btns[i] = Btn(d, buttons[i] ?? "", i == defaultIndex ? BtnStyle.Primary : BtnStyle.Normal, x, h - 16 - 34, widths[i]);
+                x -= 8;
+                int n = i;
+                btns[i].Click += delegate { result = n; d.DialogResult = DialogResult.OK; d.Close(); };
+            }
+            for (int i = 0; i < btns.Length; i++) btns[i].TabIndex = i;
+            d.CancelButton = null;
+            d.KeyPreview = true;
+            d.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Escape) { e.Handled = true; e.SuppressKeyPress = true; result = cancelIndex; d.DialogResult = DialogResult.Cancel; d.Close(); return; }
+                if (e.KeyCode == Keys.Enter)
+                {
+                    e.Handled = true; e.SuppressKeyPress = true;
+                    var fb = d.ActiveControl as FlatButton;
+                    if (fb != null) fb.PerformClick(); else btns[defaultIndex].PerformClick();
+                }
+            };
+            d.Shown += delegate { try { btns[defaultIndex].Focus(); } catch { } };
+            d.ShowDialog(owner);
+            return result;
+        }
     }
 }
 
@@ -113,7 +221,7 @@ class KeyRecordForm : Form
         if (key.Length > 0) body = mods + key;
         Result = body.Length > 0 ? w + body : "";
         show.Text = Result.Length > 0 ? KeyText.Describe(Result) : (mods.Length > 0 ? KeyText.Describe(w + mods).TrimEnd() + " + …" : "여기서 키를 누르세요");
-        hint.Text = Result.Length > 0 ? "보드에 넣을 글: " + Result + "    (마음에 들면 [확인] 또는 Ctrl+Enter)" : "예) Ctrl+C, Alt+F4, F5  ·  키보드로 확인 Ctrl+Enter, 취소 Shift+Esc";
+        hint.Text = Result.Length > 0 ? "마음에 들면 [확인] 또는 Ctrl+Enter  ·  칸에는 짧은 표기 '" + Result + "'(으)로 적혀요" : "예) Ctrl+C, Alt+F4, F5  ·  키보드로 확인 Ctrl+Enter, 취소 Shift+Esc";
     }
 
 
@@ -239,7 +347,7 @@ static class OptionsForm
             else
             {
                 var en = Dlg.Check(d, "글자를 넣은 뒤 Enter 누르기(채팅·검색창에 바로 보내기)", 20, 24, OptX.Get(opt, "enter") == "1");
-                Dlg.Lbl(d, "글자는 복사해서 붙여 넣는 방식이라, 원래 복사해 둔 것은 바뀌어요.", 20, 62, 480, Theme.Text3, 8.5f);
+                Dlg.Lbl(d, "복사해서 붙여 넣는 방식이에요. 복사해 둔 글자는 잠시 뒤 되돌려 놓아요(그림은 안 돼요).", 20, 62, 480, Theme.Text3, 8.5f);
                 save = delegate { OptX.Set(opt, "enter", en.Checked ? "1" : ""); };
             }
             Dlg.OkCancel(d, save);
@@ -285,9 +393,12 @@ class StepsForm : Form
     readonly Label optSum;
     readonly ContextMenuStrip builtinMenu = new ContextMenuStrip();
     bool loading;
+    readonly string startSum;   // 창을 열 때의 차례(닫을 때 고친 것이 있나 비교)
+    bool discard;               // [버리기]를 골랐음
 
     public StepsForm(List<DeckStep> src, string cellName)
     {
+        startSum = Sum(src);
         Text = "여러 동작 · " + (cellName.Length > 0 ? cellName : "차례 고치기");
         ClientSize = new Size(720, 520);
         StartPosition = FormStartPosition.CenterParent;
@@ -321,7 +432,7 @@ class StepsForm : Form
         more.Text = "자세히…"; more.SetBounds(588, y + 65, 112, 34); Controls.Add(more);
         optSum = Dlg.Lbl(this, "", 20, y + 104, 680, Theme.Text3, 8.5f);
         optSum.Height = 20; optSum.AutoEllipsis = true;   // 긴 요약은 한 줄에서 … 로 줄인다(두 줄로 넘어가 아래 글과 겹치지 않게)
-        Dlg.Lbl(this, "다음 동작까지 기다리기(프로그램이 뜨는 시간을 주세요)", 20, y + 128, 400, Theme.Text2, 9f);
+        Dlg.Lbl(this, "이 동작 뒤에 쉬는 시간(프로그램이 뜨는 시간을 주세요. 목록의 '초 쉬고 ↓'가 이 값이에요)", 20, y + 128, 560, Theme.Text2, 9f);
         wait.Items = WaitNames; wait.SetBounds(20, y + 152, 520, 32); Controls.Add(wait);
 
         for (int i = 0; i < DeckForm.BuiltinCodes.Length; i++)
@@ -360,7 +471,43 @@ class StepsForm : Form
         Fill(Steps.Count > 0 ? 0 : -1);
     }
 
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        if (!Helper.IsPreview) Dlg.FitScreen(this, true);   // 작은 화면이면 줄이고 스크롤(미리보기는 따로 시험한다)
+    }
+
     DeckStep Cur { get { int i = list.SelectedIndex; return i >= 0 && i < Steps.Count ? Steps[i] : null; } }
+
+    // 차례 요약: 단계마다 하는 일|대상|기다리기|자세한 설정(이름 차례로)
+    static string Sum(List<DeckStep> l)
+    {
+        var lines = new List<string>();
+        if (l == null) return "";
+        foreach (var s in l)
+        {
+            if (s == null) continue;
+            var keys = new List<string>(s.Opt.Keys);
+            keys.Sort(StringComparer.Ordinal);
+            var opts = new List<string>();
+            foreach (var k in keys) opts.Add(k + "=" + s.Opt[k]);
+            lines.Add(s.Kind + "|" + s.Target + "|" + s.Wait + "|" + string.Join(";", opts.ToArray()));
+        }
+        return string.Join("\n", lines.ToArray());
+    }
+
+    // [취소]·Esc·X 로 닫을 때 고친 것이 있으면 한 번 묻는다
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        if (DialogResult != DialogResult.OK && !e.Cancel && !discard
+            && e.CloseReason != CloseReason.WindowsShutDown && e.CloseReason != CloseReason.ApplicationExitCall && e.CloseReason != CloseReason.TaskManagerClosing
+            && Sum(Steps) != startSum)
+        {
+            if (Dlg.Ask(this, "여러 동작", "고친 차례가 있어요. 버리면 되돌릴 수 없어요.", new string[] { "계속 고치기", "버리기" }, 0, 0) == 0) e.Cancel = true;
+            else discard = true;   // 한 번 닫을 때 두 번 묻지 않게
+        }
+        base.OnFormClosing(e);
+    }
 
     void Fill(int select)
     {
@@ -443,7 +590,7 @@ class StepsForm : Form
         bool empty = s.Target.Trim().Length == 0;
         Theme.Text(g, Line(s), DeckFonts.Regular(9.5f), empty ? Theme.Warn : Theme.Text1, new RectangleF(e.Bounds.X + 42, e.Bounds.Y, e.Bounds.Width - 140, e.Bounds.Height));
         if (e.Index < Steps.Count - 1)
-            Theme.Text(g, s.Wait == 0 ? "바로 다음" : "↓ " + (s.Wait / 1000.0).ToString("0.#") + "초 뒤", DeckFonts.Light(8.5f), Theme.Text3,
+            Theme.Text(g, s.Wait == 0 ? "바로 다음 ↓" : (s.Wait / 1000.0).ToString("0.#") + "초 쉬고 ↓", DeckFonts.Light(8.5f), Theme.Text3,
                 new RectangleF(e.Bounds.Right - 96, e.Bounds.Y, 88, e.Bounds.Height), StringAlignment.Far);
     }
 
@@ -453,28 +600,57 @@ class StepsForm : Form
         foreach (var s in Steps) c.Steps.Add(s.Clone());
         bool other = false;
         foreach (var s in Steps) if (s.Kind == "keys" || s.Kind == "text" || s.Target == "#altf4") other = true;   // Alt+F4 가 이 창을 닫지 않게
+        int count = 0;
+        foreach (var s in Steps) if (s.Target.Trim().Length > 0) count++;
         if (other) { WindowState = FormWindowState.Minimized; Application.DoEvents(); System.Threading.Thread.Sleep(400); }
+        Timer safety = null;   // done 이 오지 않을 때를 대비해 창만 되살린다
+        Action stopSafety = delegate { if (safety != null) { safety.Stop(); safety.Dispose(); safety = null; } };
         try
         {
-            bool started = DeckRun.Run(c, System.Threading.SynchronizationContext.Current, null, delegate (string why) {
-                if (IsDisposed) return;
-                if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
-                MessageBox.Show(this, why + ".\n그 동작의 대상을 확인해 주세요.", "여러 동작");
-            });
+            bool started = DeckRun.Run(c, System.Threading.SynchronizationContext.Current, null,
+                delegate (string why) { Helper.Log("차례대로 해 보기: " + why); },
+                delegate (List<string> fails)
+                {
+                    stopSafety();
+                    if (IsDisposed) return;
+                    if (other && WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+                    if (fails != null && fails.Count > 0) Dlg.Ask(this, "여러 동작", FailText(fails), new string[] { "확인" }, 0, 0);
+                });
             if (!started)
             {
                 if (other) WindowState = FormWindowState.Normal;
-                MessageBox.Show(this, Steps.Count == 0 ? "동작을 먼저 넣어 주세요." : "해 볼 동작이 없어요. 비어 있는 동작을 채워 주세요.", "여러 동작");
+                Dlg.Ask(this, "여러 동작", Steps.Count == 0 ? "동작을 먼저 넣어 주세요." : "해 볼 동작이 없어요. 비어 있는 동작을 채워 주세요.", new string[] { "확인" }, 0, 0);
                 return;
             }
         }
-        catch (Exception ex) { Helper.Log("차례대로 해 보기 실패: " + ex.Message); MessageBox.Show(this, "해 보지 못했어요: " + ErrText.Easy(ex), "여러 동작"); }
+        catch (Exception ex)
+        {
+            Helper.Log("차례대로 해 보기 실패: " + ex.Message);
+            if (other && !IsDisposed) WindowState = FormWindowState.Normal;
+            Dlg.Ask(this, "여러 동작", "해 보지 못했어요: " + ErrText.Easy(ex), new string[] { "확인" }, 0, 0);
+            return;
+        }
         if (other)
         {
-            int total = 1500; foreach (var s in Steps) total += s.Wait;
-            var back = new Timer { Interval = Math.Min(15000, total) };
-            back.Tick += delegate { back.Stop(); back.Dispose(); if (!IsDisposed) WindowState = FormWindowState.Normal; };
-            back.Start();
+            safety = new Timer { Interval = Math.Max(1, count) * 10000 + 2000 };
+            safety.Tick += delegate { stopSafety(); if (!IsDisposed && WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal; };
+            safety.Start();
         }
+    }
+
+    // "2번째 동작을 하지 못했어요 (이유)" 목록 → "2번째·4번째 동작을 하지 못했어요. 그 동작의 대상을 확인해 주세요." + 이유
+    static string FailText(List<string> fails)
+    {
+        var nums = new List<string>();
+        var why = new List<string>();
+        foreach (var f in fails)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(f ?? "", "^(\\d+번째) 동작을 하지 못했어요 \\((.*)\\)$");
+            if (!m.Success) { nums = null; break; }
+            nums.Add(m.Groups[1].Value);
+            why.Add(m.Groups[1].Value + ": " + m.Groups[2].Value);
+        }
+        if (nums == null) return string.Join("\n", fails.ToArray()) + "\n\n그 동작의 대상을 확인해 주세요.";
+        return string.Join("·", nums.ToArray()) + " 동작을 하지 못했어요. 그 동작의 대상을 확인해 주세요.\n\n" + string.Join("\n", why.ToArray());
     }
 }

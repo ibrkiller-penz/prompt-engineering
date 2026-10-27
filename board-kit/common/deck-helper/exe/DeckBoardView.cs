@@ -37,11 +37,12 @@ class BoardView : Control
 
         ShapePill.Items = new[] { "7인치", "4인치" };
         ShapePill.Pill = true;
-        ShapePill.Size = new Size(120, 28);
+        ShapePill.Size = new Size(Theme.S(120), Theme.S(28));
         ShapePill.Picked += delegate (int i) { f.SetShape(i == 0 ? 7 : 4); };
         Controls.Add(ShapePill);
+        tip.SetToolTip(ShapePill, "내 보드 모양 고르기: 가로로 긴 화면(단추 2줄)이면 7인치, 네모난 화면(단추 4줄)이면 4인치예요.\n보드를 USB 로 꽂으면 저절로 맞춰져요.");
 
-        HintOk.Text = "알겠어요"; HintOk.Style = BtnStyle.Ghost; HintOk.Size = new Size(84, 28); HintOk.Under = Theme.Raised;
+        HintOk.Text = "알겠어요"; HintOk.Style = BtnStyle.Ghost; HintOk.Size = new Size(Theme.S(84), Theme.S(28)); HintOk.Under = Theme.Raised;
         HintOk.Click += delegate { f.HideHint(); };
         Controls.Add(HintOk);
 
@@ -54,6 +55,11 @@ class BoardView : Control
         hint = visible; hintText = text ?? "";
         DoLayout();
     }
+
+    // 보드 왼쪽에 비워 둘 폭(연습 과제 목록이 칸을 가리지 않게. 0 = 없음). 비우면 칸이 48 보다 작아질 때는 비우지 않는다(ReserveApplied = false)
+    int reserveLeft;
+    public int ReserveLeft { get { return reserveLeft; } set { if (reserveLeft != value) { reserveLeft = Math.Max(0, value); DoLayout(); } } }
+    public bool ReserveApplied { get; private set; }
 
     // ── 배치 계산(설계 7-1) ──
     bool Seven { get { return f.Shape != 4; } }
@@ -91,18 +97,26 @@ class BoardView : Control
 
     void Compute(int top)
     {
-        int useW = Math.Max(100, Width - 48), useH = Math.Max(60, Height - top - BottomM);
+        ReserveApplied = false;
+        Compute(top, reserveLeft);
+        if (reserveLeft > 0 && cell >= 48) ReserveApplied = true;
+        else if (reserveLeft > 0) Compute(top, 0);   // 자리가 모자라면 비우지 않는다(과제 목록이 칸 위에 겹쳐 뜨고, 끌어서 옮길 수 있다)
+    }
+
+    void Compute(int top, int left)
+    {
+        int useW = Math.Max(100, Width - 48 - left), useH = Math.Max(60, Height - top - BottomM);
         int byW = (useW - 2 * pad - (cols - 1) * gap) / cols;
         int byH = (useH - 2 * pad - rows * nameH - (rows - 1) * gap) / rows;
         cell = Math.Max(28, Math.Min(Seven ? 84 : 96, Math.Min(byW, byH)));
         int bw = 2 * pad + cols * cell + (cols - 1) * gap;
         int bh = 2 * pad + rows * (cell + nameH) + (rows - 1) * gap;
-        body = new Rectangle((Width - bw) / 2, top + Math.Max(0, (useH - bh) / 2), bw, bh);
+        body = new Rectangle(left + (Width - left - bw) / 2, top + Math.Max(0, (useH - bh) / 2), bw, bh);
     }
 
     Rectangle HintRect { get { return new Rectangle(16, 16, Math.Max(100, ShapePill.Left - 16 - 16), 32); } }
     int IconSize { get { return Math.Min(72, cell - 8); } }
-    float Radius { get { return Math.Max(8, cell * 0.16f); } }
+    float Radius { get { return Math.Max(Theme.S(8f), cell * 0.16f); } }
 
     public Rectangle CellRect(int i)
     {
@@ -171,8 +185,8 @@ class BoardView : Control
         if (hint && hintFits)
         {
             var hr = HintRect;
-            Theme.FillRound(g, Theme.BrRaised, hr, 6);
-            Theme.Text(g, hintText, DeckFonts.Light(8.5f), Theme.Text2, new RectangleF(hr.X + 12, hr.Y, HintOk.Left - hr.X - 20, hr.Height));
+            Theme.FillRound(g, Theme.BrRaised, hr, Theme.S(6));
+            Theme.Text(g, hintText, DeckFonts.Regular(8.5f), Theme.Text2, new RectangleF(hr.X + 12, hr.Y, HintOk.Left - hr.X - 20, hr.Height));
         }
 
         // 몸체 그림자 3겹 → 몸체 → 테두리
@@ -193,7 +207,7 @@ class BoardView : Control
         }
 
         string cap = f.Shape == 4 ? "4인치 보드 · 4줄 × 4칸" : "7인치 보드 · 2줄 × 8칸";
-        Theme.Text(g, cap, DeckFonts.Light(8.5f), Theme.Text3, new RectangleF(0, body.Bottom + 6, Width, 18), StringAlignment.Center);
+        Theme.Text(g, cap, DeckFonts.Regular(8.5f), Theme.Text3, new RectangleF(0, body.Bottom + 6, Width, Theme.S(18)), StringAlignment.Center);
     }
 
     void DrawCell(Graphics g, int i, DeckCell c)
@@ -215,7 +229,7 @@ class BoardView : Control
             g.DrawLine(pen, cx, cy - len / 2, cx, cy + len / 2);
             // 이름 자리 안에서만(옆 칸 이름과 안 겹치게). 칸이 작으면 짧게(디자인 검수 13)
             var er = NameRect(i); er.Inflate(0, 2);
-            Theme.Text(g, cell < 64 ? "놓기" : "끌어다 놓기", DeckFonts.Light(8f), Theme.Text3, er, StringAlignment.Center);
+            Theme.Text(g, cell < 64 ? "놓기" : "끌어다 놓기", DeckFonts.Regular(8.5f), Theme.Text3, er, StringAlignment.Center);
         }
         else
         {
@@ -245,15 +259,18 @@ class BoardView : Control
                 g.FillEllipse(Theme.Br(lv == 2 ? Theme.Danger : Theme.Warn), r.Right - 4 - dd, r.Y + 4, dd, dd);
             }
             var nr = NameRect(i); nr.Inflate(0, 2);   // 글 줄 높이가 이름 자리보다 조금 커도 글이 사라지지 않게
-            Theme.Text(g, c.Name, DeckFonts.Medium(f.Shape == 4 ? 8f : 9f), Theme.Text1, nr, StringAlignment.Center);
+            // 작은 칸(작은 창의 4인치)에서는 이름 자리를 옆 칸 사이까지 조금 넓히고 글자를 줄여 '쿠메…'처럼 잘리는 것을 줄인다(UX 검수)
+            float nfs = f.Shape == 4 ? (cell < 48 ? 7.5f : 8f) : 9f;
+            if (cell < 48) nr.Inflate(3, 0);
+            Theme.Text(g, c.Name, DeckFonts.Medium(nfs), Theme.Text1, nr, StringAlignment.Center);
         }
         // 칸 번호: 작은 칸에서도 숨기지 않는다. 아이콘 위에서도 읽히게 어두운 작은 바탕을 깐다(디자인 검수 2)
         {
-            var nf = DeckFonts.Light(7f);
+            var nf = DeckFonts.Regular(8.5f);
             string num = (i + 1).ToString();
             float nw = Theme.TextWidth(g, num, nf);
-            var nb = new RectangleF(r.X + 3, r.Y + 3, nw + 2, 13);
-            if (!none) Theme.FillRound(g, Theme.Br(Color.FromArgb(190, Theme.Device)), nb, 4);
+            var nb = new RectangleF(r.X + 3, r.Y + 3, nw + Theme.S(4), Theme.S(15));
+            if (!none) Theme.FillRound(g, Theme.Br(Color.FromArgb(190, Theme.Device)), nb, Theme.S(4));
             Theme.Text(g, num, nf, Theme.A(Theme.Text3, 230), nb, StringAlignment.Center, StringAlignment.Center, false);
         }
 

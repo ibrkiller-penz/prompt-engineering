@@ -13,6 +13,10 @@ static class DeckPreview
         var log = new StringBuilder();
         try
         {
+            // 선택: --preview <폴더> --scale 1.5 → 화면 배율 150% 로 가정하고 그린다(배율 2단계 비교용)
+            float sc = ScaleArg();
+            if (sc > 0f) Theme.Scale = sc;
+            log.AppendLine("배율: " + Theme.Scale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
             Application.EnableVisualStyles();
             var h = new Helper(Path.Combine(outDir, "_자료"));
             var f = new DeckForm(h);
@@ -38,7 +42,7 @@ static class DeckPreview
             f.PreviewKeys(1); Pump(f); Shot(f, outDir, "10_단축키_칸.png", log);
             Dialog(new StepsForm(f.Work.Cells[0].Steps, f.Work.Cells[0].Name), outDir, "11_여러동작_차례창.png", log);
             Dialog(new KeyRecordForm("#+s"), outDir, "12_단축키_눌러넣기.png", log);
-            var o = new System.Collections.Generic.Dictionary<string, string> { { "front", "1" }, { "args", "D:/수업/오늘.pptx" } };
+            var o = new System.Collections.Generic.Dictionary<string, string> { { "front", "1" }, { "args", "D:\\수업\\오늘.pptx" } };
             Dialog(OptionsForm.Build("app", o), outDir, "13_자세히_프로그램.png", log);
             Dialog(OptionsForm.Build("url", new System.Collections.Generic.Dictionary<string, string> { { "browser", "chrome" } }), outDir, "14_자세히_사이트.png", log);
             // 둘러보기 안내·연습 과제(2026-10-27)
@@ -48,6 +52,19 @@ static class DeckPreview
             f.PreviewTourEnd(); f.PreviewTour(2); Pump(f); Layer(f, null, outDir, "16_둘러보기_동작목록.png", log);
             f.PreviewTourEnd(); f.PreviewTour(9); Pump(f); Layer(f, null, outDir, "17_둘러보기_끝.png", log);
             f.PreviewTourEnd(); f.PreviewPractice(); Pump(f); Layer(f, f.PreviewPracticeLayer, outDir, "18_연습과제.png", log);
+            f.PreviewPracticeEnd();
+            // 작은 화면(1366×768 을 150% 로 나눈 약 911×440 안쪽): 가운데가 스크롤 판이라 짜임이 무너지지 않고 막대가 생겨야 한다(레이아웃 검수 1·7)
+            f.MinimumSize = new Size(320, 240);
+            f.ClientSize = new Size(911, 440); f.SelectCell(10); Pump(f); Shot(f, outDir, "19_작은화면_911x440.png", log);
+            f.SetShape(4); Pump(f); Shot(f, outDir, "20_작은화면_4인치.png", log);
+            f.SetShape(7); f.ClientSize = new Size(1240, 720); Pump(f);
+            // 여러 동작 창·아이콘 모음 창을 작은 화면 크기(911×472 작업 영역)에 맞춘 모습(레이아웃 검수 5)
+            var sm = new StepsForm(f.Work.Cells[0].Steps, f.Work.Cells[0].Name);
+            Dlg.FitScreen(sm, new Size(911, 472), true);
+            Dialog(sm, outDir, "21_여러동작_작은화면.png", log);
+            var lp = new LibraryPicker(0);
+            Dlg.FitScreen(lp, new Size(911, 472), false);
+            Dialog(lp, outDir, "22_아이콘모음_작은화면.png", log);
             f.PreviewDiscard();                            // 닫을 때 묻지 않게
             f.Close(); f.Dispose();
             log.AppendLine("글꼴 에스코어 드림 읽음: " + DeckFonts.Loaded);
@@ -61,6 +78,21 @@ static class DeckPreview
             try { File.WriteAllText(Path.Combine(outDir, "preview.txt"), log.ToString(), new UTF8Encoding(false)); } catch { }
             return 1;
         }
+    }
+
+    // 명령줄에서 '--scale <수>' 를 찾는다(0.5~4 만). 없거나 잘못되면 0
+    static float ScaleArg()
+    {
+        string[] a;
+        try { a = Environment.GetCommandLineArgs(); } catch { return 0f; }
+        for (int i = 0; i + 1 < a.Length; i++)
+        {
+            if (!string.Equals(a[i], "--scale", StringComparison.OrdinalIgnoreCase)) continue;
+            float v;
+            if (float.TryParse(a[i + 1].Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out v)
+                && v >= 0.5f && v <= 4f) return v;
+        }
+        return 0f;
     }
 
     static void Layer(DeckForm f, Control over, string dir, string name, StringBuilder log)

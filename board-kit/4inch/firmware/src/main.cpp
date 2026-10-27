@@ -2220,6 +2220,16 @@ static void onDeckRefresh(lv_event_t *) {
   Serial.printf("\n@pc?\n");
   deckSay(D_SUB, LV_SYMBOL_REFRESH "  컴퓨터의 탭덱을 찾는 중...");
 }
+// [꾸미기] 단추(단축키 판 왼쪽 아래): 컴퓨터에 '@pcui' 를 보내 탭덱의 꾸미기 창을 띄운다(2026-10-27).
+// 탭덱이 '@pcui ok' 로 답하면 연 것(예전 탭덱은 이 줄을 모르고 그냥 넘긴다 → 6초 뒤 안내).
+static uint32_t s_deckUiAt = 0;   // 누른 때(0 = 기다리지 않음)
+static void onDeckEdit(lv_event_t *) {
+  if (!s_usbOn) { showDeckHelp(); return; }             // 탭덱이 없으면 받는 법 안내
+  s_deckUiAt = millis() ? millis() : 1;
+  Serial.printf("\n@pcui\n");
+  deckSay(D_SUB, LV_SYMBOL_UPLOAD "  컴퓨터에 꾸미기 창을 여는 중...");
+  s_deckSentAt = millis();
+}
 static void onDeck(lv_event_t *e) {
   const int i = (int)(intptr_t)lv_event_get_user_data(e);
   if (i < 0 || i >= 16 || deckBlank(i)) return;
@@ -2424,6 +2434,11 @@ static void deckPoll(uint32_t ms) {
         const int t = atoi(buf + 7);
         if (t >= 0 && t < THEME_N) { s_prefs.putInt("theme", t); s_themeIdx = t; s_themeReqAt = ms ? ms : 1; Serial.printf("@theme ok %d\n", t); }
       }
+      else if (!strcmp(buf, "@pcui ok")) {               // [꾸미기] 탭덱이 창을 열었다
+        s_deckUiAt = 0;
+        lock(); deckSay(C_OK, LV_SYMBOL_OK "  컴퓨터에 꾸미기 창을 열었습니다 · 컴퓨터 화면을 보세요"); unlock();
+        s_deckSentAt = ms ? ms : 1;
+      }
       else if (!strncmp(buf, "@deck ok ", 9)) {
         s_deckWaitKey = -1;
         lock(); deckSay(C_OK, LV_SYMBOL_OK "  '%s' 열었습니다", deckLabel(buf + 9)); unlock();
@@ -2436,6 +2451,11 @@ static void deckPoll(uint32_t ms) {
       n = 0;
     } else if (n < sizeof buf - 1) buf[n++] = c;
     else n = 0;
+  }
+  if (s_deckUiAt && ms - s_deckUiAt > 6000) {            // [꾸미기] 답이 없다 → 예전 탭덱
+    s_deckUiAt = 0;
+    lock(); deckSay(NOW_TAG, "컴퓨터의 탭덱이 예전 판입니다 · 컴퓨터 화면 오른쪽 아래 탭덱 아이콘을 두 번 누르세요"); unlock();
+    s_deckSentAt = ms ? ms : 1;
   }
   if (s_deckPingAt) {                                    // [새로 고침] 판정
     if (s_pcLast && (int32_t)(s_pcLast - s_deckPingAt) >= 0) {   // 누른 뒤에 답이 왔다
@@ -2872,14 +2892,18 @@ static void buildDeck() {
     lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(l, LV_ALIGN_BOTTOM_MID, 0, -3);
   }
-  const int RB = 46;                                     // 오른쪽 아래 [새로 고침] 단추 폭(가운데 맞춘 상태 글과 겹치지 않게 양쪽을 비운다)
+  const int RB = 46, EB = 84;                            // 오른쪽 아래 [새로 고침]·왼쪽 아래 [꾸미기] 단추 폭(가운데 맞춘 상태 글과 겹치지 않게 양쪽을 넓은 쪽만큼 비운다)
   s_deckState = label(p, &kr14, D_MUTED, "");
-  lv_obj_set_width(s_deckState, PW - 24 - 2 * (RB + 6)); lv_label_set_long_mode(s_deckState, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(s_deckState, PW - 24 - 2 * (EB + 6)); lv_label_set_long_mode(s_deckState, LV_LABEL_LONG_WRAP);
   lv_obj_set_style_text_align(s_deckState, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_pos(s_deckState, 12 + RB + 6, PH - 44);
+  lv_obj_set_pos(s_deckState, 12 + EB + 6, PH - 44);
   lv_obj_t *rb = button(p, LV_SYMBOL_REFRESH, RB, 36, D_ROW, D_TEXT);
   lv_obj_set_pos(rb, PW - 10 - RB, PH - 44);
   lv_obj_add_event_cb(rb, onDeckRefresh, LV_EVENT_CLICKED, nullptr);
+  lv_obj_t *eb = button(p, LV_SYMBOL_SETTINGS " 꾸미기", EB, 36, D_ROW, D_TEXT);   // 컴퓨터에 탭덱의 꾸미기 창을 띄운다
+  lv_obj_set_style_text_font(lv_obj_get_child(eb, 0), &kr14, 0);
+  lv_obj_set_pos(eb, 10, PH - 44);
+  lv_obj_add_event_cb(eb, onDeckEdit, LV_EVENT_CLICKED, nullptr);
   deckStateText();
   deckIconsDim();
 }

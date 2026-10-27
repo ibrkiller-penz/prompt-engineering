@@ -79,7 +79,7 @@ static class DeckLibrary
 class LibraryPicker : Form
 {
     readonly ComboBox cmbTheme = new ComboBox(), cmbGroup = new ComboBox();
-    readonly TextBox txtFind = new TextBox();
+    readonly RoundBox txtFind;
     readonly ListView list = new ListView();
     readonly ImageList imgs = new ImageList();
     readonly CheckBox chkAct = new CheckBox();
@@ -88,26 +88,48 @@ class LibraryPicker : Form
     public LibraryPicker(int theme)
     {
         Text = "아이콘 모음에서 고르기"; Font = DeckFonts.Regular(9.5f);
-        ClientSize = new Size(820, 600); StartPosition = FormStartPosition.CenterParent; MinimizeBox = false;
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8, 8, 8, 0) };
-        top.Controls.Add(new Label { Text = "테마", AutoSize = true, Margin = new Padding(0, 6, 4, 0) });
+        ClientSize = new Size(820, 600); StartPosition = FormStartPosition.CenterParent;
+        FormBorderStyle = FormBorderStyle.FixedDialog; MinimizeBox = false; MaximizeBox = false;
+        BackColor = global::Theme.Bg; ForeColor = global::Theme.Text1;
+        HandleCreated += delegate { global::Theme.DarkTitle(Handle); };
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, Padding = new Padding(8, 8, 8, 0), BackColor = global::Theme.Panel };
+        top.Controls.Add(new Label { Text = "테마", AutoSize = true, Margin = new Padding(0, 8, 4, 0), ForeColor = global::Theme.Text1, Font = DeckFonts.Regular(9.5f) });
         cmbTheme.DropDownStyle = ComboBoxStyle.DropDownList; cmbTheme.Width = 110; cmbTheme.Items.AddRange(DeckLibrary.ThemeNames);
+        cmbTheme.Margin = new Padding(0, 4, 0, 0);
         top.Controls.Add(cmbTheme);
-        top.Controls.Add(new Label { Text = "묶음", AutoSize = true, Margin = new Padding(14, 6, 4, 0) });
+        top.Controls.Add(new Label { Text = "묶음", AutoSize = true, Margin = new Padding(14, 8, 4, 0), ForeColor = global::Theme.Text1, Font = DeckFonts.Regular(9.5f) });
         cmbGroup.DropDownStyle = ComboBoxStyle.DropDownList; cmbGroup.Width = 130; cmbGroup.Items.Add("전체");
+        cmbGroup.Margin = new Padding(0, 4, 0, 0);
         foreach (var g in DeckLibrary.Items().Select(i => i.Group).Distinct()) cmbGroup.Items.Add(g);
         top.Controls.Add(cmbGroup);
-        top.Controls.Add(new Label { Text = "찾기", AutoSize = true, Margin = new Padding(14, 6, 4, 0) });
-        txtFind.Width = 150; top.Controls.Add(txtFind);
+        top.Controls.Add(new Label { Text = "찾기", AutoSize = true, Margin = new Padding(14, 8, 4, 0), ForeColor = global::Theme.Text1, Font = DeckFonts.Regular(9.5f) });
+        txtFind = Dlg.Box(top, "", "이름으로 찾기", 0, 0, 170);
+        txtFind.Margin = new Padding(0, 0, 0, 0);
         Controls.Add(top);
 
-        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 46 };
-        chkAct.Text = "이름·하는 일도 같이 넣기(빈 칸이면 늘 넣음)"; chkAct.AutoSize = true; chkAct.Location = new Point(10, 14);
-        var ok = new Button { Text = "고르기", Size = new Size(90, 30), Location = new Point(620, 8), DialogResult = DialogResult.OK };
-        var no = new Button { Text = "취소", Size = new Size(90, 30), Location = new Point(716, 8), DialogResult = DialogResult.Cancel };
-        bottom.Controls.AddRange(new Control[] { chkAct, ok, no });
+        // 아래 띠: 먼저 창에 붙여 너비가 창과 같아진 뒤 단추 자리를 잡는다
+        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 50, BackColor = global::Theme.Panel };
         Controls.Add(bottom);
-        AcceptButton = ok; CancelButton = no;
+        chkAct.Text = "이름·하는 일도 같이 넣기(빈 칸이면 늘 넣음)"; chkAct.AutoSize = true; chkAct.Location = new Point(12, 15);
+        chkAct.ForeColor = global::Theme.Text1; chkAct.BackColor = global::Theme.Panel; chkAct.Font = DeckFonts.Regular(9.5f);
+        chkAct.FlatStyle = FlatStyle.Flat; chkAct.FlatAppearance.BorderColor = global::Theme.KeyEdgeHover; chkAct.FlatAppearance.CheckedBackColor = global::Theme.Accent;
+        chkAct.Cursor = Cursors.Hand;
+        bottom.Controls.Add(chkAct);
+        int bw = ClientSize.Width;
+        var ok = Dlg.Btn(bottom, "고르기", BtnStyle.Primary, bw - 16 - 96 - 8 - 96, 8, 96);
+        var no = Dlg.Btn(bottom, "취소", BtnStyle.Normal, bw - 16 - 96, 8, 96);
+        ok.Anchor = AnchorStyles.Top | AnchorStyles.Right; no.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        ok.Click += delegate { DialogResult = DialogResult.OK; };
+        no.Click += delegate { DialogResult = DialogResult.Cancel; };
+        // FlatButton 은 AcceptButton·CancelButton 이 될 수 없어 키를 창에서 먼저 받는다(Enter = 고르기, Esc = 취소)
+        KeyPreview = true;
+        KeyDown += (s, e) =>
+        {
+            if (cmbTheme.DroppedDown || cmbGroup.DroppedDown) return;   // 펼친 목록은 Enter·Esc 로 닫히게 둔다
+            if (e.KeyCode == Keys.Escape) { e.Handled = true; e.SuppressKeyPress = true; no.PerformClick(); }
+            else if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None && !(ActiveControl is FlatButton))
+            { e.Handled = true; e.SuppressKeyPress = true; ok.PerformClick(); }
+        };
 
         imgs.ImageSize = new Size(72, 72); imgs.ColorDepth = ColorDepth.Depth32Bit;
         list.Dock = DockStyle.Fill; list.View = View.LargeIcon; list.LargeImageList = imgs; list.MultiSelect = false;
@@ -117,7 +139,7 @@ class LibraryPicker : Form
         cmbTheme.SelectedIndex = Math.Max(0, Math.Min(theme, DeckLibrary.Themes.Length - 1)); cmbGroup.SelectedIndex = 0;
         cmbTheme.SelectedIndexChanged += delegate { Fill(); };
         cmbGroup.SelectedIndexChanged += delegate { Fill(); };
-        txtFind.TextChanged += delegate { Fill(); };
+        txtFind.Box.TextChanged += delegate { Fill(); };
         list.ItemActivate += delegate { DialogResult = DialogResult.OK; };
         FormClosing += (s, e) =>
         {
@@ -127,6 +149,12 @@ class LibraryPicker : Form
             PickedSrc = (Theme + "/" + Picked.Key).TrimStart('/'); UseAction = chkAct.Checked;
         };
         Fill();
+    }
+
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        if (!Helper.IsPreview) Dlg.FitScreen(this, false);   // 작은 화면이면 창을 줄인다(도킹 짜임이라 그대로 맞춰진다. 레이아웃 검수 5)
     }
 
     public int ThemeIndex { get { return cmbTheme.SelectedIndex; } }
@@ -140,7 +168,7 @@ class LibraryPicker : Form
         bool paper = Theme.Contains("밝은종이");
         list.BackColor = paper ? Color.FromArgb(243, 237, 225) : Color.FromArgb(24, 26, 32);
         list.ForeColor = paper ? Color.FromArgb(40, 34, 28) : Color.Gainsboro;
-        string g = cmbGroup.SelectedIndex > 0 ? (string)cmbGroup.SelectedItem : null, q = txtFind.Text.Trim();
+        string g = cmbGroup.SelectedIndex > 0 ? (string)cmbGroup.SelectedItem : null, q = txtFind.Box.Text.Trim();
         foreach (var it in DeckLibrary.Items())
         {
             if (g != null && it.Group != g) continue;

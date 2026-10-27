@@ -161,7 +161,7 @@ class TourOverlay : Control
         using (var g = CreateGraphics())
         {
             var sz = g.MeasureString(st.Body, DeckFonts.Regular(10f), w - 40);
-            return (int)Math.Ceiling(16 + 22 + 30 + sz.Height + 16 + 32 + 16);
+            return (int)Math.Ceiling(16 + 22 + Theme.S(30) + sz.Height + 16 + 32 + 16);
         }
     }
 
@@ -200,7 +200,7 @@ class TourOverlay : Control
         Theme.FillRound(g, Theme.BrRaised, card, 12);
         Theme.DrawRound(g, Theme.Pn(Theme.KeyEdgeHover), card, 12);
         var st = steps[at];
-        Theme.Text(g, (at + 1) + " / " + steps.Count, DeckFonts.Light(8.5f), Theme.Text3, new RectangleF(card.X + 20, card.Y + 14, 100, 20));
+        Theme.Text(g, (at + 1) + " / " + steps.Count, DeckFonts.Regular(8.5f), Theme.Text3, new RectangleF(card.X + 20, card.Y + 14, 100, 20));
         // 진행 점
         for (int i = 0; i < steps.Count; i++)
             g.FillEllipse(Theme.Br(i == at ? Theme.Accent : Theme.Thumb), card.Right - 20 - (steps.Count - i) * 12, card.Y + 20, 7, 7);
@@ -216,7 +216,7 @@ class PracticePanel : Control
     static readonly string[] Texts = {
         "보드 모양에서 칸 하나를 눌러 고르기",
         "오른쪽 목록의 줄 하나를 끌어 칸에 놓기",
-        "칸 하나를 끌어 다른 칸에 놓아 자리 바꾸기",
+        "칸을 끌어 다른 칸에 놓아 자리 바꾸기",
         "아래 '이름' 칸에서 이름 바꿔 보기",
         "[▶ 눌러 보기]로 이 컴퓨터에서 해 보기",
         "[저장하고 보드에 보내기] 누르기" };
@@ -227,7 +227,7 @@ class PracticePanel : Control
     public PracticePanel()
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-        Size = new Size(340, 64 + Texts.Length * 30 + 20);
+        Size = new Size(300, 64 + Texts.Length * Theme.S(30) + 20);   // 300: 보드 왼쪽에 비워 둔 자리에 들어가는 폭(DeckForm.PlacePractice)
         close.Text = "닫기"; close.Style = BtnStyle.Ghost; close.Size = new Size(64, 28); close.Under = Theme.Raised;
         close.Location = new Point(Width - 12 - 64, 12);
         close.Click += delegate { if (Closed != null) Closed(); };
@@ -271,11 +271,11 @@ class PracticePanel : Control
         Theme.DrawRound(g, Theme.Pn(Theme.Accent, 2f), r, 12);
         int n = 0; foreach (var d in done) if (d) n++;
         Theme.Text(g, "연습 과제", DeckFonts.Medium(12f), Theme.Text1, new RectangleF(16, 12, 200, 28));
-        Theme.Text(g, AllDone ? "모두 했어요! 이제 혼자서도 할 수 있어요." : n + " / " + Texts.Length + " · 해 보면 저절로 표시돼요 · 끌어서 옮기기", DeckFonts.Light(8.5f),
+        Theme.Text(g, AllDone ? "모두 했어요! 이제 혼자서도 할 수 있어요." : n + " / " + Texts.Length + " · 해 보면 저절로 표시돼요 · 끌어서 옮기기", DeckFonts.Regular(8.5f),
             AllDone ? Theme.Ok : Theme.Text3, new RectangleF(16, 38, Width - 32, 20));
         for (int i = 0; i < Texts.Length; i++)
         {
-            int y = 64 + i * 30;
+            int y = 64 + i * Theme.S(30);
             var box = new Rectangle(16, y + 4, 18, 18);
             if (done[i]) { g.FillEllipse(Theme.Br(Theme.Ok), box); DrawCheck(g, box); }
             else g.DrawEllipse(Theme.Pn(Theme.KeyEdgeHover, 1.5f), box);

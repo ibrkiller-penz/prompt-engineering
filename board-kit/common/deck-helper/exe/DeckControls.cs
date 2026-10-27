@@ -35,7 +35,7 @@ class FlatButton : Control
         Font = DeckFonts.Medium(9.5f);
         Cursor = Cursors.Hand;
         TabStop = true;
-        Size = new Size(120, 32);
+        Size = new Size(Theme.S(120), Theme.S(32));
     }
 
     public BtnStyle Style { get { return style; } set { style = value; Invalidate(); } }
@@ -140,7 +140,7 @@ class Segmented : Control
         Font = DeckFonts.Medium(9.5f);
         Cursor = Cursors.Hand;
         TabStop = true;
-        Height = 28;
+        Height = Theme.S(28);
     }
 
     public string[] Items { get { return items; } set { items = value ?? new string[0]; ItemEnabled = null; Invalidate(); } }
@@ -262,7 +262,7 @@ class RoundBox : Control
         Box.Font = DeckFonts.Regular(9.5f);
         Controls.Add(Box);
         Cursor = Cursors.IBeam;
-        Height = 32;
+        Height = Theme.S(32);
         EventHandler inv = delegate { Invalidate(); };
         Box.GotFocus += inv; Box.LostFocus += inv;
         Box.MouseEnter += delegate { hover = true; Invalidate(); };
@@ -363,9 +363,9 @@ class StatusBar : Control
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         BackColor = Theme.Bg;
-        Height = 56;
-        BtnClose.Text = "닫기"; BtnClose.Style = BtnStyle.Normal; BtnClose.Size = new Size(96, 36);
-        BtnSave.Text = "저장하고 보드에 보내기"; BtnSave.Style = BtnStyle.Primary; BtnSave.Size = new Size(220, 40);
+        Height = Theme.S(56);
+        BtnClose.Text = "닫기"; BtnClose.Style = BtnStyle.Normal; BtnClose.Size = new Size(Theme.S(96), Theme.S(36));
+        BtnSave.Text = "저장하고 보드에 보내기"; BtnSave.Style = BtnStyle.Primary; BtnSave.Size = new Size(Theme.S(220), Theme.S(40));
         Controls.Add(BtnClose); Controls.Add(BtnSave);
         blink.Interval = 500;
         blink.Tick += delegate { blinkOn = !blinkOn; Invalidate(new Rectangle(0, 0, 40, Height)); };

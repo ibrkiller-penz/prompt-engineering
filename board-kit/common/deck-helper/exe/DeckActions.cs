@@ -26,10 +26,22 @@ static class DeckRun
                 KeySend.Send(t);
                 return;
             case "text":
-                Clipboard.SetText(t);
+            {
+                // 원래 복사해 둔 것이 글자면 받아 두었다가, 붙여 넣은 뒤 되돌려 놓는다(그림·파일은 되돌리지 못함)
+                string oldText = null;
+                IDataObject old = null;
+                try { old = Clipboard.GetDataObject(); } catch { }
+                try { if (old != null && old.GetDataPresent(DataFormats.UnicodeText)) oldText = old.GetData(DataFormats.UnicodeText) as string; } catch { }
+                Clipboard.SetDataObject(t, true, 10, 50);   // 다른 프로그램이 클립보드를 잡고 있으면 50ms 씩 10번 다시 해 본다
                 KeySend.Send("^v");
                 if (OptX.Get(opt, "enter") == "1") { Thread.Sleep(120); KeySend.Send("{ENTER}"); }
+                if (oldText != null)
+                {
+                    Thread.Sleep(400);   // 받는 프로그램이 붙여 넣기를 끝낼 시간
+                    try { Clipboard.SetDataObject(oldText, true, 10, 50); } catch { }
+                }
                 return;
+            }
             case "url":
             {
                 t = t.Trim();
@@ -76,6 +88,13 @@ static class DeckRun
     // fail: '여러 동작' 중 실패한 단계를 화면에 알려 줌(화면 스레드에서 불림)
     public static bool Run(DeckCell c, SynchronizationContext ui, Action<string> log, Action<string> fail)
     {
+        return Run(c, ui, log, fail, null);
+    }
+
+    // done: 모든 동작이 끝난 뒤 한 번(화면 스레드에서 불림). 실패한 단계 문구 목록을 준다(모두 됐으면 빈 목록)
+    //  '여러 동작' 문구: "N번째 동작을 하지 못했어요 (쉬운 이유)" / 한 동작: "동작을 하지 못했어요 (쉬운 이유)"
+    public static bool Run(DeckCell c, SynchronizationContext ui, Action<string> log, Action<string> fail, Action<List<string>> done)
+    {
         if (c == null) return false;
         if (c.Kind == "multi")
         {
@@ -85,6 +104,7 @@ static class DeckRun
             string name = c.Name;
             var th = new Thread(delegate ()
             {
+                var fails = new List<string>();
                 for (int i = 0; i < steps.Count; i++)
                 {
                     var s = steps[i];
@@ -92,13 +112,18 @@ static class DeckRun
                     catch (Exception ex)
                     {
                         if (log != null) log("여러 동작 '" + name + "' " + (i + 1) + "번째 실패: " + ex.Message);
+                        string msg = (i + 1) + "번째 동작을 하지 못했어요 (" + ErrText.Easy(ex) + ")";
+                        fails.Add(msg);
                         if (fail != null)
                         {
-                            string msg = (i + 1) + "번째 동작을 하지 못했어요 (" + ErrText.Easy(ex) + ")";
                             try { ui.Post(delegate { try { fail(msg); } catch { } }, null); } catch { }
                         }
                     }
                     if (i < steps.Count - 1 && s.Wait > 0) Thread.Sleep(Math.Min(10000, s.Wait));
+                }
+                if (done != null)
+                {
+                    try { ui.Post(delegate { try { done(fails); } catch { } }, null); } catch { }
                 }
             });
             th.IsBackground = true;
@@ -107,6 +132,12 @@ static class DeckRun
         }
         Exception err = null;
         ui.Send(delegate { try { Exec(c.Kind, c.Target, c.Opt); } catch (Exception ex) { err = ex; } }, null);
+        if (done != null)
+        {
+            var one = new List<string>();
+            if (err != null) one.Add("동작을 하지 못했어요 (" + ErrText.Easy(err) + ")");
+            try { ui.Post(delegate { try { done(one); } catch { } }, null); } catch { }
+        }
         if (err != null) { if (log != null) log("열기 실패: " + c.Name + " (" + err.Message + ")"); throw err; }
         return true;
     }
@@ -115,6 +146,7 @@ static class DeckRun
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
 
     static bool BringToFront(string target)
     {
@@ -125,14 +157,31 @@ static class DeckRun
             if (lnk != null) path = lnk;
             if (!path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
             string name = Path.GetFileNameWithoutExtension(path);
-            foreach (var p in Process.GetProcessesByName(name))
+            Process[] procs = Process.GetProcessesByName(name);
+            try
             {
-                IntPtr h = p.MainWindowHandle;
-                if (h == IntPtr.Zero) continue;
-                if (IsIconic(h)) ShowWindow(h, 9);   // SW_RESTORE
-                KeySend.Tap(0x12);                   // Alt 한 번: 다른 프로그램 창을 앞으로 올릴 수 있게(윈도의 앞창 제한)
-                SetForegroundWindow(h);
+                IntPtr fg = GetForegroundWindow(), first = IntPtr.Zero;
+                foreach (var p in procs)
+                {
+                    IntPtr h;
+                    try { h = p.MainWindowHandle; } catch { continue; }
+                    if (h == IntPtr.Zero) continue;
+                    if (h == fg)
+                    {   // 이미 맨 앞: Alt 를 누르지 않는다(Alt 가 메뉴 줄을 여는 프로그램이 있어서)
+                        if (IsIconic(h)) ShowWindow(h, 9);   // SW_RESTORE
+                        return true;
+                    }
+                    if (first == IntPtr.Zero) first = h;
+                }
+                if (first == IntPtr.Zero) return false;
+                if (IsIconic(first)) ShowWindow(first, 9);   // SW_RESTORE
+                KeySend.Tap(0x12);                           // Alt 한 번: 다른 프로그램 창을 앞으로 올릴 수 있게(윈도의 앞창 제한)
+                SetForegroundWindow(first);
                 return true;
+            }
+            finally
+            {
+                foreach (var p in procs) { try { p.Dispose(); } catch { } }
             }
         }
         catch { }

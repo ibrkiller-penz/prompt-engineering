@@ -1877,7 +1877,7 @@ static char s_deckIcCrc[16][9];         // '@deckls' 에 알릴 칸별 crc("-" =
 static lv_obj_t *s_deckLbl[16];         // 이름 글(받기 끝에 한 번 다시 쓴다)
 static lv_obj_t *s_deckResetBtn = nullptr;
 static uint32_t s_deckResetArmed = 0;
-static int s_deckPW = 0, s_deckM = 0;   // 안내 줄 폭 계산용
+static int s_deckPW = 0, s_deckM = 0, s_deckEditW = 0;   // 안내 줄 폭 계산용([꾸미기] 단추 폭)
 // 받는 중 상태
 static bool s_deckUp = false;
 static uint32_t s_deckUpAt = 0;
@@ -2009,6 +2009,19 @@ static void onDeckRefresh(lv_event_t *) {
     lv_obj_set_style_text_color(s_deckState, lv_color_hex(D_SUB), 0);
   }
 }
+// [꾸미기] 단추(단축키 판 왼쪽 아래): 컴퓨터에 '@pcui' 를 보내 탭덱의 꾸미기 창을 띄운다(2026-10-27).
+// 탭덱이 '@pcui ok' 로 답하면 연 것(예전 탭덱은 이 줄을 모르고 그냥 넘긴다 → 6초 뒤 안내).
+static uint32_t s_deckUiAt = 0;   // 누른 때(0 = 기다리지 않음)
+static void onDeckEdit(lv_event_t *) {
+  if (!s_usbOn) { showDeckHelp(); return; }             // 탭덱이 없으면 받는 법 안내
+  s_deckUiAt = millis() ? millis() : 1;
+  Serial.printf("\n@pcui\n");
+  if (s_deckState) {
+    lv_label_set_text(s_deckState, LV_SYMBOL_UPLOAD "  컴퓨터에 꾸미기 창을 여는 중...");
+    lv_obj_set_style_text_color(s_deckState, lv_color_hex(D_SUB), 0);
+  }
+  s_deckSentAt = millis();
+}
 static void onDeck(lv_event_t *e) {
   const int i = (int)(intptr_t)lv_event_get_user_data(e);
   if (i < 0 || i >= 16) return;
@@ -2061,7 +2074,9 @@ static volatile bool s_deckResetReq = false;   // [기본 아이콘] 단추 → 
 static void deckResetBtnVis() {
   if (!s_deckResetBtn || !s_deckState) return;
   if (s_deckCustom) lv_obj_clear_flag(s_deckResetBtn, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(s_deckResetBtn, LV_OBJ_FLAG_HIDDEN);
-  const int side = s_deckCustom ? lv_obj_get_style_width(s_deckResetBtn, 0) : 56;
+  // 왼쪽 = [꾸미기], 오른쪽 = [새로 고침](+ [기본 아이콘]). 넓은 쪽만큼 양쪽을 비운다
+  const int right = 56 + (s_deckCustom ? 8 + lv_obj_get_style_width(s_deckResetBtn, 0) : 0);
+  const int side = right > s_deckEditW ? right : s_deckEditW;
   lv_obj_set_width(s_deckState, s_deckPW - 2 * s_deckM - 2 * (side + 8));
 }
 // 16칸을 지금 설정으로 한 번 다시 그린다(받기 끝·되돌리기에서만). lock() 안에서 부른다.
@@ -2234,6 +2249,12 @@ static void deckPoll(uint32_t ms) {
       }
       else if (!strncmp(buf, "@view ", 6)) { const int v = atoi(buf + 6); if (v >= 0 && v <= 4) { lock(); showView((View)v); lv_disp_trig_activity(NULL); unlock(); } }
       else if (!strcmp(buf, "@deckhelp")) { lock(); showDeckHelp(); lv_disp_trig_activity(NULL); unlock(); }   // 도우미 안내 창 미리 보기(화면 찍기 시험용)
+      else if (!strcmp(buf, "@pcui ok") && s_deckState) {   // [꾸미기] 탭덱이 창을 열었다
+        s_deckUiAt = 0;
+        lock(); lv_label_set_text(s_deckState, LV_SYMBOL_OK "  컴퓨터에 꾸미기 창을 열었습니다 · 컴퓨터 화면을 보세요");
+        lv_obj_set_style_text_color(s_deckState, lv_color_hex(C_OK), 0); unlock();
+        s_deckSentAt = ms ? ms : 1;
+      }
       else if (!strncmp(buf, "@deck ok ", 9) && s_deckState) {
         s_deckWaitKey = -1;
         lock(); lv_label_set_text_fmt(s_deckState, LV_SYMBOL_OK "  '%s' 열었습니다", deckLabel(buf + 9));
@@ -2248,6 +2269,12 @@ static void deckPoll(uint32_t ms) {
       n = 0;
     } else if (n < sizeof buf - 1) buf[n++] = c;
     else n = 0;
+  }
+  if (s_deckUiAt && ms - s_deckUiAt > 6000) {            // [꾸미기] 답이 없다 → 예전 탭덱
+    s_deckUiAt = 0;
+    lock(); if (s_deckState) { lv_label_set_text(s_deckState, "컴퓨터의 탭덱이 예전 판입니다 · 컴퓨터 화면 오른쪽 아래 탭덱 아이콘을 두 번 누르세요");
+      lv_obj_set_style_text_color(s_deckState, lv_color_hex(NOW_TAG), 0); } unlock();
+    s_deckSentAt = ms ? ms : 1;
   }
   if (s_deckPingAt) {                                    // [새로 고침] 판정
     if (s_pcLast && (int32_t)(s_pcLast - s_deckPingAt) >= 0) {   // 누른 뒤에 답이 왔다
@@ -2301,12 +2328,18 @@ static void buildDeck(lv_obj_t *scr, int top) {
   lv_obj_t *rb = button(panel, LV_SYMBOL_REFRESH, RB, 38, D_ROW, D_TEXT);
   lv_obj_align(rb, LV_ALIGN_BOTTOM_RIGHT, -M, -(M - 10));
   lv_obj_add_event_cb(rb, onDeckRefresh, LV_EVENT_CLICKED, nullptr);
-  // 왼쪽 아래 [기본 아이콘]: 컴퓨터에서 꾸민 설정이 있을 때만 보인다. 3초 안에 두 번 눌러야 되돌린다.
+  // 왼쪽 아래 [꾸미기]: 컴퓨터에 탭덱의 꾸미기 창을 띄운다(늘 보인다)
+  s_deckEditW = small ? 104 : 124;
+  lv_obj_t *eb = button(panel, LV_SYMBOL_SETTINGS " 꾸미기", s_deckEditW, 38, D_ROW, D_TEXT);
+  lv_obj_set_style_text_font(lv_obj_get_child(eb, 0), small ? &kr14 : &kr16, 0);
+  lv_obj_align(eb, LV_ALIGN_BOTTOM_LEFT, M, -(M - 10));
+  lv_obj_add_event_cb(eb, onDeckEdit, LV_EVENT_CLICKED, nullptr);
+  // [새로 고침] 왼쪽 옆 [기본 아이콘]: 컴퓨터에서 꾸민 설정이 있을 때만 보인다. 3초 안에 두 번 눌러야 되돌린다.
   // (설계는 설정 화면이지만 설정 화면에 빈자리가 없어 단축키 화면에 둔다)
   s_deckPW = PW; s_deckM = M; s_deckResetArmed = 0;
   s_deckResetBtn = button(panel, "기본 아이콘", small ? 112 : 136, 38, D_ROW, D_SUB);
   lv_obj_set_style_text_font(lv_obj_get_child(s_deckResetBtn, 0), &kr14, 0);
-  lv_obj_align(s_deckResetBtn, LV_ALIGN_BOTTOM_LEFT, M, -(M - 10));
+  lv_obj_align(s_deckResetBtn, LV_ALIGN_BOTTOM_RIGHT, -(M + RB + 8), -(M - 10));
   lv_obj_add_event_cb(s_deckResetBtn, [](lv_event_t *e) {
     lv_obj_t *b = lv_event_get_current_target(e);
     if (!s_deckResetArmed || millis() - s_deckResetArmed > 3000) { s_deckResetArmed = millis(); lv_label_set_text(lv_obj_get_child(b, 0), "한 번 더"); return; }

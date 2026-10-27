@@ -80,7 +80,7 @@ class ActionList : Control
             case "url": return "사이트";
             case "keys": return "단축키";
             case "text": return "글자";
-            case "builtin": return "내장";
+            case "builtin": return "컴퓨터 기능";
             default: return "그림만";
         }
     }
@@ -96,7 +96,7 @@ class ActionList : Control
             list.Add(new ActRow { Group = FirstGroup, Title = kinds[i, 0], Action = kinds[i, 1], Tag = kinds[i, 2], IconKey = kinds[i, 3],
                 Tip = "빈 칸에 놓으면 하는 일만 정해져요. 찬 칸이면 이름은 그대로" });
         for (int i = 0; i < DeckForm.BuiltinCodes.Length; i++)
-            list.Add(new ActRow { Group = FirstGroup, Title = DeckForm.BuiltinNames[i], Action = "builtin:" + DeckForm.BuiltinCodes[i], Tag = "내장",
+            list.Add(new ActRow { Group = FirstGroup, Title = DeckForm.BuiltinNames[i], Action = "builtin:" + DeckForm.BuiltinCodes[i], Tag = "컴퓨터 기능",
                 IconKey = DeckForm.BuiltinIconKeys[i], Tip = DeckForm.BuiltinNames[i] });
         first.Count = list.Count;
         groups.Add(first); children[first] = list;
@@ -241,7 +241,7 @@ class ActionList : Control
         g.Clear(Theme.Panel);
         g.DrawLine(Theme.PenLine, 0, 0, 0, Height);
         Theme.Text(g, "동작", DeckFonts.Medium(11f), Theme.Text1, new RectangleF(16, 6, 120, 34));
-        Theme.Text(g, total + "개", DeckFonts.Light(8.5f), Theme.Text3, new RectangleF(Width - 16 - 80, 6, 80, 34), StringAlignment.Far);
+        Theme.Text(g, total + "개", DeckFonts.Regular(8.5f), Theme.Text3, new RectangleF(Width - 16 - 80, 6, 80, 34), StringAlignment.Far);
 
         var a = ListArea;
         var oldClip = g.Clip;
@@ -277,7 +277,7 @@ class ActionList : Control
         var tri = ex ? new RectangleF(16, rc.Y + rc.Height / 2 - 3, 10, 6) : new RectangleF(18, rc.Y + rc.Height / 2 - 5, 6, 10);
         Theme.Triangle(g, tri, ex ? 1 : 0, Theme.Br(hot ? Theme.Text1 : Theme.Text3));
         string cnt = r.Count.ToString();
-        var cf = DeckFonts.Light(8.5f);
+        var cf = DeckFonts.Regular(8.5f);
         float cw = Theme.TextWidth(g, cnt, cf) + 14;
         var pill = new RectangleF(rc.Right - 16 - cw, rc.Y + (rc.Height - 18) / 2, cw, 18);
         Theme.FillRound(g, Theme.BrRaised, pill, 9);
@@ -293,7 +293,7 @@ class ActionList : Control
         else if (i == hoverIdx) Theme.FillRound(g, Theme.BrRaised, bgR, 6);
         var ic = Icon(r);
         if (ic != null) g.DrawImage(ic, 16, (int)(rc.Y + (rc.Height - 28) / 2));
-        var tf = DeckFonts.Light(8f);
+        var tf = DeckFonts.Regular(8.5f);
         float tw = Theme.TextWidth(g, r.Tag, tf) + 14;
         var pill = new RectangleF(rc.Right - 20 - tw, rc.Y + (rc.Height - 18) / 2, tw, 18);
         if (!string.IsNullOrEmpty(r.Tag))

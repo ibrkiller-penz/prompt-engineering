@@ -26,22 +26,22 @@ class Inspector : Control
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         BackColor = Theme.Panel;
-        Height = 208;
+        Height = Theme.S(208);
         AllowDrop = true;
 
         NameBox.Box.MaxLength = 20;
         Kind.Items = new[] { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "컴퓨터 기능", "여러 동작" };
-        RecordBtn.Text = "눌러서 넣기"; RecordBtn.Size = new Size(112, 32);
-        OptBtn.Text = "자세히…"; OptBtn.Size = new Size(80, 32);
-        StepsBtn.Text = "동작 차례 고치기…"; StepsBtn.Style = BtnStyle.Primary; StepsBtn.Size = new Size(200, 32);
+        RecordBtn.Text = "눌러서 넣기"; RecordBtn.Size = new Size(Theme.S(112), Theme.S(32));
+        OptBtn.Text = "자세히…"; OptBtn.Size = new Size(Theme.S(80), Theme.S(32));
+        StepsBtn.Text = "동작 차례 고치기…"; StepsBtn.Style = BtnStyle.Primary; StepsBtn.Size = new Size(Theme.S(200), Theme.S(32));
         Controls.AddRange(new Control[] { RecordBtn, OptBtn, StepsBtn });
-        Kind.Height = 32;
-        BrowseBtn.Text = "찾아보기…"; BrowseBtn.Size = new Size(96, 32);
-        BuiltinBtn.Glyph = BtnGlyph.Down; BuiltinBtn.Size = new Size(240, 32);
+        Kind.Height = Theme.S(32);
+        BrowseBtn.Text = "찾아보기…"; BrowseBtn.Size = new Size(Theme.S(96), Theme.S(32));
+        BuiltinBtn.Glyph = BtnGlyph.Down; BuiltinBtn.Size = new Size(Theme.S(240), Theme.S(32));
         TextBox.Multiline = true;
-        IconBtn.Text = "아이콘 바꾸기"; IconBtn.Glyph = BtnGlyph.Down; IconBtn.Size = new Size(120, 28);
-        TryBtn.Text = "눌러 보기"; TryBtn.Glyph = BtnGlyph.Play; TryBtn.Size = new Size(160, 32);
-        ClearBtn.Text = "이 칸 비우기"; ClearBtn.Style = BtnStyle.Danger; ClearBtn.Size = new Size(160, 32);
+        IconBtn.Text = "아이콘 바꾸기"; IconBtn.Glyph = BtnGlyph.Down; IconBtn.Size = new Size(Theme.S(120), Theme.S(28));
+        TryBtn.Text = "눌러 보기"; TryBtn.Glyph = BtnGlyph.Play; TryBtn.Size = new Size(Theme.S(160), Theme.S(32));
+        ClearBtn.Text = "이 칸 비우기"; ClearBtn.Style = BtnStyle.Danger; ClearBtn.Size = new Size(Theme.S(160), Theme.S(32));
         Controls.AddRange(new Control[] { NameBox, Kind, TargetBox, BrowseBtn, TextBox, BuiltinBtn, IconBtn, TryBtn, ClearBtn });
         int t = 0;
         foreach (Control c in new Control[] { NameBox, Kind, TargetBox, TextBox, BuiltinBtn, BrowseBtn, IconBtn, TryBtn, ClearBtn }) c.TabIndex = t++;
@@ -126,13 +126,13 @@ class Inspector : Control
             g.PixelOffsetMode = PixelOffsetMode.Default;
         }
         else
-            Theme.Text(g, "아이콘 없음", DeckFonts.Light(8.5f), Theme.Text3, ib, StringAlignment.Center);
+            Theme.Text(g, "아이콘 없음", DeckFonts.Regular(8.5f), Theme.Text3, ib, StringAlignment.Center);
         if (iconDrop) Theme.DashedRound(g, new RectangleF(ib.X + 1.5f, ib.Y + 1.5f, ib.Width - 3, ib.Height - 3), 11, Theme.DropTarget, 2);
-        Theme.Text(g, mode, DeckFonts.Light(8.5f), Theme.Text3, new RectangleF(16, 176, 120, 18), StringAlignment.Center);
+        Theme.Text(g, mode, DeckFonts.Regular(8.5f), Theme.Text3, new RectangleF(16, 176, 120, Theme.S(18)), StringAlignment.Center);
 
         // 머리줄: 큰 글과 작은 글의 아랫선(글자 바닥선)을 맞춘다(디자인 검수 8)
         var hf = DeckFonts.Medium(12f);
-        var sf = DeckFonts.Light(8.5f);
+        var sf = DeckFonts.Regular(8.5f);
         float hw = Theme.TextWidth(g, head, hf);
         const float headTop = 14;
         float baseY = headTop + Ascent(hf);
@@ -151,14 +151,14 @@ class Inspector : Control
         float wx = NameBox.Right + 12, wr = Width - 176 - 12;
         Color wc = warnState == BoxState.Danger ? Theme.Danger : warnState == BoxState.Warn ? Theme.Warn : Theme.Text2;
         if (wr - wx > 20)
-            Theme.Text(g, warn, DeckFonts.Light(8.5f), wc, new RectangleF(wx, NameBox.Top - 2, wr - wx, NameBox.Height + 4), StringAlignment.Near, StringAlignment.Center, true);
+            Theme.Text(g, warn, DeckFonts.Regular(8.5f), wc, new RectangleF(wx, NameBox.Top - 2, wr - wx, NameBox.Height + 4), StringAlignment.Near, StringAlignment.Center, true);
 
         // 도움말: 빈 칸이면 대상 줄 자리(128)로 올려 가운데가 비지 않게(디자인 검수 10)
         if (targetKind != "text")
         {
             float hy = targetKind == "none" ? 128 : 166;
             float hh = targetKind == "none" ? 32 : 20;
-            Theme.Text(g, help, DeckFonts.Light(8.5f), Theme.Text2, new RectangleF(216, hy, Math.Max(20, Width - 16 - 216), hh));
+            Theme.Text(g, help, DeckFonts.Regular(8.5f), Theme.Text2, new RectangleF(216, hy, Math.Max(20, Width - 16 - 216), hh));
         }
     }
 
