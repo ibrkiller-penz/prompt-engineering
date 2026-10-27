@@ -12,7 +12,7 @@ using System.Windows.Forms;
 
 static class DeckManual
 {
-    public const string WebHtml = "https://penedu.web.app/board/manual/";
+    public const string WebHtml = "https://penedu.web.app/board/manual/index.html";
     public const string WebPdf = "https://penedu.web.app/board/deck-helper-manual.pdf";
 
     // exe 안의 설명서(사용설명서.html + 그림 + 글꼴)를 도우미 폴더에 풀고 기본 브라우저로 연다. 없으면 인터넷 쪽

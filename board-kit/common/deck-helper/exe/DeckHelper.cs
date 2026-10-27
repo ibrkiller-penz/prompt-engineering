@@ -1,4 +1,4 @@
-﻿// 교실 알림판 '단축키' 도우미 — exe 판(7인치·4인치 공통). tools/deck_helper.ps1 과 같은 일을 하고, 작업 표시줄에 아이콘을 둔다.
+﻿// 탭덱(TapDeck) — 교실 알림판 단축키 PC 프로그램, exe 판(7인치·4인치 공통). 2026-10-27 '단축키 도우미'에서 이름을 바꿈. tools/deck_helper.ps1 과 같은 일을 하고, 작업 표시줄에 아이콘을 둔다.
 //   보드가 보내는 '@deck 이름' 줄을 받아 프로그램·사이트를 열고 '@deck ok 이름' / '@deck fail 이름' 으로 답한다.
 //   5초마다 '@pc on' 을 보내고, '@board ok' 로 답하는 포트만 쥔다. 답이 없으면 놓고, 처음엔 1분 뒤(켠 직후 늦은 알림판),
 //   두 번째부터는 10분 뒤에 다시 본다(같은 칩을 쓰는 다른 장치를 자꾸 잡지 않게).
@@ -22,8 +22,8 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyTitle("교실 알림판 단축키 도우미")]
-[assembly: AssemblyProduct("교실 알림판 단축키 도우미")]
+[assembly: AssemblyTitle("탭덱 TapDeck")]
+[assembly: AssemblyProduct("탭덱 TapDeck")]
 [assembly: AssemblyVersion("1.1.0.0")]
 
 static class Program
@@ -43,7 +43,7 @@ static class Program
         bool fresh;
         using (var m = new Mutex(true, "PeneduBoardDeckHelper", out fresh))
         {
-            if (!fresh) { MessageBox.Show("단축키 도우미가 이미 켜져 있어요.\n화면 오른쪽 아래 작업 표시줄(^ 안쪽)의 아이콘을 보세요.", "교실 알림판 도우미"); return; }
+            if (!fresh) { MessageBox.Show("탭덱이 이미 켜져 있어요.\n화면 오른쪽 아래 작업 표시줄(^ 안쪽)의 아이콘을 보세요.", "탭덱"); return; }
             // 화면 쪽에서 미처 못 잡은 예외: 도우미가 꺼지지 않게 기록만 남긴다
             Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
             Application.ThreadException += delegate (object s, ThreadExceptionEventArgs e) { Helper.Log("화면 오류(계속 켜 둠): " + e.Exception); };
@@ -179,17 +179,17 @@ class Helper : ApplicationContext
         menu.Opening += delegate { miAuto.Checked = IsAuto(); miPause.Checked = File.Exists(StopFile); };
         tray.ContextMenuStrip = menu;
         tray.Icon = iconOff;
-        tray.Text = "교실 알림판 도우미 · 찾는 중";
+        tray.Text = "탭덱 · 찾는 중";
         tray.Visible = true;
         tray.MouseClick += delegate (object s, MouseEventArgs e) {
             // 화면 스레드에서는 보드 목록을 잠그지 않는다(보드 스레드가 프로그램을 열려고 화면 스레드를 기다리는 중일 수 있다)
-            if (e.Button == MouseButtons.Left) tray.ShowBalloonTip(4000, "교실 알림판 도우미", lastTip.Length > 0 ? lastTip : "찾는 중", ToolTipIcon.Info);
+            if (e.Button == MouseButtons.Left) tray.ShowBalloonTip(4000, "탭덱", lastTip.Length > 0 ? lastTip : "찾는 중", ToolTipIcon.Info);
         };
         tray.MouseDoubleClick += delegate (object s, MouseEventArgs e) { if (e.Button == MouseButtons.Left) OpenDeckForm(); };   // 두 번 누르면 꾸미기 창
 
         Directory.CreateDirectory(Dir);
         if (!test) Install();
-        Log("도우미(exe) 시작");
+        Log("탭덱 시작");
         DeckIcons.ExtractBuiltins(Path.Combine(IconDir, "기본"));
         DeckLibrary.Extract(Path.Combine(IconDir, "모음"));
         if (File.Exists(DeckFile))
@@ -208,18 +208,26 @@ class Helper : ApplicationContext
         try
         {
             string me = Application.ExecutablePath;
-            string home = Path.Combine(Dir, "교실알림판_도우미.exe");
+            string home = Path.Combine(Dir, ExeName);
+            // 예전 이름('교실알림판 도우미')의 바로 가기·exe 를 새 이름으로 옮긴다(2026-10-27)
+            bool wasAuto = false;
+            foreach (var old in new[] { OldStartupLnk, OldMenuLnk })
+                if (File.Exists(old)) { if (old == OldStartupLnk) wasAuto = true; try { File.Delete(old); Log("예전 바로 가기를 지움: " + Path.GetFileName(old)); } catch { } }
+            string oldExe = Path.Combine(Dir, "교실알림판_도우미.exe");
+            if (File.Exists(oldExe) && !string.Equals(Path.GetFullPath(me), Path.GetFullPath(oldExe), StringComparison.OrdinalIgnoreCase))
+                try { File.Delete(oldExe); } catch { }
+            if (wasAuto && !IsAuto() && File.Exists(home)) SetAuto(true, home);
             if (!string.Equals(Path.GetFullPath(me), Path.GetFullPath(home), StringComparison.OrdinalIgnoreCase))
             {
                 File.Copy(me, home, true);
-                bool firstTime = !IsAuto();
+                bool firstTime = !IsAuto() && !wasAuto;
                 SetAuto(true, home);
-                if (firstTime) tray.ShowBalloonTip(6000, "교실 알림판 도우미", "설치했어요. 컴퓨터를 켤 때 저절로 켜져요.\n아이콘을 오른쪽 클릭하면 메뉴가 나와요.", ToolTipIcon.Info);
+                if (firstTime) tray.ShowBalloonTip(6000, "탭덱", "설치했어요. 컴퓨터를 켤 때 저절로 켜져요.\n아이콘을 오른쪽 클릭하면 메뉴가 나와요.", ToolTipIcon.Info);
             }
             // 예전 판은 레지스트리 Run 에 등록했는데, 재부팅 뒤 켜지지 않은 적이 있다(백신이 막은 것으로 보임, 2026-10-26) → 시작프로그램 폴더 바로 가기로 옮긴다
             using (var k = Registry.CurrentUser.OpenSubKey(RunKey))
                 if (k != null && k.GetValue(RunName) != null) { SetAuto(true, home); Log("자동 켜기를 시작프로그램 폴더로 옮김"); }
-            if (File.Exists(home)) MakeLnk(MenuLnk, home);   // 시작 메뉴에서 '교실알림판 도우미'로 다시 켤 수 있게
+            if (File.Exists(home)) MakeLnk(MenuLnk, home);   // 시작 메뉴에서 '탭덱'으로 다시 켤 수 있게
             // 예전 방식(PowerShell 스크립트 도우미)과 같이 돌면 같은 보드를 서로 잡으려 한다 → 끄고 등록도 지운다
             string vbs = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "교실알림판_단축키도우미.vbs");
             if (File.Exists(vbs)) { File.Delete(vbs); Log("예전 스크립트 도우미 자동 켜기를 지움"); }
@@ -235,12 +243,15 @@ class Helper : ApplicationContext
     }
 
     // 저절로 켜기 = 시작프로그램 폴더의 바로 가기(사용자가 탐색기에서 보고 지울 수도 있다)
-    static readonly string StartupLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "교실알림판 도우미.lnk");
-    static readonly string MenuLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "교실알림판 도우미.lnk");
+    public const string ExeName = "탭덱.exe";
+    static readonly string StartupLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "탭덱.lnk");
+    static readonly string MenuLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "탭덱.lnk");
+    static readonly string OldStartupLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "교실알림판 도우미.lnk");
+    static readonly string OldMenuLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "교실알림판 도우미.lnk");
 
     static bool IsAuto() { return File.Exists(StartupLnk); }
 
-    void SetAuto(bool on) { SetAuto(on, Path.Combine(Dir, "교실알림판_도우미.exe")); }
+    void SetAuto(bool on) { SetAuto(on, Path.Combine(Dir, ExeName)); }
     void SetAuto(bool on, string exe)
     {
         if (test) return;
@@ -261,7 +272,7 @@ class Helper : ApplicationContext
             var st = sc.GetType();
             st.InvokeMember("TargetPath", BindingFlags.SetProperty, null, sc, new object[] { target });
             st.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, sc, new object[] { Path.GetDirectoryName(target) });
-            st.InvokeMember("Description", BindingFlags.SetProperty, null, sc, new object[] { "교실 알림판 단축키 도우미" });
+            st.InvokeMember("Description", BindingFlags.SetProperty, null, sc, new object[] { "탭덱 - 교실 알림판 단축키" });
             st.InvokeMember("Save", BindingFlags.InvokeMethod, null, sc, null);
         }
         catch (Exception ex) { Log("바로 가기를 만들지 못함: " + ex.Message); }
@@ -279,7 +290,7 @@ class Helper : ApplicationContext
         quit = true;
         if (loopTh != null) try { loopTh.Join(1500); } catch { }
         tray.Visible = false;
-        Log("도우미(exe) 끝냄");
+        Log("탭덱 끝냄");
         ExitThread();
     }
 
@@ -553,7 +564,7 @@ class Helper : ApplicationContext
         {
             var sb = new StringBuilder();
             sb.AppendLine("# 교실 알림판 단축키: 보드 단추 이름 = 열 것(프로그램 경로 · 사이트 주소)");
-            sb.AppendLine("# 고치고 저장하면 바로 쓰여요(도우미를 다시 켤 필요 없음). 줄을 지우면 기본값으로 돌아가요.");
+            sb.AppendLine("# 고치고 저장하면 바로 쓰여요(탭덱을 다시 켤 필요 없음). 줄을 지우면 기본값으로 돌아가요.");
             sb.AppendLine("# #desktop = 바탕화면 보기, #altf4 = 맨 앞 창 닫기. 단추 이름(왼쪽)은 바꾸지 마세요.");
             for (int i = 0; i < DefaultApps.GetLength(0); i++) sb.AppendLine(DefaultApps[i, 0] + " = " + DefaultApps[i, 1]);
             File.WriteAllText(AppsFile, sb.ToString(), new UTF8Encoding(true));
@@ -743,7 +754,7 @@ class Helper : ApplicationContext
                     {
                         b.PushStopped = true;
                         SetPushState("보드에 보내지 못했어요");
-                        Balloon("보드에 보내지 못했어요. 도우미 메뉴 '단축키 꾸미기'에서 다시 보내 주세요", ToolTipIcon.Warning);
+                        Balloon("보드에 보내지 못했어요. 탭덱 메뉴 '단축키 꾸미기'에서 다시 보내 주세요", ToolTipIcon.Warning);
                     }
                     else
                     {
@@ -955,7 +966,7 @@ class Helper : ApplicationContext
         bool paused = File.Exists(StopFile), on = st.StartsWith("연결됨");
         ui.Post(delegate {
             tray.Icon = paused ? iconPause : on ? iconOn : iconOff;
-            string tip = "교실 알림판 도우미 · " + st;
+            string tip = "탭덱 · " + st;
             tray.Text = tip.Length > 63 ? tip.Substring(0, 63) : tip;   // 작업 표시줄 글은 63자까지
             miState.Text = st;
         }, null);
@@ -963,7 +974,7 @@ class Helper : ApplicationContext
 
     void Balloon(string text, ToolTipIcon kind)
     {
-        ui.Post(delegate { tray.ShowBalloonTip(4000, "교실 알림판 도우미", text, kind); }, null);
+        ui.Post(delegate { tray.ShowBalloonTip(4000, "탭덱", text, kind); }, null);
     }
 
     // 둥근 사각형(알림판) 아이콘. 연결됨 = 초록, 찾는 중 = 회색, 멈춤 = 주황 + 일시정지 표시

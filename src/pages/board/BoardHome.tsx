@@ -49,7 +49,7 @@ export default function BoardHome() {
               ["🍚", "급식", "나이스 급식 정보 (학교 코드만 넣으면 돼요)"],
               ["🏫", "교장실 모드", "학교 일정 사이트와 연동해 오늘·다가오는 일정, 학사 D-day, 지금 수업 중인 선생님 수"],
               ["🔋", "배터리 표시", "7인치 B·4인치는 배터리 남은 양과 충전 중을 보여 줘요"],
-              ["⌨️", "단축키", "아이콘 16개를 누르면 컴퓨터의 프로그램·사이트가 열려요(컴퓨터에 작은 도우미를 켜 둬요)"],
+              ["⌨️", "단축키", "아이콘 16개를 누르면 컴퓨터의 프로그램·사이트가 열려요(컴퓨터에 작은 탭덱을 켜 둬요)"],
             ].map(([i, t, d]) => (
               <li key={t} className="rounded-card border border-line bg-surface p-4">
                 <p className="font-bold">
@@ -109,7 +109,7 @@ export default function BoardHome() {
           ["보이는 것 고르기", <>설정 → <b>보이기</b>에서 날씨 · 미세먼지 · 할 일 · 급식 · 시간표 · D-day를 하나씩 켜고 꺼요. 끈 자리는 남은 것이 채워요</>, "없음 (모두 보여요)"],
           ["선생님 찾기", "이름을 누르면 지금 위치·다음 수업·그날 시간표", "목록에서 골라 자세히 보기"],
           ["시계로 돌아가기", "설정에서 20분(기본) · 5분 · 안 함 중에서 골라요", "20분 동안 만지지 않으면 첫 장(시계)으로 (고정)"],
-          ["화면 불 끄기", "컴퓨터 도우미가 켜져 있으면 컴퓨터가 켜진 동안 끄지 않고, 컴퓨터가 꺼지면 끔. 도우미가 없으면 밤 10시~아침 7시·주말·휴일에 2분 무입력이면 끔", "같은 규칙 · 백라이트 밝기를 칩으로 조절할 수 있어요(값이 거꾸로라서 주의)"],
+          ["화면 불 끄기", "탭덱이 켜져 있으면 컴퓨터가 켜진 동안 끄지 않고, 컴퓨터가 꺼지면 끔. 탭덱이 없으면 밤 10시~아침 7시·주말·휴일에 2분 무입력이면 끔", "같은 규칙 · 백라이트 밝기를 칩으로 조절할 수 있어요(값이 거꾸로라서 주의)"],
           ["보드가 더 가진 것", "CAN · RS485 · I2C 단자, TF 카드, 배터리 단자", "시계(RTC), microSD, RS485·CAN, 배터리 전압 확인, 부저"],
           ["화면 흔들림 대책", <>같은 원리, 설정이 조금 달라요 — <Link to="/board/shake" className="font-semibold text-accent underline">화면 흔들림</Link></>, "같은 원리, 그림 그리는 방식부터 공장 방식"],
         ]}
@@ -207,9 +207,9 @@ export default function BoardHome() {
         압축은 <b>영문 경로</b>(예: <code>C:\dev</code>)에 풀어 주세요. 한글 폴더에서는 빌드가 멈춰요.
       </p>
       <div className="mt-4 flex flex-col rounded-card border border-line bg-surface p-4">
-        <p className="font-extrabold">⌨️ 단축키 도우미 · PC용 exe (7인치·4인치 공통)</p>
+        <p className="font-extrabold">⌨️ 탭덱 · PC용 exe (7인치·4인치 공통)</p>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          보드를 꽂은 <b>윈도 컴퓨터</b>에 까는 작은 프로그램이에요. <b>교실알림판_도우미.exe</b> 하나만 더블클릭하면 끝(관리자 권한 필요 없음).
+          보드를 꽂은 <b>윈도 컴퓨터</b>에 까는 작은 프로그램이에요. <b>탭덱.exe</b> 하나만 더블클릭하면 끝(관리자 권한 필요 없음).
           작업 표시줄에 아이콘이 생기고 보드와 이어지면 초록으로 바뀌어요. 아이콘 오른쪽 클릭 → <b>[단축키 꾸미기…]</b>에서 16칸을 스트림덱처럼
           꾸며 보드로 보내요(아이콘 모음 205개 · 한 번에 채우기 · 내보내기/가져오기).{kits.helperExe?.bytes ? ` · ${mb(kits.helperExe.bytes)}` : ""}
         </p>
@@ -220,14 +220,14 @@ export default function BoardHome() {
           loading="lazy"
         />
         <p className="mt-2 text-sm leading-relaxed">
-          짧은 주소: <Link to="/deck" className="font-bold text-accent underline">penedu.web.app/deck</Link> — 도우미가 없을 때 보드에서 단축키를 누르면 이
+          짧은 주소: <Link to="/deck" className="font-bold text-accent underline">penedu.web.app/deck</Link> — 탭덱이 없을 때 보드에서 단축키를 누르면 이
           주소가 화면에 떠요. 받는 방법과 쓰는 법이 거기에 차례대로 있어요.
         </p>
         <Link
           to="/deck"
           className="mt-3 inline-flex min-h-[44px] items-center justify-center self-start rounded-card bg-accent px-4 font-semibold text-accent-ink hover:brightness-110"
         >
-          ⬇ 도우미 받기 · 안내 보기
+          ⬇ 탭덱 받기 · 안내 보기
         </Link>
       </div>
 

@@ -1,13 +1,13 @@
-﻿# 단축키 도우미 exe 만들기 — 윈도우에 들어 있는 .NET Framework 4 컴파일러(csc.exe)만 쓴다(따로 설치할 것 없음)
+﻿# 탭덱(TapDeck, 예전 이름 단축키 도우미) exe 만들기 — 윈도우에 들어 있는 .NET Framework 4 컴파일러(csc.exe)만 쓴다(따로 설치할 것 없음)
 #   powershell -NoProfile -ExecutionPolicy Bypass -File build_exe.ps1
-# 결과: ..\교실알림판_도우미.exe (*.cs + icon.ico + 기본 그림 16개). 소스는 C# 5 문법만(이 컴파일러가 그 이상을 모른다).
+# 결과: ..\탭덱.exe (*.cs + icon.ico + 기본 그림 16개). 소스는 C# 5 문법만(이 컴파일러가 그 이상을 모른다).
 # 이 파일은 UTF-8 BOM 으로 저장해야 한다(Windows PowerShell 5.1 이 한글을 깨뜨리지 않게).
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path $csc)) { $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe' }
 if (-not (Test-Path $csc)) { throw '.NET Framework 4 컴파일러(csc.exe)를 못 찾았어요' }
-$out = Join-Path (Split-Path -Parent $PSScriptRoot) '교실알림판_도우미.exe'
+$out = Join-Path (Split-Path -Parent $PSScriptRoot) '탭덱.exe'
 # 소스: DeckHelper.cs(통신) + DeckConfig.cs(deck.json) + DeckIcons.cs(아이콘) + DeckForm.cs('단축키 꾸미기' 창) + 화면 부품(DeckTheme·DeckControls·DeckBoardView·DeckActionList·DeckInspector) + DeckPreview.cs(--preview 그림)
 $src = 'DeckHelper.cs', 'DeckConfig.cs', 'DeckIcons.cs', 'DeckForm.cs', 'DeckLibrary.cs', 'DeckFonts.cs', 'DeckTheme.cs', 'DeckControls.cs', 'DeckBoardView.cs', 'DeckActionList.cs', 'DeckInspector.cs', 'DeckPreview.cs', 'DeckActions.cs', 'DeckDialogs.cs', 'DeckTour.cs' | ForEach-Object { Join-Path $PSScriptRoot $_ }
 # 기본 그림 16개를 exe 안에 묻는다(처음 켤 때 %LOCALAPPDATA%\PeneduBoard\icons\기본 에 풀림). 없으면 7inch\tools\export_deck_icons.py 로 만든다
@@ -49,6 +49,7 @@ if (Test-Path (Join-Path $man '사용설명서.html')) {
   # 글꼴 경로: 저장소에서는 ../exe/fonts/, 풀린 곳에서는 fonts/
   $html = [IO.File]::ReadAllText((Join-Path $man '사용설명서.html'), [Text.Encoding]::UTF8).Replace('../exe/fonts/', 'fonts/')
   $e = $mz.CreateEntry('사용설명서.html', 'Optimal'); $w = New-Object IO.StreamWriter($e.Open(), (New-Object Text.UTF8Encoding($false))); $w.Write($html); $w.Dispose()
+  foreach ($wf in 'web.css', 'web.js') { $f = Join-Path $man $wf; if (Test-Path $f) { [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($mz, $f, $wf, 'Optimal') } }
   foreach ($sub in 'img', 'img2') {
     $d = Join-Path $man $sub
     if (Test-Path $d) { Get-ChildItem $d -File | ForEach-Object { [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($mz, $_.FullName, "$sub/" + $_.Name, 'Optimal') } }

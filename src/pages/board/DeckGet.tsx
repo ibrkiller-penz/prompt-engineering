@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import kits from "../../../content/board/kits.json";
 import { HUB_NAME } from "../../site";
 
-// penedu.web.app/deck — 보드가 '도우미가 필요해요' 창에서 알려 주는 짧은 주소(펌웨어의 DECK_HELP_URL 과 같게).
+// penedu.web.app/deck — 보드가 '탭덱이 필요해요' 창에서 알려 주는 짧은 주소(펌웨어의 DECK_HELP_URL 과 같게).
 // 다른 컴퓨터에서 처음 여는 쪽이라 /board 의 틀(프로·맥스 고르기 창 등) 없이 받기만 크게 보인다.
 // PC용은 exe 판 하나만(예전 PowerShell 판 설치.bat 은 2026-10-27 에 없앰).
 function mb(bytes: number) {
@@ -25,14 +25,14 @@ function Steps({ items }: { items: ReactNode[] }) {
 
 export default function DeckGet() {
   useEffect(() => {
-    document.title = `단축키 도우미 받기 · ${HUB_NAME}`;
+    document.title = `탭덱 받기 · ${HUB_NAME}`;
   }, []);
   const install = [
     <>
-      아래 <b>[도우미 받기]</b>를 눌러 압축 파일을 받아요. 인터넷 창이 “흔하지 않은 파일”이라고 하면 <b>[유지]</b>를 눌러요.
+      아래 <b>[탭덱 받기]</b>를 눌러 압축 파일을 받아요. 인터넷 창이 “흔하지 않은 파일”이라고 하면 <b>[유지]</b>를 눌러요.
     </>,
     <>
-      받은 압축 파일을 더블클릭해 열고, 안의 <b>교실알림판_도우미.exe</b> 를 더블클릭해요(압축을 풀지 않아도 돼요). 파란{" "}
+      받은 압축 파일을 더블클릭해 열고, 안의 <b>탭덱.exe</b> 를 더블클릭해요(압축을 풀지 않아도 돼요). 파란{" "}
       <b>“Windows의 PC 보호”</b> 창이 뜨면 <b>[추가 정보] → [실행]</b>.
     </>,
     <>
@@ -64,7 +64,9 @@ export default function DeckGet() {
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center lg:gap-12">
       <div>
       <p className="text-sm font-semibold tracking-widest text-accent">교실 알림판 · 7인치·4인치 공통 · 윈도 PC용</p>
-      <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">단축키 도우미 받기</h1>
+      <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
+        탭덱 <span className="text-xl font-semibold text-muted sm:text-2xl">TapDeck</span> 받기
+      </h1>
       <p className="mt-3 leading-relaxed text-muted">
         보드의 단축키 단추를 누르면 <b className="text-ink">이 컴퓨터</b>의 프로그램·사이트가 열리게 해 주는 작은 프로그램(exe)이에요. 보드의 16칸을{" "}
         <b className="text-ink">스트림덱처럼</b> 마음대로 꾸며 보낼 수도 있어요. 보드를 꽂은 컴퓨터에 한 번만 깔면 돼요.
@@ -72,19 +74,29 @@ export default function DeckGet() {
 
       <a
         href={`/board/${kits.helperExe.file}`}
-        download="교실알림판_도우미.zip"
+        download="탭덱.zip"
         className="mt-6 flex min-h-[64px] items-center justify-center rounded-card bg-accent px-6 text-lg font-extrabold text-accent-ink hover:brightness-110"
       >
-        ⬇ 도우미 받기 (교실알림판_도우미.exe{mb(kits.helperExe.bytes)})
+        ⬇ 탭덱 받기 (탭덱.exe{mb(kits.helperExe.bytes)})
       </a>
-      <a
-        href={`/board/${kits.helperManual.file}`}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-3 flex min-h-[48px] items-center justify-center rounded-card border border-line bg-surface px-6 font-bold hover:border-accent"
-      >
-        📘 사용 설명서 PDF 보기{mb(kits.helperManual.bytes)}
-      </a>
+      <div className="mt-3 grid gap-3 sm:grid-cols-[1.4fr_1fr]">
+        <a
+          href="/board/manual/index.html"
+          target="_blank"
+          rel="noreferrer"
+          className="flex min-h-[48px] items-center justify-center rounded-card border-2 border-accent bg-surface px-4 font-bold hover:bg-accent-soft"
+        >
+          📘 설명서 보기 · 따라 하기
+        </a>
+        <a
+          href={`/board/${kits.helperManual.file}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex min-h-[48px] items-center justify-center rounded-card border border-line bg-surface px-4 font-semibold hover:border-accent"
+        >
+          인쇄용 PDF{mb(kits.helperManual.bytes)}
+        </a>
+      </div>
       <p className="mt-2 text-center text-sm text-muted">
         설명서·읽어보기·끄기 파일까지 든 꾸러미:{" "}
         <a href={`/board/${kits.helper.file}`} download className="font-semibold text-accent underline">
@@ -157,7 +169,7 @@ function TroubleShoot() {
           <b className="text-ink">USB-C</b> 단자예요.
         </li>
         <li>
-          컴퓨터를 다시 켠 뒤 아이콘이 안 보이면: <b className="text-ink">시작 메뉴</b>에서 <b className="text-ink">‘교실알림판 도우미’</b>를 눌러 켜요. 보드
+          컴퓨터를 다시 켠 뒤 아이콘이 안 보이면: <b className="text-ink">시작 메뉴</b>에서 <b className="text-ink">‘탭덱’</b>을 눌러 켜요. 보드
           단축키 화면 오른쪽 아래 <b className="text-ink">⟳</b> 단추를 누르면 연결을 바로 다시 확인해요.
         </li>
         <li>
@@ -165,7 +177,7 @@ function TroubleShoot() {
           구워야 해요. 꾸민 칸을 보내지 못하면(“이 보드는 아이콘 받기를 못 해요”) 마찬가지로 보드를 새로 구워요.
         </li>
         <li>
-          학교 백신이 exe 를 막으면: 백신의 <b className="text-ink">예외(허용)</b>에 교실알림판_도우미.exe 를 넣어 주세요. 끄고 지우려면 꾸러미의{" "}
+          학교 백신이 exe 를 막으면: 백신의 <b className="text-ink">예외(허용)</b>에 탭덱.exe 를 넣어 주세요. 끄고 지우려면 꾸러미의{" "}
           <b className="text-ink">끄기.bat</b>.
         </li>
       </ul>

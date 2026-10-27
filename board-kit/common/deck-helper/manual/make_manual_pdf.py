@@ -1,4 +1,4 @@
-"""사용설명서.html → ../단축키도우미_사용설명서.pdf (Edge 로 인쇄) + 쪽 그림(확인용, preview/).
+"""사용설명서.html → ../탭덱_사용설명서.pdf (Edge 로 인쇄) + 쪽 그림(확인용, preview/).
    python make_manual_pdf.py
 
    쪽 번호: 차례와 본문의 <a class="pg" href="#아이디">0</a> 는 PDF 를 한 번 뽑아 본 뒤
@@ -7,7 +7,7 @@
 import os, re, subprocess, sys, pathlib
 HERE = pathlib.Path(__file__).resolve().parent
 src = HERE / "사용설명서.html"
-out = HERE.parent / "단축키도우미_사용설명서.pdf"
+out = HERE.parent / "탭덱_사용설명서.pdf"
 edge = next((p for p in [r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"] if os.path.exists(p)), None)
 if not edge:
     sys.exit("Edge 를 찾지 못했어요")

@@ -1985,15 +1985,15 @@ static void showDeckHelp() {
     lv_obj_set_width(l, TW); lv_label_set_long_mode(l, LV_LABEL_LONG_WRAP);
     return l;
   };
-  line(&kr28, D_TEXT, "컴퓨터에 도우미가 필요해요");
-  line(&kr16, D_SUB, "단축키로 컴퓨터 프로그램을 열려면, 이 보드를 꽂은 컴퓨터에 작은 도우미 프로그램을 한 번 깔아야 해요.");
+  line(&kr28, D_TEXT, "컴퓨터에 탭덱이 필요해요");
+  line(&kr16, D_SUB, "단축키로 컴퓨터 프로그램을 열려면, 이 보드를 꽂은 컴퓨터에 작은 프로그램 '탭덱'을 한 번 깔아야 해요.");
   line(&kr20, D_TEXT, "1. 컴퓨터 인터넷 창의 주소 칸에 이 주소를 쳐요");
   lv_obj_t *url = box(card, D_ROW, D_LINE, 10);
   lv_obj_set_size(url, TW, LV_SIZE_CONTENT); lv_obj_set_style_pad_ver(url, 10, 0);
   lv_obj_t *ul = label(url, &kr28, C_DUTY, DECK_HELP_URL); lv_obj_center(ul);
-  line(&kr20, D_TEXT, "2. [도우미 받기]를 누르고, 받은 파일을 더블클릭해요");
+  line(&kr20, D_TEXT, "2. [탭덱 받기]를 누르고, 받은 파일을 더블클릭해요");
   line(&kr20, D_TEXT, "3. 컴퓨터 화면 오른쪽 아래 아이콘이 초록이 되면 다시 눌러요");
-  line(&kr16, C_DUTY, "이미 깔았는데 안 되면: 컴퓨터 시작 메뉴에서 '교실알림판 도우미'를 눌러 켜요.");
+  line(&kr16, C_DUTY, "이미 깔았는데 안 되면: 컴퓨터 시작 메뉴에서 '탭덱'을 눌러 켜요.");
   line(&kr14, D_MUTED, "깔았는데도 안 되면: 이 보드가 'UART' 단자로 컴퓨터에 꽂혀 있는지 보세요(데이터 케이블).");
   lv_obj_t *cb = button(card, "닫기", 120, 44, D_ROW, D_TEXT);
   lv_obj_add_event_cb(cb, [](lv_event_t *) { closeDeckHelp(); }, LV_EVENT_CLICKED, nullptr);
@@ -2005,7 +2005,7 @@ static void onDeckRefresh(lv_event_t *) {
   s_deckPingAt = millis() ? millis() : 1;
   Serial.printf("\n@pc?\n");
   if (s_deckState) {
-    lv_label_set_text(s_deckState, LV_SYMBOL_REFRESH "  컴퓨터 도우미를 찾는 중...");
+    lv_label_set_text(s_deckState, LV_SYMBOL_REFRESH "  컴퓨터의 탭덱을 찾는 중...");
     lv_obj_set_style_text_color(s_deckState, lv_color_hex(D_SUB), 0);
   }
 }
@@ -2020,7 +2020,7 @@ static void onDeck(lv_event_t *e) {
   if (!s_usbOn) {
     showDeckHelp();
     if (s_deckState) {
-      lv_label_set_text(s_deckState, "컴퓨터 도우미와 연결되지 않았습니다 · UART 선과 컴퓨터의 도우미 프로그램을 확인하세요");
+      lv_label_set_text(s_deckState, "컴퓨터의 탭덱과 연결되지 않았습니다 · UART 선과 컴퓨터의 탭덱을 확인하세요");
       lv_obj_set_style_text_color(s_deckState, lv_color_hex(NOW_TAG), 0);
     }
     s_deckSentAt = millis();                            // 1분 뒤 안내 글로 돌아간다
@@ -2045,7 +2045,7 @@ static void deckStateText() {
   if (!s_deckState) return;
   if (s_deckUp) { setTextIf(s_deckState, s_deckUpMsg); setTextColIf(s_deckState, C_DUTY); return; }   // 받는 중에는 진행 글
   setTextIf(s_deckState, s_usbOn ? LV_SYMBOL_OK "  컴퓨터와 연결됨 · 단추를 누르면 프로그램이 열립니다"
-                                 : LV_SYMBOL_WARNING "  컴퓨터 도우미를 기다리는 중 · 처음이면 컴퓨터에서 " DECK_HELP_URL " 로 받아요");
+                                 : LV_SYMBOL_WARNING "  컴퓨터의 탭덱을 기다리는 중 · 처음이면 컴퓨터에서 " DECK_HELP_URL " 로 받아요");
   setTextColIf(s_deckState, s_usbOn ? C_OK : D_MUTED);   // 기다리는 것은 문제가 아니다(노랑은 '지금'·문제에만)
 }
 static void deckIconsDim() {   // 도우미가 꺼져 있으면 아이콘을 흐리게(누를 수 없다는 뜻)
@@ -2241,7 +2241,7 @@ static void deckPoll(uint32_t ms) {
         s_deckSentAt = ms ? ms : 1;
       } else if (!strncmp(buf, "@deck fail ", 11) && s_deckState) {
         s_deckWaitKey = -1;
-        lock(); lv_label_set_text_fmt(s_deckState, LV_SYMBOL_WARNING "  '%s' 열지 못했습니다 · 컴퓨터 도우미 설정을 확인하세요", deckLabel(buf + 11));
+        lock(); lv_label_set_text_fmt(s_deckState, LV_SYMBOL_WARNING "  '%s' 열지 못했습니다 · 컴퓨터의 탭덱 설정을 확인하세요", deckLabel(buf + 11));
         lv_obj_set_style_text_color(s_deckState, lv_color_hex(NOW_TAG), 0); unlock();
         s_deckSentAt = ms ? ms : 1;
       }
@@ -4229,7 +4229,7 @@ void loop() {
         deckAbortUp();
         Serial.println("deck upload timeout");
         lock();
-        if (s_deckState) { lv_label_set_text(s_deckState, LV_SYMBOL_WARNING "  받기를 멈췄습니다 · 도우미가 다시 보냅니다"); lv_obj_set_style_text_color(s_deckState, lv_color_hex(NOW_TAG), 0); }
+        if (s_deckState) { lv_label_set_text(s_deckState, LV_SYMBOL_WARNING "  받기를 멈췄습니다 · 탭덱이 다시 보냅니다"); lv_obj_set_style_text_color(s_deckState, lv_color_hex(NOW_TAG), 0); }
         unlock();
         s_deckSentAt = ms ? ms : 1;
       }
@@ -4238,7 +4238,7 @@ void loop() {
       if (s_deckWaitKey >= 0 && ms - s_deckWaitAt > 5000) {   // 보냈는데 5초 안에 도우미 답이 없다 → 성공처럼 남기지 않는다
         const int k = s_deckWaitKey; s_deckWaitKey = -1;
         lock();
-        if (s_deckState) { lv_label_set_text_fmt(s_deckState, LV_SYMBOL_WARNING "  '%s' 컴퓨터 답이 없습니다 · 도우미를 다시 켜 주세요", deckName(k));
+        if (s_deckState) { lv_label_set_text_fmt(s_deckState, LV_SYMBOL_WARNING "  '%s' 컴퓨터 답이 없습니다 · 탭덱을 다시 켜 주세요", deckName(k));
                            lv_obj_set_style_text_color(s_deckState, lv_color_hex(NOW_TAG), 0); }
         unlock();
         s_deckSentAt = ms ? ms : 1;

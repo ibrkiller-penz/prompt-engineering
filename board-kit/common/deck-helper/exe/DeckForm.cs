@@ -47,7 +47,7 @@ class DeckForm : Form
     static bool themeLoaded;
     static readonly Encoding Euc = Encoding.GetEncoding(51949, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
     const string Extra = "°·→▶◀●";   // 보드 글꼴에 있는 기호
-    const string TitleText = "단축키 꾸미기 — 교실 알림판";
+    const string TitleText = "탭덱 — 단축키 꾸미기";
     const string HintNormal = "오른쪽 목록에서 동작을 끌어 칸에 놓으세요. 칸을 누르면 아래에서 이름과 아이콘을 고칠 수 있어요.";
     const string HintEmpty = "비어 있어요. 위의 [한 번에 채우기]로 시작해도 좋아요.";
 
@@ -555,7 +555,7 @@ class DeckForm : Form
 
     void PickLibrary()
     {
-        if (DeckLibrary.Items().Count == 0) { MessageBox.Show(this, "아이콘 모음을 찾지 못했어요. 도우미를 새로 받아 주세요.", "단축키 꾸미기"); ShowCell(); return; }
+        if (DeckLibrary.Items().Count == 0) { MessageBox.Show(this, "아이콘 모음을 찾지 못했어요. 탭덱을 새로 받아 주세요.", "단축키 꾸미기"); ShowCell(); return; }
         using (var d = new LibraryPicker(libTheme))
         {
             if (d.ShowDialog(this) != DialogResult.OK || d.Picked == null) { ShowCell(); return; }
@@ -988,7 +988,7 @@ class DeckForm : Form
     {
         var lib = new Dictionary<string, LibItem>();
         foreach (var it in DeckLibrary.Items()) lib[it.Key] = it;
-        if (lib.Count == 0) { MessageBox.Show(this, "아이콘 모음을 찾지 못했어요. 도우미를 새로 받아 주세요.", "단축키 꾸미기"); return; }
+        if (lib.Count == 0) { MessageBox.Show(this, "아이콘 모음을 찾지 못했어요. 탭덱을 새로 받아 주세요.", "단축키 꾸미기"); return; }
         var keys = new List<string>();
         if (which == "installed")
         {
@@ -1304,8 +1304,8 @@ class TopBar : Control
         g.Clear(Theme.Panel);
         g.DrawLine(Theme.PenLine, 0, Height - 1, Width, Height - 1);
         var tf = DeckFonts.Medium(13f);
-        float tw = Theme.TextWidth(g, "단축키 꾸미기", tf);
-        Theme.Text(g, "단축키 꾸미기", tf, Theme.Text1, new RectangleF(16, 0, tw + 8, Height - 1));
+        float tw = Theme.TextWidth(g, "탭덱 · 단축키 꾸미기", tf);
+        Theme.Text(g, "탭덱 · 단축키 꾸미기", tf, Theme.Text1, new RectangleF(16, 0, tw + 8, Height - 1));
         if (dirty)
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;

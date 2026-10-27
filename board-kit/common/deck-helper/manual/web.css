@@ -1,0 +1,56 @@
+/* 화면으로 볼 때만(인쇄·PDF 에는 쓰지 않음): 왼쪽 차례, 쪽 대신 카드, 자세한 설명서의 '따라 하기' 표시. web.js 가 html 에 .web 을 붙인다 */
+html.web { scroll-behavior: smooth; scroll-padding-top: 16px; }
+html.web body { background: #e8ecf2; padding: 24px 16px 96px; }
+html.web body > section, html.web body > .cover { max-width: 920px; margin: 0 auto 24px; }
+html.web body > section { background: #fff; border-radius: 14px; padding: 36px 44px; box-shadow: 0 2px 10px rgba(20, 30, 50, .07); }
+html.web section section { margin-top: 28px; }
+html.web .cover { height: auto; min-height: 60vh; gap: 24px; }
+html.web .cover img { max-width: 760px; }
+html.web figure img { max-width: 100%; }
+
+/* 차례 */
+#toc { position: fixed; z-index: 30; top: 0; bottom: 0; left: 0; width: 290px; overflow-y: auto; background: #fff; border-right: 1px solid #d9dee8; padding: 18px 14px 40px; font-size: 9.6pt; transform: translateX(-100%); transition: transform .2s; }
+body.toc-open #toc { transform: none; box-shadow: 4px 0 24px rgba(0, 0, 0, .18); }
+#toc .toc-h { font-weight: 600; font-size: 13pt; padding: 4px 8px 10px; }
+#toc .toc-h small { display: block; font-weight: 300; font-size: 8.6pt; color: #5b6478; }
+#toc .tabs { display: flex; gap: 6px; margin: 0 4px 10px; }
+#toc .tabs button { flex: 1; font: inherit; font-weight: 600; border: 1px solid #c8d1e3; background: #f4f6fb; border-radius: 8px; padding: 6px 0; cursor: pointer; }
+#toc .tabs button:hover { border-color: #3b6fe0; }
+#toc ul { list-style: none; margin: 0; padding: 0; }
+#toc li.part { margin: 14px 8px 4px; font-weight: 600; color: #3b6fe0; font-size: 8.8pt; letter-spacing: .5mm; }
+#toc a { display: block; padding: 5px 8px; border-radius: 7px; color: #1c2230; text-decoration: none; line-height: 1.4; }
+#toc a:hover { background: #eef3ff; }
+#toc a.on { background: #3b6fe0; color: #fff; }
+#toc a .chk { float: right; color: #10a37f; font-family: "Segoe UI Symbol", sans-serif; }
+#toc .reset { margin: 18px 8px 0; font: inherit; font-size: 8.6pt; color: #5b6478; background: none; border: 0; text-decoration: underline; cursor: pointer; }
+#toc-btn, #next-step { position: fixed; z-index: 31; bottom: 18px; font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 11px 18px; cursor: pointer; box-shadow: 0 4px 16px rgba(20, 30, 50, .25); }
+#toc-btn { left: 16px; background: #1a1e27; color: #fff; }
+#next-step { right: 18px; background: #3b6fe0; color: #fff; }
+#next-step[hidden] { display: none; }
+@media (min-width: 1280px) {
+  #toc { transform: none; }
+  html.web body { padding-left: 314px; }
+  #toc-btn { display: none; }
+}
+@media (max-width: 640px) {
+  html.web body { padding: 10px 8px 90px; font-size: 10.6pt; }
+  html.web body > section { padding: 22px 18px; border-radius: 10px; }
+  html.web .cover { padding: 22px 18px; }
+  html.web .cover h1 { font-size: 22pt; }
+  html.web .two { grid-template-columns: 1fr; }
+  html.web figure.half img, html.web figure.w56 img, html.web figure.w64 img, html.web figure.w72 img, html.web figure.w80 img { width: 100%; }
+  html.web table { font-size: 8.8pt; }
+}
+
+/* 따라 하기(자세한 설명서의 단계): 누르면 '했어요' 표시 */
+html.web section[id^="p"] ol.steps > li { cursor: pointer; border-radius: 8px; padding-top: 4px; padding-bottom: 4px; transition: background .2s; }
+html.web section[id^="p"] ol.steps > li:hover { background: #f3f6fc; }
+html.web section[id^="p"] ol.steps > li.done { color: #6b7385; }
+html.web section[id^="p"] ol.steps > li.done::before { content: "✓"; background: #10a37f; font-family: "Segoe UI Symbol", sans-serif; }
+html.web ol.steps > li.flash { background: #fff3c4 !important; }
+.prog { display: flex; align-items: center; gap: 10px; margin: -1mm 0 4mm; font-size: 9pt; color: #5b6478; }
+.prog .bar { flex: 1; max-width: 260px; height: 8px; background: #e5e9f2; border-radius: 99px; overflow: hidden; }
+.prog .bar i { display: block; height: 100%; background: #10a37f; transition: width .3s; }
+.prog em { font-style: normal; font-weight: 600; color: #10a37f; }
+.prog .hint { color: #8a92a5; }
+@media print { #toc, #toc-btn, #next-step, .prog { display: none !important; } }
