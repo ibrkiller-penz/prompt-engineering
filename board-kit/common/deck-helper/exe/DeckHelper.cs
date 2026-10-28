@@ -14,6 +14,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.IO.Ports;
 using System.Management;
+using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -85,6 +86,7 @@ class Board
     public Link Port;
     public string Buf = "";
     public bool Ok;              // '@board ok' 를 받았나
+    public DateTime TimeAt;      // 마지막으로 '@time' 을 보낸 때
     public DateTime Opened;
     // 아이콘 보내기
     public volatile bool Pushing;   // 보내는 스레드가 포트를 쓰는 중(이때 Loop 는 읽지도 쓰지도 않는다)
@@ -415,7 +417,16 @@ class Helper : ApplicationContext
                 if ((now - lastBeat).TotalSeconds >= 5)
                 {
                     lastBeat = now;
-                    lock (boards) foreach (var n in new List<string>(boards.Keys)) if (!boards[n].Pushing) Send(n, "@pc on");   // 보내는 중에는 보내는 스레드가 아이콘 사이에 보낸다
+                    lock (boards) foreach (var n in new List<string>(boards.Keys)) if (!boards[n].Pushing)
+                    {
+                        Send(n, "@pc on");   // 보내는 중에는 보내는 스레드가 아이콘 사이에 보낸다
+                        Board tb;
+                        if (boards.TryGetValue(n, out tb) && tb.Ok && (now - tb.TimeAt).TotalSeconds >= 30)
+                        {   // 설정 '컴퓨터만' 인 보드는 와이파이가 없으니 이 컴퓨터의 시각을 알려 준다(다른 보드는 무시)
+                            tb.TimeAt = now;
+                            Send(n, "@time " + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds);
+                        }
+                    }
                 }
                 if (forcePush)
                 {
@@ -629,6 +640,7 @@ class Helper : ApplicationContext
             }
             else if (line == "@pc?") { if (!b.Ok) Confirm(b); Send(n, "@pc on"); Log("보드가 연결을 다시 확인함(새로 고침): " + n); }   // 보드의 [새로 고침] 단추: 바로 답한다
             else if (line == "@pcui") { if (!b.Ok) Confirm(b); FormFromBoard(n); Send(n, "@pcui ok"); }   // 보드의 [꾸미기] 단추: 이 컴퓨터에 꾸미기 창을 띄운다
+            else if (line.StartsWith("@get ")) { if (!b.Ok) Confirm(b); StartFetch(b, line); }   // 설정 '컴퓨터만' 인 보드가 시간표·날씨·급식을 부탁한다
             else if (line.StartsWith("@deck "))
             {
                 if (!b.Ok) Confirm(b);
@@ -1146,6 +1158,94 @@ class Helper : ApplicationContext
         return true;
     }
 
+    // ════ 보드 대신 받아 주기 — 보드가 '@get 이름 주소' 로 부탁하면 이 컴퓨터가 받아 '@fbegin/@fdata/@fend' 로 넘긴다 ════
+    void StartFetch(Board b, string line)
+    {
+        // 호출: Loop 의 Read(boards 잠금 중). 이 보드가 이미 보내는 중이면 무시(보드가 시간이 지나 다시 부탁한다)
+        var tok = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tok.Length < 3 || b.Pushing) return;
+        string id = tok[1], url = tok[2];
+        if (!Regex.IsMatch(id, "^[a-z]{1,7}$") || !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) { try { b.Port.Write("@fnone " + (id.Length <= 7 ? id : "x") + " 0\n"); } catch { } return; }
+        b.Pushing = true;
+        var th = new Thread(delegate () { FetchJob(b, id, url); }) { IsBackground = true, Name = "fetch " + b.Name };
+        th.Start();
+    }
+
+    void FetchJob(Board b, string id, string url)
+    {
+        string why = "";
+        bool ok = false;
+        try
+        {
+            b.LastBeat = DateTime.Now;
+            byte[] data = null; int code = 0; string err = "";
+            var dl = new Thread(delegate ()
+            {
+                try
+                {
+                    ServicePointManager.SecurityProtocol = (SecurityProtocolType)(3072 | 768 | 192);   // TLS 1.2 · 1.1 · 1.0
+                    var req = (HttpWebRequest)WebRequest.Create(url);
+                    req.Timeout = 12000; req.ReadWriteTimeout = 12000; req.UserAgent = "TapDeck";   // 압축은 쓰지 않는다(일부 서버의 deflate 를 .NET 이 못 푼다)
+                    using (var resp = (HttpWebResponse)req.GetResponse())
+                    {
+                        code = (int)resp.StatusCode;
+                        using (var st = resp.GetResponseStream())
+                        using (var ms = new MemoryStream())
+                        {
+                            var buf = new byte[8192]; int n;
+                            while ((n = st.Read(buf, 0, buf.Length)) > 0) { ms.Write(buf, 0, n); if (ms.Length > 400000) { code = -2; return; } }
+                            if (code == 200) data = ms.ToArray();
+                        }
+                    }
+                }
+                catch (WebException wex) { var r = wex.Response as HttpWebResponse; code = r != null ? (int)r.StatusCode : -1; err = wex.Status + " " + wex.Message; }
+                catch (Exception ex2) { code = -1; err = ex2.GetType().Name + " " + ex2.Message; }
+            }) { IsBackground = true };
+            dl.Start();
+            while (!dl.Join(2000)) Beat(b);   // 받는 동안에도 보드에 '@pc on' (보드가 컴퓨터가 사라졌다고 보지 않게)
+            if (data == null || data.Length == 0) { Write(b, "@fnone " + id + " " + code); Log("대신 받기 실패: " + id + " (" + code + ") " + err + " " + url); ok = true; }
+            else { ok = SendFile(b, id, data, out why); if (ok) Log("대신 받아 보냄: " + id + " (" + data.Length + "바이트)"); }
+        }
+        catch (PushAbort ex) { why = ex.Message; }
+        catch (Exception ex) { why = "포트 문제: " + ex.Message; }
+        finally
+        {
+            if (!ok) Log("대신 받기 중단: " + id + " — " + why);
+            b.Buf = "";
+            lock (boards) b.Pushing = false;
+        }
+    }
+
+    // 파일 하나를 192바이트 조각으로(조각마다 답을 기다림)
+    bool SendFile(Board b, string id, byte[] data, out string why)
+    {
+        why = "";
+        string crc = DeckIcons.Crc32Hex(data);
+        string r = Ask(b, "@fbegin " + id + " " + data.Length + " " + crc, 3000, 3,
+            delegate (string l) { return l == "@fbegin ok " + id || l == "@fbegin fail " + id; });
+        if (r != "@fbegin ok " + id) { why = "@fbegin " + id + (r == null ? " 답 없음" : " 거절"); return false; }
+        int n = (data.Length + 191) / 192;
+        for (int seq = 0; seq < n; seq++)
+        {
+            Beat(b);
+            int len = Math.Min(192, data.Length - seq * 192);
+            string line = "@fdata " + id + " " + seq + " " + Convert.ToBase64String(data, seq * 192, len);
+            string okL = "@fdata ok " + id + " " + seq, errL = "@fdata err " + id + " " + seq;
+            bool got = false;
+            for (int t = 0; t < 4 && !got; t++)
+            {
+                string a = Ask(b, line, 2000, 1, delegate (string l) { return l == okL || l == errL || l.StartsWith(errL + " "); });
+                if (a == okL) got = true;
+                else if (a != null) Log("조각 다시: " + a);
+            }
+            if (!got) { why = "조각 " + id + "/" + seq + " 답 없음"; return false; }
+        }
+        string end = Ask(b, "@fend " + id, 5000, 1,
+            delegate (string l) { return l == "@fend done " + id || l.StartsWith("@fend bad " + id); });
+        if (end != "@fend done " + id) { why = end == null ? "@fend 답 없음" : end; return false; }
+        return true;
+    }
+
     // 하나(아이콘 칸 번호 또는 c)를 192바이트 조각으로
     bool SendItem(Board b, string id, byte[] data, out string why)
     {
@@ -1236,7 +1336,7 @@ class Helper : ApplicationContext
                     runWake.Set();
                     continue;
                 }
-                if (line.StartsWith("@deck")) return line;
+                if (line.StartsWith("@deck") || line.StartsWith("@f")) return line;   // @f… 는 '대신 받아 주기'의 답
                 if (line.StartsWith("@board ok deck=")) b.Hash = line.Substring(15).Trim();
                 else if (line == "@pc?") Write(b, "@pc on");
                 else if (line == "@pcui") { FormFromBoard(b.Name); Write(b, "@pcui ok"); }

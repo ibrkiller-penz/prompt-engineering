@@ -168,6 +168,16 @@ static const char *s_okFail[OK_N];   // 실패 이유(정해 둔 글만 가리�
 static const char *s_resetWhy = "-";  // 지난번 다시 켜진 이유(설정 버전 줄)
 static int s_crashN = 0;              // 멈춤·오류·전압 부족으로 다시 켜진 횟수(prefs "crashN", [다시 켜기]로 0)
 static volatile bool s_syncReq = false;   // 곧 한 번 받기(loop 가 처리)
+static bool s_pcOnly = false;    // 설정 '컴퓨터만': 와이파이를 쓰지 않고, 시간·시간표·날씨·급식은 컴퓨터의 탭덱이 대신 받아 준다
+static const int PC_MAX = 6;
+static const char *s_pcId[PC_MAX]; static int s_pcN = 0;
+static int s_pcStep = -1;                              // -1: 쉬는 중 · 0..: 지금 부탁한 칸
+static bool s_pcGood[PC_MAX];
+static bool s_pcAsked = false, s_pcGotBegin = false, s_pcDone = false, s_pcRes = false;
+static uint32_t s_pcStepAt = 0, s_pcActAt = 0;
+static File s_pcFile; static size_t s_pcLen = 0, s_pcWant = 0; static uint32_t s_pcCrc = 0, s_pcWantCrc = 0; static int s_pcSeq = -1;
+static String s_pcMealDate;
+static lv_obj_t *s_pcBtn = nullptr;   // 설정의 [컴퓨터만] 단추
 
 // ── 화면 장치: ESP-IDF RGB 드라이버(공장 프로그램과 같은 방식) + GT911 터치 + CH32(백라이트·리셋) ──
 // 화면 칩(ST7701) 초기화 명령만 Arduino GFX 의 3선 SPI(st7701_type1_init_operations)로 보내고,
@@ -537,7 +547,8 @@ static void setBand(bool twoLines) {
 static void resetBandLayout() { setBand(true); setBand(false); }   // 화면을 새로 만든 뒤: 기억한 높이를 버리고 다시 잡게
 static void renderBand() {
   if (!s_ttLoaded) {
-    setTextIf(s_nowLbl, !s_prefs.getString("ssid", "").length() ? "맨 오른쪽 설정 장에서 와이파이를 연결하세요"
+    setTextIf(s_nowLbl, s_pcOnly ? "컴퓨터만 연결 · 탭덱이 시간표를 받아 줍니다"
+                        : !s_prefs.getString("ssid", "").length() ? "맨 오른쪽 설정 장에서 와이파이를 연결하세요"
                         : urlUnset() ? "시간표 주소가 아직 없습니다 · 관리자에게 알려 주세요"
                         : s_pickMissing ? "볼 시간표를 다시 고르세요 · 설정 장" : "시간표를 받는 중...");
     setBand(false);
@@ -715,7 +726,7 @@ static void renderDday() {
 // 1분마다 다시 부르므로 값이 바뀐 것만 다시 쓴다.
 static void renderToday() {
   if (!s_ttLoaded) {
-    setTextIf(s_dayTitle, s_pickMissing ? "볼 시간표를 다시 고르세요" : "시간표 없음");
+    setTextIf(s_dayTitle, s_pcOnly ? "컴퓨터가 시간표를 받아 오면 보입니다" : s_pickMissing ? "볼 시간표를 다시 고르세요" : "시간표 없음");
     for (int r = 0; r < 8; r++) { setTextIf(s_rowA[r], ""); setTextIf(s_rowB[r], ""); showIf(s_rowTag[r], false); }
     return;
   }
@@ -1826,8 +1837,26 @@ static String okCell(int i, bool cfg = true) {
 }
 
 static void setStatus(const char *s) { setTextIf(s_status, s); }
+static void pcBtnStyle() {   // [컴퓨터만]: 켜면 크림 바탕 + 굵은 테두리
+  if (!s_pcBtn) return;
+  lv_obj_set_style_bg_color(s_pcBtn, lv_color_hex(s_pcOnly ? NOW_ROW : D_ROW), 0);
+  lv_obj_set_style_border_width(s_pcBtn, s_pcOnly ? 3 : 1, 0);
+  lv_obj_set_style_border_color(s_pcBtn, lv_color_hex(s_pcOnly ? NOW_TAG : D_LINE), 0);
+  lv_obj_set_style_text_color(lv_obj_get_child(s_pcBtn, 0), lv_color_hex(s_pcOnly ? C_TEXT : D_MUTED), 0);
+}
 static void refreshWifiLabel() {
   String ssid = s_prefs.getString("ssid", "");
+  if (s_pcOnly) {
+    const bool tv = timeValid();
+    setTextIf(s_wifiLbl, tv ? "컴퓨터만 연결" : "컴퓨터 시간 기다림");
+    setTextColIf(s_wifiLbl, tv ? C_OK : C_WARN);
+    char pi[160];
+    if (!tv) snprintf(pi, sizeof pi, "컴퓨터에서 탭덱을 켜 두면\n시간이 맞춰집니다");
+    else if (s_pcStep >= 0) snprintf(pi, sizeof pi, "컴퓨터에 시간표·날씨·급식을\n부탁하는 중입니다");
+    else snprintf(pi, sizeof pi, "시간표·날씨·급식은 컴퓨터의 탭덱이\n받아 줍니다 · %s", s_lastHM[0] && s_lastOk ? (String(s_lastHM) + " 받음").c_str() : "아직 받기 전");
+    setTextIf(s_wifiInfo, pi);
+    return;
+  }
   if (!ssid.length()) {
     setTextIf(s_wifiLbl, LV_SYMBOL_WIFI " 없음");
     setTextColIf(s_wifiLbl, C_ROSE);
@@ -2346,7 +2375,7 @@ static bool deckUpLine(char *buf, uint32_t ms) {   // 받기 줄이면 처리하
   } else if (!strncmp(buf, "@deckbegin ", 11)) {
     char h[12] = ""; int cnt = -1;
     sscanf(buf + 11, "%10s %d", h, &cnt);
-    if (s_sync != SYNC_IDLE) { Serial.printf("\n@deckbusy\n"); return true; }
+    if (s_sync != SYNC_IDLE || s_pcStep >= 0) { Serial.printf("\n@deckbusy\n"); return true; }   // 와이파이 받기 중(또는 컴퓨터가 대신 받는 중)
     if (cnt < 0 || cnt > 16) { Serial.printf("\n@deckbegin fail count\n"); return true; }
     if (s_deckUp) deckUpStop(); else deckClean(true);
     if (!LittleFS.exists("/deck")) LittleFS.mkdir("/deck");
@@ -2419,6 +2448,7 @@ static bool deckUpLine(char *buf, uint32_t ms) {   // 받기 줄이면 처리하
 }
 // USB 로 들어온 줄 읽기(loop 에서). '@pc on' 이면 컴퓨터가 켜져 있다. '@deck ok 키' / '@deck fail 키' 는 도우미의 답.
 // '@shot' 화면 찍기 · '@view 장번호'(0 시계 ~ 5 설정) 장 바꾸기 · '@theme N'(0~4) 화면 색 바꾸기
+static bool pcfLine(char *buf, uint32_t ms);
 static void deckPoll(uint32_t ms) {
   static char buf[320]; static uint16_t n = 0;   // 가장 긴 줄: @deckdata + base64 256자
   while (Serial.available()) {
@@ -2427,6 +2457,21 @@ static void deckPoll(uint32_t ms) {
       buf[n] = 0;
       if (!strcmp(buf, "@pc on")) { s_pcLast = ms ? ms : 1; s_usbSeen = true; Serial.printf("@board ok\n@board ok deck=%s\n", s_deckHash); }   // 두 줄을 한 번에(첫 줄은 옛 도우미용)
       else if (deckUpLine(buf, ms)) {}
+      else if (pcfLine(buf, ms)) {}
+      else if (!strncmp(buf, "@time ", 6)) {   // 컴퓨터의 탭덱이 알려 주는 지금 시각(초). '컴퓨터만' 일 때만 따른다
+        const long long t = atoll(buf + 6);
+        if (s_pcOnly && t > 1700000000LL) {
+          const bool first = !timeValid();
+          struct timeval tv = {(time_t)t, 0}; settimeofday(&tv, nullptr);
+          setenv("TZ", "KST-9", 1); tzset();
+          if (first) { lock(); refreshWifiLabel(); unlock(); Serial.println("sync: time from pc"); }
+        }
+      }
+      else if (!strncmp(buf, "@pconly ", 8)) {   // 시험용: '컴퓨터만' 을 컴퓨터에서 켜고 끈다(설정 단추와 같다)
+        const bool on = atoi(buf + 8) != 0;
+        if (on != s_pcOnly) { lock(); s_pcOnly = on; s_prefs.putBool("pconly", on); pcBtnStyle(); if (on || s_prefs.isKey("ssid")) s_syncReq = true; refreshWifiLabel(); renderToday(); renderBand(); unlock(); }
+        Serial.printf("@pconly ok %d\n", on ? 1 : 0);
+      }
       else if (!strcmp(buf, "@shot")) screenShot();
       else if (!strcmp(buf, "@deckhelp")) { lock(); showDeckHelp(); lv_disp_trig_activity(NULL); unlock(); }   // 도우미 안내 창 미리 보기(화면 찍기 시험용)
       else if (!strncmp(buf, "@view ", 6)) { const int v = atoi(buf + 6); if (v >= 0 && v < P_COUNT) { lock(); goPage(v); lv_disp_trig_activity(NULL); unlock(); Serial.printf("@view ok %d\n", v); } }
@@ -2762,6 +2807,14 @@ static void onThemePick(lv_event_t *e) {
   setStatus("색을 바꾸는 중...");
   s_themeReqAt = millis() ? millis() : 1;   // 단추의 눌림 처리 안에서 화면을 지우지 않게 loop 에 맡긴다
 }
+static void onPcOnly(lv_event_t *) {   // [컴퓨터만]: 누를 때마다 켜짐/꺼짐. 켜면 와이파이를 쓰지 않는다
+  s_pcOnly = !s_pcOnly;
+  s_prefs.putBool("pconly", s_pcOnly);
+  pcBtnStyle();
+  if (s_pcOnly || s_prefs.isKey("ssid")) s_syncReq = true;   // 켜면 컴퓨터에, 끄면 와이파이로 바로 한 번 받는다
+  refreshWifiLabel(); renderToday(); renderBand();
+  setStatus(s_pcOnly ? "컴퓨터만 연결합니다 · 와이파이를 쓰지 않아요" : "와이파이로 받습니다");
+}
 // 설정 장(460×446): 와이파이(점검표·목록·지우기·다시 켜기) · 볼 시간표 · 지금 받기 · 화면 색 · 상태 · 버전
 static void buildSettings() {
   lv_obj_t *p = panel(P_SET);
@@ -2802,9 +2855,14 @@ static void buildSettings() {
   lv_obj_set_size(s_ttPick, PW - 12 - 104, 40); lv_obj_set_pos(s_ttPick, 104, 246);
   lv_obj_add_event_cb(s_ttPick, onPickTT, LV_EVENT_VALUE_CHANGED, nullptr);
   lv_obj_add_event_cb(s_ttPick, [](lv_event_t *) { s_idxReq = true; }, LV_EVENT_READY, nullptr);   // 목록을 열었다 → 다음 받기 때 목록도 새로
-  lv_obj_t *bSync = mainButton(p, "지금 받기", PW - 24, 34);
+  lv_obj_t *bSync = mainButton(p, "지금 받기", PW - 24 - 130 - 6, 34);
   lv_obj_set_pos(bSync, 12, 294);
+  s_pcBtn = button(p, "컴퓨터만", 130, 34, D_ROW, D_MUTED);   // 와이파이 없는 곳: 켜면 컴퓨터(탭덱)만으로 쓴다
+  lv_obj_set_pos(s_pcBtn, PW - 12 - 130, 294);
+  lv_obj_add_event_cb(s_pcBtn, onPcOnly, LV_EVENT_CLICKED, nullptr);
+  pcBtnStyle();
   lv_obj_add_event_cb(bSync, [](lv_event_t *) {
+    if (s_pcOnly) { s_syncReq = true; setStatus("컴퓨터에 부탁합니다..."); return; }
     s_wifiFails = 0; s_lastWifiKind = 0;                                       // 비밀번호·공유기 실패 횟수도 처음부터
     if (s_failKind == FK_AUTH || s_failKind == FK_NOAP) s_failKind = FK_NONE;   // 사람이 다시 해 보라고 눌렀다 → 잠김을 푼다
     s_syncReq = true; setStatus("곧 연결합니다..."); }, LV_EVENT_CLICKED, nullptr);
@@ -3112,6 +3170,166 @@ static void rebuildUi() {
 
 SET_LOOP_TASK_STACK_SIZE(16 * 1024);   // loop 스택 8→16KB(교장 화면 그리기·HTTPS 가 깊다)
 
+// ── 컴퓨터가 대신 받아 주기 (설정 '컴퓨터만') ──
+// 보드 → 컴퓨터: '@get 이름 주소' · 컴퓨터 → 보드: '@fbegin 이름 크기 crc' → '@fdata 이름 번호 base64'(조각마다 답) → '@fend 이름'
+// 받지 못하면 '@fnone 이름 코드'. 받은 파일은 와이파이 받기와 같은 자리·같은 읽기로 반영한다.
+static String pcUrl(const char *id) {
+  if (!strcmp(id, "idx")) return urlUnset() ? "" : String(BASE_URL) + "index.json";
+  if (!strcmp(id, "tt")) return (urlUnset() || s_principal || s_pickMissing || !s_ttFile.length()) ? "" : String(BASE_URL) + s_ttFile;
+  if (!strcmp(id, "whr")) return urlUnset() ? "" : String(BASE_URL) + "where.json";
+  if (!strcmp(id, "wx")) return WX_ON ? String(WX_URL) : "";
+  if (!strcmp(id, "air")) return WX_ON ? String(AIR_URL) : "";
+  if (!strcmp(id, "meal")) {
+    String d = todayIso(); if (!MEAL_ON || !d.length()) return "";
+    if (s_mealDate == d && (s_mLunch.length() || s_mDinner.length())) return "";   // 오늘 메뉴는 이미 있다
+    String ymd = d; ymd.replace("-", ""); return String(MEAL_URL) + ymd;
+  }
+  return "";
+}
+static const char *pcDst(const char *id) {
+  return !strcmp(id, "idx") ? "/index.json" : !strcmp(id, "tt") ? "/tt.json" : !strcmp(id, "whr") ? "/where.json"
+       : !strcmp(id, "wx") ? "/wx.json" : !strcmp(id, "air") ? "/air.json" : "/meal.json";
+}
+// 다 받은 /pc.tmp 를 검사하고, 맞으면 제자리로 옮겨 읽는다
+static bool pcfApply(const char *id) {
+  bool ok = false;
+  if (!strcmp(id, "tt")) {
+    File r = LittleFS.open("/pc.tmp", "r");
+    JsonDocument probe(&s_alloc);
+    ok = r && !deserializeJson(probe, r);
+    if (r) r.close();
+    if (ok) { LittleFS.remove("/tt.json"); ok = LittleFS.rename("/pc.tmp", "/tt.json") && loadTTFromFile(); etagForget("et_tt"); }
+  } else {
+    File r = LittleFS.open("/pc.tmp", "r");
+    if (!r) return false;
+    String all = r.readString(); r.close();
+    if (!strcmp(id, "idx")) { ok = parseIndex(all); s_idxSame = false; }
+    else if (!strcmp(id, "whr")) { ok = parseWhere(all); s_whereSame = false; }
+    else if (!strcmp(id, "wx")) { ok = parseWeather(all); if (ok && timeValid()) s_wxAt = time(nullptr); }
+    else if (!strcmp(id, "air")) { ok = parseAir(all); if (ok && timeValid()) s_airAt = time(nullptr); }
+    else if (!strcmp(id, "meal")) {
+      const int nl = all.indexOf('\n');
+      ok = nl > 0 && parseMeal(all.substring(nl + 1), all.substring(0, nl));
+      if (ok) s_mealCached = false;
+    }
+    if (ok) { const char *dst = pcDst(id); LittleFS.remove(dst); ok = LittleFS.rename("/pc.tmp", dst); }
+  }
+  if (!ok) LittleFS.remove("/pc.tmp");
+  return ok;
+}
+static bool pcfLine(char *buf, uint32_t ms) {
+  if (strncmp(buf, "@f", 2) || !(!strncmp(buf, "@fbegin ", 8) || !strncmp(buf, "@fdata ", 7) || !strncmp(buf, "@fend ", 6) || !strncmp(buf, "@fnone ", 7))) return false;
+  s_pcLast = ms ? ms : 1; s_usbSeen = true; s_pcActAt = ms;
+  const bool mine = s_pcStep >= 0 && s_pcStep < s_pcN;
+  char id[8] = "";
+  if (!strncmp(buf, "@fbegin ", 8)) {
+    unsigned long len = 0; char cs[16] = "";
+    if (sscanf(buf + 8, "%7s %lu %15s", id, &len, cs) != 3) return true;
+    if (!mine || strcmp(id, s_pcId[s_pcStep]) || len == 0 || len > 400000UL) { Serial.printf("\n@fbegin fail %s\n", id); return true; }
+    if (s_pcFile) s_pcFile.close();
+    s_pcFile = LittleFS.open("/pc.tmp", "w");
+    if (!s_pcFile) { Serial.printf("\n@fbegin fail %s\n", id); return true; }
+    if (!strcmp(id, "meal")) { s_pcMealDate = todayIso(); s_pcFile.print(s_pcMealDate + "\n"); }   // 급식 파일은 첫 줄이 날짜
+    s_pcLen = 0; s_pcWant = len; s_pcCrc = 0; s_pcWantCrc = strtoul(cs, nullptr, 16); s_pcSeq = -1; s_pcGotBegin = true;
+    Serial.printf("\n@fbegin ok %s\n", id);
+  } else if (!strncmp(buf, "@fdata ", 7)) {
+    int seq = -1, off = 0;
+    if (sscanf(buf + 7, "%7s %d %n", id, &seq, &off) < 2 || off <= 0) return true;
+    if (!mine || strcmp(id, s_pcId[s_pcStep]) || !s_pcFile) { Serial.printf("\n@fdata err %s %d state\n", id, seq); return true; }
+    if (seq == s_pcSeq) { Serial.printf("\n@fdata ok %s %d\n", id, seq); return true; }   // 답이 사라져 다시 온 것
+    if (seq != s_pcSeq + 1) { Serial.printf("\n@fdata err %s %d seq\n", id, seq); return true; }
+    static uint8_t dec[256]; size_t olen = 0;
+    const char *b64 = buf + 7 + off;
+    if (mbedtls_base64_decode(dec, sizeof dec, &olen, (const unsigned char *)b64, strlen(b64)) != 0 || s_pcLen + olen > s_pcWant) { Serial.printf("\n@fdata err %s %d b64\n", id, seq); return true; }
+    if (s_pcFile.write(dec, olen) != olen) { Serial.printf("\n@fdata err %s %d write\n", id, seq); return true; }
+    s_pcCrc = esp_rom_crc32_le(s_pcCrc, dec, olen); s_pcLen += olen; s_pcSeq = seq;
+    Serial.printf("\n@fdata ok %s %d\n", id, seq);
+  } else if (!strncmp(buf, "@fend ", 6)) {
+    sscanf(buf + 6, "%7s", id);
+    if (!mine || strcmp(id, s_pcId[s_pcStep]) || !s_pcFile) { Serial.printf("\n@fend bad %s state\n", id); return true; }
+    s_pcFile.close();
+    if (s_pcLen != s_pcWant || s_pcCrc != s_pcWantCrc) { LittleFS.remove("/pc.tmp"); Serial.printf("\n@fend bad %s %s\n", id, s_pcLen != s_pcWant ? "size" : "crc"); return true; }
+    const bool ok = pcfApply(id);
+    Serial.printf("pcget %s -> %s (%u bytes)\n", id, ok ? "ok" : "bad", (unsigned)s_pcWant);
+    s_pcDone = true; s_pcRes = ok;
+    Serial.printf("\n@fend %s %s\n", ok ? "done" : "bad", id);
+  } else {   // @fnone 이름 코드
+    int code = 0; sscanf(buf + 7, "%7s %d", id, &code);
+    if (mine && !strcmp(id, s_pcId[s_pcStep])) { Serial.printf("pcget %s -> none (%d)\n", id, code); s_pcDone = true; s_pcRes = false; }
+  }
+  return true;
+}
+// 한 바퀴가 끝났다: 화면에 반영하고 기록을 남긴다
+static void pcFinish() {
+  bool tt = false, wx = false, meal = false, air = false, whr = false, idx = false, any = false; int nGood = 0;
+  for (int i = 0; i < s_pcN; i++) {
+    const char *id = s_pcId[i];
+    if (!s_pcGood[i]) continue;
+    any = true; nGood++;
+    if (!strcmp(id, "tt")) tt = true; else if (!strcmp(id, "wx")) wx = true; else if (!strcmp(id, "meal")) meal = true;
+    else if (!strcmp(id, "air")) air = true; else if (!strcmp(id, "whr")) whr = true; else if (!strcmp(id, "idx")) idx = true;
+  }
+  for (int i = 0; i < s_pcN; i++) {
+    const char *id = s_pcId[i];
+    const int k = !strcmp(id, "tt") ? OK_TT : !strcmp(id, "wx") ? OK_WX : !strcmp(id, "meal") ? OK_MEAL : !strcmp(id, "air") ? OK_AIR : !strcmp(id, "whr") ? OK_WHR : -1;
+    if (k >= 0) okMark(k, s_pcGood[i], "컴퓨터");
+  }
+  lock();
+  if (tt) s_week = -1;
+  if (idx) fillPicker();
+  if (s_blOff) { if (tt || wx || meal || air) s_renderPending = true; if (whr) s_findGridDirty = true; }
+  else {
+    if (tt) renderTT();
+    if (wx) renderWeather();
+    if (meal) renderMeal();
+    if (air) renderAir();
+    if (whr) { s_findGridDirty = true; if (s_page == P_FIND) { fillFinderGrid(); renderFinder(); } }
+  }
+  unlock();
+  const bool ok = any;
+  s_triedOnce = true; s_lastOk = ok; s_lastSync = millis();
+  s_failCount = ok ? 0 : s_failCount + 1;
+  s_failKind = ok ? FK_NONE : FK_NET;
+  if (timeValid()) { time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm); snprintf(s_lastHM, sizeof s_lastHM, "%02d:%02d", tm.tm_hour, tm.tm_min); }
+  if (ok && timeValid()) { s_lastOkT = time(nullptr); s_prefs.putULong("lastok", (uint32_t)s_lastOkT); }
+  Serial.printf("sync: pc %s (%d/%d)\n", ok ? "ok" : "fail", nGood, s_pcN);
+  lock(); refreshWifiLabel(); setStatus(ok ? "컴퓨터가 받아 준 자료를 반영했습니다." : "컴퓨터에서 받지 못했습니다. 컴퓨터의 인터넷을 확인하세요."); refreshStale(); unlock();
+  s_pcStep = -1;
+}
+static void pcSyncTick(uint32_t ms) {
+  if (!s_pcOnly) { if (s_pcStep >= 0) { if (s_pcFile) s_pcFile.close(); LittleFS.remove("/pc.tmp"); s_pcStep = -1; } return; }
+  if (s_pcStep < 0) {
+    const bool want = s_syncReq || !s_triedOnce || ms - s_lastSync > syncWaitMs();
+    if (!want || !s_usbOn || !timeValid() || s_deckUp || ms < 5000) return;
+    if (!s_syncReq && s_triedOnce && inClassNow()) return;   // 수업 중에는 쉬는 시간까지 미룬다
+    s_syncReq = false;
+    s_pcN = 0;
+    static const char *ALL[PC_MAX] = {"idx", "tt", "whr", "wx", "meal", "air"};
+    for (int i = 0; i < PC_MAX; i++) s_pcId[s_pcN++] = ALL[i];
+    for (int i = 0; i < PC_MAX; i++) s_pcGood[i] = false;
+    s_pcStep = 0; s_pcAsked = false; s_pcStepAt = ms;
+    lock(); setStatus("컴퓨터에 부탁하는 중..."); unlock();
+    Serial.println("sync: pc start");
+    return;
+  }
+  if (!s_usbOn) { if (s_pcFile) s_pcFile.close(); LittleFS.remove("/pc.tmp"); pcFinish(); return; }   // 컴퓨터가 사라졌다
+  if (s_pcStep >= s_pcN) { pcFinish(); return; }
+  const char *id = s_pcId[s_pcStep];
+  if (!s_pcAsked) {
+    const String url = pcUrl(id);
+    if (!url.length()) { s_pcStep++; return; }               // 이 모드에서 받을 것이 아니다
+    Serial.printf("\n@get %s %s\n", id, url.c_str());
+    s_pcAsked = true; s_pcDone = false; s_pcGotBegin = false; s_pcStepAt = s_pcActAt = ms;
+    return;
+  }
+  const bool timeout = s_pcGotBegin ? ms - s_pcActAt > 10000 : ms - s_pcStepAt > 25000;
+  if (s_pcDone || timeout || ms - s_pcStepAt > 120000) {
+    if (!s_pcDone) { if (s_pcFile) s_pcFile.close(); LittleFS.remove("/pc.tmp"); Serial.printf("pcget %s -> timeout\n", id); }
+    s_pcGood[s_pcStep] = s_pcDone && s_pcRes;
+    s_pcStep++; s_pcAsked = false;
+  }
+}
+
 void setup() {
   Serial.setRxBufferSize(2048);   // 단축키 받기 줄(최대 273자)이 넘치지 않게 — begin 앞에
   Serial.begin(115200);
@@ -3126,6 +3344,7 @@ void setup() {
   s_prefs.begin("board", false);
   s_pickName = s_prefs.getString("ttname", BOARD_DEFAULT_TT);
   s_lastOkT = (time_t)s_prefs.getULong("lastok", 0);
+  s_pcOnly = s_prefs.getBool("pconly", false);
   s_themeIdx = constrain(s_prefs.getInt("theme", 0), 0, THEME_N - 1);   // 화면 색(buildUI 전에)
   s_th = &THEMES[s_themeIdx];
   s_ttFileKnown = s_prefs.isKey("ttfile");                               // 지난번 받던 시간표 파일(이름이 바뀌어도 찾는다)
@@ -3308,11 +3527,12 @@ void loop() {
     }
     if (s_themeReqAt && millis() - s_themeReqAt > 300) { s_themeReqAt = 0; rebuildUi(); }   // 화면 색: 다시 켜지 않는다
     if (s_rebootReq) { Serial.println("restart (button)"); s_prefs.putInt("hr", 2); delay(200); ESP.restart(); }
-    bool due = s_prefs.isKey("ssid") && (!s_triedOnce || ms - s_lastSync > syncWaitMs());
+    bool due = !s_pcOnly && s_prefs.isKey("ssid") && (!s_triedOnce || ms - s_lastSync > syncWaitMs());
     static bool deferLogged = false;   // 켠 직후 첫 받기와 [지금 받기]는 바로
     if (due && s_triedOnce && inClassNow()) { if (!deferLogged) { deferLogged = true; Serial.println("sync: defer (class)"); } due = false; }
     if (due) deferLogged = false;
-    if ((s_syncReq || due) && ms >= 5000 && !s_deckUp) { s_syncReq = false; startSync(); }   // 단축키 받는 중이면 끝난 뒤로
+    if (!s_pcOnly && (s_syncReq || due) && ms >= 5000 && !s_deckUp) { s_syncReq = false; startSync(); }   // 단축키 받는 중이면 끝난 뒤로('컴퓨터만' 이면 와이파이를 켜지 않는다)
+    pcSyncTick(ms);                                              // '컴퓨터만': 탭덱이 대신 받아 준다
   } else if (s_sync == SYNC_CONNECTING) {
     if (WiFi.isConnected()) {
       s_sync = SYNC_TIME; s_syncStart = ms; s_wifiFails = 0; s_lastWifiKind = 0;
