@@ -1,4 +1,4 @@
-// '단축키 꾸미기' 창 — 16칸의 이름·하는 일·아이콘을 고치고 저장하면 도우미가 보드로 보낸다. C# 5 문법만
+﻿// '단축키 꾸미기' 창 — 16칸의 이름·하는 일·아이콘을 고치고 저장하면 도우미가 보드로 보낸다. C# 5 문법만
 // 화면 짜임(설계_도우미화면.md): 위 띠(TopBar) / 가운데 보드 미리보기(BoardView) / 오른쪽 동작 목록(ActionList) / 아래 속성 창(Inspector) / 아래 띠(StatusBar)
 // 일 함수(ShowCell·SetKind·SetIcon·Retile·ApplyLib·FillPreset·Export·Import·Save …)는 예전 그대로이고, 가리키는 컨트롤만 바뀌었다.
 using System;
@@ -46,9 +46,9 @@ class DeckForm : Form
     int favCell = -1;                        // 사이트 아이콘을 받는 중인 칸(-1 = 없음)
     static string DraftFile { get { return Path.Combine(Helper.DataDir, "deck.draft.json"); } }   // 윈도 종료 때 저장 못 한 꾸미기
 
-    public static readonly string[] BuiltinCodes = { "#desktop", "#altf4", "#lock", "#mute", "#volup", "#voldown", "#playpause", "#next", "#prev" };
-    public static readonly string[] BuiltinNames = { "바탕화면 보기", "맨 앞 창 닫기", "화면 잠그기", "소리 끄기·켜기", "소리 크게", "소리 작게", "재생·멈춤", "다음 곡", "이전 곡" };
-    public static readonly string[] BuiltinIconKeys = { "desktop2", "closewin", "lock", "mute", "volup", "voldown", "playpause", "nexttrack", "sd_prev" };   // 동작 목록·끌어 놓기 그림(모음 key)
+    public static readonly string[] BuiltinCodes = { "#desktop", "#altf4", "#lock", "#mute", "#volup", "#voldown", "#playpause", "#next", "#prev", "#mon1", "#mon2", "#mon3", "#mon4" };   // #monN: 지금 창을 N번 모니터로 옮겨 최대화(WinMove)
+    public static readonly string[] BuiltinNames = { "바탕화면 보기", "맨 앞 창 닫기", "화면 잠그기", "소리 끄기·켜기", "소리 크게", "소리 작게", "재생·멈춤", "다음 곡", "이전 곡", "1번 모니터로", "2번 모니터로", "3번 모니터로", "4번 모니터로" };
+    public static readonly string[] BuiltinIconKeys = { "desktop2", "closewin", "lock", "mute", "volup", "voldown", "playpause", "nexttrack", "sd_prev", "mon1", "mon2", "mon3", "mon4" };   // 동작 목록·끌어 놓기 그림(모음 key)
     static readonly string[] KindCodes = { "app", "url", "keys", "text", "builtin", "multi" };
     static readonly string[] KindNames = { "프로그램 열기", "사이트 열기", "단축키 누르기", "글자 넣기", "컴퓨터 기능", "여러 동작" };
     static int libTheme;   // 모음 창에서 마지막에 고른 테마

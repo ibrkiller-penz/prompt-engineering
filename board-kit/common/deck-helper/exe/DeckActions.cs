@@ -1,4 +1,4 @@
-// DeckActions.cs — 칸 실행: 자세한 설정(인자·시작 폴더·관리자·앞으로 가져오기 / 브라우저·새 창 / 넣고 Enter),
+﻿// DeckActions.cs — 칸 실행: 자세한 설정(인자·시작 폴더·관리자·앞으로 가져오기 / 브라우저·새 창 / 넣고 Enter),
 // '여러 동작' 차례 실행, 단축키 보내기(KeySend: Win 키 # 까지), 단축키를 사람이 읽는 글로(KeyText). C# 5 문법만
 using System;
 using System.Collections.Generic;
@@ -418,5 +418,66 @@ static class ErrText
         if (ex is FormatException || ex is ArgumentException || ex is InvalidDataException || ex is InvalidCastException) return "파일 내용이 올바르지 않아요";
         if (ex is OutOfMemoryException) return "파일이 너무 크거나 그림 파일이 아니에요";
         return "알 수 없는 문제가 생겼어요";
+    }
+}
+
+// 지금 맨 앞 창을 N번 모니터로 옮겨 최대화(탭덱 '컴퓨터 기능' #mon1~#mon4, 2026-10-29).
+// 번호: 윈도 디스플레이 이름(\.\DISPLAYn)의 n 이 작은 차례(디스플레이 설정의 1·2·3·4 와 같다. 사이가 비면 다음 것).
+// 탭덱은 화면 배율을 모르는 앱이라(app.manifest), 이 일을 하는 동안만 스레드를 '모니터마다 배율' 모드로 바꿔 실제 픽셀로 다룬다.
+static class WinMove
+{
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern IntPtr GetShellWindow();
+    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h, uint flags);
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr h);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int hh, uint flags);
+    [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr ctx);
+    [DllImport("user32.dll")] static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonProc cb, IntPtr data);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool GetMonitorInfo(IntPtr mon, ref MonInfo mi);
+    delegate bool MonProc(IntPtr mon, IntPtr hdc, ref Rect r, IntPtr data);
+    [StructLayout(LayoutKind.Sequential)] struct Rect { public int L, T, R, B; }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct MonInfo { public int Size; public Rect Mon; public Rect Work; public uint Flags; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string Device; }
+
+    public static void ToMonitor(int n)
+    {
+        IntPtr w = GetForegroundWindow();
+        if (w != IntPtr.Zero) w = GetAncestor(w, 2);   // GA_ROOT: 창 안의 조각이 아니라 바깥 창
+        if (w == IntPtr.Zero || w == GetShellWindow()) throw new InvalidOperationException("옮길 창이 없어요(먼저 창을 하나 눌러 두세요)");
+        Move(w, n);
+    }
+
+    // 창 하나를 N번 모니터로 옮겨 최대화(시험에서는 창을 직접 넘긴다)
+    public static void Move(IntPtr w, int n)
+    {
+        IntPtr old = IntPtr.Zero;
+        try { old = SetThreadDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { }   // PER_MONITOR_AWARE_V2(윈도 10 1607 이상)
+        try
+        {
+            var mons = new List<KeyValuePair<int, Rect>>();
+            MonProc cb = delegate (IntPtr mon, IntPtr hdc, ref Rect r, IntPtr d)
+            {
+                var mi = new MonInfo(); mi.Size = Marshal.SizeOf(typeof(MonInfo));
+                if (GetMonitorInfo(mon, ref mi))
+                {
+                    var m = Regex.Match(mi.Device ?? "", @"(\d+)$");
+                    mons.Add(new KeyValuePair<int, Rect>(m.Success ? int.Parse(m.Groups[1].Value) : 999, mi.Work));
+                }
+                return true;
+            };
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, cb, IntPtr.Zero);
+            GC.KeepAlive(cb);
+            mons.Sort(delegate (KeyValuePair<int, Rect> a, KeyValuePair<int, Rect> b) { return a.Key.CompareTo(b.Key); });
+            if (n < 1 || n > mons.Count) throw new InvalidOperationException(n + "번 모니터가 없어요(이 컴퓨터 모니터 " + mons.Count + "대)");
+            Rect wa = mons[n - 1].Value;
+            if (IsIconic(w) || IsZoomed(w)) ShowWindow(w, 9);   // SW_RESTORE: 최대화된 창은 풀어야 옮겨진다
+            int ww = (wa.R - wa.L) * 3 / 4, wh = (wa.B - wa.T) * 3 / 4;
+            if (!SetWindowPos(w, IntPtr.Zero, wa.L + (wa.R - wa.L - ww) / 2, wa.T + (wa.B - wa.T - wh) / 2, ww, wh, 0x0004 | 0x0010))   // NOZORDER|NOACTIVATE
+                throw new InvalidOperationException("이 창은 옮길 수 없어요(관리자 권한으로 열린 창일 수 있어요)");
+            ShowWindow(w, 3);   // SW_MAXIMIZE: 지금 놓인 모니터에서 최대화
+        }
+        finally { if (old != IntPtr.Zero) try { SetThreadDpiAwarenessContext(old); } catch { } }
     }
 }

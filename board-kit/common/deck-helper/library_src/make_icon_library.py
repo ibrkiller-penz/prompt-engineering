@@ -80,6 +80,12 @@ def glyph_of(spec):
     kind, val = spec.split(":", 1)
     if kind == "ti":
         return shape_text(chr(TMAP[val]), TABLER, 0.66)
+    if kind == "mon":                              # 모니터 그림 + 화면 안에 번호(창을 N번 모니터로, 2026-10-29)
+        m = shape_text(chr(TMAP["device-desktop"]), TABLER, 0.66)
+        d = ImageDraw.Draw(m); f = ImageFont.truetype(FONT_TXT, int(G * 0.25))
+        l, t, r, b = d.textbbox((0, 0), val, font=f)
+        d.text((G / 2 - (r - l) / 2 - l, G * 0.405 - (b - t) / 2 - t), val, font=f, fill=255)
+        return m
     n = len(val)
     return shape_text(val, FONT_TXT, 0.62 if n <= 1 else 0.50 if n == 2 else 0.36 if n <= 4 else 0.28)
 
@@ -195,6 +201,10 @@ A("screenshot", "화면 캡처", "컴퓨터 조작", "ti:camera", "#94a3b8", "#e
 A("lock", "화면 잠금", "컴퓨터 조작", "ti:lock", "#f59e0b", "#fcd34d", "builtin", "lock")
 A("desktop2", "바탕화면", "컴퓨터 조작", "ti:device-desktop", "#a78bfa", "#ddd6fe", "builtin", "desktop")
 A("closewin", "창 닫기", "컴퓨터 조작", "ti:x", "#e5484d", "#ff8a8a", "builtin", "altf4")
+A("mon1", "1번 모니터로", "컴퓨터 조작", "mon:1", "#0ea5e9", "#7dd3fc", "builtin", "mon1")
+A("mon2", "2번 모니터로", "컴퓨터 조작", "mon:2", "#0ea5e9", "#7dd3fc", "builtin", "mon2")
+A("mon3", "3번 모니터로", "컴퓨터 조작", "mon:3", "#0ea5e9", "#7dd3fc", "builtin", "mon3")
+A("mon4", "4번 모니터로", "컴퓨터 조작", "mon:4", "#0ea5e9", "#7dd3fc", "builtin", "mon4")
 A("minimize", "창 내리기", "컴퓨터 조작", "ti:arrow-bar-to-down", "#6b7280", "#d1d5db", "keys", "#{DOWN}")
 A("switchwin", "창 바꾸기", "컴퓨터 조작", "ti:switch-horizontal", "#6b7280", "#d1d5db", "keys", "%{TAB}")
 A("copy", "복사", "컴퓨터 조작", "ti:copy", "#64748b", "#e2e8f0", "keys", "^c")

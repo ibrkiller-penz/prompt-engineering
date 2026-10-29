@@ -707,6 +707,34 @@
   "target": "altf4"
  },
  {
+  "key": "mon1",
+  "name": "1번 모니터로",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "mon1"
+ },
+ {
+  "key": "mon2",
+  "name": "2번 모니터로",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "mon2"
+ },
+ {
+  "key": "mon3",
+  "name": "3번 모니터로",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "mon3"
+ },
+ {
+  "key": "mon4",
+  "name": "4번 모니터로",
+  "group": "컴퓨터 조작",
+  "kind": "builtin",
+  "target": "mon4"
+ },
+ {
   "key": "minimize",
   "name": "창 내리기",
   "group": "컴퓨터 조작",

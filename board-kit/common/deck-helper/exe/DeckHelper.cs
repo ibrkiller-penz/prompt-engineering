@@ -755,12 +755,8 @@ class Helper : ApplicationContext
                 Process.Start(new ProcessStartInfo(t) { UseShellExecute = true });
                 return;
             case "builtin":
-                if (t == "#desktop")
-                {
-                    var sh = Type.GetTypeFromProgID("Shell.Application");
-                    var o = Activator.CreateInstance(sh);
-                    sh.InvokeMember("ToggleDesktop", BindingFlags.InvokeMethod, null, o, null);
-                }
+                if (t == "#desktop") KeySend.Send("#d");   // 바탕화면 보기 = Win+D(사용자 지시 2026-10-29. 예전 Shell.Application.ToggleDesktop 대신)
+                else if (t.StartsWith("#mon") && t.Length == 5 && char.IsDigit(t[4])) WinMove.ToMonitor(t[4] - '0');   // 지금 창을 N번 모니터로 + 최대화
                 else if (t == "#altf4") SendKeys.SendWait("%{F4}");
                 else if (t == "#lock") LockWorkStation();
                 else if (t == "#mute") { keybd_event(0xAD, 0, 0, IntPtr.Zero); keybd_event(0xAD, 0, 2, IntPtr.Zero); }
