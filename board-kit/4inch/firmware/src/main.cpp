@@ -169,7 +169,7 @@ static const char *s_resetWhy = "-";  // 지난번 다시 켜진 이유(설정 �
 static int s_crashN = 0;              // 멈춤·오류·전압 부족으로 다시 켜진 횟수(prefs "crashN", [다시 켜기]로 0)
 static volatile bool s_syncReq = false;   // 곧 한 번 받기(loop 가 처리)
 static bool s_pcOnly = false;    // 설정 '컴퓨터만': 와이파이를 쓰지 않고, 시간·시간표·날씨·급식은 컴퓨터의 탭덱이 대신 받아 준다
-static const int PC_MAX = 6;
+static const int PC_MAX = 7;
 static const char *s_pcId[PC_MAX]; static int s_pcN = 0;
 static int s_pcStep = -1;                              // -1: 쉬는 중 · 0..: 지금 부탁한 칸
 static bool s_pcGood[PC_MAX];
@@ -1383,6 +1383,58 @@ static String cutUtf8(const char *s, size_t maxB) {   // UTF-8 글자 경계에�
   while (maxB > 0 && ((uint8_t)s[maxB] & 0xC0) == 0x80) maxB--;
   return String(s).substring(0, maxB) + "...";
 }
+// 학교 일정 사이트(구글 앱스 스크립트) 화면 글에서 일정을 꺼내 /sched.json 에 둔다(와이파이 받기·컴퓨터 받기가 함께 쓴다)
+static bool parseSchedule(String &raw) {
+  bool ok = false;
+  const int a0 = raw.indexOf(R"X(goog.script.init(")X");
+  const int a1 = a0 >= 0 ? raw.indexOf(R"X(", ")X", a0) : -1;
+  if (a0 >= 0 && a1 > a0) {
+    String A; unescJs(raw.c_str() + a0 + 18, a1 - a0 - 18, A, false);
+    raw = String();                                         // 메모리 돌려주기
+    const int k = A.indexOf(R"X("userHtml":")X");
+    if (k >= 0) {
+      String B; unescJs(A.c_str() + k + 12, A.length() - k - 12, B, true);
+      A = String();
+      const int j = B.indexOf(R"X(type="application/json">)X");
+      if (j >= 0) {
+        JsonDocument src(&s_alloc);
+        if (!deserializeJson(src, B.c_str() + j + 24)) {
+          // 오늘 하루 전 ~ 30일 뒤 일정, 오늘 ~ 60일 뒤 학사 일정만 남긴다
+          const String today = todayIso();
+          auto addDays = [](const String &iso, int n) { struct tm t = {}; t.tm_year = iso.substring(0, 4).toInt() - 1900; t.tm_mon = iso.substring(5, 7).toInt() - 1; t.tm_mday = iso.substring(8, 10).toInt() + n; t.tm_hour = 12; mktime(&t); char b[11]; strftime(b, sizeof b, "%Y-%m-%d", &t); return String(b); };
+          const String from = addDays(today, -1), to = addDays(today, 30), to2 = addDays(today, 60);
+          JsonDocument out(&s_alloc);
+          JsonArray items = out["items"].to<JsonArray>(), acad = out["acad"].to<JsonArray>();
+          for (JsonObject x : src["schedules"].as<JsonArray>()) {
+            const char *sd = x["startDate"] | "", *ed = x["endDate"] | "";
+            const String end = *ed ? String(ed) : String(sd);
+            if (end < from || String(sd) > to) continue;
+            JsonArray r = items.add<JsonArray>();
+            r.add(sd); r.add(end); r.add(x["time"] | ""); r.add(x["title"] | ""); r.add(x["place"] | ""); r.add(x["dept"] | ""); r.add(x["manager"] | ""); r.add(cutUtf8(x["content"] | "", 400));
+          }
+          for (JsonObject x : src["academic"].as<JsonArray>()) {   // 학사 일정은 날짜순으로 넣는다
+            const char *dt = x["date"] | "";
+            if (String(dt) < today || String(dt) > to2) continue;
+            JsonArray r = acad.add<JsonArray>();
+            r.add(dt); r.add(x["name"] | ""); r.add(x["type"] | "");
+            for (int q = (int)acad.size() - 1; q > 0 && strcmp(acad[q - 1][0] | "", acad[q][0] | "") > 0; q--) {
+              JsonDocument t1(&s_alloc); t1.set(acad[q - 1]); acad[q - 1].set(acad[q]); acad[q].set(t1);
+            }
+          }
+          const bool empty = !items.size() && src["schedules"].as<JsonArray>().size() > 0;   // 거르다 다 빠졌으면 이상하다 → 예전 것을 둔다
+          if (!empty) {
+            String js; serializeJson(out, js);
+            saveAtomic("/sched.json", js);
+            lock(); s_sched = std::move(out); unlock();
+            ok = true;
+          }
+        }
+      }
+    }
+  }
+  return ok;
+}
+
 static bool downloadSchedule(uint32_t budget = 60000) {
   if (!WiFi.isConnected() || !HAS_SCHED || !timeValid()) return false;   // 오늘 날짜를 모르면 거를 수 없다
   const uint32_t t0 = millis();
@@ -1411,52 +1463,7 @@ static bool downloadSchedule(uint32_t budget = 60000) {
   bool ok = false;
   if (code == 200) {
     String raw = http.getString();                            // 약 150KB(PSRAM: heap_caps_malloc_extmem_enable 덕분)
-    const int a0 = raw.indexOf(R"X(goog.script.init(")X");
-    const int a1 = a0 >= 0 ? raw.indexOf(R"X(", ")X", a0) : -1;
-    if (a0 >= 0 && a1 > a0) {
-      String A; unescJs(raw.c_str() + a0 + 18, a1 - a0 - 18, A, false);
-      raw = String();                                         // 메모리 돌려주기
-      const int k = A.indexOf(R"X("userHtml":")X");
-      if (k >= 0) {
-        String B; unescJs(A.c_str() + k + 12, A.length() - k - 12, B, true);
-        A = String();
-        const int j = B.indexOf(R"X(type="application/json">)X");
-        if (j >= 0) {
-          JsonDocument src(&s_alloc);
-          if (!deserializeJson(src, B.c_str() + j + 24)) {
-            // 오늘 하루 전 ~ 30일 뒤 일정, 오늘 ~ 60일 뒤 학사 일정만 남긴다
-            const String today = todayIso();
-            auto addDays = [](const String &iso, int n) { struct tm t = {}; t.tm_year = iso.substring(0, 4).toInt() - 1900; t.tm_mon = iso.substring(5, 7).toInt() - 1; t.tm_mday = iso.substring(8, 10).toInt() + n; t.tm_hour = 12; mktime(&t); char b[11]; strftime(b, sizeof b, "%Y-%m-%d", &t); return String(b); };
-            const String from = addDays(today, -1), to = addDays(today, 30), to2 = addDays(today, 60);
-            JsonDocument out(&s_alloc);
-            JsonArray items = out["items"].to<JsonArray>(), acad = out["acad"].to<JsonArray>();
-            for (JsonObject x : src["schedules"].as<JsonArray>()) {
-              const char *sd = x["startDate"] | "", *ed = x["endDate"] | "";
-              const String end = *ed ? String(ed) : String(sd);
-              if (end < from || String(sd) > to) continue;
-              JsonArray r = items.add<JsonArray>();
-              r.add(sd); r.add(end); r.add(x["time"] | ""); r.add(x["title"] | ""); r.add(x["place"] | ""); r.add(x["dept"] | ""); r.add(x["manager"] | ""); r.add(cutUtf8(x["content"] | "", 400));
-            }
-            for (JsonObject x : src["academic"].as<JsonArray>()) {   // 학사 일정은 날짜순으로 넣는다
-              const char *dt = x["date"] | "";
-              if (String(dt) < today || String(dt) > to2) continue;
-              JsonArray r = acad.add<JsonArray>();
-              r.add(dt); r.add(x["name"] | ""); r.add(x["type"] | "");
-              for (int q = (int)acad.size() - 1; q > 0 && strcmp(acad[q - 1][0] | "", acad[q][0] | "") > 0; q--) {
-                JsonDocument t1(&s_alloc); t1.set(acad[q - 1]); acad[q - 1].set(acad[q]); acad[q].set(t1);
-              }
-            }
-            const bool empty = !items.size() && src["schedules"].as<JsonArray>().size() > 0;   // 거르다 다 빠졌으면 이상하다 → 예전 것을 둔다
-            if (!empty) {
-              String js; serializeJson(out, js);
-              saveAtomic("/sched.json", js);
-              lock(); s_sched = std::move(out); unlock();
-              ok = true;
-            }
-          }
-        }
-      }
-    }
+    ok = parseSchedule(raw);
   }
   http.end();
   Serial.printf("schedule -> %d %s (%d items, %.1fs)\n", code, ok ? "ok" : "fail", (int)s_sched["items"].size(), secs(t0));
@@ -3179,6 +3186,7 @@ static String pcUrl(const char *id) {
   if (!strcmp(id, "whr")) return urlUnset() ? "" : String(BASE_URL) + "where.json";
   if (!strcmp(id, "wx")) return WX_ON ? String(WX_URL) : "";
   if (!strcmp(id, "air")) return WX_ON ? String(AIR_URL) : "";
+  if (!strcmp(id, "sch")) return (s_principal && HAS_SCHED) ? String(SCHEDULE_URL) : "";   // 교장실: 학교 일정 사이트
   if (!strcmp(id, "meal")) {
     String d = todayIso(); if (!MEAL_ON || !d.length()) return "";
     if (s_mealDate == d && (s_mLunch.length() || s_mDinner.length())) return "";   // 오늘 메뉴는 이미 있다
@@ -3207,6 +3215,7 @@ static bool pcfApply(const char *id) {
     else if (!strcmp(id, "whr")) { ok = parseWhere(all); s_whereSame = false; }
     else if (!strcmp(id, "wx")) { ok = parseWeather(all); if (ok && timeValid()) s_wxAt = time(nullptr); }
     else if (!strcmp(id, "air")) { ok = parseAir(all); if (ok && timeValid()) s_airAt = time(nullptr); }
+    else if (!strcmp(id, "sch")) { ok = parseSchedule(all); if (ok) { LittleFS.remove("/pc.tmp"); return true; } }   // 꺼낸 일정은 parseSchedule 이 /sched.json 에 둔다
     else if (!strcmp(id, "meal")) {
       const int nl = all.indexOf('\n');
       ok = nl > 0 && parseMeal(all.substring(nl + 1), all.substring(0, nl));
@@ -3261,25 +3270,27 @@ static bool pcfLine(char *buf, uint32_t ms) {
 }
 // 한 바퀴가 끝났다: 화면에 반영하고 기록을 남긴다
 static void pcFinish() {
-  bool tt = false, wx = false, meal = false, air = false, whr = false, idx = false, any = false; int nGood = 0;
+  bool tt = false, wx = false, meal = false, air = false, whr = false, idx = false, sch = false, any = false; int nGood = 0;
   for (int i = 0; i < s_pcN; i++) {
     const char *id = s_pcId[i];
     if (!s_pcGood[i]) continue;
     any = true; nGood++;
     if (!strcmp(id, "tt")) tt = true; else if (!strcmp(id, "wx")) wx = true; else if (!strcmp(id, "meal")) meal = true;
     else if (!strcmp(id, "air")) air = true; else if (!strcmp(id, "whr")) whr = true; else if (!strcmp(id, "idx")) idx = true;
+    else if (!strcmp(id, "sch")) sch = true;
   }
   for (int i = 0; i < s_pcN; i++) {
     const char *id = s_pcId[i];
-    const int k = !strcmp(id, "tt") ? OK_TT : !strcmp(id, "wx") ? OK_WX : !strcmp(id, "meal") ? OK_MEAL : !strcmp(id, "air") ? OK_AIR : !strcmp(id, "whr") ? OK_WHR : -1;
+    const int k = !strcmp(id, "tt") ? OK_TT : !strcmp(id, "wx") ? OK_WX : !strcmp(id, "meal") ? OK_MEAL : !strcmp(id, "air") ? OK_AIR : !strcmp(id, "whr") ? OK_WHR : !strcmp(id, "sch") ? OK_SCH : -1;
     if (k >= 0) okMark(k, s_pcGood[i], "컴퓨터");
   }
   lock();
   if (tt) s_week = -1;
   if (idx) fillPicker();
-  if (s_blOff) { if (tt || wx || meal || air) s_renderPending = true; if (whr) s_findGridDirty = true; }
+  if (sch && s_pDetail) show(s_pDetail, false);   // 일정 번호가 바뀌므로 열린 자세히 창은 닫는다
+  if (s_blOff) { if (tt || wx || meal || air || sch) s_renderPending = true; if (whr) s_findGridDirty = true; }
   else {
-    if (tt) renderTT();
+    if (tt || sch) renderTT();
     if (wx) renderWeather();
     if (meal) renderMeal();
     if (air) renderAir();
@@ -3304,7 +3315,7 @@ static void pcSyncTick(uint32_t ms) {
     if (!s_syncReq && s_triedOnce && inClassNow()) return;   // 수업 중에는 쉬는 시간까지 미룬다
     s_syncReq = false;
     s_pcN = 0;
-    static const char *ALL[PC_MAX] = {"idx", "tt", "whr", "wx", "meal", "air"};
+    static const char *ALL[PC_MAX] = {"idx", "tt", "whr", "wx", "meal", "air", "sch"};
     for (int i = 0; i < PC_MAX; i++) s_pcId[s_pcN++] = ALL[i];
     for (int i = 0; i < PC_MAX; i++) s_pcGood[i] = false;
     s_pcStep = 0; s_pcAsked = false; s_pcStepAt = ms;
@@ -3323,7 +3334,8 @@ static void pcSyncTick(uint32_t ms) {
     return;
   }
   const bool timeout = s_pcGotBegin ? ms - s_pcActAt > 10000 : ms - s_pcStepAt > 25000;
-  if (s_pcDone || timeout || ms - s_pcStepAt > 120000) {
+  const uint32_t cap = s_pcGotBegin ? max(120000UL, 30000UL + 2UL * s_pcWant) : 120000UL;   // 큰 파일(학교 일정 약 150KB)은 1KB 에 2초씩 더 기다린다
+  if (s_pcDone || timeout || ms - s_pcStepAt > cap) {
     if (!s_pcDone) { if (s_pcFile) s_pcFile.close(); LittleFS.remove("/pc.tmp"); Serial.printf("pcget %s -> timeout\n", id); }
     s_pcGood[s_pcStep] = s_pcDone && s_pcRes;
     s_pcStep++; s_pcAsked = false;
