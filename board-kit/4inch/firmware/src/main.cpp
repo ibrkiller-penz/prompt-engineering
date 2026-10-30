@@ -172,7 +172,7 @@ static bool s_pcOnly = false;    // 설정 '컴퓨터만': 와이파이를 쓰�
 static const int PC_MAX = 7;
 static const char *s_pcId[PC_MAX]; static int s_pcN = 0;
 static int s_pcStep = -1;                              // -1: 쉬는 중 · 0..: 지금 부탁한 칸
-static bool s_pcGood[PC_MAX];
+static bool s_pcGood[PC_MAX], s_pcAsk[PC_MAX]; static int s_pcMissN = 0;   // 부탁한 것 · 못 받은 바퀴가 이어진 횟수
 static bool s_pcAsked = false, s_pcGotBegin = false, s_pcDone = false, s_pcRes = false;
 static uint32_t s_pcStepAt = 0, s_pcActAt = 0;
 static File s_pcFile; static size_t s_pcLen = 0, s_pcWant = 0; static uint32_t s_pcCrc = 0, s_pcWantCrc = 0; static int s_pcSeq = -1;
@@ -3298,6 +3298,9 @@ static void pcFinish() {
   }
   unlock();
   const bool ok = any;
+  bool miss = false;   // 부탁했는데 못 받은 것이 있으면(급식은 아직 안 올라왔을 수 있어 뺀다) 한 시간을 기다리지 않고 곧 다시
+  for (int i = 0; i < s_pcN; i++) if (s_pcAsk[i] && !s_pcGood[i] && strcmp(s_pcId[i], "meal")) miss = true;
+  s_pcMissN = miss ? min(s_pcMissN + 1, 5) : 0;
   s_triedOnce = true; s_lastOk = ok; s_lastSync = millis();
   s_failCount = ok ? 0 : s_failCount + 1;
   s_failKind = ok ? FK_NONE : FK_NET;
@@ -3310,14 +3313,16 @@ static void pcFinish() {
 static void pcSyncTick(uint32_t ms) {
   if (!s_pcOnly) { if (s_pcStep >= 0) { if (s_pcFile) s_pcFile.close(); LittleFS.remove("/pc.tmp"); s_pcStep = -1; } return; }
   if (s_pcStep < 0) {
-    const bool want = s_syncReq || !s_triedOnce || ms - s_lastSync > syncWaitMs();
+    static const uint8_t RETRY_MIN[5] = {2, 4, 8, 16, 30};
+    const uint32_t wait = s_pcMissN ? min(syncWaitMs(), (uint32_t)(RETRY_MIN[s_pcMissN - 1] * 60000UL)) : syncWaitMs();
+    const bool want = s_syncReq || !s_triedOnce || ms - s_lastSync > wait;
     if (!want || !s_usbOn || !timeValid() || s_deckUp || ms < 5000) return;
     if (!s_syncReq && s_triedOnce && inClassNow()) return;   // 수업 중에는 쉬는 시간까지 미룬다
     s_syncReq = false;
     s_pcN = 0;
     static const char *ALL[PC_MAX] = {"idx", "tt", "whr", "wx", "meal", "air", "sch"};
     for (int i = 0; i < PC_MAX; i++) s_pcId[s_pcN++] = ALL[i];
-    for (int i = 0; i < PC_MAX; i++) s_pcGood[i] = false;
+    for (int i = 0; i < PC_MAX; i++) s_pcGood[i] = s_pcAsk[i] = false;
     s_pcStep = 0; s_pcAsked = false; s_pcStepAt = ms;
     lock(); setStatus("컴퓨터에 부탁하는 중..."); unlock();
     Serial.println("sync: pc start");
@@ -3329,6 +3334,7 @@ static void pcSyncTick(uint32_t ms) {
   if (!s_pcAsked) {
     const String url = pcUrl(id);
     if (!url.length()) { s_pcStep++; return; }               // 이 모드에서 받을 것이 아니다
+    s_pcAsk[s_pcStep] = true;
     Serial.printf("\n@get %s %s\n", id, url.c_str());
     s_pcAsked = true; s_pcDone = false; s_pcGotBegin = false; s_pcStepAt = s_pcActAt = ms;
     return;
