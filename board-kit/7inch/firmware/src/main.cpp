@@ -36,6 +36,8 @@ LV_FONT_DECLARE(num120);   // 시계 (2026-10-06 140 → 120, 미리보기 F)
 LV_FONT_DECLARE(num36);    // 날씨 기온 (44 → 36)
 LV_FONT_DECLARE(num140);   // 1024x600 시계
 LV_FONT_DECLARE(num44);    // 1024x600 기온
+LV_FONT_DECLARE(nix100g); LV_FONT_DECLARE(nix100c); LV_FONT_DECLARE(nix70g); LV_FONT_DECLARE(nix70c);   // 닉시 시계 1024x600(시·초)
+LV_FONT_DECLARE(nix80g); LV_FONT_DECLARE(nix80c); LV_FONT_DECLARE(nix56g); LV_FONT_DECLARE(nix56c);     // 닉시 시계 800x480(시·초)
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
@@ -304,6 +306,27 @@ static char s_useR5[6] = "", s_useR7[6] = "";
 static uint32_t s_useAt = 0;
 static lv_obj_t *s_logo, *s_useL5, *s_useL7, *s_useBtn, *s_useClk;
 static bool useShown() { return s_useOn && s_useAt && millis() - s_useAt < 20UL * 60000UL; }   // 20분 넘게 소식이 없으면(탭덱 꺼짐) 숨긴다
+// 닉시 시계(설정 [닉시] — 처음엔 꺼짐, 사용자 지시 2026-10-31). 숫자는 tools/make_nixie_font.py 로 만든 글꼴.
+// 한 숫자를 빛(주황, 아래)과 심지(밝은 호박색, 위) 두 글자로 겹쳐 그리고, 초를 분 오른쪽에 70% 크기로 붙인다.
+// 글꼴 상자에 빛 여백(base_line 과 같은 값)이 있어 글자 좌우에 같은 여백(pad)을 준다(안 주면 빛이 잘린다).
+static bool s_nixOn = false;
+static lv_obj_t *s_bigGlow, *s_sec, *s_secGlow, *s_nixBtn;
+static const uint32_t NIX_GLOW = 0xFF5F14, NIX_CORE = 0xFFD696;
+static const lv_font_t *FNIX(bool core) { return big() ? (core ? &nix100c : &nix100g) : (core ? &nix80c : &nix80g); }
+static const lv_font_t *FNIXS(bool core) { return big() ? (core ? &nix70c : &nix70g) : (core ? &nix56c : &nix56g); }
+static int nixH() { return big() ? 100 : 80; }                    // 시·분 숫자 높이
+// 큰 시계 둘레(오전/오후 · 닉시 빛 · 초)를 큰 시계 글자에 맞춰 놓는다. 시계 글이 바뀌어 폭이 달라질 때마다 부른다
+static void placeClock() {
+  lv_obj_update_layout(s_big);
+  const int m = s_nixOn ? FNIX(true)->base_line : 1;              // 글자 아래 여백(num120·140 은 1)
+  if (!lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN))
+    lv_obj_align_to(s_bigAmPm, s_big, LV_ALIGN_OUT_LEFT_BOTTOM, -8 + (s_nixOn ? m : 0), -13 - m);
+  if (!s_nixOn) return;
+  const int ms = FNIXS(true)->base_line;
+  lv_obj_align_to(s_bigGlow, s_big, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_align_to(s_sec, s_big, LV_ALIGN_OUT_RIGHT_BOTTOM, -m - ms + nixH() * 12 / 100, ms - m);   // 숫자 아랫줄을 맞춘다
+  lv_obj_align_to(s_secGlow, s_sec, LV_ALIGN_TOP_LEFT, 0, 0);
+}
 // ── 시계 화면 배치 ──
 // 왼쪽 칸: 큰 시계 → 바로 아래 날짜 → 남은 자리에 카드(날씨 · 오늘). 맨 아래는 '다음 수업' 띠 자리(보일 때만 비운다).
 // 오른쪽 시간표를 끄면 왼쪽 칸이 화면 전체가 되고 카드 둘이 옆으로 나란히 선다. 끈 카드의 자리는 남은 카드가 가져간다.
@@ -322,12 +345,17 @@ static void layoutClock() {
 
   // 시계와 날짜(시계 바로 아래)
   // 미리보기 F(web/sample/dev/clock_preview2.html?v=F): 시계 120(줄 높이 88) · 시계→날짜 20 · 날짜→카드 24
-  const int CLK_Y = S(22), CLK_H = big() ? lv_font_get_line_height(FCLK()) : 88, DATE_H = 29;   // num120 줄 높이 88, kr28 줄 높이 29
-  lv_obj_align(s_big, LV_ALIGN_TOP_MID, s_h12 ? S(30) : 0, CLK_Y);
+  const int CLK_Y = S(22), DATE_H = 29;   // kr28 줄 높이 29
+  const int CLK_H = s_nixOn ? nixH() : big() ? lv_font_get_line_height(FCLK()) : 88;   // num120 줄 높이 88
+  if (s_nixOn) {   // 시·분과 초를 한 덩어리로 가운데에. 글자 위 빛 여백만큼 올린다
+    lv_obj_update_layout(s_sec);
+    const int wSec = lv_obj_get_width(s_sec) - 2 * FNIXS(true)->base_line + nixH() * 12 / 100;
+    lv_obj_align(s_big, LV_ALIGN_TOP_MID, (s_h12 ? S(30) : 0) - wSec / 2, CLK_Y - FNIX(true)->base_line);
+  } else lv_obj_align(s_big, LV_ALIGN_TOP_MID, s_h12 ? S(30) : 0, CLK_Y);
   const int DATE_Y = CLK_Y + CLK_H + S(20);
   lv_obj_set_width(s_bigDate, LW); lv_obj_set_pos(s_bigDate, 0, DATE_Y);
   if (s_stale) { lv_obj_set_width(s_stale, LW); lv_obj_set_pos(s_stale, 0, DATE_Y + DATE_H + S(3)); }
-  if (!lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN)) { lv_obj_update_layout(s_big); lv_obj_align_to(s_bigAmPm, s_big, LV_ALIGN_OUT_LEFT_BOTTOM, -8, -14); }
+  placeClock();
 
   // 카드 자리: 날짜 아래 ~ (띠가 보이면 띠 위, 아니면 아래 여백)
   const int NOTICE_H = S(40);
@@ -3274,7 +3302,22 @@ static void segStyle(lv_obj_t *b, bool on) {
 }
 static void refreshClockSettings() {
   for (int i = 0; i < 2; i++) segStyle(s_fmtBtn[i], (i == 1) == s_h12);
+  if (s_nixBtn) segStyle(s_nixBtn, s_nixOn);
   for (int i = 0; i < 3; i++) segStyle(s_autoBtn[i], AUTO_CLK_MIN[i] == s_autoClkMin);
+}
+// 닉시 시계를 켜고 끈다: 심지 글꼴·색·여백을 바꾸고 빛·초 글자를 보이거나 숨긴다
+static void applyNixie() {
+  lv_obj_set_style_text_font(s_big, s_nixOn ? FNIX(true) : FCLK(), 0);
+  lv_obj_set_style_text_color(s_big, lv_color_hex(s_nixOn ? NIX_CORE : D_TEXT), 0);
+  lv_obj_set_style_pad_hor(s_big, s_nixOn ? FNIX(true)->base_line : 0, 0);
+  showIf(s_bigGlow, s_nixOn); showIf(s_sec, s_nixOn); showIf(s_secGlow, s_nixOn);
+}
+static void onNixBtn(lv_event_t *) {
+  s_nixOn = !s_nixOn;
+  s_prefs.putBool("nixie", s_nixOn);
+  refreshClockSettings();
+  applyNixie(); layoutClock();
+  setStatus(s_nixOn ? "닉시 시계: 숫자를 닉시관처럼, 초도 보입니다" : "닉시 시계를 껐습니다");
 }
 static void onUseBtn(lv_event_t *) {   // [사용량]: 누를 때마다 켜짐/꺼짐
   s_useOn = !s_useOn;
@@ -3527,6 +3570,12 @@ static void buildUI() {
   lv_obj_t *left = s_left = box(s_viewClock, D_PANEL, D_LINE, 16);
   lv_obj_set_pos(left, CM, CM);
   lv_obj_clear_flag(left, LV_OBJ_FLAG_CLICKABLE);                    // 눌러도 시계 화면이 받게
+  s_bigGlow = label(left, FNIX(false), NIX_GLOW, "--:--");          // 닉시 빛(심지 글자 아래). 켜고 끄기는 applyNixie
+  lv_obj_set_style_pad_hor(s_bigGlow, FNIX(false)->base_line, 0);
+  s_secGlow = label(left, FNIXS(false), NIX_GLOW, "00");
+  lv_obj_set_style_pad_hor(s_secGlow, FNIXS(false)->base_line, 0);
+  s_sec = label(left, FNIXS(true), NIX_CORE, "00");
+  lv_obj_set_style_pad_hor(s_sec, FNIXS(true)->base_line, 0);
   s_big = label(left, FCLK(), D_TEXT, "--:--");
   s_bigAmPm = label(left, &kr28, D_SUB, "");
   lv_obj_add_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
@@ -3740,6 +3789,9 @@ static void buildUI() {
       lv_obj_set_pos(s_fmtBtn[i], 12 + LBW + i * (BW2 + 6), Y1);
       lv_obj_add_event_cb(s_fmtBtn[i], onFmtPick, LV_EVENT_CLICKED, (void *)(intptr_t)i);
     }
+    s_nixBtn = button(obox, "닉시", BW2, RH2, C_ALT, C_MUTED);      // 닉시관 느낌 숫자 + 초(누를 때마다 켜짐/꺼짐)
+    lv_obj_set_pos(s_nixBtn, 12 + LBW + 2 * (BW2 + 6), Y1);
+    lv_obj_add_event_cb(s_nixBtn, onNixBtn, LV_EVENT_CLICKED, nullptr);
     for (int i = 0; i < 3; i++) {
       s_autoBtn[i] = button(obox, AUTO[i], BW2, RH2, C_ALT, C_MUTED);
       lv_obj_set_pos(s_autoBtn[i], 12 + LBW + i * (BW2 + 6), Y2);
@@ -3790,7 +3842,8 @@ static void buildUI() {
     lv_obj_align(ver, LV_ALIGN_BOTTOM_LEFT, 12, -10);
   }
 
-layoutClock();                                     // 시계 화면 자리 잡기(설정 '보이기' 반영)
+  applyNixie();                                    // 닉시 시계(설정 [닉시])
+  layoutClock();                                     // 시계 화면 자리 잡기(설정 '보이기' 반영)
   buildFinder(scr, TOP);
   buildDeck(scr, TOP);   // 단축키 화면(숨김)
 
@@ -4110,6 +4163,7 @@ void setup() {
   s_autoClkMin = s_prefs.getInt("autoclk", 20);
   s_lastOkT = (time_t)s_prefs.getULong("lastok", 0);
   s_pcOnly = s_prefs.getBool("pconly", false);
+  s_nixOn = s_prefs.getBool("nixie", false);   // 닉시 시계도 처음엔 꺼짐
   s_useOn = s_prefs.getBool("useon", false);   // 처음엔 꺼짐(필요한 보드만 설정에서 켠다)
   s_show = s_prefs.getInt("show", SH_ALL);
   s_themeIdx = constrain(s_prefs.getInt("theme", 0), 0, THEME_N - 1);   // 화면 색(buildUI 전에)
@@ -4479,12 +4533,14 @@ void loop() {
           setTextFmtIf(s_clock, "%s%s%s", ampm, *ampm ? " " : "", hm);
           setTextFmtIf(s_date, "%d월 %d일 (%s)", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
           const bool bigChg = setTextIf(s_big, hm);
+          setTextIf(s_bigGlow, hm);
           const bool apChg = setTextIf(s_bigAmPm, ampm);
           if (*ampm) {                                   // "오후"를 숫자 왼쪽 아래에 붙인다(자리는 layoutClock 이 잡는다)
             const bool was = lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
             showIf(s_bigAmPm, true);
-            if (bigChg || apChg || was) { lv_obj_update_layout(s_big); lv_obj_align_to(s_bigAmPm, s_big, LV_ALIGN_OUT_LEFT_BOTTOM, -8, -14); }
+            if (bigChg || apChg || was) placeClock();
           } else showIf(s_bigAmPm, false);
+          if (bigChg && s_nixOn) placeClock();
           setTextFmtIf(s_bigDate, "%d월 %d일 %s요일", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
           if (s_renderPending) {                         // 화면 불이 꺼진 동안 받은 자료
             s_renderPending = false;
@@ -4503,6 +4559,12 @@ void loop() {
         if (lastDay >= 0 && tm.tm_mday != lastDay) s_syncReq = true;   // 날이 바뀌면 오늘 급식·날씨를 새로 받는다
         lastDay = tm.tm_mday;
         unlock();
+      }
+      // 닉시 시계의 초: 이것만 매초 바꾼다(작은 글자 두 개라 다시 그리는 곳이 좁다). 시계 화면이 보일 때만.
+      // 매초 그리기는 화면 흔들림 때문에 피해 왔다(5장) → 흔들리면 [닉시]를 끄면 초도 멈춘다
+      if (s_nixOn && !s_blOff && !lv_obj_has_flag(s_viewClock, LV_OBJ_FLAG_HIDDEN)) {
+        char sc[4]; snprintf(sc, sizeof sc, "%02d", tm.tm_sec);
+        lock(); setTextIf(s_sec, sc); setTextIf(s_secGlow, sc); unlock();
       }
     }
   }
