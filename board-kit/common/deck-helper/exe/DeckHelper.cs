@@ -87,6 +87,7 @@ class Board
     public string Buf = "";
     public bool Ok;              // '@board ok' 를 받았나
     public DateTime TimeAt;      // 마지막으로 '@time' 을 보낸 때
+    public DateTime UseAt;       // 마지막으로 '@use'(Claude 사용량)를 보낸 때
     public DateTime Opened;
     // 아이콘 보내기
     public volatile bool Pushing;   // 보내는 스레드가 포트를 쓰는 중(이때 Loop 는 읽지도 쓰지도 않는다)
@@ -414,6 +415,7 @@ class Helper : ApplicationContext
                 }
                 var now = DateTime.Now;
                 if ((now - lastScan).TotalSeconds >= 5) { lastScan = now; Scan(now); }
+                ClaudeUsage.Tick();
                 if ((now - lastBeat).TotalSeconds >= 5)
                 {
                     lastBeat = now;
@@ -425,6 +427,12 @@ class Helper : ApplicationContext
                         {   // 설정 '컴퓨터만' 인 보드는 와이파이가 없으니 이 컴퓨터의 시각을 알려 준다(다른 보드는 무시)
                             tb.TimeAt = now;
                             Send(n, "@time " + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds);
+                        }
+                        string ul = ClaudeUsage.Line;
+                        if (ul != null && boards.TryGetValue(n, out tb) && tb.Ok && (now - tb.UseAt).TotalSeconds >= 60)
+                        {   // Claude 사용량: 1분마다(보드 설정에서 끄면 보드가 숨긴다)
+                            tb.UseAt = now;
+                            Send(n, ul);
                         }
                     }
                 }
@@ -1428,5 +1436,146 @@ class Helper : ApplicationContext
                 if (File.Exists(LogFile) && new FileInfo(LogFile).Length > 1024 * 1024) { File.Copy(LogFile, LogFile + ".old", true); File.Delete(LogFile); }
             }
             catch { }
+    }
+}
+
+// ════ Claude 사용량 — Claude Code 에 로그인해 둔 열쇠(%USERPROFILE%\.claude\.credentials.json)로 사용량 주소를 물어
+//  보드에 '@use 5시간% 초기화시각 주간% 요일 초기화시각' 으로 알린다(사용자 지시 2026-10-31). 열쇠는 이 컴퓨터에서 Anthropic 에만 보내고,
+//  파일에 쓰거나 기록에 남기지 않는다. 보드에는 숫자만 간다. 열쇠가 만료되면 새로 받지 않고 'Claude Code 를 한 번 켜 주세요' 로 알린다.
+//  보기: 킥스타터 Token Monitor 의 공개 코드(fractal-manifold/mcp-marketplace, claude.go)와 같은 주소·머리글 ══
+static class ClaudeUsage
+{
+    const string Url = "https://api.anthropic.com/api/oauth/usage";
+    static readonly string CredFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", ".credentials.json");
+    public static volatile string Line;          // 보드에 보낼 줄(아직 없으면 null)
+    static DateTime next = DateTime.MinValue;
+    static volatile bool busy;
+    static string lastLog = "";
+
+    // Loop 에서 자주 부른다. 3분마다 한 번 받는다(따로 스레드). 보드를 꽂자마자 보여 줄 수 있게 보드가 없어도 받아 둔다
+    public static void Tick()
+    {
+        if (busy || DateTime.Now < next) return;
+        busy = true; next = DateTime.Now.AddMinutes(3);
+        new Thread(Fetch) { IsBackground = true, Name = "claude usage" }.Start();
+    }
+
+    static void Fetch()
+    {
+        string line, why;
+        try { line = Get(out why); }
+        catch (Exception ex) { line = "@use err 3"; why = "받기 실패: " + ex.GetType().Name; }
+        Line = line;
+        if (why != lastLog) { lastLog = why; Helper.Log("Claude 사용량: " + why); }   // 바뀔 때만 남긴다(열쇠는 남기지 않는다)
+        busy = false;
+    }
+
+    static string Get(out string why)
+    {
+        if (!File.Exists(CredFile)) { why = "로그인 파일 없음"; return "@use err 1"; }
+        string j = File.ReadAllText(CredFile);
+        var co = Regex.Match(j, @"""claudeAiOauth""\s*:\s*\{([^}]*)\}");   // 앞의 mcpOAuth(다른 서비스 열쇠)가 아니라 Claude 로그인 칸만
+        if (!co.Success) { why = "Claude 로그인 없음"; return "@use err 1"; }
+        j = co.Groups[1].Value;
+        var tk = Regex.Match(j, @"""accessToken""\s*:\s*""([^""]+)""");
+        if (!tk.Success) { why = "로그인 정보 없음"; return "@use err 1"; }
+        var ex = Regex.Match(j, @"""expiresAt""\s*:\s*(\d+)");
+        long expMs;
+        string token = tk.Groups[1].Value;
+        if (ex.Success && long.TryParse(ex.Groups[1].Value, out expMs) && expMs < NowMs() + 120000)
+        {   // 만료(또는 2분 안에 만료) → 갱신 열쇠로 새 열쇠를 받아 같은 파일에 적는다(Claude Code 가 하는 것과 같다)
+            string err;
+            token = Renew(out err);
+            if (token == null) { why = "로그인 만료 · 새로 받기 실패(" + err + ")"; return "@use err 2"; }
+            Helper.Log("Claude 사용량: 로그인 열쇠를 새로 받음");
+        }
+        string body;
+        try
+        {
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)(3072 | 768 | 192);
+            var req = (HttpWebRequest)WebRequest.Create(Url);
+            req.Timeout = 12000; req.ReadWriteTimeout = 12000; req.UserAgent = "TapDeck";
+            req.Accept = "application/json";
+            req.Headers["Authorization"] = "Bearer " + token;
+            req.Headers["anthropic-beta"] = "oauth-2025-04-20";
+            using (var resp = (HttpWebResponse)req.GetResponse())
+            using (var sr = new StreamReader(resp.GetResponseStream(), Encoding.UTF8)) body = sr.ReadToEnd();
+        }
+        catch (WebException wex)
+        {
+            var r = wex.Response as HttpWebResponse; int code = r != null ? (int)r.StatusCode : -1;
+            if (code == 401) { why = "로그인 만료(401)"; return "@use err 2"; }
+            if (code == 429) next = DateTime.Now.AddMinutes(10);   // 너무 자주 물었다 → 10분 쉰다
+            why = "받기 실패(" + code + ")"; return Line ?? "@use err 3";   // 앞서 받은 숫자가 있으면 그대로 둔다
+        }
+        string a = Window(body, "five_hour"), b = Window(body, "seven_day");
+        if (a == null) { why = "답 모양이 다름"; return "@use err 3"; }
+        if (b == null) b = "-1 - -";   // 주간 한도가 없는 요금제(팀 등): seven_day 가 null → 보드는 '주간 한도 없음'
+        why = "받음 " + a + " / " + b;
+        return "@use " + a + " " + b;
+    }
+
+    static long NowMs() { return (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds; }
+
+    // 갱신 열쇠(refreshToken)로 새 열쇠를 받는다. 주소·번호는 이 컴퓨터에 깔린 Claude Code(claude.exe) 안의 값과 같다.
+    // 갱신 열쇠도 새것으로 바뀌므로 반드시 파일에 다시 적는다(안 적으면 Claude Code 가 옛 갱신 열쇠로 실패한다). 열쇠는 기록에 남기지 않는다
+    const string TokenUrl = "https://platform.claude.com/v1/oauth/token";
+    const string ClientId = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
+    static readonly object fileLock = new object();
+    static string Renew(out string err)
+    {
+        err = "";
+        lock (fileLock)
+        {
+            string all = File.ReadAllText(CredFile);
+            var co = Regex.Match(all, @"""claudeAiOauth""\s*:\s*\{([^}]*)\}");
+            var rt = co.Success ? Regex.Match(co.Groups[1].Value, @"""refreshToken""\s*:\s*""([^""]+)""") : Match.Empty;
+            if (!rt.Success) { err = "갱신 열쇠 없음"; return null; }
+            string resp;
+            try
+            {
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)(3072 | 768 | 192);
+                var req = (HttpWebRequest)WebRequest.Create(TokenUrl);
+                req.Method = "POST"; req.ContentType = "application/json"; req.Accept = "application/json";
+                req.Timeout = 15000; req.ReadWriteTimeout = 15000; req.UserAgent = "TapDeck";
+                byte[] data = Encoding.UTF8.GetBytes("{\"grant_type\":\"refresh_token\",\"refresh_token\":\"" + rt.Groups[1].Value + "\",\"client_id\":\"" + ClientId + "\"}");
+                using (var st = req.GetRequestStream()) st.Write(data, 0, data.Length);
+                using (var r = (HttpWebResponse)req.GetResponse())
+                using (var sr = new StreamReader(r.GetResponseStream(), Encoding.UTF8)) resp = sr.ReadToEnd();
+            }
+            catch (WebException wex) { var r = wex.Response as HttpWebResponse; err = r != null ? ((int)r.StatusCode).ToString() : wex.Status.ToString(); return null; }
+            var at = Regex.Match(resp, @"""access_token""\s*:\s*""([^""]+)""");
+            var nr = Regex.Match(resp, @"""refresh_token""\s*:\s*""([^""]+)""");
+            var ei = Regex.Match(resp, @"""expires_in""\s*:\s*(\d+)");
+            if (!at.Success) { err = "답 모양이 다름"; return null; }
+            // Claude 로그인 칸 안의 값만 바꾼다(다른 칸·순서는 그대로)
+            string seg = co.Groups[1].Value;
+            seg = Regex.Replace(seg, @"(""accessToken""\s*:\s*"")[^""]+("")", delegate (Match m) { return m.Groups[1].Value + at.Groups[1].Value + m.Groups[2].Value; });
+            if (nr.Success) seg = Regex.Replace(seg, @"(""refreshToken""\s*:\s*"")[^""]+("")", delegate (Match m) { return m.Groups[1].Value + nr.Groups[1].Value + m.Groups[2].Value; });
+            if (ei.Success) seg = Regex.Replace(seg, @"(""expiresAt""\s*:\s*)\d+", delegate (Match m) { return m.Groups[1].Value + (NowMs() + long.Parse(ei.Groups[1].Value) * 1000); });
+            string outAll = all.Substring(0, co.Groups[1].Index) + seg + all.Substring(co.Groups[1].Index + co.Groups[1].Length);
+            string tmp = CredFile + ".tapdeck.tmp";
+            File.WriteAllText(tmp, outAll, new UTF8Encoding(false));
+            File.Copy(tmp, CredFile, true); File.Delete(tmp);   // 다 쓴 뒤 한 번에 바꾼다(쓰다 끊겨 파일이 깨지지 않게)
+            return at.Groups[1].Value;
+        }
+    }
+
+    // "five_hour":{"utilization":12.0,"resets_at":"2026-10-31T06:00:00.12+00:00"} → "12 1 15:00"(퍼센트·요일 0=일·이 컴퓨터 시각). 초기화 시각이 없으면 "- -"
+    static string Window(string body, string key)
+    {
+        var m = Regex.Match(body, @"""" + key + @"""\s*:\s*\{([^}]*)\}");
+        if (!m.Success) return null;
+        var u = Regex.Match(m.Groups[1].Value, @"""utilization""\s*:\s*([0-9.]+)");
+        var r = Regex.Match(m.Groups[1].Value, @"""resets_at""\s*:\s*""([^""]+)""");
+        int pct = 0;
+        if (u.Success) pct = (int)Math.Round(double.Parse(u.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture));
+        DateTimeOffset t;
+        if (r.Success && DateTimeOffset.TryParse(r.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out t))
+        {
+            var l = t.ToLocalTime().AddSeconds(30);   // 가까운 분으로: 04:30:00.8 → 04:30, 05:59:59.9 → 06:00
+            return pct + " " + (int)l.DayOfWeek + " " + l.ToString("HH:mm");
+        }
+        return pct + " - -";
     }
 }

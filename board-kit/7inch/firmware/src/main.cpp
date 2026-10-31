@@ -297,6 +297,13 @@ static void blSet(bool on) {
 static void lock() { esp_lv_adapter_lock(-1); }
 static void unlock() { esp_lv_adapter_unlock(); }
 
+// Claude 사용량 상태(설정 [사용량] 을 켠 보드만 보인다 — 처음엔 꺼짐, 사용자 지시 2026-10-31). 그리기는 renderUse
+static bool s_useOn = false;
+static int s_useP5 = 0, s_useP7 = 0, s_useW5 = -1, s_useW7 = -1, s_useErr = 0;
+static char s_useR5[6] = "", s_useR7[6] = "";
+static uint32_t s_useAt = 0;
+static lv_obj_t *s_logo, *s_useL5, *s_useL7, *s_useBtn, *s_useClk;
+static bool useShown() { return s_useOn && s_useAt && millis() - s_useAt < 20UL * 60000UL; }   // 20분 넘게 소식이 없으면(탭덱 꺼짐) 숨긴다
 // ── 시계 화면 배치 ──
 // 왼쪽 칸: 큰 시계 → 바로 아래 날짜 → 남은 자리에 카드(날씨 · 오늘). 맨 아래는 '다음 수업' 띠 자리(보일 때만 비운다).
 // 오른쪽 시간표를 끄면 왼쪽 칸이 화면 전체가 되고 카드 둘이 옆으로 나란히 선다. 끈 카드의 자리는 남은 카드가 가져간다.
@@ -327,7 +334,10 @@ static void layoutClock() {
   lv_obj_set_size(s_notice, CW, NOTICE_H); lv_obj_set_pos(s_notice, P, PH - P - NOTICE_H + S(6));
   lv_obj_set_width(s_noticeLbl, CW - S(24)); lv_obj_center(s_noticeLbl);
   const int TOP = DATE_Y + DATE_H + S(24);
-  const int BOT = PH - P - (s_noticeOn ? NOTICE_H + S(4) : 0);
+  const int USE_H = S(30), useY = PH - P - (s_noticeOn ? NOTICE_H + S(4) : 0) - USE_H;   // Claude 사용량 한 줄(켰을 때만): 카드 아래·띠 위
+  const bool useOn = s_useClk && useShown();
+  if (s_useClk) { vis(s_useClk, useOn); lv_obj_set_width(s_useClk, CW); lv_obj_set_pos(s_useClk, P, useY + (USE_H - lv_font_get_line_height(FM())) / 2); }
+  const int BOT = PH - P - (s_noticeOn ? NOTICE_H + S(4) : 0) - (useOn ? USE_H + S(4) : 0);
   const int avail = BOT - TOP;
   const int WX_BASE = dust ? S(96) : S(74);                            // 날씨 카드: 위 블록 70 + 미세먼지 줄 28
   int wxX = P, wxY = TOP, wxW = CW, wxH = 0, inX = P, inY = TOP, inW = CW, inH = 0;
@@ -2257,6 +2267,49 @@ static void showView(View v);
 static bool pcfLine(char *buf, uint32_t ms);
 static void segStyle(lv_obj_t *b, bool on);
 static lv_obj_t *s_pcBtn;   // 설정의 [컴퓨터만] 단추
+// Claude 사용량(사용자 지시 2026-10-31): 탭덱이 1분마다 '@use 5시간% 요일 초기화 주간% 요일 초기화' 또는 '@use err 번호' 를 보낸다.
+// 위쪽 막대 왼쪽(로고·제목 자리)에 두 줄로 보인다. 설정 [사용량] 으로 끄면 원래 제목. 20분 넘게 소식이 없으면 숨긴다(탭덱이 꺼짐)
+static uint32_t useCol(int p) { return p >= 90 ? C_ROSE : p >= 70 ? C_WARN : C_EMERALD; }
+static void renderUse() {
+  if (!s_useL5 || !s_useL7 || !s_title) return;
+  const bool show = useShown();
+  static bool clkWas = false;
+  if (s_useClk && show != clkWas) { clkWas = show; layoutClock(); }   // 시계 화면: 줄이 생기거나 없어지면 카드 자리를 다시 잡는다
+  if (show) { lv_obj_add_flag(s_title, LV_OBJ_FLAG_HIDDEN); if (s_logo) lv_obj_add_flag(s_logo, LV_OBJ_FLAG_HIDDEN); lv_obj_clear_flag(s_useL5, LV_OBJ_FLAG_HIDDEN); lv_obj_clear_flag(s_useL7, LV_OBJ_FLAG_HIDDEN); }
+  else { lv_obj_clear_flag(s_title, LV_OBJ_FLAG_HIDDEN); if (s_logo) lv_obj_clear_flag(s_logo, LV_OBJ_FLAG_HIDDEN); lv_obj_add_flag(s_useL5, LV_OBJ_FLAG_HIDDEN); lv_obj_add_flag(s_useL7, LV_OBJ_FLAG_HIDDEN); return; }
+  static const char *WD[7] = {"일", "월", "화", "수", "목", "금", "토"};
+  char a[64], b[64];
+  if (s_useErr) {
+    snprintf(a, sizeof a, "Claude 사용량");
+    snprintf(b, sizeof b, "%s", s_useErr == 1 ? "로그인 없음" : s_useErr == 2 ? "로그인 다시 필요" : "받기 실패");
+    lv_obj_set_style_text_color(s_useL5, lv_color_hex(D_MUTED), 0); lv_obj_set_style_text_color(s_useL7, lv_color_hex(C_WARN), 0);
+  } else {
+    if (s_useR5[0]) snprintf(a, sizeof a, "5시간 %d%% · %s 리셋", s_useP5, s_useR5); else snprintf(a, sizeof a, "5시간 %d%%", s_useP5);
+    if (s_useP7 < 0) snprintf(b, sizeof b, "주간 한도 없음");
+    else if (s_useR7[0] && s_useW7 >= 0 && s_useW7 < 7) snprintf(b, sizeof b, "주간 %d%% · %s %s 리셋", s_useP7, WD[s_useW7], s_useR7); else snprintf(b, sizeof b, "주간 %d%%", s_useP7);
+    lv_obj_set_style_text_color(s_useL5, lv_color_hex(useCol(s_useP5)), 0); lv_obj_set_style_text_color(s_useL7, lv_color_hex(s_useP7 < 0 ? D_MUTED : useCol(s_useP7)), 0);
+  }
+  if (strcmp(lv_label_get_text(s_useL5), a)) lv_label_set_text(s_useL5, a);
+  if (strcmp(lv_label_get_text(s_useL7), b)) lv_label_set_text(s_useL7, b);
+  if (s_useClk) {   // 시계 화면 한 줄: 두 줄을 이어 붙인다
+    char c[140]; snprintf(c, sizeof c, "Claude 사용량   %s   %s", s_useErr ? b : a, s_useErr ? "" : b);
+    if (strcmp(lv_label_get_text(s_useClk), c)) lv_label_set_text(s_useClk, c);
+    lv_obj_set_style_text_color(s_useClk, lv_color_hex(s_useErr ? C_WARN : useCol(s_useP5)), 0);
+  }
+}
+// '@use 12 6 15:00 35 1 09:00' → 숫자로. 시각 자리 '-' 는 모름
+static void useLine(const char *p) {
+  if (!strncmp(p, "err ", 4)) { s_useErr = atoi(p + 4); if (s_useErr < 1 || s_useErr > 3) s_useErr = 3; }
+  else {
+    char r5[8] = "", w5[4] = "", r7[8] = "", w7[4] = ""; int p5 = 0, p7 = 0;
+    if (sscanf(p, "%d %3s %7s %d %3s %7s", &p5, w5, r5, &p7, w7, r7) != 6) return;
+    s_useErr = 0; s_useP5 = constrain(p5, 0, 100); s_useP7 = p7 < 0 ? -1 : constrain(p7, 0, 100);   // -1 = 주간 한도 없는 요금제
+    s_useW5 = w5[0] == '-' ? -1 : atoi(w5); s_useW7 = w7[0] == '-' ? -1 : atoi(w7);
+    snprintf(s_useR5, sizeof s_useR5, "%s", r5[0] == '-' ? "" : r5); snprintf(s_useR7, sizeof s_useR7, "%s", r7[0] == '-' ? "" : r7);
+  }
+  s_useAt = millis() ? millis() : 1;
+  lock(); renderUse(); unlock();
+}
 static void deckPoll(uint32_t ms) {
   static char buf[320]; static uint16_t n = 0;   // 가장 긴 줄 '@deckdata 15 80 <base64 256자>' 273자
   while (Serial.available()) {
@@ -2278,6 +2331,7 @@ static void deckPoll(uint32_t ms) {
           if (first) { lock(); refreshWifiLabel(); unlock(); Serial.println("sync: time from pc"); }
         }
       }
+      else if (!strncmp(buf, "@use ", 5)) useLine(buf + 5);   // 탭덱이 알려 주는 Claude 사용량
       else if (!strncmp(buf, "@pconly ", 8)) {   // 시험용: '컴퓨터만' 을 컴퓨터에서 켜고 끈다(설정 단추와 같다)
         const bool on = atoi(buf + 8) != 0;
         if (on != s_pcOnly) { lock(); s_pcOnly = on; s_prefs.putBool("pconly", on); segStyle(s_pcBtn, on); if (!on && s_prefs.isKey("ssid")) s_syncReq = true; else if (on) s_syncReq = true; refreshWifiLabel(); renderToday(); unlock(); }
@@ -3222,6 +3276,13 @@ static void refreshClockSettings() {
   for (int i = 0; i < 2; i++) segStyle(s_fmtBtn[i], (i == 1) == s_h12);
   for (int i = 0; i < 3; i++) segStyle(s_autoBtn[i], AUTO_CLK_MIN[i] == s_autoClkMin);
 }
+static void onUseBtn(lv_event_t *) {   // [사용량]: 누를 때마다 켜짐/꺼짐
+  s_useOn = !s_useOn;
+  s_prefs.putBool("useon", s_useOn);
+  segStyle(s_useBtn, s_useOn);
+  renderUse();
+  setStatus(s_useOn ? (s_useAt ? "Claude 사용량을 위쪽에 보입니다" : "Claude 사용량: 컴퓨터의 탭덱이 알려 주면 위쪽에 보입니다") : "Claude 사용량을 숨겼습니다");
+}
 static void onPcOnly(lv_event_t *) {   // [컴퓨터만]: 누를 때마다 켜짐/꺼짐. 켜면 와이파이를 쓰지 않는다
   s_pcOnly = !s_pcOnly;
   s_prefs.putBool("pconly", s_pcOnly);
@@ -3324,7 +3385,7 @@ static void buildUI() {
   lv_obj_set_style_border_width(s_top, 1, 0);
   lv_obj_set_style_border_color(s_top, lv_color_hex(D_LINE), 0);
   const int LOGO = TOP - 16;
-  lv_obj_t *logo = box(s_top, NOW_TAG, 0, 8);                       // 호박색(빨강은 경고에만 쓴다)
+  lv_obj_t *logo = s_logo = box(s_top, NOW_TAG, 0, 8);                       // 호박색(빨강은 경고에만 쓴다)
   lv_obj_set_size(logo, LOGO, LOGO); lv_obj_align(logo, LV_ALIGN_LEFT_MID, M, 0);
   lv_obj_set_style_bg_grad_color(logo, lv_color_hex(0x2563eb), 0);
   lv_obj_set_style_bg_grad_dir(logo, UI_FANCY ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_NONE, 0);
@@ -3333,6 +3394,16 @@ static void buildUI() {
   lv_obj_set_width(s_title, small ? 116 : 180);
   lv_label_set_long_mode(s_title, LV_LABEL_LONG_DOT);
   lv_obj_align(s_title, LV_ALIGN_LEFT_MID, M + LOGO + 8, 0);
+  {   // Claude 사용량 두 줄: 보일 때는 로고·제목을 숨기고 그 자리(탭 앞까지)를 쓴다
+    const int UW = (small ? 178 : 250) - M - 6, DY = small ? 11 : 13;
+    s_useL5 = label(s_top, FM(), C_EMERALD, ""); s_useL7 = label(s_top, FM(), C_EMERALD, "");
+    lv_obj_t *ul[2] = {s_useL5, s_useL7};
+    for (int i = 0; i < 2; i++) {
+      lv_obj_set_width(ul[i], UW); lv_label_set_long_mode(ul[i], LV_LABEL_LONG_CLIP);
+      lv_obj_align(ul[i], LV_ALIGN_LEFT_MID, M, i ? DY : -DY);
+      lv_obj_add_flag(ul[i], LV_OBJ_FLAG_HIDDEN);
+    }
+  }
 
   // 탭 다섯: 시간표 · 시계 · 단축키 · 찾기 · 설정(2026-10-25 사용자 지정 순서)
   const int TABW = small ? 66 : 86, TABH = TOP - 14;
@@ -3465,6 +3536,10 @@ static void buildUI() {
   lv_obj_set_style_text_align(s_stale, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(s_stale, LV_LABEL_LONG_DOT);                 // 한 줄(카드 위로 넘치지 않게)
   lv_obj_add_flag(s_stale, LV_OBJ_FLAG_HIDDEN);
+  s_useClk = label(left, FM(), C_EMERALD, "");                      // Claude 사용량 한 줄(자리는 layoutClock)
+  lv_obj_set_style_text_align(s_useClk, LV_TEXT_ALIGN_CENTER, 0);
+  lv_label_set_long_mode(s_useClk, LV_LABEL_LONG_DOT);
+  lv_obj_add_flag(s_useClk, LV_OBJ_FLAG_HIDDEN);
   s_bat = label(left, FM(), D_MUTED, "");                             // "배터리 87%" (배터리를 읽을 수 있을 때만)
   lv_obj_align(s_bat, LV_ALIGN_TOP_RIGHT, -S(14), S(10));
   lv_obj_add_flag(s_bat, LV_OBJ_FLAG_HIDDEN);
@@ -3612,6 +3687,11 @@ static void buildUI() {
   lv_obj_align(s_pcBtn, LV_ALIGN_TOP_RIGHT, -(10 + (small ? 90 : 110) + 8), 8);
   lv_obj_add_event_cb(s_pcBtn, onPcOnly, LV_EVENT_CLICKED, nullptr);
   segStyle(s_pcBtn, s_pcOnly);
+  s_useBtn = button(wbox, "사용량", small ? 80 : 110, BTH, C_ALT, C_MUTED);   // Claude 사용량을 위쪽 막대에 보이기(켜고 끄기)
+  lv_obj_align(s_useBtn, LV_ALIGN_TOP_RIGHT, -(10 + (small ? 90 : 110) + 8 + PCW + 8), 8);
+  lv_obj_add_event_cb(s_useBtn, onUseBtn, LV_EVENT_CLICKED, nullptr);
+  segStyle(s_useBtn, s_useOn);
+  renderUse();                                       // 화면 색을 바꿔 다시 그려도 받아 둔 사용량을 바로 보인다
   // 준비 상태 점검표: 제목·[찾기] 아래 넓게(4줄). 넘치면 잘린다(목록 위로 겹치지 않게)
   const int IY = 8 + BTH + 6, LY = IY + (small ? 74 : 82) + 6, FH = small ? 30 : 46;
   s_wifiInfo = label(wbox, FM(), C_MUTED, "");
@@ -4030,6 +4110,7 @@ void setup() {
   s_autoClkMin = s_prefs.getInt("autoclk", 20);
   s_lastOkT = (time_t)s_prefs.getULong("lastok", 0);
   s_pcOnly = s_prefs.getBool("pconly", false);
+  s_useOn = s_prefs.getBool("useon", false);   // 처음엔 꺼짐(필요한 보드만 설정에서 켠다)
   s_show = s_prefs.getInt("show", SH_ALL);
   s_themeIdx = constrain(s_prefs.getInt("theme", 0), 0, THEME_N - 1);   // 화면 색(buildUI 전에)
   s_th = &THEMES[s_themeIdx];
@@ -4243,6 +4324,8 @@ void loop() {
     if (s_deckUp) due = false;                                   // 아이콘 받는 중: 와이파이 받기는 끝난 뒤로(s_syncReq 는 둔다)
     if (!s_pcOnly && !s_deckUp && (s_syncReq || due) && ms >= 5000) { s_syncReq = false; startSync(); }   // '컴퓨터만' 이면 와이파이를 켜지 않는다
     pcSyncTick(ms);                                              // '컴퓨터만': 탭덱이 대신 받아 준다
+    static uint32_t useChk = 0;
+    if (s_useAt && ms - useChk > 30000) { useChk = ms; if (ms - s_useAt >= 20UL * 60000UL) { lock(); renderUse(); unlock(); } }   // 탭덱이 꺼지면 20분 뒤 제목으로
   } else if (s_sync == SYNC_CONNECTING) {
     if (WiFi.isConnected()) {
       s_sync = SYNC_TIME; s_syncStart = ms; s_wifiFails = 0; s_lastWifiKind = 0;
