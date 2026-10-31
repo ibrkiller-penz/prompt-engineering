@@ -203,7 +203,7 @@ static class KeySend
         { "PGUP", 0x21 }, { "PGDN", 0x22 }, { "UP", 0x26 }, { "DOWN", 0x28 }, { "LEFT", 0x25 }, { "RIGHT", 0x27 }, { "SPACE", 0x20 },
         { "ADD", 0x6B }, { "SUBTRACT", 0x6D }, { "MULTIPLY", 0x6A }, { "DIVIDE", 0x6F }, { "PRTSC", 0x2C }, { "CAPSLOCK", 0x14 },
         { "NUMLOCK", 0x90 }, { "SCROLLLOCK", 0x91 }, { "BREAK", 0x13 }, { "HELP", 0x2F }, { "WIN", 0x5B }, { "APPS", 0x5D } };
-    static readonly byte[] Extended = { 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2D, 0x2E, 0x5B, 0x5C, 0x5D, 0x6F, 0x90, 0x2C };
+    static readonly byte[] Extended = { 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2D, 0x2E, 0x5B, 0x5C, 0x5D, 0x6F, 0x90, 0x2C, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB3 };   // 뒤 6개 = 음소거·소리·곡 넘기기·재생
 
     static byte ModVk(char c) { return c == '^' ? (byte)0x11 : c == '+' ? (byte)0x10 : c == '%' ? (byte)0x12 : (byte)0x5B; }
 
@@ -220,12 +220,12 @@ static class KeySend
         int down = 0;
         try
         {
-            foreach (var m in mods) { Key(m, false); down++; }
-            for (int i = 0; i < Math.Max(1, times); i++) { Key(vk, false); Thread.Sleep(5); Key(vk, true); Thread.Sleep(5); }
+            foreach (var m in mods) { Key(m, false); down++; Thread.Sleep(25); }   // 앞 키를 누르고 잠깐 쉰다(바로 누르면 윈도가 놓쳐 Win 만 눌린 셈 → 시작 메뉴가 뜬다)
+            for (int i = 0; i < Math.Max(1, times); i++) { Key(vk, false); Thread.Sleep(25); Key(vk, true); Thread.Sleep(15); }
         }
         finally
         {   // 중간에 예외가 나도 Ctrl·Alt·Win 이 눌린 채 남지 않게
-            for (int i = down - 1; i >= 0; i--) Key(mods[i], true);
+            for (int i = down - 1; i >= 0; i--) { Key(mods[i], true); Thread.Sleep(5); }
         }
         Thread.Sleep(15);
     }
