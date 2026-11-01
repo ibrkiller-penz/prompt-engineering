@@ -1440,7 +1440,7 @@ class Helper : ApplicationContext
 }
 
 // ════ Claude 사용량 — Claude Code 에 로그인해 둔 열쇠(%USERPROFILE%\.claude\.credentials.json)로 사용량 주소를 물어
-//  보드에 '@use 5시간% 요일 초기화시각 주간% 요일 초기화시각' 으로 알린다(사용자 지시 2026-10-31). 열쇠는 이 컴퓨터에서 Anthropic 에만 보내고
+//  보드에 '@use 5시간% 요일 초기화시각 주간% 요일 초기화시각 [주간 모델 이름]' 으로 알린다(사용자 지시 2026-10-31). 열쇠는 이 컴퓨터에서 Anthropic 에만 보내고
 //  기록에 남기지 않는다. 보드에는 숫자만 간다. 열쇠가 만료되면 갱신 열쇠로 새로 받아 같은 파일의 Claude 칸만 고쳐 적는다(Renew, Claude Code 와 같은 방식).
 //  보기: 킥스타터 Token Monitor 의 공개 코드(fractal-manifold/mcp-marketplace, claude.go)와 같은 주소·머리글 ══
 static class ClaudeUsage
@@ -1512,11 +1512,12 @@ static class ClaudeUsage
             if (code == 429) next = DateTime.Now.AddMinutes(10);   // 너무 자주 물었다 → 10분 쉰다
             why = "받기 실패(" + code + ")"; return null;   // 앞 숫자를 둘지는 Fetch 가 정한다
         }
-        string a = Window(body, "five_hour"), b = Window(body, "seven_day");
+        string a = Window(body, "five_hour"), b = Window(body, "seven_day"), name = "";
         if (a == null) { why = "답 모양이 다름"; return "@use err 3"; }
-        if (b == null) b = "-1 - -";   // 주간 한도가 없는 요금제(팀 등): seven_day 가 null → 보드는 '주간 한도 없음'
-        why = "받음 " + a + " / " + b;
-        return "@use " + a + " " + b;
+        if (b == null) b = Scoped(body, out name);   // 팀 요금제: seven_day 는 null, 모델별 주간 한도(예: Fable)가 limits 안에 있다
+        if (b == null) b = "-1 - -";                  // 주간 한도가 없는 요금제 → 보드는 '주간 한도 없음'
+        why = "받음 " + a + " / " + b + (name.Length > 0 ? " " + name : "");
+        return "@use " + a + " " + b + (name.Length > 0 ? " " + name : "");
     }
 
     static long NowMs() { return (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds; }
@@ -1578,10 +1579,33 @@ static class ClaudeUsage
         if (!m.Success) return null;
         var u = Regex.Match(m.Groups[1].Value, @"""utilization""\s*:\s*([0-9.eE+-]+)");   // 5e-05 같은 지수 꼴도 통째로
         var r = Regex.Match(m.Groups[1].Value, @"""resets_at""\s*:\s*""([^""]+)""");
+        return Fmt(u.Success ? u.Groups[1].Value : null, r.Success ? r.Groups[1].Value : null);
+    }
+
+    // "limits":[...,{"kind":"weekly_scoped","group":"weekly","percent":8,"resets_at":"…","scope":{"model":{"display_name":"Fable"}}}]
+    // → "8 6 19:59", name = "Fable"(영문·숫자만, 보드 글꼴에 있는 글자). 없으면 null
+    static string Scoped(string body, out string name)
+    {
+        name = "";
+        int i = body.IndexOf("\"group\":\"weekly\"");
+        if (i < 0) return null;
+        int st = body.LastIndexOf('{', i); if (st < 0) return null;
+        string o = body.Substring(st, Math.Min(600, body.Length - st));
+        var u = Regex.Match(o, @"""percent""\s*:\s*([0-9.eE+-]+)");
+        var r = Regex.Match(o, @"""resets_at""\s*:\s*""([^""]+)""");
+        var n = Regex.Match(o, @"""display_name""\s*:\s*""([^""]+)""");
+        if (!u.Success) return null;
+        if (n.Success) { name = Regex.Replace(n.Groups[1].Value, "[^A-Za-z0-9]", ""); if (name.Length > 12) name = name.Substring(0, 12); }
+        return Fmt(u.Groups[1].Value, r.Success ? r.Groups[1].Value : null);
+    }
+
+    // 퍼센트 글·초기화 시각 글 → "12 1 15:00"(퍼센트·요일 0=일·이 컴퓨터 시각). 시각이 없으면 "12 - -"
+    static string Fmt(string pctTxt, string resetTxt)
+    {
         int pct = 0; double d;
-        if (u.Success && double.TryParse(u.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out d)) pct = (int)Math.Round(d);
+        if (pctTxt != null && double.TryParse(pctTxt, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out d)) pct = (int)Math.Round(d);
         DateTimeOffset t;
-        if (r.Success && DateTimeOffset.TryParse(r.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out t))
+        if (resetTxt != null && DateTimeOffset.TryParse(resetTxt, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out t))
         {
             var l = t.ToLocalTime().AddSeconds(30);   // 가까운 분으로: 04:30:00.8 → 04:30, 05:59:59.9 → 06:00
             return pct + " " + (int)l.DayOfWeek + " " + l.ToString("HH:mm");

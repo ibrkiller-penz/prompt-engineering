@@ -302,9 +302,25 @@ static void unlock() { esp_lv_adapter_unlock(); }
 // Claude 사용량 상태(설정 [사용량] 을 켠 보드만 보인다 — 처음엔 꺼짐, 사용자 지시 2026-10-31). 그리기는 renderUse
 static bool s_useOn = false;
 static int s_useP5 = 0, s_useP7 = 0, s_useW7 = -1, s_useErr = 0;
-static char s_useR5[6] = "", s_useR7[6] = "";
+static char s_useR5[6] = "", s_useR7[6] = "", s_useName[13] = "";   // s_useName: 주간 한도 모델 이름(예: Fable, 팀 요금제)
 static uint32_t s_useAt = 0;
-static lv_obj_t *s_logo, *s_useL5, *s_useL7, *s_useBtn, *s_useClk;
+static lv_obj_t *s_logo, *s_useL5, *s_useL7, *s_useBtn, *s_useClk, *s_useDeck;   // s_useClk·s_useDeck: 막대 두 줄을 담는 틀(시계·단축키 화면)
+// 사용량 막대 한 줄(claude.ai 설정의 '사용 한도' 모양): 이름 | 막대 | 12% | 19:30 초기화. 만들기 useRowMake · 자리 useRowPlace · 값 useRowSet
+struct UseRow { lv_obj_t *row = nullptr, *name, *track, *fill, *pct, *rst; int tw = 0, fw = -1; uint32_t col = 0; };
+static UseRow s_ucRow[2], s_udRow[2];   // 시계 화면 · 단축키 화면, [0] 현재 세션 [1] 주간
+static void useRowsSet(UseRow *u);
+static void useRowPlace(UseRow &u, int w, int y) {   // 폭 w 로 한 줄을 다시 잡는다(시계 화면은 시간표를 켜고 끄면 폭이 바뀐다)
+  if (!u.row) return;
+  const int lh = lv_obj_get_style_height(u.row, 0), BH = max(6, lh * 45 / 100), G = 8;
+  const int nameW = lh * 9 / 2, pctW = lh * 5 / 2, rstW = lh * 9;   // rstW: "(토) 20:00 초기화" 가 잘리지 않게
+  u.tw = max(20, w - nameW - pctW - rstW - 3 * G);
+  lv_obj_set_pos(u.row, 0, y); lv_obj_set_width(u.row, w);
+  lv_obj_set_width(u.name, nameW); lv_obj_set_pos(u.name, 0, 0);
+  lv_obj_set_size(u.track, u.tw, BH); lv_obj_set_pos(u.track, nameW + G, (lh - BH) / 2);
+  lv_obj_set_width(u.pct, pctW); lv_obj_set_pos(u.pct, nameW + G + u.tw + G, 0);
+  lv_obj_set_width(u.rst, rstW); lv_obj_set_pos(u.rst, w - rstW, 0);
+  u.fw = -1;                                   // 막대 길이는 다음 useRowSet 에서 새 폭으로
+}
 static const uint32_t USE_STALE_MS = 20UL * 60000UL;              // 20분 넘게 소식이 없으면(탭덱 꺼짐) 숨긴다
 static bool useShown() { return s_useOn && s_useAt && millis() - s_useAt < USE_STALE_MS; }
 // 닉시 시계(설정 [닉시] — 처음엔 꺼짐, 사용자 지시 2026-10-31). 숫자는 tools/make_nixie_font.py 로 만든 글꼴.
@@ -312,7 +328,7 @@ static bool useShown() { return s_useOn && s_useAt && millis() - s_useAt < USE_S
 // 글꼴 상자에 빛 여백(base_line 과 같은 값)이 있어 글자 좌우에 같은 여백(pad)을 준다(안 주면 빛이 잘린다).
 static bool s_nixOn = false;
 static lv_obj_t *s_bigGlow, *s_sec, *s_secGlow, *s_nixBtn;
-static const uint32_t NIX_GLOW = 0xFF5F14, NIX_CORE = 0xFFD696;
+static const uint32_t NIX_GLOW = 0xFF4A0A, NIX_CORE = 0xFFA24C;   // 진짜 닉시관 사진처럼 주황(심지가 노랗지 않게, 사용자 지시 2026-11-01)
 static const lv_font_t *FNIX(bool core) { return big() ? (core ? &nix100c : &nix100g) : (core ? &nix80c : &nix80g); }
 static const lv_font_t *FNIXS(bool core) { return big() ? (core ? &nix70c : &nix70g) : (core ? &nix56c : &nix56g); }
 static int nixH() { return big() ? 100 : 80; }                    // 시·분 숫자 높이
@@ -326,9 +342,11 @@ static void placeClock() {
     lv_obj_align_to(s_bigAmPm, s_big, LV_ALIGN_OUT_LEFT_BOTTOM, s_nixOn ? -4 + m : -8, -13 - m);
   if (!s_nixOn) return;
   const int ms = FNIXS(true)->base_line;
-  lv_obj_align_to(s_bigGlow, s_big, LV_ALIGN_TOP_LEFT, 0, 0);
+  // 빛은 심지와 같은 자리에. align_to(TOP_LEFT)는 기준 글자의 안쪽 여백(pad)을 더해 빛이 여백만큼 오른쪽으로 밀렸다 → 좌표를 그대로 옮긴다
+  lv_obj_set_pos(s_bigGlow, lv_obj_get_x(s_big), lv_obj_get_y(s_big));
   lv_obj_align_to(s_sec, s_big, LV_ALIGN_OUT_RIGHT_BOTTOM, -m - ms + nixGap(), ms - m);   // 숫자 아랫줄을 맞춘다
-  lv_obj_align_to(s_secGlow, s_sec, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_update_layout(s_sec);                                    // 방금 옮긴 초의 좌표를 읽기 전에
+  lv_obj_set_pos(s_secGlow, lv_obj_get_x(s_sec), lv_obj_get_y(s_sec));
 }
 // 닉시 초를 sec 로. 바뀐 숫자 칸만 다시 그리게 알린다(라벨 상자만, LVGL 이 붙이는 줄높이/4 여유 없이).
 // 초의 90%는 일의 자리 칸만 → 매초 PSRAM 에 쓰는 양이 전보다 약 70% 적다(흔들림 위험을 줄인다).
@@ -382,9 +400,13 @@ static void layoutClock() {
   lv_obj_set_width(s_noticeLbl, CW - S(24)); lv_obj_center(s_noticeLbl);
   const int TOP = DATE_Y + DATE_H + S(24);
   const int bandTop = PH - P - (s_noticeOn ? NOTICE_H + S(4) : 0);   // 띠 위(띠가 없으면 아래 여백)
-  const int USE_H = S(30), useY = bandTop - USE_H;   // Claude 사용량 한 줄(켰을 때만): 카드 아래·띠 위
+  const int ULH = lv_font_get_line_height(FM()), USE_H = 2 * ULH + S(8), useY = bandTop - USE_H;   // Claude 사용량 막대 두 줄(켰을 때만): 카드 아래·띠 위
   const bool useOn = s_useClk && useShown();
-  if (s_useClk) { vis(s_useClk, useOn); lv_obj_set_width(s_useClk, CW); lv_obj_set_pos(s_useClk, P, useY + (USE_H - lv_font_get_line_height(FM())) / 2); }
+  if (s_useClk) {
+    vis(s_useClk, useOn); lv_obj_set_size(s_useClk, CW, USE_H); lv_obj_set_pos(s_useClk, P, useY);
+    useRowPlace(s_ucRow[0], CW, S(2)); useRowPlace(s_ucRow[1], CW, S(6) + ULH);
+    if (useOn) useRowsSet(s_ucRow);            // 폭이 바뀌었으면 막대 길이도 다시
+  }
   const int BOT = bandTop - (useOn ? USE_H + S(4) : 0);
   const int avail = BOT - TOP;
   const int WX_BASE = dust ? S(96) : S(74);                            // 날씨 카드: 위 블록 70 + 미세먼지 줄 28
@@ -2318,13 +2340,54 @@ static lv_obj_t *s_pcBtn;   // 설정의 [컴퓨터만] 단추
 // Claude 사용량(사용자 지시 2026-10-31): 탭덱이 1분마다 '@use 5시간% 요일 초기화 주간% 요일 초기화' 또는 '@use err 번호' 를 보낸다.
 // 위쪽 막대 왼쪽(로고·제목 자리)에 두 줄로 보인다. 설정 [사용량] 으로 끄면 원래 제목. 20분 넘게 소식이 없으면 숨긴다(탭덱이 꺼짐)
 static uint32_t useCol(int p) { return p >= 90 ? C_ROSE : p >= 70 ? C_WARN : C_EMERALD; }
+static uint32_t useBarCol(int p) { return p >= 90 ? C_ROSE : 0xD97757; }   // 막대는 Claude 주황(사용자 지시 2026-11-01), 90% 넘으면 빨강
+static void useRowMake(UseRow &u, lv_obj_t *parent, const lv_font_t *f) {
+  const int lh = lv_font_get_line_height(f), BH = max(6, lh * 45 / 100);
+  u.row = box(parent, D_PANEL, 0, 0); lv_obj_set_style_bg_opa(u.row, LV_OPA_TRANSP, 0);
+  lv_obj_set_height(u.row, lh); lv_obj_clear_flag(u.row, LV_OBJ_FLAG_CLICKABLE);
+  u.name = label(u.row, f, D_TEXT, ""); lv_label_set_long_mode(u.name, LV_LABEL_LONG_DOT);
+  u.track = box(u.row, D_LINE, 0, BH / 2);
+  u.fill = box(u.track, 0xD97757, 0, BH / 2); lv_obj_set_size(u.fill, 0, BH); lv_obj_add_flag(u.fill, LV_OBJ_FLAG_HIDDEN);
+  u.pct = label(u.row, f, D_SUB, ""); lv_obj_set_style_text_align(u.pct, LV_TEXT_ALIGN_RIGHT, 0);
+  u.rst = label(u.row, f, D_MUTED, ""); lv_label_set_long_mode(u.rst, LV_LABEL_LONG_DOT);
+}
+// 한 줄 값 넣기. pct < 0 이면 막대·퍼센트 없이 글만. 바뀐 것만 다시 그린다
+static void useRowSet(UseRow &u, const char *name, int pct, const char *rst, uint32_t rstCol) {
+  if (!u.row) return;
+  setTextIf(u.name, name); setTextIf(u.rst, rst); setTextColIf(u.rst, rstCol);
+  char b[8] = ""; if (pct >= 0) snprintf(b, sizeof b, "%d%%", pct);
+  setTextIf(u.pct, b);
+  const int BH = lv_obj_get_style_height(u.fill, 0);
+  const int fw = pct <= 0 ? 0 : max(BH, u.tw * pct / 100);   // 1% 도 점 하나는 보이게
+  if (fw != u.fw) { u.fw = fw; if (fw) lv_obj_set_width(u.fill, fw); showIf(u.fill, fw > 0); }
+  const uint32_t c = useBarCol(pct);
+  if (c != u.col) { u.col = c; lv_obj_set_style_bg_color(u.fill, lv_color_hex(c), 0); }
+}
+static void useRowsSet(UseRow *u) {   // 두 줄(현재 세션 · 주간)에 지금 값
+  static const char *WD[7] = {"일", "월", "화", "수", "목", "금", "토"};
+  char r[40];
+  if (s_useErr) {
+    useRowSet(u[0], "Claude", -1, s_useErr == 1 ? "로그인 없음" : s_useErr == 2 ? "로그인 다시 필요" : "받기 실패", C_WARN);
+    showIf(u[1].row, false);
+    return;
+  }
+  showIf(u[1].row, true);
+  if (s_useR5[0]) snprintf(r, sizeof r, "%s 초기화", s_useR5); else r[0] = 0;
+  useRowSet(u[0], "현재 세션", s_useP5, r, D_MUTED);
+  const char *nm = s_useName[0] ? s_useName : "주간";
+  if (s_useP7 < 0) { useRowSet(u[1], nm, -1, "주간 한도 없음", D_MUTED); return; }
+  if (s_useR7[0] && s_useW7 >= 0 && s_useW7 < 7) snprintf(r, sizeof r, "(%s) %s 초기화", WD[s_useW7], s_useR7); else r[0] = 0;
+  useRowSet(u[1], nm, s_useP7, r, D_MUTED);
+}
 static void renderUse() {
   if (!s_useL5 || !s_useL7 || !s_title) return;
   const bool show = useShown();
   static bool clkWas = false;
   if (s_useClk && show != clkWas) { clkWas = show; layoutClock(); }   // 시계 화면: 줄이 생기거나 없어지면 카드 자리를 다시 잡는다
   // 보이기·색은 바뀔 때만(showIf·setTextColIf). 같은 값으로 다시 부르기만 해도 LVGL 이 다시 그린다 → 1분마다 막대가 다시 그려졌다
-  showIf(s_title, !show); showIf(s_logo, !show); showIf(s_useL5, show); showIf(s_useL7, show);
+  // 위쪽 막대 두 줄은 막대가 없는 화면에서만(시계·단축키 화면은 아래에 막대가 있다, 사용자 지시 2026-11-01)
+  const bool top = show && !(s_view == V_DECK || (s_view == V_CLOCK && !s_principal));
+  showIf(s_title, !top); showIf(s_logo, !top); showIf(s_useL5, top); showIf(s_useL7, top); showIf(s_useDeck, show);
   if (!show) return;
   static const char *WD[7] = {"일", "월", "화", "수", "목", "금", "토"};
   char a[64], b[64];
@@ -2340,18 +2403,15 @@ static void renderUse() {
   }
   if (strcmp(lv_label_get_text(s_useL5), a)) lv_label_set_text(s_useL5, a);
   if (strcmp(lv_label_get_text(s_useL7), b)) lv_label_set_text(s_useL7, b);
-  if (s_useClk) {   // 시계 화면 한 줄: 두 줄을 이어 붙인다
-    char c[140]; snprintf(c, sizeof c, "Claude 사용량   %s   %s", s_useErr ? b : a, s_useErr ? "" : b);
-    if (strcmp(lv_label_get_text(s_useClk), c)) lv_label_set_text(s_useClk, c);
-    setTextColIf(s_useClk, s_useErr ? C_WARN : useCol(s_useP5));
-  }
+  useRowsSet(s_ucRow); useRowsSet(s_udRow);   // 시계·단축키 화면 막대(틀 보이기는 layoutClock · 위 showIf)
 }
 // '@use 12 6 15:00 35 1 09:00' → 숫자로. 시각 자리 '-' 는 모름
 static void useLine(const char *p) {
   if (!strncmp(p, "err ", 4)) { s_useErr = atoi(p + 4); if (s_useErr < 1 || s_useErr > 3) s_useErr = 3; }
   else {
-    char r5[8] = "", r7[8] = "", w7[4] = ""; int p5 = 0, p7 = 0;
-    if (sscanf(p, "%d %*s %7s %d %3s %7s", &p5, r5, &p7, w7, r7) != 5) return;   // 5시간 요일은 건너뛴다(화면에 안 씀)
+    char r5[8] = "", r7[8] = "", w7[4] = "", nm[13] = ""; int p5 = 0, p7 = 0;
+    if (sscanf(p, "%d %*s %7s %d %3s %7s %12s", &p5, r5, &p7, w7, r7, nm) < 5) return;   // 5시간 요일은 건너뛴다(화면에 안 씀). 끝 이름은 새 탭덱만 보낸다
+    snprintf(s_useName, sizeof s_useName, "%s", nm);
     s_useErr = 0; s_useP5 = constrain(p5, 0, 100); s_useP7 = p7 < 0 ? -1 : constrain(p7, 0, 100);   // -1 = 주간 한도 없는 요금제
     s_useW7 = w7[0] == '-' ? -1 : atoi(w7);
     snprintf(s_useR5, sizeof s_useR5, "%s", r5[0] == '-' ? "" : r5); snprintf(s_useR7, sizeof s_useR7, "%s", r7[0] == '-' ? "" : r7);
@@ -2463,6 +2523,17 @@ static void buildDeck(lv_obj_t *scr, int top) {
     lv_obj_set_width(l, CW - 14); lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);   // 긴 이름은 … 로
     lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(l, LV_ALIGN_BOTTOM_MID, 0, small ? -8 : -14);
+  }
+  {   // Claude 사용량 막대 두 줄: 단추 칸 아래 ~ 아래 단추 줄 위 빈자리 가운데(보이기는 renderUse)
+    const lv_font_t *f = small ? &kr14 : &kr16;
+    const int lh = lv_font_get_line_height(f), UH = 2 * lh + 6, UW = (PW - 2 * M) * 2 / 3;
+    const int gridB = y0 + gridH, btnT = PH - (M - 10) - 38;
+    s_useDeck = box(panel, D_PANEL, 0, 0);
+    lv_obj_set_style_bg_opa(s_useDeck, LV_OPA_TRANSP, 0); lv_obj_clear_flag(s_useDeck, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(s_useDeck, UW, UH); lv_obj_set_pos(s_useDeck, (PW - UW) / 2, gridB + max(0, (btnT - gridB - UH) / 2));
+    useRowMake(s_udRow[0], s_useDeck, f); useRowMake(s_udRow[1], s_useDeck, f);
+    useRowPlace(s_udRow[0], UW, 0); useRowPlace(s_udRow[1], UW, lh + 6);
+    lv_obj_add_flag(s_useDeck, LV_OBJ_FLAG_HIDDEN);
   }
   const int RB = 56;                                     // 오른쪽 아래 [새로 고침] 단추 폭(가운데 맞춘 상태 글과 겹치지 않게 양쪽을 비운다)
   s_deckState = label(panel, small ? &kr14 : &kr16, D_MUTED, "");
@@ -3283,6 +3354,7 @@ static void nixSecNow() {
   time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
   nixSecShow(tm.tm_sec, true);
 }
+static void renderUse();
 static void showView(View v) {
   const View old = s_view;
   s_view = v;
@@ -3316,6 +3388,7 @@ static void showView(View v) {
   if (v == V_SET) refreshWifiLabel();
   if (v == V_CLOCK && s_principal) renderPrincipal();
   if (v == V_WEEK && s_principal) renderSchedList();
+  renderUse();                                                    // 위쪽 사용량 두 줄은 막대가 없는 화면에서만
 }
 static void onTabTT(lv_event_t *e) { showView(V_WEEK); }
 static void onTabSet(lv_event_t *e) { showView(V_SET); }
@@ -3617,9 +3690,9 @@ static void buildUI() {
   lv_obj_set_style_text_align(s_stale, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(s_stale, LV_LABEL_LONG_DOT);                 // 한 줄(카드 위로 넘치지 않게)
   lv_obj_add_flag(s_stale, LV_OBJ_FLAG_HIDDEN);
-  s_useClk = label(left, FM(), C_EMERALD, "");                      // Claude 사용량 한 줄(자리는 layoutClock)
-  lv_obj_set_style_text_align(s_useClk, LV_TEXT_ALIGN_CENTER, 0);
-  lv_label_set_long_mode(s_useClk, LV_LABEL_LONG_DOT);
+  s_useClk = box(left, D_PANEL, 0, 0);                               // Claude 사용량 막대 두 줄(자리는 layoutClock)
+  lv_obj_set_style_bg_opa(s_useClk, LV_OPA_TRANSP, 0); lv_obj_clear_flag(s_useClk, LV_OBJ_FLAG_CLICKABLE);
+  useRowMake(s_ucRow[0], s_useClk, FM()); useRowMake(s_ucRow[1], s_useClk, FM());
   lv_obj_add_flag(s_useClk, LV_OBJ_FLAG_HIDDEN);
   s_bat = label(left, FM(), D_MUTED, "");                             // "배터리 87%" (배터리를 읽을 수 있을 때만)
   lv_obj_align(s_bat, LV_ALIGN_TOP_RIGHT, -S(14), S(10));
