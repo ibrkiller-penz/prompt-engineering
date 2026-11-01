@@ -1,0 +1,236 @@
+/* =====================================================================
+   orbit-gravity 전용 스타일 (공통 틀 위에 새 클래스만 추가 — 접두사 og-)
+   색은 토큰 이름만, 크기는 u 단위, 움직임 0.3초 이하.
+   ===================================================================== */
+
+/* 모드에 따라 숨기는 조절 */
+.og-hide, .og-always-hide { display: none !important; }
+
+/* 중심 천체 카드: 2×2, 그림 + 이름 + 탈출 속도 */
+.og-bodies .seg--cards { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
+.og-bodies .seg__opt {
+  display: grid; grid-template-columns: auto 1fr; align-items: center; justify-items: start;
+  column-gap: var(--space-2); row-gap: 0; text-align: left;
+  min-height: calc(64 * var(--u)); padding: var(--space-1) var(--space-3);
+  font-size: var(--fs-control);
+}
+.og-bodies .seg__opt .btn__sub { grid-column: 2; white-space: nowrap; font-size: var(--fs-caption); font-weight: var(--font-weight-medium); color: var(--color-ink-muted); }
+.og-ico { grid-row: span 2; width: calc(36 * var(--u)); height: calc(36 * var(--u)); flex: none; }
+/* 천체 비교 표: 링크처럼 보이는 버튼 */
+.og-link {
+  justify-self: start; margin-top: var(--space-2); padding: var(--space-1) 0; min-height: calc(48 * var(--u));
+  background: none; border: 0; cursor: pointer; text-align: left;
+  font: var(--font-weight-semibold) var(--fs-meta)/1.35 var(--font-sans); color: var(--sim-text);
+  text-decoration: underline; text-underline-offset: 0.2em;
+}
+.og-link:hover { color: var(--color-ink); }
+
+/* 모드 카드 3장 한 줄 */
+.og-modes .seg--cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.og-modes .seg__opt { font-size: var(--fs-meta); }
+.og-modes .btn__sub, .mode-opt__desc { text-wrap: balance; word-break: keep-all; }
+
+/* 패널 안 작은 안내 줄 (고도 배수 병기 등) */
+.og-note {
+  font: var(--font-weight-semibold) var(--fs-meta)/1.4 var(--font-sans);
+  color: var(--sim-text);
+  background: var(--sim-tint);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+.og-panel-btn { width: 100%; font-size: var(--fs-meta); }
+
+/* 심화 카드 */
+.og-deep-card {
+  display: grid; gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-line);
+}
+.og-deep-card h3 { font: var(--font-weight-bold) var(--fs-control)/1.3 var(--font-serif); }
+.og-deep-card p { font: var(--font-weight-regular) var(--fs-meta)/1.5 var(--font-sans); color: var(--color-ink-muted); }
+.og-deep-card p b { color: var(--color-ink); }
+.og-deep-canvas { position: relative; width: 100%; height: calc(280 * var(--u)); }
+.og-deep-svg { width: 100%; height: calc(150 * var(--u)); }
+
+/* 케플러 표 (실험 화면 왼쪽) */
+.og-kepler {
+  position: absolute; z-index: 4;
+  left: var(--space-4); top: calc(108 * var(--u)); bottom: var(--space-4);
+  width: calc(620 * var(--u));
+  display: grid; gap: var(--space-2);
+  align-content: start;
+}
+.og-ktable { width: 100%; border-collapse: collapse; font: var(--font-weight-medium) var(--fs-meta)/1.2 var(--font-num); font-variant-numeric: tabular-nums; background: var(--color-paper-raised); }
+.og-ktable th {
+  height: calc(44 * var(--u)); padding: 0 var(--space-2);
+  background: var(--color-paper-sunk); color: var(--color-ink-muted);
+  font: var(--font-weight-semibold) var(--fs-caption)/1.2 var(--font-sans); text-align: right;
+  border-bottom: 1px solid var(--color-line-strong);
+}
+.og-ktable th:first-child, .og-ktable td:first-child { text-align: left; }
+.og-ktable td { height: calc(54 * var(--u)); padding: 0 var(--space-2); text-align: right; border-bottom: 1px solid var(--color-line); white-space: nowrap; }
+.og-ktable td:first-child { font: var(--font-weight-bold) var(--fs-body)/1 var(--font-serif); }
+.og-ktable .og-ratio { font-weight: var(--font-weight-bold); color: var(--sim-text); }
+.og-kin {
+  width: calc(116 * var(--u)); height: calc(48 * var(--u));
+  padding: 0 var(--space-2);
+  border: calc(2 * var(--u)) solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-raised);
+  font: var(--font-weight-bold) var(--fs-body)/1 var(--font-num);
+  font-variant-numeric: tabular-nums; text-align: right; color: var(--color-ink);
+}
+.og-kin:focus { border-color: var(--color-primary); outline: var(--space-focus-ring) solid var(--color-focus); outline-offset: 0; }
+.og-kin.is-invalid { border-color: var(--color-warn); color: var(--color-warn); }
+.og-kbtns { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.og-kbtns .btn { padding: 0 var(--space-4); font-size: var(--fs-meta); min-height: calc(56 * var(--u)); }
+.og-kmsg { font: var(--font-weight-medium) var(--fs-caption)/1.4 var(--font-sans); color: var(--color-ink-muted); }
+
+
+/* 비교 표 창 */
+.og-compare { width: 100%; }
+.og-compare td, .og-compare th { text-align: right; font-variant-numeric: tabular-nums; }
+.og-compare td:first-child, .og-compare th:first-child { text-align: left; }
+.og-compare tr.is-now td { background: var(--sim-tint); font-weight: var(--font-weight-bold); }
+.og-dialog-note { margin-top: var(--space-3); font: var(--font-weight-medium) var(--fs-meta)/1.5 var(--font-sans); color: var(--color-ink-muted); }
+
+/* 하단 띠: 직접 그리는 그래프 */
+.og-graph-btn { margin-left: var(--space-2); }
+
+/* 실험 화면 오른쪽 위: 시간 배속 · 흐른 시간 · 보는 범위 (진한 글자) */
+.og-hud {
+  display: grid; gap: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-glass, var(--color-paper-raised));
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  text-align: left; max-width: calc(520 * var(--u));
+}
+.og-hud:empty { display: none; }
+.og-hud__main { font: var(--font-weight-bold) var(--fs-meta)/1.3 var(--font-sans); color: var(--color-ink); }
+.og-hud__sub { font: var(--font-weight-semibold) var(--fs-caption)/1.35 var(--font-sans); color: var(--color-ink); }
+
+/* 실험 화면 오른쪽 아래: 보는 범위 */
+.og-view { display: grid; gap: var(--space-2); justify-items: end; }
+.og-view__box {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border-radius: var(--radius-md); background: var(--color-paper-glass, var(--color-paper-raised));
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+.og-view__label { font: var(--font-weight-bold) var(--fs-caption)/1.2 var(--font-sans); color: var(--color-ink); }
+.og-view__row { display: flex; gap: calc(4 * var(--u)); }
+.og-view__btn {
+  min-height: calc(52 * var(--u)); padding: 0 var(--space-3);
+  border: 1px solid var(--color-line-strong); border-radius: var(--radius-sm);
+  background: var(--color-paper-raised); color: var(--color-ink); cursor: pointer;
+  font: var(--font-weight-semibold) var(--fs-caption)/1 var(--font-sans);
+}
+.og-view__btn[aria-pressed="true"] { background: var(--sim); border-color: var(--sim); color: var(--color-paper); }
+.og-view__btn:hover { border-color: var(--sim); }
+.og-view__hint { font-size: var(--fs-caption); }
+
+/* 패널 수치 칸 아래: 순서 칩 한 줄 [4][6][(check) 7.9][10][11.2] [다음: 10 km/s (play)] — 기호는 SK.iconify 아이콘 */
+.og-seq { display: grid; gap: var(--space-1); margin-top: 0; padding-top: var(--space-2); border-top: 1px dashed var(--color-line); }
+.og-seq__title { font: var(--font-weight-semibold) var(--fs-caption)/1.3 var(--font-sans); color: var(--color-ink-muted); }
+.og-seq__row { display: flex; flex-wrap: wrap; align-items: center; gap: calc(6 * var(--u)); }
+.og-seq__chip {
+  min-height: calc(52 * var(--u)); min-width: calc(64 * var(--u)); padding: 0 calc(10 * var(--u)); text-align: center;
+  border: calc(2 * var(--u)) solid var(--color-line-strong); border-radius: var(--radius-sm);
+  background: var(--color-paper-raised); color: var(--color-ink); cursor: pointer;
+  font: var(--font-weight-semibold) var(--fs-caption)/1 var(--font-num); font-variant-numeric: tabular-nums;
+  display: inline-flex; align-items: center; justify-content: center; gap: calc(4 * var(--u));
+}
+.og-seq__chip > .ico { width: 0.9em; height: 0.9em; }
+.og-seq__title > .ico, .og-seq__done > .ico { width: 1em; height: 1em; vertical-align: -0.14em; }
+.og-seq__chip:hover { border-color: var(--sim); }
+.og-seq__chip.is-done { border-color: var(--color-ok); color: var(--color-ok-text); }
+.og-seq__chip.is-now { background: var(--sim); border-color: var(--sim); color: var(--color-paper); }
+.og-seq__next { min-height: calc(52 * var(--u)); font-size: var(--fs-caption); flex: 1 1 100%; margin-left: 0; }
+.og-seq__next.is-blocked { opacity: .55; cursor: help; }
+.og-seq__done { flex: 1 1 100%; font: var(--font-weight-bold) var(--fs-caption)/1.3 var(--font-sans); color: var(--color-ok-text); }
+
+/* 발사 속력 칸: 눈금 이름(지구를 돎·탈출)과 안내문 사이 8u 더 */
+.og-var-v0 .var__hint { margin-top: calc(var(--space-2) + 8 * var(--u)); }
+
+/* 하단 띠 그래프 머리: 제목 + 기호 풀이 한 줄 */
+.og-band__head { white-space: nowrap; height: calc(24 * var(--u)); line-height: 1; }   /* R6(C2): 제목 줄 24u · 막대 40u · 눈금 줄 20u (띠 88u 그대로) */
+.sim-band .og-band { padding: calc(2 * var(--u)) var(--space-3) 0; }
+.og-band__title { color: var(--color-ink); font-weight: var(--font-weight-bold); }
+.og-band__legend { margin-left: auto; color: var(--color-ink-muted); }   /* R5: 범례는 제목 줄 오른쪽 끝(막대 숫자는 막대 아래로 옮김) */
+.og-band__sym { display: inline-block; font-size: 0.72em; line-height: 1; vertical-align: 0.12em; letter-spacing: 0.04em; }
+.og-band__now svg { width: 0.8em; height: 0.8em; vertical-align: -0.05em; color: var(--color-sim-orbit); }   /* R6: 막대의 ▼ 와 같은 색 */   /* R4 마무리: ▼ 지금 표식은 SVG */
+
+/* 케플러 3단계 안내 */
+.og-ksteps { display: grid; gap: var(--space-1); padding-left: calc(30 * var(--u)); list-style: decimal; font: var(--font-weight-semibold) var(--fs-caption)/1.35 var(--font-sans); color: var(--color-ink-muted); }
+.og-ksteps li { padding: calc(2 * var(--u)) var(--space-2); border-radius: var(--radius-sm); }
+.og-ksteps li.is-now { background: var(--sim-tint); color: var(--sim-text); font-weight: var(--font-weight-bold); }
+.og-ksteps li.is-done { color: var(--color-ink); }
+.og-ksteps li.is-done::after {   /* R4: 글자 ✓ → 마스크 아이콘 */
+  content: ""; display: inline-block; width: 1em; height: 1em; margin-left: 0.3em; vertical-align: -0.14em;
+  background-color: var(--color-ok); -webkit-mask: var(--ico-check) center/contain no-repeat; mask: var(--ico-check) center/contain no-repeat;
+}
+
+/* R3: 순서 칩이 붙은 발사 속력 칸은 아래 여백을 빼서 다음 섹션까지 공통 간격(24u)만 남긴다 */
+.og-var-v0:has(> .og-seq:not([hidden])), .var:has(> .og-seq:not([hidden])) { padding-bottom: 0; }
+
+/* R5: 계기판 이름 한 줄 ('지표 g 대비' 가 1920 에서도 꺾이지 않게) */
+.sim-band .meter__label { white-space: nowrap; }
+/* R5: 고도 눈금 이름(ISS·GPS·정지궤도)을 손잡이에서 4u 더 아래로 */
+.og-var-alt .var__ticks { bottom: calc(-30 * var(--u)); }
+
+/* R6(C3): 순서 칩 줄 단위 한 번 */
+.og-seq__unit { font: var(--font-weight-medium) var(--fs-caption)/1 var(--font-num); color: var(--color-ink-chip); margin-left: calc(2 * var(--u)); }
+
+/* ---------- R6 심플 모드 (html.is-simple) — 대포 모드 고정 ---------- */
+html.is-simple .og-modes { display: none !important; }                 /* 위성·케플러는 자세히 전용 */
+html.is-simple .simple-rail .og-link { display: none; }               /* 천체 비교 표는 더 보기 → 자세히 */
+/* 발사 속력 카드: 순서 칩 = 큰 자석 칩(4·6·7.9·10·11.2 km/s). 제목·다음 단추는 숨김 */
+html.is-simple .simple-rail .og-var-v0.simple-item { max-height: calc(372 * var(--u)); }
+html.is-simple .simple-rail .og-seq { border-top: 0; padding-top: var(--space-2); }
+html.is-simple .simple-rail .og-seq__title, html.is-simple .simple-rail .og-seq__next, html.is-simple .simple-rail .og-seq__done { display: none; }
+html.is-simple .simple-rail .og-seq__row { flex-wrap: nowrap; gap: var(--space-2); }
+html.is-simple .simple-rail .og-seq__chip { flex: 1 1 0; min-width: 0; min-height: var(--tap-simple); padding: 0 calc(4 * var(--u)); border-width: calc(3 * var(--u)); border-radius: var(--radius-simple-sm); font: var(--font-weight-medium) var(--fs-simple-min)/1 var(--font-num); }
+html.is-simple .simple-rail .og-seq__unit { flex: none; font-size: var(--fs-simple-min); }
+/* 측정 줄: 결과 · 지금 속력 · 속력 띠(넓은 칸) */
+html.is-simple .simple-meter[data-key="sres"], html.is-simple .simple-meter[data-key="sv"] { flex: 1 1 0; }
+html.is-simple .simple-meter[data-key="vband"] { flex: 2.3 1 0; padding: calc(6 * var(--u)) calc(10 * var(--u)); }
+html.is-simple .simple-meter[data-key="vband"] > .simple-meter__label, html.is-simple .simple-meter[data-key="vband"] > .simple-meter__value { display: none; }
+html.is-simple .simple-meter[data-key="vband"] > .og-band { flex: 1 1 auto; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; grid-template-rows: minmax(0, 1fr); }
+html.is-simple .simple-meter[data-key="vband"] .og-band__head { display: none; }
+/* 결과 칸: 구간·결과 글자 + 색 (색만으로 구분하지 않게 글자 병기) */
+html.is-simple .simple-meter[data-key="sres"] .simple-meter__value.is-text { font-weight: var(--font-weight-medium); }
+html.is-simple .simple-meter[data-key="sres"][data-res="fall"] { background: var(--color-warn-tint); border-color: var(--color-warn); }
+html.is-simple .simple-meter[data-key="sres"][data-res="fall"] .simple-meter__value { color: var(--color-warn-text); }
+html.is-simple .simple-meter[data-key="sres"][data-res="orbit"] { background: var(--color-ok-tint); border-color: var(--color-ok); }
+html.is-simple .simple-meter[data-key="sres"][data-res="orbit"] .simple-meter__value { color: var(--color-ok-text); }
+html.is-simple .simple-meter[data-key="sres"][data-res="escape"] { background: var(--color-primary-tint); border-color: var(--color-primary); }
+html.is-simple .simple-meter[data-key="sres"][data-res="escape"] .simple-meter__value { color: var(--color-primary); }
+/* 4:3 가로 · 세로: 레일이 한 줄(216u)·칸(104p)이라 칩 줄은 숨기고 슬라이더 눈금(지구 돌기·탈출)만 */
+@media (orientation: landscape) and (max-aspect-ratio: 17/10) {
+  html.is-simple .simple-rail .og-seq { display: none; }
+}
+@media (orientation: portrait) and (min-width: 601px) {
+  html.is-simple .simple-rail .og-seq { display: none; }
+  html.is-simple .simple-meter[data-key="vband"] { flex: 2.4 1 0; padding: calc(4 * var(--p)) calc(8 * var(--p)); }
+}
+/* 16:9 심플 레일: 천체 칩 2×2(아이콘까지 보이게) · 발사 속력 눈금 글자는 숨김(아래 자석 칩 4·6·7.9·10·11.2 가 같은 일) · 칩 줄 단위는 값 옆 km/s 로 */
+@media not ((orientation: landscape) and (max-aspect-ratio: 17/10)) {
+  html.is-simple .simple-rail .og-bodies .seg { flex-wrap: wrap; }
+  html.is-simple .simple-rail .og-bodies .seg__opt { flex: 1 1 40%; }
+  html.is-simple .simple-rail .og-var-v0 .var__ticks span { visibility: hidden; }
+}
+html.is-simple .simple-rail .og-seq__unit { display: none; }
+@media (orientation: portrait) and (min-width: 601px) {
+  html.is-simple .simple-rail .og-var-v0 .var__ticks span { visibility: visible; }
+  html.is-simple .simple-rail .og-bodies .seg { flex-wrap: nowrap; }
+  html.is-simple .simple-meter[data-key="sres"] .simple-meter__value.is-text { font-size: calc(30 * var(--p)); }
+}
+
+/* R6: 심플 측정 칸 이름에는 용어 풀이 괄호를 붙이지 않는다(공통 틀 rich 의 첫 등장 풀이) */
+html.is-simple .simple-meter__label .term-inline { display: none; }
+/* 더 보기 시트: 빈 묶음(값이 모두 레일로 감)·모드 줄('지금: 뉴턴의 대포 [실험 고르기]' — 심플은 대포 고정) 숨김 */
+html.is-simple .og-simple-empty { display: none !important; }
+html.is-simple .sheet__body .panel-head { display: none; }

@@ -1,0 +1,32 @@
+/* =====================================================================
+   물리 시뮬레이터 실험실 — 글꼴 (모두 로컬 파일, 인터넷 불필요, file:// 동작)
+   R4 (2026-10-28): 사이트 전체 글꼴 = 에스코어 드림 (S-Core Dream) 3·4·5
+     - SCDream3.otf  Light   → font-weight 300  (보조 글, 24u 이상만)
+     - SCDream4.otf  Regular → font-weight 400  (본문 기본)
+     - SCDream5.otf  Medium  → font-weight 500  (제목·버튼·숫자·강조 — 이보다 굵은 굵기는 쓰지 않는다)
+   (주)에스코어 무료 배포 글꼴. 라이선스 원문: fonts/LICENSE_SCDream.txt
+   라이선스 조건: 공식 OTF 원본 그대로 쓴다 — woff/woff2 변환·subset·글꼴 이름 수정 금지.
+   물리 기호(이탤릭 세리프)는 글꼴 파일 없이 시스템 세리프(--font-math, tokens.css)로 그린다.
+   ===================================================================== */
+
+@font-face {
+  font-family: 'S-Core Dream';
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  src: url('fonts/SCDream3.otf') format('opentype');
+}
+@font-face {
+  font-family: 'S-Core Dream';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('fonts/SCDream4.otf') format('opentype');
+}
+@font-face {
+  font-family: 'S-Core Dream';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('fonts/SCDream5.otf') format('opentype');
+}

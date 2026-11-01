@@ -1,0 +1,140 @@
+/* collision-momentum 전용 스타일 (R1 → R2) — 공통 클래스는 덮어쓰지 않고 새 클래스(cm-)만 쓴다.
+   색은 토큰 이름만, 크기는 u. */
+
+/* 실험 카드 꼬리표 두 가지 (공통에 없는 이름) */
+[data-sim="collision-momentum"] .chip[data-tag="작용·반작용"] { background: var(--color-warn-tint); color: var(--color-warn); }
+[data-sim="collision-momentum"] .chip[data-tag="발사체"]      { background: var(--sim-tint); color: var(--sim-text); }
+
+/* 하단 띠: 계기판 1줄 4개 (속도 2칸은 좁게, 합 2칸은 넓게) */
+.cm-band .band-cell--meters .meters {
+  display: grid; grid-template-columns: 0.8fr 0.8fr 1.2fr 1.2fr;
+  gap: var(--space-2); height: 100%;
+}
+.cm-band .band-cell--meters .meter { padding: calc(4 * var(--u)) var(--space-3); gap: 0; min-width: 0; }
+.cm-band .band-cell--meters .meter__value--md { font-size: calc(32 * var(--u)); white-space: nowrap; }
+
+/* 속도 슬라이더: 가운데 0 굵은 눈금 + ← → */
+.cm-vel .var__track::before {
+  content: ""; position: absolute; left: 50%; top: calc(18 * var(--u)); bottom: calc(18 * var(--u));
+  width: calc(4 * var(--u)); margin-left: calc(-2 * var(--u));
+  background: var(--color-ink); border-radius: var(--radius-sm); pointer-events: none;
+}
+.cm-vel .var__ticks span { font-weight: var(--font-weight-semibold); color: var(--color-ink-muted); }
+.cm-vel .var__ticks .cm-zero { position: absolute; left: 50%; transform: translateX(-50%); font-weight: var(--font-weight-black); color: var(--color-ink); }
+
+/* 실험 화면 오른쪽 위: 슬로 모션 배지 · 만나지 않음 안내 */
+.cm-badge {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--sim); color: var(--color-ink-inverse);
+  font: var(--font-weight-bold) var(--fs-meta)/1.2 var(--font-num);
+  box-shadow: var(--shadow-sm);
+}
+.cm-warn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-warn-tint); color: var(--color-warn);
+  box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--color-warn);
+  font: var(--font-weight-bold) var(--fs-meta)/1.3 var(--font-sans);
+  word-break: keep-all;
+}
+.cm-badge[hidden], .cm-warn[hidden] { display: none; }
+
+/* 아래 그래프 판: 왼쪽 탭 3개 (그림은 캔버스) */
+.cm-lower { position: absolute; z-index: 2; pointer-events: none; }
+.cm-tabs__label {
+  position: absolute; left: calc(14 * var(--u)); top: calc(8 * var(--u));
+  font: var(--font-weight-semibold) max(13px, calc(22 * var(--u)))/1.2 var(--font-sans); color: var(--color-ink-muted);
+}
+.cm-tabs {
+  position: absolute; left: calc(14 * var(--u)); top: calc(36 * var(--u)); width: calc(168 * var(--u));
+  display: grid; gap: calc(6 * var(--u)); pointer-events: auto;   /* R3: 왼쪽 14u(제목과 같은 기준선) · 탭 사이 6u */
+}
+/* R2(C3): 고른 탭 = 굵은 글씨 + 배경 상자 + 왼쪽 띠 · 안 고른 탭 = 윤곽선만 */
+.cm-tab {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: calc(4 * var(--u));
+  height: calc(56 * var(--u)); padding: 0 calc(8 * var(--u)) 0 calc(14 * var(--u)); white-space: nowrap;
+  border-radius: var(--radius-md); border: calc(2 * var(--u)) solid var(--color-line);
+  background: transparent; color: var(--color-ink-muted);
+  font: var(--font-weight-medium) max(13px, calc(22 * var(--u)))/1.2 var(--font-sans); text-align: left; cursor: pointer;
+  word-break: keep-all; overflow: hidden;   /* R3: 고른 탭 왼쪽 띠를 둥근 모서리 안에 가둠 */
+}
+.cm-tab:hover { border-color: var(--color-line-strong); color: var(--color-ink); }
+.cm-tab[aria-selected="true"] {
+  background: var(--sim-tint); color: var(--sim-text); border-color: var(--sim);
+  font-weight: var(--font-weight-black);
+}
+.cm-tab[aria-selected="true"]::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(6 * var(--u)); background: var(--sim);
+}
+/* 탭 이름 옆 같은 자리: 안 본 탭 ● (8u 점) · 본 탭 ✓ */
+.cm-tab__mark {
+  flex: none; display: inline-grid; place-items: center;
+  width: calc(22 * var(--u)); height: calc(22 * var(--u));
+  font: var(--font-weight-black) calc(22 * var(--u))/1 var(--font-sans); color: var(--color-ok-text, var(--color-ok));
+}
+.cm-tab__mark .ico { width: calc(20 * var(--u)); height: calc(20 * var(--u)); }   /* R4: ✓ → 아이콘 */
+.cm-tab__mark[data-state="new"]::before {
+  content: ""; width: calc(8 * var(--u)); height: calc(8 * var(--u)); border-radius: 50%;
+  background: var(--color-warn); box-shadow: 0 0 0 calc(3 * var(--u)) var(--color-warn-tint);
+}
+.cm-lower > .empty { z-index: 3; font-size: var(--fs-meta); border: 1px dashed var(--color-line-strong); }
+.cm-band .band-cell--meters > .empty { font-size: var(--fs-meta); }
+
+/* 비교 단계: 규칙 확인 카드 */
+.cm-rule { display: grid; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-paper); border-left: calc(6 * var(--u)) solid var(--sim); }
+.cm-rule__q { font: var(--font-weight-bold) calc(26 * var(--u))/1.4 var(--font-serif); word-break: keep-all; }
+.cm-rule__hint { font: var(--font-weight-medium) var(--fs-caption)/1.4 var(--font-sans); color: var(--color-ink-muted); word-break: keep-all; }
+.cm-ox { width: 100%; border-collapse: collapse; margin: var(--space-2) 0; font: var(--font-weight-medium) var(--fs-caption)/1.35 var(--font-sans); }
+.cm-ox th, .cm-ox td { padding: var(--space-2); border-bottom: 1px solid var(--color-line); text-align: left; vertical-align: top; word-break: keep-all; }
+.cm-ox thead th { color: var(--color-ink-muted); font-weight: var(--font-weight-semibold); }
+.cm-ox tbody th { font-weight: var(--font-weight-bold); white-space: nowrap; }
+.cm-ox b { font-family: var(--font-num); font-size: var(--fs-meta); }
+
+/* 도움말 › 개념: 그림(figure 글) · 흔한 오해 목록 — 나머지는 공통 .concept__* */
+.cm-fig { padding: 0; }
+.cm-fig svg { display: block; width: 100%; max-width: calc(620 * var(--u)); height: auto; overflow: visible; }
+.cm-fig text { font: 400 18px var(--font-sans); fill: var(--color-ink); }   /* R4: 에스코어 400 · 강조 500 */
+.cm-fig .cm-fig__inv { fill: var(--color-ink-inverse); font-weight: 500; }
+.cm-fig .cm-fig__v { fill: var(--color-q-velocity); font-weight: 500; }
+.cm-fig .cm-fig__f { fill: var(--color-copper-text); font-weight: 500; }
+.cm-fig .cm-fig__b, .cm-fig tspan.cm-fig__b { font-weight: 500; }
+.cm-fig tspan.sym { font-family: var(--font-math); font-style: italic; font-weight: 400; }
+.cm-mis { list-style: none; display: grid; gap: var(--space-3); padding: 0; margin: 0; }
+.cm-mis li { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-paper-raised); border: 1px solid var(--color-line); }
+.cm-mis__x, .cm-mis__o { font: var(--font-weight-medium) var(--fs-meta)/1.5 var(--font-sans); word-break: keep-all; }
+.cm-mis__x b { color: var(--color-warn); }
+.cm-mis__o b { color: var(--color-ok-text, var(--color-ok)); }
+
+
+/* 기록 표: 칸 사이 여백 (기록 이름과 첫 값이 붙지 않게) — 이 시뮬레이터 안에서만 */
+[data-sim="collision-momentum"] .rec-table td:not(.td-del), [data-sim="collision-momentum"] .rec-table th:not(.th-del) { padding-left: calc(20 * var(--u)); }
+
+/* R3: 계기판 '처음 → 지금' 두 값이면 한 단계 작게 — 속도 칸(좁음)에서 단위가 칸 밖으로 안 나가게 */
+.cm-band .meter[data-key="v1"] .meter__value.cm-pair,
+.cm-band .meter[data-key="v2"] .meter__value.cm-pair { font-size: calc(26 * var(--u)); }   /* R4 마무리: 에스코어 숫자 폭 — '+2.0→+1.6 m/s' 가 칸 안에 */
+.cm-band .meter__value .arrow { margin: 0 .2em; font-size: max(13px, .7em); }
+
+/* R6(B3): 실행 전 계기판 빈 줄 아래 질량 요약 한 줄 */
+.cm-band .band-cell--meters > .empty { grid-auto-flow: row; justify-items: center; align-content: center; row-gap: calc(4 * var(--u)); }
+.cm-massline { display: block; font: var(--font-weight-medium) var(--fs-caption)/1.2 var(--font-num); color: var(--color-ink); white-space: nowrap; }
+
+/* R6(B3·B7) 심플: 충돌 종류는 큰 두 단추(튕김 / 붙음) — '중간'은 더 보기(패널의 반발 계수)에서 · 그래프 탭은 숨기고 운동량 합 막대 한 쌍만(캔버스) */
+html.is-simple .simple-rail [data-key="kind"] .seg__opt:nth-child(3) { display: none; }
+html.is-simple .cm-tabs, html.is-simple .cm-tabs__label { display: none; }
+html.is-simple .cm-lower > .empty { font-size: var(--fs-simple-min); }
+/* 질량 눈금 0.5 · 1 이 28u 에서 붙어 보여 심플에서는 양끝(0.5 · 3)만 */
+html.is-simple .simple-rail [data-key="m1"] .var__ticks span:nth-child(2),
+html.is-simple .simple-rail [data-key="m2"] .var__ticks span:nth-child(2) { display: none; }
+/* 심플 측정 칸: '2.00 → 2.00' 두 값이라 한 단계 작게 · 판정은 두 줄(운동량 / 운동 에너지) */
+html.is-simple .simple-meter[data-key="p"] .simple-meter__value,
+html.is-simple .simple-meter[data-key="k"] .simple-meter__value { font-size: calc(46 * var(--u)); }
+html.is-simple .simple-meter[data-key="verdict"] .simple-meter__value { white-space: pre-line; font-size: var(--fs-simple-min); line-height: 1.2; word-break: keep-all; }
+@media (orientation: portrait) and (min-width: 601px) {
+  html.is-simple .simple-meter[data-key="p"] .simple-meter__value,
+  html.is-simple .simple-meter[data-key="k"] .simple-meter__value { font-size: calc(26 * var(--p)); }   /* R6(팀장): 30p 면 820 에서 단위 kg·m/s 가 '…' 로 잘림 */
+  html.is-simple .simple-meter[data-key="p"] .simple-meter__unit { font-size: 14px; }
+  html.is-simple .simple-meter[data-key="verdict"] .simple-meter__value { font-size: 18px; }
+}
+html.is-simple .simple-meter[data-key="verdict"] .simple-meter__label { display: none; }   /* 두 줄 판정이 칸 안에 들어가게 '판정' 이름은 숨김 */
+html.is-simple .simple-meter[data-key="verdict"] { background: var(--sim-tint); border-color: var(--sim); }

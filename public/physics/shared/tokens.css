@@ -1,0 +1,271 @@
+/* =====================================================================
+   물리 시뮬레이터 실험실 — 디자인 토큰 (공통 틀, 2026-10-28)
+   근거: docs/04_팀장결정서.md §2 · 레퍼런스 32_프랑스혁명-수업사이트/src/styles/tokens.css
+   사용법: docs/SIMKIT.md
+
+   규칙
+   - 모든 크기는 "1920×1080 기준 px 숫자 × var(--u)" 로 쓴다.
+       예) font-size: calc(30 * var(--u));  padding: var(--space-5);
+   - px 를 직접 쓰는 것은 1px 선(hairline)뿐이다.
+   - 색은 반드시 --color-* 이름으로만 쓴다(컴포넌트·sim.js 에 16진수 직접 금지).
+     Canvas 에서는 SimKit.color('--color-primary') 로 읽는다.
+   - 레퍼런스의 navy / red / period / highlight / bar 토큰은 쓰지 않는다.
+   - color-mix() 금지(구형 브라우저 file:// 대비) — tint 는 아래 고정 16진수.
+
+   불러오는 순서: fonts.css → tokens.css → base.css → shell.css → sim.js
+
+   대비(WCAG 2.x 공식, node 로 재계산 2026-10-28, 바탕 paper #F5EFE0 기준)
+     ink 15.1 · ink-muted 6.6 · line-strong 3.5(UI) · focus 3.7(UI)
+     primary 8.3 (tint 위 7.4, paper 글자 on primary 8.3) · copper 4.7 · copper-text 6.8 (tint 위 6.2)
+     q-energy-k 5.2 · q-energy-p 3.3(면·선 전용, 글자는 -text 5.2) · q-energy-heat 5.2
+     ok 5.6 · warn 7.3 · rec-3 7.3
+     식별색(R1 채도 −20%) on paper: projectile 5.8 · slit 7.1 · collision 5.3 · orbit 7.5 · lens 5.7
+     식별색 on 자기 tint: projectile 4.5 · collision 4.4 · lens 4.4 → tint 위 글자는 반드시 -text
+       (-text on tint: projectile 5.8 · collision 5.4 · lens 5.7 · slit 5.9 · orbit 6.2)
+   ===================================================================== */
+
+:root {
+  /* ---------- 0. 비례 단위 --------------------------------------------- */
+  /* 1920×1080 화면에서 1px. 1280×720 → 0.667px. 하한 없음(통째로 줄어듦). */
+  --u: min(calc(100vw / 1920), calc(100vh / 1080));
+  /* R4: 세로 여유(px 길이값). 16:9 보다 세로가 긴 화면(4:3 태블릿 등)에서만 0 보다 크다 — 아래 @media.
+     실험 화면·오른쪽 칸이 이만큼 길어지고, 하단 띠·막대는 이만큼 아래로 내려간다(shell.css). */
+  --extra: 0px;
+  --extra-max: calc(440 * var(--u));   /* 무대 최대 1080+440 = 1520u */
+  --design-w: 1920;
+  --design-h: 1080;
+
+  /* ---------- 1. 색: 바탕·글자·선 (레퍼런스 그대로) -------------------- */
+  --color-paper:        #F5EFE0; /* 화면 바탕 · 레터박스 */
+  --color-paper-raised: #FBF8EF; /* 카드·버튼·입력칸·실험 화면 바탕 */
+  --color-paper-sunk:   #ECE3CE; /* 조절 패널·표 머리·라벨 칩 */
+  --color-paper-scrim:  rgb(245 239 224 / 0.88); /* 실험 화면 위 반투명 판(예측 카드 뒤) */
+  --color-paper-glass:  rgb(245 239 224 / 0.85); /* 진행 알약 */
+
+  --color-ink:          #1C1A17; /* 본문·제목 (15.1:1) */
+  --color-ink-muted:    #5A5347; /* 보조 글 (6.6:1, sunk 위 6.0:1) — R1: 팀장 계획 §2-3 */
+  --color-ink-inverse:  #FFFFFF;
+
+  --color-line:         #D9CFB8; /* 장식 구분선·카드 테두리 */
+  --color-line-strong:  #8A7E68; /* 눈금선·의미 있는 테두리 (3.5:1) */
+  --color-grid:         #E6DCC6; /* 실험 화면·그래프 모눈 (장식) */
+
+  --color-focus:         #B26B00; /* 키보드 포커스 (3.7:1) — 선택(청록)과 구분 */
+  --color-focus-on-dark: #FFD27A;
+
+  /* ---------- 2. 색: 포인트 '실험실 노트' (청록 잉크 + 구리 기구) ------- */
+  --color-primary:        #0F4C5C; /* 선택·현재 단계·주 버튼·속도 화살표 (8.3:1) */
+  --color-primary-dark:   #0A3542; /* 주 버튼 마우스 올림 */
+  --color-primary-tint:   #D6E6EA; /* 눌린 버튼·선택 카드 바탕·표 머리·'즉시' 꼬리표 */
+  --color-primary-text:   #0F4C5C;
+
+  --color-copper:         #9A5B1E; /* 면·선·힘/가속도 화살표 (4.7:1) */
+  --color-copper-text:    #7A4612; /* 구리색 글자 (6.8:1) */
+  --color-copper-tint:    #F1E4D3; /* 안내 칩·'다시 시작' 꼬리표 바탕 */
+
+  /* ---------- 3. 물리량 공통 색 (모든 시뮬레이터에서 같은 뜻) ----------- */
+  --color-q-velocity:      var(--color-primary); /* 속도 화살표 */
+  --color-q-force:         var(--color-copper);  /* 힘·가속도 화살표 */
+  --color-q-energy-k:      #1F6F5F; /* 운동 에너지 */
+  --color-q-energy-p:      #B07A00; /* 위치 에너지 (면·선 전용) */
+  --color-q-energy-p-text: #8A5A00; /* 위치 에너지 글자 */
+  --color-q-energy-heat:   #A8432A; /* 열·손실 */
+  --color-q-ghost:         rgb(28 26 23 / 0.35); /* 직전 실행 흐림 */
+
+  /* ---------- 4. 기록 5회 = 색 + 선 모양 ------------------------------- */
+  /* dash 는 SVG stroke-dasharray / Canvas setLineDash 숫자(u 단위). none = 실선 */
+  --color-rec-1: #0F4C5C;  --dash-rec-1: none;       --width-rec-1: 4;  /* 실선 */
+  --color-rec-2: #9A5B1E;  --dash-rec-2: 12 8;       --width-rec-2: 4;  /* 점선 */
+  --color-rec-3: #6B3A7A;  --dash-rec-3: 20 8 4 8;   --width-rec-3: 4;  /* 쇄선 */
+  --color-rec-4: #1F6F5F;  --dash-rec-4: 4 6;        --width-rec-4: 5;  /* 촘촘 점선 */
+  --color-rec-5: #4E473C;  --dash-rec-5: none;       --width-rec-5: 2;  /* 가는 실선 */
+
+  /* ---------- 5. 상태 ------------------------------------------------ */
+  --color-ok:        #2E6B3A; /* 예측 맞음 (5.6:1) */
+  --color-ok-tint:   #DDDFCC;
+  --color-warn:      #8E2A26; /* 범위 밖 입력·'두 가지를 바꿨어요' (7.3:1) */
+  --color-warn-tint: #E9D7CA;
+  /* R2: 글자 전용 (tint 바탕 위에서도 7:1 이상) */
+  --color-ok-text:   #24552E;
+  --color-warn-text: #7A211E;
+  /* R2: 모서리 칩·상태 칩 글자 (muted 보다 진하게) */
+  --color-ink-chip:  #3F3A32;
+  /* R2: 실험 화면 위 토스트(반투명 먹색) · 예측/모드 창 뒤 어둡기 0.25 */
+  --color-toast:     rgb(28 26 23 / 0.86);
+  --color-dim:       rgb(74 58 40 / 0.28);   /* R3: 차가운 회색 → 따뜻한 갈색 반투명 */
+  /* R3: 캔버스 안 검은 면(슬릿·확대창 등) 전용 · 캔버스 라벨 뒤 종이 배경 */
+  --color-canvas-dark:  #2A2521;
+  --color-paper-label:  rgb(251 248 239 / 0.85);
+
+  /* ---------- 6. 시뮬레이터 식별색 (허브 카드·제목 밑줄·성취기준 칩) ---- */
+  /* tint = 식별색 12% + paper 88% (고정값). tint 위 글자는 -text 를 쓴다. */
+  --color-sim-projectile:      #27675A; /* 숲 청록 — 포물선 (R1 채도 −20%) */
+  --color-sim-projectile-tint: #DCDFD0;
+  --color-sim-projectile-text: #265B50;
+  --color-sim-slit:            #684074; /* 자주 — 이중 슬릿·양자 */
+  --color-sim-slit-tint:       #E4DAD3;
+  --color-sim-slit-text:       #684074;
+  --color-sim-collision:       #9B4B37; /* 벽돌 주홍 — 충돌 */
+  --color-sim-collision-tint:  #EADBCC;
+  --color-sim-collision-text:  #884332;
+  --color-sim-orbit:           #434684; /* 밤하늘 남보라 — 위성 */
+  --color-sim-orbit-tint:      #E0DBD5;
+  --color-sim-orbit-text:      #434684;
+  --color-sim-lens:            #7C560E; /* 황동 — 렌즈 */
+  --color-sim-lens-tint:       #E6DDC7;
+  --color-sim-lens-text:       #6E4D0F;
+
+  /* 지금 시뮬레이터 색 (아래 [data-sim] 에서 바뀜). 컴포넌트는 이것만 쓴다. */
+  --sim:      var(--color-primary);
+  --sim-tint: var(--color-primary-tint);
+  --sim-text: var(--color-primary-text);
+
+  /* ---------- 7. 글꼴 (R4: 에스코어 드림 3·4·5 — fonts.css) ------------- */
+  --font-sans:  "S-Core Dream", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-serif: var(--font-sans);   /* R4: 제목·질문도 에스코어 500 (명조 제거). 이름은 예전 코드 호환용 */
+  --font-num:   var(--font-sans);   /* R4: 에스코어는 같은 굵기 안에서 숫자 10개 폭이 같다(tnum 불필요) */
+  /* R4: 물리 기호 전용 — 이탤릭 세리프(시스템 글꼴, 파일 없음). .var__sym · .sym · 캔버스 SK.text 의 $…$ */
+  --font-math:  "Times New Roman", "Cambria", "Batang", "AppleMyungjo", serif;
+
+  /* R4 굵기 규칙: 본문 400 · 24u 이상 보조 글 300 · 제목·버튼·숫자·강조 500. 500 보다 굵게 쓰지 않는다(위계는 크기·색) */
+  --font-weight-light:    300;
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 500;   /* R4: 600 → 500 */
+  --font-weight-bold:     500;   /* R4: 700 → 500 */
+  --font-weight-black:    500;   /* R4: 900 → 500 */
+
+  --font-lh-tight: 1.2;
+  --font-lh-snug:  1.4;
+  --font-lh-body:  1.6;
+  --font-tracking-title: -0.01em;
+
+  /* ---------- 8. 글자 크기 (괄호 = 1920 / 1280 화면 실제 px) ------------ */
+  --fs-display: calc(96 * var(--u)); /* (96/64) 허브 제목 */
+  --fs-meter:   calc(56 * var(--u)); /* (56/37) 계기판 큰 숫자 */
+  --fs-h1:      calc(48 * var(--u)); /* (48/32) 예측 카드 질문·허브 부제 */
+  --fs-title:   calc(40 * var(--u)); /* (40/27) 시뮬레이터 제목(명조) */
+  --fs-h2:      calc(40 * var(--u));
+  --fs-h3:      calc(32 * var(--u)); /* (32/21) 카드 제목·질문 판 */
+  --fs-body-lg: calc(30 * var(--u));
+  --fs-body:    calc(28 * var(--u)); /* (28/19) 본문·버튼 — 본문 최소 */
+  --fs-control: max(14px, calc(26 * var(--u))); /* (26/17) 변수 이름·탭 (R6 하한 14px — 1024 에서 13.9px) */
+  --fs-meta:    max(13px, calc(24 * var(--u))); /* (24/16) 상태 줄·라벨·표 (R6 하한 13px — 1024 에서 12.8px, 1280 이상은 변화 없음) */
+  --fs-caption: max(13px, calc(24 * var(--u))); /* (24/16) 꼬리표·눈금·축 글자 최소값 (R2 20→22, R6 22→24 · 하한 13px). 캔버스 글자는 22u 이상 */
+  --fs-task:    calc(28 * var(--u)); /* (28/19) R2 '지금 할 일' 문장 (굵게) */
+
+  /* R2: 손가락으로 누르는 최소 크기 (1280 에서 44px) — ± 버튼·✕·접기·칩 토글·허브 버튼 */
+  --tap: calc(66 * var(--u));
+
+  /* R2: 색약 보조 — 기록·허브 카드 순서 모양 기호 (CSS content 용 문자열) */
+  --mark-1: "●"; --mark-2: "▲"; --mark-3: "■"; --mark-4: "◆"; --mark-5: "★";
+
+  /* ---------- 9. 간격 (4u 단위) --------------------------------------- */
+  --space-1:  calc(4 * var(--u));
+  --space-2:  calc(8 * var(--u));
+  --space-3:  calc(12 * var(--u));
+  --space-4:  calc(16 * var(--u));
+  --space-5:  calc(24 * var(--u));
+  --space-6:  calc(32 * var(--u));
+  --space-7:  calc(48 * var(--u));
+  --space-8:  calc(64 * var(--u));
+  --space-9:  calc(80 * var(--u));
+  --space-10: calc(96 * var(--u));
+
+  /* 화면 뼈대 (결정서 §2-3) */
+  --space-slide-w: calc(1920 * var(--u));
+  --space-slide-h: calc(1080 * var(--u) + var(--extra));   /* R4: 세로 여유만큼 길어짐 (16:9 = 1080u) */
+  --space-btn-h:    calc(72 * var(--u)); /* 버튼 최소 높이(터치) */
+  --space-btn-h-lg: calc(88 * var(--u));
+  --space-thumb:    calc(56 * var(--u)); /* 슬라이더 손잡이 (R1 48→56) */
+  --space-track:    calc(10 * var(--u)); /* 슬라이더 트랙 */
+  --space-btn-h-sm: calc(56 * var(--u)); /* 보조 버튼(작업 띠·막대 2단) */
+  --space-border-select: calc(4 * var(--u));
+  --space-focus-ring:    calc(4 * var(--u));
+
+  /* ---------- 10. 모서리 ---------------------------------------------- */
+  --radius-sm:   calc(4 * var(--u));
+  --radius-md:   calc(8 * var(--u));
+  --radius-lg:   calc(16 * var(--u));
+  --radius-pill: 999px;
+
+  /* ---------- 11. 그림자 (낮고 옅게 — 전자칠판 반사) ------------------- */
+  --shadow-sm: 0 calc(1 * var(--u)) calc(2 * var(--u)) rgb(28 26 23 / 0.10);
+  --shadow-md: 0 calc(4 * var(--u)) calc(12 * var(--u)) rgb(28 26 23 / 0.12);
+  --shadow-lg: 0 calc(12 * var(--u)) calc(32 * var(--u)) rgb(28 26 23 / 0.16);
+
+  /* ---------- 12. 움직임 (모두 0.3초 이하) ----------------------------- */
+  --dur-instant: 0ms;
+  --dur-fast:    120ms;
+  --dur-base:    200ms;
+  --dur-slow:    300ms; /* 상한 */
+  --dur-ease:    cubic-bezier(0.2, 0, 0, 1);
+  --dur-cursor-hide: 3000ms; /* 커서 숨김 대기 (sim.js 가 읽음) */
+  --dur-notice:      2500ms; /* 안내 토스트 유지 (R2 3.0→2.5초) */
+
+  /* ---------- 12-1. 층(z) — R6 (dongatech 칠판 층 표 참고. 기존 값은 그대로, 이름만) ---------- */
+  --z-sheet:  40;   /* 심플 모드 '더 보기'·'실험' 시트 (아래 막대 위로 올라옴) */
+  --z-modal:  50;   /* 확인 창(.dialog-layer) */
+  --z-notice: 55;   /* 시트 위 알림(심플 첫 진입 안내 등) */
+
+  /* ---------- 12-2. 심플 모드 전용 (R6) — html.is-simple 규칙만 쓴다. 일반 토큰을 덮지 않는 새 이름 ---------- */
+  /* 근거: docs/개선/R6_참고_기술교과서칠판.md §1-2 (칠판 누름 64u·막대 88u·둥글기 12/20/32·글자 하한 28u) */
+  --tap-simple:        calc(64 * var(--u));   /* 누름 최소 (칠판) */
+  --btn-main-h:        calc(72 * var(--u));   /* 아래 막대 큰 단추 */
+  --bar-simple-h:      calc(88 * var(--u));   /* 아래 막대 */
+  --fs-simple-min:     max(18px, calc(28 * var(--u)));   /* 글자 하한 (태블릿 18px) */
+  --fs-simple-title:   max(20px, calc(44 * var(--u)));
+  --fs-simple-label:   max(18px, calc(32 * var(--u)));
+  --fs-simple-body:    max(18px, calc(32 * var(--u)));
+  --fs-simple-value:   max(30px, calc(72 * var(--u)));
+  --fs-simple-meter:   max(28px, calc(64 * var(--u)));
+  --radius-simple-sm:  calc(12 * var(--u));
+  --radius-simple-md:  calc(20 * var(--u));
+  --radius-simple-lg:  calc(32 * var(--u));
+
+  /* ---------- 13. 아이콘 마스크 (R4) ------------------------------------- */
+  /* CSS content 로 쓰던 ▾ ▴ ▸ ✓ ⚡ 자리 — mask-image 로 쓰고 background-color: currentColor 로 칠한다.
+     모양은 shared/icons.js 의 같은 이름 아이콘과 같다(24×24). file:// 에서도 동작(데이터 URI). */
+  --ico-chev-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9.5l6 6 6-6'/%3E%3C/svg%3E");
+  --ico-chev-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 14.5l6-6 6 6'/%3E%3C/svg%3E");
+  --ico-chev-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.5 6l6 6-6 6'/%3E%3C/svg%3E");
+  --ico-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12.5l5 5L19.5 7'/%3E%3C/svg%3E");
+  --ico-close: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E");
+  --ico-bolt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2.5L5 13.5h6l-1 8 8-11h-6z'/%3E%3C/svg%3E");
+}
+
+/* R4 태블릿 배치: 16:9 보다 세로가 긴 화면(1180×820·1024×768·세로 화면)은 --u 를 가로 기준으로 두고,
+   남는 세로(최대 440u)를 --extra 로 실험 화면·오른쪽 칸에 준다. 1920×1080·1280×720 은 --extra 0 → 지금과 같다.
+   더 넓은 화면(21:9)은 이 규칙 밖 → 예전처럼 양옆 띠. 세로 화면은 440u 를 넘는 나머지가 위아래 띠(깨지지만 않게). */
+@media (max-aspect-ratio: 16/9) {
+  :root {
+    --u: calc(100vw / 1920);
+    --extra: clamp(0px, calc(100vh - 1080 * var(--u)), var(--extra-max));
+  }
+}
+
+/* R5 세로 태블릿(820×1180 등 · 폭 601 이상): 실험 화면 1250u 가 화면 폭을 다 쓰도록 --u = 폭/1290(좌우 20u),
+   무대(.slide)는 창 전체. 고정 높이 1144u(제목·띠·실험 화면·하단 띠·막대 212u) + 패널 최소 520u = 1664u 를 넘는 세로의
+   절반(최대 200u)을 --extra 로 실험 화면에, 나머지는 패널에 준다(shell.css 끝 세로 블록).
+   16:9(1920×1080·1280×720)·가로 태블릿은 이 쿼리에 걸리지 않는다 → 값 그대로. */
+@media (orientation: portrait) and (min-width: 601px) {
+  :root {
+    --u: calc(100vw / 1290);
+    --extra: clamp(0px, calc((100vh - 1664 * var(--u)) / 2), calc(200 * var(--u)));
+    --space-slide-w: 100vw;
+    --space-slide-h: 100vh;
+  }
+}
+
+/* 세로 휴대전화(폭 600px 이하)는 안내 띠 — shell.css. */
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-base: 0ms; --dur-slow: 0ms; }
+}
+
+/* 시뮬레이터 식별색 연결: <body data-sim="projectile-energy"> */
+[data-sim="projectile-energy"]   { --sim: var(--color-sim-projectile); --sim-tint: var(--color-sim-projectile-tint); --sim-text: var(--color-sim-projectile-text); }
+[data-sim="double-slit-quantum"] { --sim: var(--color-sim-slit);       --sim-tint: var(--color-sim-slit-tint);       --sim-text: var(--color-sim-slit-text); }
+[data-sim="collision-momentum"]  { --sim: var(--color-sim-collision);  --sim-tint: var(--color-sim-collision-tint);  --sim-text: var(--color-sim-collision-text); }
+[data-sim="orbit-gravity"]       { --sim: var(--color-sim-orbit);      --sim-tint: var(--color-sim-orbit-tint);      --sim-text: var(--color-sim-orbit-text); }
+[data-sim="convex-lens"]         { --sim: var(--color-sim-lens);       --sim-tint: var(--color-sim-lens-tint);       --sim-text: var(--color-sim-lens-text); }

@@ -1,0 +1,127 @@
+/* =====================================================================
+   convex-lens 전용 스타일 (lens- 접두사. 공통 부품은 이 실험에서만 필요한 만큼 범위를 좁혀 조정)
+   색은 토큰 이름만, 크기는 u 단위, 움직임 0.3초 이하
+   ===================================================================== */
+
+
+/* 빛의 길 보기: 광선 칩 3개 (R2) — 높이 --tap, 켜짐 = 광선 색 채움 + (check 아이콘) 켜짐, 꺼짐 = 윤곽선 + '꺼짐'.
+   선 견본(색·점선 모양)은 늘 흰 알약 위에 그려 색약에서도 구분 */
+.lens-rays { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.lens-rays > .ctl { min-width: 0; }
+.lens-rays .check {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "name name" "pill state";
+  align-items: center; gap: calc(4 * var(--u)) var(--space-2);
+  min-height: var(--tap); height: auto;
+  padding: calc(6 * var(--u)) var(--space-2);
+  border: calc(3 * var(--u)) solid var(--ray, var(--color-line-strong));
+  background: var(--ray, var(--color-primary)); color: var(--color-paper);
+}
+.lens-rays .check__box { display: none; }
+.lens-rays .check__text { grid-area: name; min-width: 0; font: var(--font-weight-bold) var(--fs-caption)/1.15 var(--font-sans); white-space: nowrap; }
+.lens-rays .check__state { grid-area: state; justify-self: end; white-space: nowrap; font: var(--font-weight-bold) var(--fs-caption)/1 var(--font-sans); color: var(--color-paper); }
+.lens-rays .check[aria-pressed="false"] { background: var(--color-paper-raised); color: var(--color-ink-muted); border-style: solid; }
+.lens-rays .check[aria-pressed="false"] .check__state { color: var(--color-ink-muted); }
+.lens-ray-pill { grid-area: pill; display: inline-grid; place-items: center; padding: calc(3 * var(--u)) var(--space-1); border-radius: var(--radius-pill); background: var(--color-paper-raised); }
+.lens-rays .check[aria-pressed="false"] .lens-ray-pill { box-shadow: inset 0 0 0 1px var(--color-line); }
+.lens-ray-icon { display: block; width: calc(42 * var(--u)); height: calc(14 * var(--u)); }
+
+/* 물체 종류: 가림판과 같은 세그먼트 한 줄 */
+.lens-types .seg__opt { padding-left: var(--space-1); padding-right: var(--space-1); }
+
+/* 하단 띠 오른쪽: 상의 모습 한 줄 요약 (잘림 없음) */
+.lens-kind {
+  min-width: 0; height: 100%; display: grid; align-content: center; gap: calc(4 * var(--u));
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-line);
+  border-left: calc(6 * var(--u)) solid var(--sim);
+}
+.lens-kind__label { font: var(--font-weight-semibold) var(--fs-caption)/1.1 var(--font-sans); color: var(--color-ink-muted); }
+.lens-kind__main { font: var(--font-weight-bold) calc(27 * var(--u))/1.2 var(--font-serif); word-break: keep-all; }
+.lens-kind__sub  { font: var(--font-weight-medium) var(--fs-caption)/1.2 var(--font-sans); color: var(--sim-text); word-break: keep-all; }
+
+/* 기록 표: 같은 거리 줄 강조 */
+
+.rec-table tr.lens-eq td { background: var(--color-ok-tint); color: var(--color-ok); font-weight: var(--font-weight-black); }
+
+/* 규칙 카드: 빈칸마다 보기 버튼 */
+.lens-rules { display: grid; gap: var(--space-5); padding-left: var(--space-6); list-style: decimal; font: var(--font-weight-medium) var(--fs-body)/1.6 var(--font-sans); }
+.lens-rules > li { display: grid; gap: var(--space-2); }
+.lens-rule__text { word-break: keep-all; line-height: 2.1; }
+.lens-blank { display: inline-flex; flex-wrap: wrap; gap: calc(6 * var(--u)); margin: 0 var(--space-1); vertical-align: middle; padding: calc(4 * var(--u)); border-radius: var(--radius-md); border: calc(2 * var(--u)) dashed var(--color-line-strong); }
+.lens-opt {
+  min-height: calc(48 * var(--u)); padding: 0 var(--space-3);
+  border-radius: var(--radius-sm); border: 1px solid var(--color-line-strong);
+  background: var(--color-paper-raised); color: var(--color-ink);
+  font: var(--font-weight-semibold) var(--fs-meta)/1 var(--font-sans); cursor: pointer;
+}
+.lens-opt:hover { border-color: var(--color-primary); }
+.lens-opt.is-right { background: var(--color-ok-tint); border-color: var(--color-ok); color: var(--color-ok); font-weight: var(--font-weight-bold); }
+/* R4: 글자 ✓ ✗ → 마스크 아이콘 (--ico-check · --ico-close 공통 토큰, tokens.css) */
+.lens-opt.is-right, .lens-opt.is-wrong { display: inline-flex; align-items: center; gap: calc(6 * var(--u)); }
+.lens-opt.is-right::before, .lens-opt.is-wrong::before { content: ""; flex: none; width: 1em; height: 1em; background-color: currentColor; -webkit-mask: var(--ico) center/contain no-repeat; mask: var(--ico) center/contain no-repeat; }
+.lens-opt.is-right::before { --ico: var(--ico-check); }
+.lens-opt.is-wrong { background: var(--color-warn-tint); border-color: var(--color-warn); color: var(--color-warn); }
+.lens-opt.is-wrong::before { --ico: var(--ico-close); }
+.lens-hint { font: var(--font-weight-medium) var(--fs-meta)/1.4 var(--font-sans); color: var(--color-ink-muted); word-break: keep-all; }
+
+/* 도움말 개념 카드: 그림 · 표 · 오해 바로잡기 */
+.lens-plain { display: grid; gap: var(--space-2); font: var(--font-weight-medium) var(--fs-meta)/1.55 var(--font-sans); word-break: keep-all; }
+.lens-cases { width: 100%; border-collapse: collapse; font-size: var(--fs-caption); line-height: 1.35; }
+.lens-cases th, .lens-cases td { padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--color-line); text-align: left; word-break: keep-all; }
+.lens-cases th { font-weight: var(--font-weight-bold); color: var(--color-ink-muted); background: var(--color-paper-raised); }
+.lens-cases td:first-child { font-weight: var(--font-weight-bold); }
+.lens-myths { display: grid; gap: var(--space-3); list-style: none; padding: 0; font: var(--font-weight-medium) var(--fs-meta)/1.5 var(--font-sans); }
+.lens-myths li { display: grid; gap: calc(2 * var(--u)); padding-left: var(--space-3); border-left: calc(4 * var(--u)) solid var(--color-warn); word-break: keep-all; }
+.lens-myths b { color: var(--color-warn); }
+
+/* 심화 */
+.lens-deep { display: grid; gap: var(--space-3); }
+.lens-deep p { font: var(--font-weight-medium) var(--fs-meta)/1.45 var(--font-sans); color: var(--color-ink-muted); }
+.lens-deep .btn { width: 100%; font-size: var(--fs-meta); }
+.lens-figure { position: relative; width: 100%; height: calc(400 * var(--u)); border-radius: var(--radius-md); border: 1px solid var(--color-line); overflow: hidden; }
+.lens-figure-note { font: var(--font-weight-medium) var(--fs-body)/1.5 var(--font-sans); word-break: keep-all; }
+
+/* 띠 높이 88u: '상의 모습' 머리글은 화면에서 숨기고(읽기 도구용으로 남김) 두 줄만 — 첫 줄이 곧 상의 모습 요약 */
+.lens-kind__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* 실험 화면 왼쪽 위 범례 한 줄 (상태 칩 아래) */
+.lens-legend {
+  padding: calc(4 * var(--u)) var(--space-3); border-radius: var(--radius-pill);
+  background: var(--color-paper-glass); box-shadow: inset 0 0 0 1px var(--color-line);
+  font: var(--font-weight-semibold) var(--fs-caption)/1.3 var(--font-sans); color: var(--color-ink-chip);
+  white-space: nowrap; pointer-events: none;
+}
+
+/* R3: 물체 거리가 잠긴 이유 한 줄 (비활성이어도 선명) */
+.lens-hint { color: var(--color-copper-text); font-weight: var(--font-weight-semibold); word-break: keep-all; text-wrap: balance; }
+
+/* 기록 큰 판 아래 전용 자리: 같은 거리 찾기 · 규칙 카드 */
+.lens-recextra { display: grid; gap: var(--space-2); }
+.lens-recextra__btns { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* 예측 창 안내 두 줄 · 개념 그림 캡션 */
+.lens-pinfo b { color: var(--color-ink); font-weight: var(--font-weight-semibold); }
+.lens-figcap { margin: var(--space-1) 0 0; text-align: center; font: var(--font-weight-semibold) var(--fs-caption)/1.35 var(--font-sans); color: var(--color-ink-muted); word-break: keep-all; }
+.lens-rays .check[aria-pressed="true"] .check__state { color: var(--color-paper); }
+/* R4: 켜짐 앞 ✓ (글자 대신 마스크 아이콘) */
+.lens-rays .check__state { display: inline-flex; align-items: center; gap: calc(4 * var(--u)); }
+.lens-rays .check[aria-pressed="true"] .check__state::before { content: ""; flex: none; width: 1em; height: 1em; --ico: var(--ico-check); background-color: currentColor; -webkit-mask: var(--ico) center/contain no-repeat; mask: var(--ico) center/contain no-repeat; }
+.lens-rays .check[aria-pressed="true"] { border-color: var(--ray, var(--color-primary)); }
+
+/* R5: '빛의 길 보기' 설명 — 칩 행 바로 아래 한 줄 고정(칩을 누르면 그 광선의 길로 바뀜, 높이는 그대로) */
+.lens-raynote { margin-top: var(--space-1); min-height: 1.4em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- R6 심플 모드 (html.is-simple) ---------- */
+/* 측정 줄: 상 거리 · 배율 · 상의 모습(문구가 길어 넓은 칸, 40u) */
+html.is-simple .simple-meter[data-key="look"] { flex: 2.2 1 0; }
+html.is-simple .simple-meter[data-key="look"] .simple-meter__value { font-size: max(18px, calc(40 * var(--u))); line-height: 1.15; color: var(--sim-text); }
+html.is-simple .simple-meter[data-key="look"] .simple-meter__value.is-text { font-weight: var(--font-weight-medium); }
+@media (orientation: portrait) and (min-width: 601px) {
+  html.is-simple .simple-meter[data-key="look"] { flex: 2.4 1 0; }
+  html.is-simple .simple-meter[data-key="look"] .simple-meter__value { font-size: calc(26 * var(--p)); white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+}
+
+/* R6: 심플 측정 칸 이름에는 용어 풀이 괄호를 붙이지 않는다(공통 틀 rich 의 첫 등장 풀이) */
+html.is-simple .simple-meter__label .term-inline { display: none; }

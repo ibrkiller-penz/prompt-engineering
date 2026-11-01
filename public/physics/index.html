@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>물리 시뮬레이터 실험실</title>
+  <link rel="stylesheet" href="shared/fonts.css">
+  <link rel="stylesheet" href="shared/tokens.css">
+  <link rel="stylesheet" href="shared/base.css">
+  <script src="shared/icons.js"></script>
+  <style>
+    /* 허브 표지 전용 (1920×1080, 단위 u) — R2: docs/개선/R2_계획.md §3 F */
+    .hub { display: grid; grid-template-rows: calc(80 * var(--u)) auto minmax(0, 1fr) calc(72 * var(--u)); padding: 0 calc(80 * var(--u)); }
+    .hub-nav { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-line); }
+    .hub-nav .menu__name { font-size: var(--fs-meta); color: var(--color-ink); }
+    .hub-nav__right { position: relative; display: flex; gap: var(--space-2); }
+    .hub-nav__right .btn { min-height: calc(52 * var(--u)); padding: 0 var(--space-4); font-size: var(--fs-meta); border-width: calc(2 * var(--u)); }
+    .hub-keys {
+      position: absolute; right: 0; top: calc(100% + var(--space-2)); z-index: 20; width: calc(560 * var(--u));
+      display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); align-items: baseline;
+      padding: var(--space-5); border-radius: var(--radius-lg);
+      background: var(--color-paper-raised); border: 1px solid var(--color-line-strong); box-shadow: var(--shadow-lg);
+      font: var(--font-weight-medium) var(--fs-meta)/1.4 var(--font-sans);
+    }
+    .hub-keys[hidden] { display: none; }
+    @media (pointer: coarse) { .hub-keys__btn { display: none !important; } }
+    .hub-head { padding: calc(28 * var(--u)) 0 calc(24 * var(--u)); display: grid; gap: var(--space-3); }
+    .hub-title { font: var(--font-weight-black) calc(64 * var(--u))/1.15 var(--font-serif); letter-spacing: -0.02em; word-break: keep-all; }
+    .hub-title span { color: var(--color-primary); }
+    .hub-sub { font: var(--font-weight-medium) var(--fs-body)/1.5 var(--font-sans); color: var(--color-ink); word-break: keep-all; }
+    .hub-sub small { display: block; margin-top: var(--space-1); font-size: var(--fs-meta); font-weight: var(--font-weight-light); color: var(--color-ink-muted); }   /* R4: 24u · 300 */
+    .cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; gap: calc(24 * var(--u)); min-height: 0; padding-bottom: calc(24 * var(--u)); }
+    .card {
+      position: relative; display: flex; flex-direction: column; gap: var(--space-3);
+      min-height: 0; height: 100%; max-height: calc(700 * var(--u));   /* R4 마무리: 16:9 는 칸(≈686u)을 그대로 채우고, 세로가 긴 화면은 700u 에서 멈춰 가운데 (카드 속 빈 공간 방지) */
+      padding: calc(26 * var(--u)) var(--space-5) var(--space-5);
+      border-radius: var(--radius-lg);
+      background: var(--color-paper-raised);
+      border: 1px solid var(--color-line);
+      box-shadow: var(--shadow-sm);
+      transition: border-color var(--dur-fast) var(--dur-ease), transform var(--dur-fast) var(--dur-ease), box-shadow var(--dur-fast) var(--dur-ease);
+    }
+    .card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: calc(6 * var(--u)); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--sim); }
+    html:not(.cursor-hidden) .card:hover, .card:focus-within { border-color: var(--sim); box-shadow: var(--shadow-md); transform: translateY(calc(-3 * var(--u))); }
+    .card__top { align-self: stretch; display: flex; align-items: center; gap: var(--space-2); flex-wrap: nowrap; min-height: calc(48 * var(--u)); }
+    .card__key {
+      display: grid; place-items: center; width: calc(48 * var(--u)); height: calc(48 * var(--u)); flex: none;
+      border-radius: var(--radius-md); background: var(--sim); color: var(--color-paper);
+      font: var(--font-weight-bold) var(--fs-h3)/1 var(--font-num);
+    }
+    /* 색약 보조: 번호 옆 모양 기호 ●▲■◆★ */
+    .card__mark { display: inline-grid; place-items: center; width: calc(28 * var(--u)); height: calc(28 * var(--u)); font: var(--font-weight-black) calc(22 * var(--u))/1 var(--font-sans); color: var(--sim); }
+    .card__first { margin-left: auto; padding: var(--space-1) var(--space-2); border-radius: var(--radius-pill); background: var(--color-ok-tint); color: var(--color-ok-text); font: var(--font-weight-bold) var(--fs-caption)/1.2 var(--font-sans); white-space: nowrap; }
+    .card__title { font: var(--font-weight-bold) calc(32 * var(--u))/1.3 var(--font-serif); color: var(--color-ink); word-break: keep-all; min-height: calc(2 * 1.3 * 32 * var(--u)); text-wrap: balance; white-space: pre-line; }
+    /* 가운데: 선화 아이콘 + 무엇을 하나요 2줄 + 순서·시간 */
+    .card__mid { flex: 1 1 auto; min-height: 0; display: grid; align-content: start; justify-items: center; gap: var(--space-3); }
+    .card__icon { width: calc(120 * var(--u)); height: calc(84 * var(--u)); color: var(--sim); }
+    .card__icon svg { width: 100%; height: 100%; display: block; }
+    .card__q { width: 100%; min-height: calc(3 * 1.45 * var(--fs-meta)); font: var(--font-weight-medium) var(--fs-meta)/1.45 var(--font-sans); color: var(--color-ink); word-break: keep-all; text-wrap: balance; }
+    .card__q::before { content: "“"; color: var(--sim-text); font-weight: var(--font-weight-bold); }
+    .card__q::after { content: "”"; color: var(--sim-text); font-weight: var(--font-weight-bold); }
+    .card__what { width: 100%; display: grid; gap: calc(2 * var(--u)); font: var(--font-weight-medium) var(--fs-caption)/1.4 var(--font-sans); color: var(--color-ink-chip); word-break: keep-all; }
+    .card__what b { font: var(--font-weight-bold) var(--fs-caption)/1.2 var(--font-sans); color: var(--sim-text); }
+    .card__flow { width: 100%; font: var(--font-weight-semibold) var(--fs-caption)/1.3 var(--font-sans); color: var(--color-ink-chip); word-break: keep-all; }
+    .card__subj { align-self: flex-start; padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); background: var(--sim-tint); color: var(--sim-text); font: var(--font-weight-semibold) var(--fs-caption)/1.3 var(--font-sans); word-break: keep-all; }
+    .card__go { margin-top: auto; display: grid; gap: var(--space-2); }
+    .card__open {
+      display: flex; align-items: center; justify-content: center; gap: var(--space-3);
+      min-height: var(--tap); border-radius: var(--radius-md);
+      border: calc(3 * var(--u)) solid var(--sim); color: var(--color-paper); background: var(--sim);
+      font: var(--font-weight-bold) var(--fs-body)/1 var(--font-sans);
+    }
+    .card__open .ico { width: calc(28 * var(--u)); height: calc(28 * var(--u)); margin-left: calc(-4 * var(--u)); }
+    .card__links a .ico { width: 1em; height: 1em; margin-left: calc(2 * var(--u)); }
+    .card__links { min-height: calc(44 * var(--u)); display: flex; flex-wrap: wrap; gap: 0 var(--space-4); justify-content: center; margin-top: 0; }
+    .card__links a {
+      display: inline-flex; align-items: center; min-height: calc(44 * var(--u));
+      font: var(--font-weight-semibold) var(--fs-caption)/1.25 var(--font-sans); color: var(--sim-text);
+      text-decoration: underline; text-underline-offset: calc(4 * var(--u)); word-break: keep-all;
+    }
+    html:not(.cursor-hidden) .card__open:hover { filter: brightness(0.92); }
+    /* 성취기준 코드는 교사 모드(?teacher=1 · 오른쪽 위 [교사 모드])에서만 — R5: 칩 모양 */
+    .card__std { display: none; justify-self: center; align-items: center; min-height: calc(34 * var(--u)); padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--sim-tint); color: var(--sim-text); font: var(--font-weight-medium) var(--fs-caption)/1.2 var(--font-num); text-align: center; white-space: nowrap; }
+    html.is-teacher .card__std { display: inline-flex; }
+    /* R5: 교사 모드 토글 (켜면 모든 [열기]·보조 링크가 ?teacher=1) */
+    .hub-teacher[aria-pressed="true"] { background: var(--color-primary-tint); border-color: var(--color-primary); color: var(--color-primary); }
+    .hub-teacher .hub-teacher__state { font-weight: var(--font-weight-regular); color: var(--color-ink-muted); }
+    /* R6(S9): [심플 | 자세히] 분절 — 교사 모드 칩 왼쪽. 고르면 5장 카드의 [열기]·보조 링크가 ?simple=1 (자세히면 뺌) */
+    .hub-nav__right { align-items: center; }
+    .hub-mode { height: calc(64 * var(--u)); }
+    .hub-mode .mode-seg__opt { min-width: calc(128 * var(--u)); font-size: var(--fs-meta); }
+    .hub-nav__right .hub-teacher, .hub-nav__right .hub-keys__btn { min-height: calc(64 * var(--u)); }
+    /* 심플을 고르면 [열기] 안 왼쪽에 작은 칩 '심플' */
+    .card__simple { display: none; padding: calc(3 * var(--u)) var(--space-3); border-radius: var(--radius-pill); background: var(--color-paper); color: var(--sim-text); font: var(--font-weight-medium) var(--fs-caption)/1.2 var(--font-sans); white-space: nowrap; }
+    html.is-simple .card__simple { display: inline-block; }
+    /* R6: 교사 모드 성취기준 칩이 카드 폭을 넘지 않게(두 코드면 두 줄) */
+    .card__std { max-width: 100%; white-space: normal; padding-top: calc(3 * var(--u)); padding-bottom: calc(3 * var(--u)); }
+    .card__go { min-width: 0; }
+    /* R6(S10): 카드 2 보조 링크 = 44u 터치 칩 '빛 실험' '전자 실험' (다른 카드도 같은 높이의 빈 줄) */
+    .card__links { gap: var(--space-2); align-items: center; flex-wrap: nowrap; }
+    .card__links a.card__chip {
+      flex: 0 1 auto; min-width: 0; white-space: nowrap;
+      min-height: calc(44 * var(--u)); padding: 0 var(--space-2) 0 var(--space-3); gap: 0;
+      border-radius: var(--radius-pill); border: calc(2 * var(--u)) solid var(--sim); background: var(--sim-tint);
+      text-decoration: none; color: var(--sim-text); font-weight: var(--font-weight-medium);
+    }
+    html:not(.cursor-hidden) .card__links a.card__chip:hover { background: var(--color-paper-raised); }
+    .hub-teacher[aria-pressed="true"] .hub-teacher__state { color: var(--color-primary); font-weight: var(--font-weight-bold); }
+
+    /* R5: 가로 4:3 태블릿(1180×820·1024×768 — 16:9 보다 세로가 긴 가로 화면): 제목·카드를 가운데로 모으고
+       제목 아래·카드 아래 여백은 24u. 남는 세로는 위(메뉴 아래)와 아래(바닥 줄 위)로 똑같이 나눈다. 16:9 는 이 규칙 밖 */
+    @media (orientation: landscape) and (max-aspect-ratio: 17/10) {
+      .hub { grid-template-rows: calc(80 * var(--u)) minmax(0, 1fr) auto auto minmax(0, 1fr) calc(72 * var(--u)); }
+      .hub-nav { grid-row: 1; } .hub-head { grid-row: 3; padding-bottom: calc(24 * var(--u)); } .cards { grid-row: 4; } .hub-foot { grid-row: 6; }
+      .cards { align-items: stretch; padding-bottom: calc(24 * var(--u)); }
+      .card { height: auto; }
+    }
+    /* R5: 세로 태블릿(폭 601 이상): 카드 2열, 카드 높이는 내용만큼, 넘치면 카드 칸 안에서 스크롤 */
+    @media (orientation: portrait) and (min-width: 601px) {
+      /* R6(S10): 카드 칸 높이를 고정하지 않고 페이지가 스크롤 — 5번 카드 [열기] 가 잘리거나 푸터와 겹치지 않게. 푸터는 흐름 안 */
+      html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+      .app { height: auto; min-height: 100vh; overflow: visible; }
+      .slide.hub { height: auto; min-height: 100vh; overflow: visible; }
+      .hub { padding: 0 calc(40 * var(--u)); grid-template-rows: calc(88 * var(--u)) auto auto auto; }
+      .hub-title { font-size: calc(60 * var(--u)); }
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: max-content; align-items: stretch; align-content: start; overflow: visible; padding: calc(8 * var(--u)) calc(4 * var(--u)) calc(32 * var(--u)); }
+      .card { height: auto; max-height: none; }
+      .card__q { min-height: 0; }
+      .hub-foot { flex-wrap: wrap; gap: var(--space-1) var(--space-4); padding: calc(20 * var(--u)) 0 calc(28 * var(--u)); }
+      .hub-nav__right { gap: var(--space-2); }
+      .hub-mode .mode-seg__opt { min-width: calc(110 * var(--u)); padding: 0 var(--space-3); }
+    }
+    .hub-foot { display: flex; align-items: center; justify-content: center; gap: var(--space-4); border-top: 1px solid var(--color-line); font: var(--font-weight-semibold) var(--fs-meta)/1.4 var(--font-sans); color: var(--color-ink-muted); }
+    .hub-foot__credit { font-weight: var(--font-weight-regular); }
+    .flow { display: flex; align-items: center; gap: var(--space-3); }
+    .flow b { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-ink); }
+    .flow i { font-style: normal; color: var(--color-line-strong); }
+    .flow .circ { font-size: var(--fs-caption); color: var(--color-ink-muted); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="slide hub">
+      <nav class="hub-nav" aria-label="표지 메뉴">
+        <span class="menu__brand">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="menu__name">물리 시뮬레이터 실험실</span>
+        </span>
+        <span class="hub-nav__right">
+          <button class="btn btn--outline hub-keys__btn" type="button" id="keysBtn" aria-expanded="false">키보드 조작 안내</button>
+          <span class="mode-seg hub-mode" id="modeSeg" role="group" aria-label="화면 모드 — 열 실험을 어떤 모드로 볼까요">
+            <button class="mode-seg__opt" type="button" data-simple="1" aria-pressed="false" title="실험 화면을 크게, 바꿀 값 2~3개만 (전자칠판 시연·처음 보는 학생)">심플</button>
+            <button class="mode-seg__opt" type="button" data-simple="0" aria-pressed="true" title="단계·기록 표·정리 질문까지 모두">자세히</button>
+          </span>
+          <button class="btn btn--outline hub-teacher" type="button" id="teacherBtn" aria-pressed="false" title="켜면 실험이 교사 모드(손들기 수·수업 안내·성취기준)로 열려요">교사 모드 <span class="hub-teacher__state">끔</span></button>
+          <span class="hub-keys" id="keys" hidden role="note">
+            <kbd>1</kbd><span>~ <kbd>5</kbd> 카드 바로 열기</span>
+            <kbd>← →</kbd><span>카드 고르기 · <kbd>Enter</kbd> 열기</span>
+            <kbd>F</kbd><span>전체 화면</span>
+            <kbd>M</kbd><span>심플 ↔ 자세히 (실험 화면에서)</span>
+            <kbd>Esc</kbd><span>실험 화면에서 두 번 누르면 이 화면으로</span>
+          </span>
+        </span>
+      </nav>
+
+      <header class="hub-head">
+        <h1 class="hub-title">바꾸고, 겨루고, <span>비교하는</span> 물리 실험실</h1>
+        <p class="hub-sub">실험 하나를 골라 [열기]를 누르세요. 모든 실험은 같은 순서로 진행돼요.
+          <small>고등학교 물리(2022 개정) — 「물리학」 · 「역학과 에너지」 · 「전자기와 양자」</small></p>
+      </header>
+
+      <main class="cards" id="cards" aria-label="실험 5가지"></main>
+
+      <footer class="hub-foot">
+        <span class="flow" aria-label="모든 실험의 순서"><b><span class="circ" aria-hidden="true">1</span> 예측</b><i>→</i><b><span class="circ" aria-hidden="true">2</span> 실행</b><i>→</i><b><span class="circ" aria-hidden="true">3</span> 비교</b><i>→</i><b><span class="circ" aria-hidden="true">4</span> 정리</b></span>
+        <span aria-hidden="true">·</span><span>한 실험에 약 20분</span>
+        <span aria-hidden="true">·</span><span class="hub-foot__credit">글꼴: 에스코어 드림 (S-Core)</span>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    // 카드 정보: docs/04_팀장결정서.md §1-1·§4, docs/개선/R2_계획.md F (성취기준은 결정서에 확인된 것만, 교사 모드에서만 보임)
+    // 아이콘: 선화(stroke=currentColor) — 시뮬레이터 식별색으로 그려진다
+    var ICON = {
+      projectile: '<svg viewBox="0 0 150 110" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 96h134"/><path d="M18 92 C 45 10, 95 10, 128 92" stroke-dasharray="2 9"/><circle cx="73" cy="31" r="8" fill="currentColor"/><path d="M18 92l16-26" /><path d="M28 64l6 2 -1 6"/></svg>',
+      slit: '<svg viewBox="0 0 150 110" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M10 55h26"/><path d="M50 10v30M50 48v14M50 70v30"/><path d="M60 44c10 0 14 4 18 11M60 66c10 0 14-4 18-11" stroke-width="3"/><path d="M128 10v90"/><path d="M128 22h10M128 38h14M128 55h18M128 72h14M128 88h10" stroke-width="5"/></svg>',
+      collision: '<svg viewBox="0 0 150 110" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 84h138"/><rect x="12" y="40" width="52" height="34" rx="6"/><rect x="88" y="47" width="40" height="27" rx="6"/><circle cx="26" cy="80" r="6"/><circle cx="50" cy="80" r="6"/><circle cx="98" cy="80" r="5"/><circle cx="118" cy="80" r="5"/><path d="M16 24h36M42 14l10 10-10 10"/><path d="M76 42v32" stroke-dasharray="3 6"/></svg>',
+      orbit: '<svg viewBox="0 0 150 110" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><circle cx="75" cy="58" r="22"/><ellipse cx="75" cy="58" rx="58" ry="40" stroke-dasharray="3 8"/><circle cx="131" cy="50" r="6" fill="currentColor"/><path d="M131 40v-16M131 24l-6 7M131 24l6 7"/></svg>',
+      lens: '<svg viewBox="0 0 150 110" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 60h138" stroke-dasharray="3 7" stroke-width="2.5"/><path d="M75 18c10 14 10 70 0 84c-10-14-10-70 0-84z"/><path d="M24 60V30"/><path d="M18 36l6-6 6 6"/><path d="M24 30l51 0 56 52" /><path d="M126 60v22"/><path d="M120 76l6 6 6-6"/></svg>'
+    };
+    var SIMS = [
+      { slug: 'projectile-energy', icon: 'projectile', title: '포물선 운동과 역학적 에너지', subj: '역학과 에너지',
+        q: '옆으로 던진 공과 떨어뜨린 공, 무엇이 먼저 땅에 닿을까?', what: '속력·각도를 바꿔 던지고 거리를 비교해요', std: '[12역학01-02]' },
+      { slug: 'double-slit-quantum', icon: 'slit', title: '이중 슬릿: 빛에서 전자 하나까지', subj: '물리학 · 전자기와 양자',
+        q: '전자를 하나씩 보내도 줄무늬가 생길까?', what: '파장·틈 간격을 바꿔 무늬 간격을 재요', std: '[12물리03-01] [12전자03-01]',
+        sub: [{ mode: 'physics', label: '빛 실험', full: '빛으로 줄무늬 재기' }, { mode: 'quantum', label: '전자 실험', full: '전자 하나씩 보내기' }] },
+      { slug: 'collision-momentum', icon: 'collision', title: '일차원 충돌과 운동량 보존', subj: '물리학',
+        q: '무거운 수레와 가벼운 수레가 부딪치면 누가 더 큰 힘을 받을까?', what: '두 수레를 부딪쳐 운동량·힘을 비교해요', std: '[12물리01-03]' },
+      { slug: 'orbit-gravity', icon: 'orbit', title: '인공위성과\n탈출 속도', subj: '역학과 에너지',
+        q: '얼마나 빨리 던지면 땅에 떨어지지 않고 지구를 돌까?', what: '발사 속력을 높여 궤도·탈출을 찾아요', std: '[12역학01-03·04·05]', mode: 'cannon' },
+      { slug: 'convex-lens', icon: 'lens', title: '볼록렌즈로\n상 만들기', subj: '물리학',
+        q: '렌즈로 만든 상은 왜 거꾸로일까?', what: '물체를 옮겨 선명한 상의 위치를 찾아요', std: '[12물리03-02]' }
+    ];
+    var MARKS = ['●', '▲', '■', '◆', '★'];
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+    var box = document.getElementById('cards');
+    var openLinks = [];
+    SIMS.forEach(function (s, i) {
+      var base = 'sims/' + s.slug + '/index.html';
+      var card = el('article', 'card');
+      card.setAttribute('data-sim', s.slug);
+      var top = el('div', 'card__top');
+      top.appendChild(el('span', 'card__key num', String(i + 1)));
+      var mk = el('span', 'card__mark', MARKS[i]); mk.setAttribute('aria-hidden', 'true'); top.appendChild(mk);
+      if (i === 0) top.appendChild(el('span', 'card__first', '처음이면 여기부터'));
+      card.appendChild(top);
+      card.appendChild(el('h2', 'card__title', s.title));
+      var mid = el('div', 'card__mid');
+      var ic = el('div', 'card__icon'); ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = ICON[s.icon];
+      mid.appendChild(ic);
+      mid.appendChild(el('p', 'card__q', s.q));
+      var what = el('p', 'card__what');
+      what.appendChild(el('b', null, '무엇을 하나요'));
+      what.appendChild(el('span', null, s.what));
+      mid.appendChild(what);
+      card.appendChild(mid);
+      var go = el('div', 'card__go');
+      // 카드 5장 모두 [열기] 하나 (이중 슬릿은 아래 작은 링크 2개로 바로 가기)
+      var a = el('a', 'card__open', '열기');
+      a.insertAdjacentHTML('beforeend', SimIcons.html('chev-right'));   // R4: ▸ → SVG 아이콘 (shared/icons.js)
+      a.setAttribute('data-base', base + (s.mode ? '?mode=' + s.mode : ''));   // R6: 쿼리 조립 전 기본 주소 (buildQuery)
+      var sc = el('span', 'card__simple', '심플'); sc.title = '심플 모드로 열려요'; a.insertBefore(sc, a.firstChild);   // R6: 허브에서 심플을 고르면 보임
+      a.href = a.getAttribute('data-base');
+      a.setAttribute('aria-label', (i + 1) + '번 ' + s.title.replace(/\n/g, ' ') + ' 열기');
+      go.appendChild(a);
+      openLinks.push(a);
+      // [열기] 높이를 다섯 장 모두 같게: 링크 줄 자리를 늘 남겨 둔다
+      var links = el('div', 'card__links');
+      go.appendChild(links);
+      if (s.sub) {
+        s.sub.forEach(function (m) {
+          var l = el('a', 'card__chip', m.label);   // R6(S10): 44u 터치 칩
+          l.insertAdjacentHTML('beforeend', SimIcons.html('chev-right'));
+          l.setAttribute('data-base', base + '?mode=' + m.mode);
+          l.href = l.getAttribute('data-base');
+          l.setAttribute('aria-label', (i + 1) + '번 ' + s.title.replace(/\n/g, ' ') + ' — ' + m.full + '로 바로 열기'); l.title = m.full;
+          links.appendChild(l);
+        });
+      }
+      var std = el('span', 'card__std', s.std); std.title = s.subj; go.appendChild(std);
+      card.appendChild(go);
+      card.addEventListener('click', function (e) {
+        if (e.target.closest('a')) return;
+        location.href = openLinks[i].href;   // R5: 교사 모드면 href 에 ?teacher=1 이 이미 붙어 있다
+      });
+      card.style.cursor = 'pointer';
+      box.appendChild(card);
+    });
+
+    var keysBtn = document.getElementById('keysBtn'), keys = document.getElementById('keys');
+    keysBtn.addEventListener('click', function () { keys.hidden = !keys.hidden; keysBtn.setAttribute('aria-expanded', String(!keys.hidden)); });
+
+    // R5 교사 모드 + R6 심플 모드 — 두 선택을 합쳐 모든 [열기]·보조 링크의 쿼리를 다시 만든다(buildQuery).
+    //   교사: html.is-teacher(성취기준 칩) + ?teacher=1, 저장 'hub.teacher'. URL ?teacher=1 이면 켜진 채
+    //   심플: html.is-simple(카드 '심플' 칩) + ?simple=1(자세히면 뺌), 저장 'physsim.mode'(시뮬레이터와 같은 키). URL ?simple=1|0 이 저장값보다 먼저
+    var teacherBtn = document.getElementById('teacherBtn');
+    var modeSeg = document.getElementById('modeSeg');
+    var state = { teacher: false, simple: false };
+    function buildQuery(base, o) {
+      var parts = base.split('#'), u = parts[0], q = '', i = u.indexOf('?');
+      if (i >= 0) { q = u.slice(i + 1); u = u.slice(0, i); }
+      var ps = q ? q.split('&').filter(function (x) { return x && !/^(teacher|simple)=/.test(x); }) : [];
+      if (o.simple) ps.push('simple=1');
+      if (o.teacher) ps.push('teacher=1');
+      return u + (ps.length ? '?' + ps.join('&') : '') + (parts.length > 1 ? '#' + parts[1] : '');
+    }
+    function applyLinks() {
+      var as = box.querySelectorAll('a[data-base]');
+      for (var k = 0; k < as.length; k++) as[k].setAttribute('href', buildQuery(as[k].getAttribute('data-base'), state));
+    }
+    function setTeacher(on, save) {
+      state.teacher = !!on;
+      document.documentElement.classList.toggle('is-teacher', state.teacher);
+      teacherBtn.setAttribute('aria-pressed', String(state.teacher));
+      teacherBtn.lastChild.textContent = state.teacher ? '켬' : '끔';
+      applyLinks();
+      if (save) { try { localStorage.setItem('hub.teacher', state.teacher ? '1' : '0'); } catch (err) { /* 저장 안 돼도 이번에는 적용 */ } }
+    }
+    function setSimple(on, save) {
+      state.simple = !!on;
+      document.documentElement.classList.toggle('is-simple', state.simple);
+      var bs = modeSeg.querySelectorAll('.mode-seg__opt');
+      for (var k = 0; k < bs.length; k++) bs[k].setAttribute('aria-pressed', String((bs[k].getAttribute('data-simple') === '1') === state.simple));
+      applyLinks();
+      if (save) { try { localStorage.setItem('physsim.mode', state.simple ? 'simple' : 'full'); } catch (err) { /* 저장 안 돼도 이번에는 적용 */ } }
+    }
+    teacherBtn.addEventListener('click', function (e) {
+      setTeacher(!state.teacher, true);
+      if (e.detail > 0) teacherBtn.blur();
+    });
+    Array.prototype.forEach.call(modeSeg.querySelectorAll('.mode-seg__opt'), function (b) {
+      b.addEventListener('click', function (e) { setSimple(b.getAttribute('data-simple') === '1', true); if (e.detail > 0) b.blur(); });
+    });
+    var teacherOn = /[?&]teacher=1\b/.test(location.search);
+    if (!teacherOn) { try { teacherOn = localStorage.getItem('hub.teacher') === '1'; } catch (err) { teacherOn = false; } }
+    var sq = /[?&]simple=([01])\b/.exec(location.search), simpleOn = false;
+    if (sq) { simpleOn = sq[1] === '1'; try { localStorage.setItem('physsim.mode', simpleOn ? 'simple' : 'full'); } catch (err) { /* 무시 */ } }
+    else { try { simpleOn = localStorage.getItem('physsim.mode') === 'simple'; } catch (err) { simpleOn = false; } }
+    setTeacher(teacherOn, false);
+    setSimple(simpleOn, false);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var m = /^(?:Digit|Numpad)([1-5])$/.exec(e.code);
+      if (m) { e.preventDefault(); location.href = openLinks[+m[1] - 1].href; return; }
+      if (e.code === 'Escape') { keys.hidden = true; return; }
+      if (e.code === 'KeyM' && !e.repeat) { e.preventDefault(); setSimple(!state.simple, true); return; }   // R6: 심플 ↔ 자세히
+      if (e.code === 'KeyF' && !e.repeat) {
+        e.preventDefault();
+        var d = document, r = d.documentElement;
+        try {
+          if (!(d.fullscreenElement || d.webkitFullscreenElement)) (r.requestFullscreen || r.webkitRequestFullscreen).call(r);
+          else (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+        } catch (err) { /* 지원 안 함 */ }
+        return;
+      }
+      if (e.code === 'ArrowRight' || e.code === 'ArrowLeft' || e.code === 'PageDown' || e.code === 'PageUp') {
+        e.preventDefault();
+        var cur = openLinks.indexOf(document.activeElement);
+        if (cur < 0) { var c = document.activeElement && document.activeElement.closest && document.activeElement.closest('.card'); if (c) cur = Array.prototype.indexOf.call(box.children, c); }
+        var dir = (e.code === 'ArrowRight' || e.code === 'PageDown') ? 1 : -1;
+        var next = cur < 0 ? (dir > 0 ? 0 : openLinks.length - 1) : (cur + dir + openLinks.length) % openLinks.length;
+        openLinks[next].focus();
+      }
+    });
+
+    var html = document.documentElement, t = 0;
+    function show() { html.classList.remove('cursor-hidden'); clearTimeout(t); t = setTimeout(function () { html.classList.add('cursor-hidden'); }, 3000); }
+    document.addEventListener('mousemove', show, { passive: true });
+    show();
+    document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  })();
+  </script>
+</body>
+</html>
