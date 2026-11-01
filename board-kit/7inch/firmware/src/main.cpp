@@ -3365,6 +3365,8 @@ extern const lv_img_dsc_t office_bg, office_desk, office_chr0, office_chr1, offi
 static const int OFF_DX[3] = {16, 80, 144}, OFF_DY[2] = {56, 127};
 static const int OFF_LX[3] = {244, 292, 236}, OFF_LY[3] = {62, 62, 100};
 static const int OFF_W = 336, OFF_H = 176, OFF_N = 6, OFF_LN = 3;
+static const int OFF_CX[2] = {286, 318}, OFF_CY = 128;   // 정수기 2대(5시간 · 주간 사용량). 물통 안쪽 x-5~x+4, y+1~y+14
+static lv_obj_t *s_offWater[2], *s_offPct[2], *s_offCNm[2];
 struct OffAgent { int8_t slot, chr; char st; char name[40]; };
 static OffAgent s_ag[OFF_N];
 static int s_agN = 0;
@@ -3404,6 +3406,7 @@ static void offChrSrc(lv_obj_t *img, int chr) {
   if (lv_img_get_src(img) != d) lv_img_set_src(img, d);
   lv_obj_set_size(img, 16 * s_offZ, 32 * s_offZ);   // set_src 가 크기를 그림 전체로 되돌린다
 }
+static void offUse();
 static void renderOffice() {
   if (!s_viewOff) return;
   bool desk[OFF_N] = {}; int lounge = 0;
@@ -3431,11 +3434,29 @@ static void renderOffice() {
   for (int k = 0; k < OFF_N; k++) if (!desk[k]) { s_offSt[k] = 0; showIf(s_offChr[k], false); showIf(s_offTag[k], false); showIf(s_offBub[k], false); }
   for (int j = lounge; j < OFF_LN; j++) { showIf(s_offLChr[j], false); showIf(s_offLTag[j], false); }
   showIf(s_offEmpty, s_agN == 0);
+  offUse();
+}
+// 정수기 물 = 남은 사용량(사용자 지시 2026-11-01): 많이 쓸수록 물이 줄어든다. 탭덱 소식이 없으면 빈 통과 '-'
+static void offUse() {
+  if (!s_offWater[0]) return;
+  const bool on = s_useAt && millis() - s_useAt < USE_STALE_MS && !s_useErr;
+  const int P[2] = {s_useP5, s_useP7};
+  for (int i = 0; i < 2; i++) {
+    const bool has = on && P[i] >= 0;
+    const int left = has ? 100 - P[i] : 0, full = 14 * s_offZ;
+    const int h = left <= 0 ? 0 : max(2, full * left / 100);
+    if (lv_obj_get_height(s_offWater[i]) != h) { lv_obj_set_height(s_offWater[i], h); lv_obj_set_y(s_offWater[i], (OFF_CY + 15) * s_offZ - h); }
+    showIf(s_offWater[i], h > 0);
+    char b[8] = "-"; if (has) snprintf(b, sizeof b, "%d%%", P[i]); else if (on && i == 1) snprintf(b, sizeof b, "없음");
+    setTextIf(s_offPct[i], b);
+    setTextColIf(s_offPct[i], has && P[i] >= 90 ? 0xD03030 : 0x2A3240);
+  }
 }
 // 0.45초마다: 타자·읽기 움직임, 일하는 중 말풍선의 점. 탭덱이 30초 넘게 조용하면 비운다
 static void offTimer(lv_timer_t *) {
   if (s_agN && millis() - s_agAt > 30000) { s_agN = 0; renderOffice(); }
   if (s_view != V_OFF) return;
+  if (!(s_offTick & 7)) offUse();   // 약 4초마다(바뀐 것만 다시 그린다)
   s_offTick++;
   static const char *DOTS[3] = {"·", "··", "···"};
   for (int k = 0; k < OFF_N; k++) {
@@ -3512,6 +3533,20 @@ static void buildOffice(lv_obj_t *scr, int top) {
     lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN);
   }
   for (int j = 0; j < OFF_LN; j++) s_offLTag[j] = mkTag((OFF_LX[j] + 8) * Z, (OFF_LY[j] + 33) * Z, 44);
+  for (int i = 0; i < 2; i++) {   // 정수기: 물(아래부터 차오름) · 몸통에 사용량 % · 아래에 이름
+    const int cx = OFF_CX[i];
+    lv_obj_t *w = s_offWater[i] = box(sc, 0x3E9BE0, 0, 0);
+    lv_obj_set_style_radius(w, 0, 0);
+    lv_obj_set_style_border_side(w, LV_BORDER_SIDE_TOP, 0); lv_obj_set_style_border_width(w, Z, 0);
+    lv_obj_set_style_border_color(w, lv_color_hex(0x9AD6F7), 0); lv_obj_set_style_border_opa(w, LV_OPA_COVER, 0);
+    lv_obj_set_size(w, 10 * Z, 0); lv_obj_set_pos(w, (cx - 5) * Z, (OFF_CY + 15) * Z);
+    lv_obj_add_flag(w, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_t *t = s_offPct[i] = label(sc, FM(), 0x2A3240, "-");
+    lv_obj_set_width(t, 16 * Z); lv_obj_set_style_text_align(t, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_pos(t, (cx - 8) * Z, (OFF_CY + 25) * Z);
+    s_offCNm[i] = mkTag(cx * Z, (OFF_CY + 37) * Z, 30);
+    setTextIf(s_offCNm[i], i ? "주간" : "5시간"); lv_obj_clear_flag(s_offCNm[i], LV_OBJ_FLAG_HIDDEN);
+  }
   s_offEmpty = label(s_viewOff, FM(), D_TEXT, "Claude 작업을 기다리는 중이에요\n컴퓨터의 탭덱이 작업을 알려 주면 직원이 자리에 앉아요");
   lv_obj_set_style_text_align(s_offEmpty, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_set_style_bg_color(s_offEmpty, lv_color_hex(0x14181F), 0); lv_obj_set_style_bg_opa(s_offEmpty, LV_OPA_80, 0);
