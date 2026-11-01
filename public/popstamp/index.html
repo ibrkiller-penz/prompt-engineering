@@ -2,293 +2,116 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>나만의 팝도장 만들기</title>
+<meta name="description" content="초·중·고·성인 버전 중에서 골라 시작하는 팝도장 만들기 발표 자료">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=Noto+Sans+KR:wght@500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
-/* 디자인 기준: 32_프랑스혁명-수업사이트 tokens.css · base.css
-   (미색 양피지, 명조 제목 + Pretendard 본문, 남색 = 현재 위치·주 버튼, 적색 = 주의,
-    낮고 옅은 그림자 — 전자칠판 반사 고려, 0.2초 페이드, 튕김 없음)
-   무대 1600×900 = 1920×1080의 5/6. 본문 최소 24px(1920 기준 28.8px). */
-:root{
-  --paper:#F5EFE0; --raised:#FBF8EF; --sunk:#ECE3CE;
-  --ink:#1C1A17; --soft:#4E473C; --line:#D9CFB8; --line-strong:#8A7E68;
-  --navy:#1F3A6B; --navy-tint:#DCE3EE;
-  --red:#A8322D; --red-text:#8E2A26; --red-tint:#F8EBE7;
-  --yellow:#FFD43B; --sky:#DCE3EE; --focus:#B26B00;
-  --p1:#2E5D6B; --p1l:#DCE8EA;   /* 도안 — 청록 */
-  --p2:#B5652A; --p2l:#F6E6D6;   /* 굽기 — 구운 주황 */
-  --p3:#5A3F7A; --p3l:#E9E1F0;   /* 잉크 — 자두 보라 */
-  --uv:#8F5BEA;
-  --serif:"Noto Serif KR","Nanum Myeongjo","Batang",serif;
-  --sans:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
-  --shadow:0 3px 10px rgb(28 26 23/.12);
-  --menu-h:60px;
-}
+:root{--paper:#F5EFE0;--raised:#FBF8EF;--ink:#1C1A17;--soft:#4E473C;--line:#D9CFB8;--navy:#1F3A6B;--red:#A8322D;--yellow:#FFD43B;--focus:#B26B00;
+  --serif:"Noto Serif KR","AppleMyungjo","Batang","바탕","Malgun Gothic",serif;--sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--paper);overflow:hidden;font-family:var(--sans);color:var(--ink);
-  word-break:keep-all;-webkit-font-smoothing:antialiased;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-html.cursor-hidden,html.cursor-hidden *{cursor:none!important}
-#viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;touch-action:none}
-#deck{width:1600px;height:900px;position:relative;flex:none;transform-origin:center center;background:var(--paper);overflow:hidden}
-.slide{position:absolute;inset:0;padding:calc(var(--menu-h) + 34px) 80px 64px;display:none;flex-direction:column}
-.slide.cover{padding-top:56px}
-.slide.on{display:flex;animation:fade .2s cubic-bezier(.2,0,0,1) both}
-@keyframes fade{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:0s!important;transition-duration:0s!important}}
-h1,h2,h3,.jua{font-family:var(--serif);font-weight:700;letter-spacing:-.01em}
-h2{font-size:52px;line-height:1.2;margin-bottom:6px}
-h2 small{display:block;font-family:var(--sans);font-weight:500;font-size:26px;color:var(--soft);margin-top:8px;letter-spacing:0}
-p,li{font-size:28px;line-height:1.55;font-weight:500}
-b,strong{font-weight:700}
-.hi{background:linear-gradient(transparent 55%,var(--yellow) 55%);padding:0 4px;border-radius:3px}
-.red{color:var(--red-text)}
-.tag{display:inline-flex;align-items:center;gap:10px;align-self:flex-start;font-size:22px;font-weight:700;
-  height:40px;padding:0 18px 0 6px;border-radius:999px;margin-bottom:14px}
-.tag i{font-style:normal;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-size:20px;color:#fff}
-.t1{background:var(--p1l);color:var(--p1)} .t1 i{background:var(--p1)}
-.t2{background:var(--p2l);color:#8A4A1C} .t2 i{background:var(--p2)}
-.t3{background:var(--p3l);color:var(--p3)} .t3 i{background:var(--p3)}
-.t0{background:var(--sunk);color:var(--soft)} .t0 i{background:var(--navy)}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:48px;flex:1;align-items:center;min-height:0}
-.cols.w{grid-template-columns:.85fr 1.15fr}
-.card{background:var(--raised);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:26px 30px}
-.row{display:flex;gap:32px}
-.center{align-items:center;justify-content:center;text-align:center}
-
-/* 따라하기 단계 */
-ol.go{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:20px}
-ol.go li{counter-increment:s;position:relative;padding:6px 0 0 74px;min-height:56px}
-ol.go li::before{content:counter(s);position:absolute;left:0;top:0;width:56px;height:56px;border-radius:50%;
-  background:var(--c,var(--p1));color:#fff;font-family:var(--sans);font-weight:700;font-size:30px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
-ol.go li span:not(.k){display:block;font-size:24px;color:var(--soft);font-weight:500}
-.k{display:inline-block;font-weight:700;font-size:.82em;background:var(--raised);border:2px solid var(--line-strong);
-  border-bottom-width:5px;border-radius:8px;padding:0 12px;margin:0 2px;line-height:1.45;vertical-align:2px}
-.tip{margin-top:24px;background:#FFF0A6;border:1px solid #E3CC6A;border-radius:12px;padding:14px 22px;font-size:25px;font-weight:600;display:flex;gap:14px;align-items:center}
-.tip.no{background:var(--red-tint);border-color:#E5C3BC;color:var(--red-text)}
-.tip em{font-style:normal;font-family:var(--serif);font-weight:900;font-size:30px;flex:none}
-
-/* 잉크스케이프 흉내 창 */
-.win{background:#f3f3f3;border:2px solid var(--line-strong);border-radius:14px;box-shadow:var(--shadow);position:relative;width:100%}
-.win .bar{height:38px;background:#e6e3da;border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:20px;color:var(--soft);font-weight:700}
-.win .bar i{width:13px;height:13px;border-radius:50%;background:#c9ccd5}
-.win .bar i:nth-child(1){background:#ff6058}.win .bar i:nth-child(2){background:#ffbd2e}.win .bar i:nth-child(3){background:#28c940}
-.win .bar span{margin-left:10px}
-.win .menu{display:flex;gap:4px;padding:4px 10px;background:#fafafa;border-bottom:1px solid #ddd;font-size:22px;font-weight:600;position:relative}
-.win .menu span{padding:2px 12px;border-radius:8px;color:#444}
-.win .menu span.hl{background:var(--navy);color:#fff;outline:4px solid var(--yellow)}
-.win .body{display:flex;height:410px}
-.win .tools{width:62px;background:#eceae4;border-right:1px solid #ddd;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0}
-.win .tools b{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:#333}
-.win .tools b svg{width:28px;height:28px}
-.win .tools b.hl{background:var(--navy);color:#fff;outline:4px solid var(--yellow)}
-.win .cv{flex:1;position:relative;background:#fff;margin:14px;border:2px dashed #cfc7b4;overflow:hidden}
-.win .cv svg.art{position:absolute;inset:0;width:100%;height:100%}
-.drop{position:absolute;top:82px;background:#fff;border:1px solid var(--line-strong);border-radius:12px;box-shadow:0 8px 24px rgb(28 26 23/.18);padding:6px;z-index:5;min-width:270px}
-.drop div{font-size:22px;font-weight:600;padding:8px 14px;border-radius:8px;color:#444;display:flex;justify-content:space-between;gap:20px}
-.drop div small{color:#6b6458;font-weight:500;font-size:20px;align-self:center}
-.drop div.hl{background:var(--navy);color:#fff;outline:4px solid var(--yellow)}.drop div.hl small{color:#DCE3EE}
-.panel{position:absolute;right:-20px;bottom:-24px;background:var(--raised);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 8px 24px rgb(28 26 23/.18);padding:14px 18px;font-size:22px;font-weight:600;z-index:6;width:280px}
-.panel h4{font-family:var(--sans);font-weight:700;font-size:23px;margin-bottom:8px;border-bottom:1px solid var(--line);padding-bottom:6px}
-.panel .f{display:flex;justify-content:space-between;align-items:center;margin:6px 0}
-.panel .v{border:2px solid #c9c2b2;border-radius:6px;padding:0 10px;min-width:70px;text-align:center;background:#fff}
-.panel .btn{background:var(--navy);color:#fff;border-radius:8px;text-align:center;padding:6px;margin-top:10px;outline:4px solid var(--yellow)}
-.panel .v.hl{border-color:var(--navy);background:var(--navy-tint);outline:3px solid var(--yellow)}
-.pointer{position:absolute;width:54px;height:54px;z-index:8;pointer-events:none;filter:drop-shadow(2px 2px 2px rgba(0,0,0,.25))}
-.stepbig{position:absolute;right:80px;top:calc(var(--menu-h) + 30px);font-size:24px;font-weight:700;color:var(--p1);background:var(--p1l);border-radius:999px;padding:6px 22px;font-variant-numeric:tabular-nums}
-
-.site{display:flex;align-items:center;gap:22px;padding:26px 30px;border-radius:16px;background:var(--navy);color:#fff;text-decoration:none;box-shadow:var(--shadow);min-height:120px}
-.site-ic{font-size:48px;display:flex}
-.site b{display:block;font-size:40px;font-weight:700;letter-spacing:-.01em}
-.site small{display:block;font-size:24px;color:#DCE3EE;font-weight:500}
-.site:active{transform:translateY(1px)}
-/* 도안 생성기 흉내 화면 */
-.hs{background:#fff;border:2px solid var(--line-strong);border-radius:14px;box-shadow:var(--shadow);position:relative;overflow:visible}
-.hs-top{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #e5e5e5;font-size:22px;font-weight:700}
-.hs-top .lg{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#d22,#6a2bd0);color:#fff;display:grid;place-items:center;font-size:18px}
-.hs-top .tab{margin-left:10px;font-size:18px;color:#c22;background:#fdeeee;border-radius:8px;padding:2px 12px}
-.hs-body{display:grid;grid-template-columns:1.05fr .95fr;height:430px}
-.hs-l{padding:12px 14px;border-right:1px solid #eee;display:flex;flex-direction:column;gap:8px;overflow:hidden;background:#fafafa;border-radius:0 0 0 12px;gap:4px}
-.hs-sec{font-size:21px;font-weight:700;color:#6b6b6b;padding:3px 10px;border-radius:10px;display:flex;align-items:center;gap:8px}
-.hs-sec::before{content:"";width:9px;height:9px;border-radius:50%;background:#c9c2c9}
-.hs-sec.on{background:#fff;color:var(--ink);border:3px solid var(--yellow);flex-direction:column;align-items:stretch;gap:8px;padding:8px 12px}
-.hs-sec.on::before{display:none}
-.hs-sec .hd{font-size:22px;color:#7a1f3d}
-.hs-sel{border:2px solid #bbb;border-radius:8px;padding:5px 10px;font-size:21px;display:flex;justify-content:space-between;gap:8px;background:#fff}
-.hs-row{display:flex;gap:6px}
-.hs-row span{flex:1;text-align:center;border:2px solid #ddd;border-radius:8px;padding:3px 0;font-size:20px;background:#fff}
-.hs-row span.a{background:linear-gradient(90deg,#d22,#6a2bd0);color:#fff;border-color:transparent}
-.hs-slider{display:flex;align-items:center;gap:10px;font-size:20px}
-.hs-slider i{flex:1;height:8px;border-radius:8px;background:linear-gradient(90deg,#d33 var(--v),#ddd var(--v));position:relative}
-.hs-slider i::after{content:"";position:absolute;left:calc(var(--v) - 10px);top:-7px;width:22px;height:22px;border-radius:50%;background:#d33;border:3px solid #fff;box-shadow:0 0 0 2px #d33}
-.hs-drop{border:2px dashed #aab;border-radius:10px;padding:14px;text-align:center;font-size:20px;color:#555;background:#f6f7fb}
-.hs-in{border:2px solid #bbb;border-radius:8px;padding:3px 10px;font-size:21px;background:#fff}
-.hs .hl2{outline:4px solid var(--yellow);outline-offset:2px;border-radius:8px}
-.hs-r{padding:12px;display:flex;flex-direction:column;gap:10px}
-.hs-pv{flex:1;border-radius:10px;background:repeating-conic-gradient(#f2f2f2 0 25%,#fff 0 50%) 0 0/20px 20px;position:relative}
-.hs-pv svg{position:absolute;inset:0;width:100%;height:100%}
-.hs-btns{display:flex;gap:8px}
-.hs-btns span{flex:1;text-align:center;border-radius:8px;padding:7px 0;font-size:21px;font-weight:700;border:2px solid #ccc;background:#fff}
-.hs-btns span.png{background:#d42a2a;color:#fff;border-color:#d42a2a}
-.badge-basic,.badge-adv{display:inline-block;vertical-align:middle;font:700 22px var(--sans);padding:2px 12px;border-radius:999px;margin-left:6px}
-.badge-basic{background:var(--navy);color:#fff}
-.badge-adv{background:var(--sunk);color:var(--soft);border:1px dashed var(--line-strong)}
-.adv-card{background:transparent;border:2px dashed var(--line-strong);box-shadow:none;padding:16px 24px}
-.inlink{color:var(--navy);font-weight:700;text-decoration:underline;text-underline-offset:5px}
-.tag.adv{background:var(--sunk);color:var(--soft);border:1px dashed var(--line-strong)}
-.stepbig.adv{background:var(--sunk);color:var(--soft)}
-.slide.adv-page::before{content:"";position:absolute;inset:0;border:10px dashed rgb(138 126 104/.18);pointer-events:none}
-.skip{margin-top:34px;min-height:64px;padding:0 34px;border-radius:10px;border:2px solid var(--navy);background:var(--raised);color:var(--navy);font:700 28px var(--sans);cursor:pointer}
-/* 퀴즈 */
-.quiz{display:flex;gap:28px;flex:1;align-items:stretch;margin-top:14px;min-height:0;margin-bottom:50px}
-.qo{flex:1;position:relative;background:var(--raised);border:2px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;font:700 32px var(--sans);color:var(--ink)}
-.qo svg{width:100%;max-width:300px;height:230px}
-.quiz.wide .qo svg{max-width:520px;height:270px}
-.qo .res{visibility:hidden;font-size:26px;font-weight:600;color:var(--soft);text-align:center;line-height:1.45;min-height:76px}
-.qo .mk{position:absolute;top:10px;right:20px;font:900 72px var(--serif);visibility:hidden}
-.qo.shown .res,.qo.shown .mk{visibility:visible}
-.qo.shown[data-ok="1"]{border-color:var(--p1);background:var(--p1l)} .qo.shown[data-ok="1"] .mk{color:var(--p1)}
-.qo.shown[data-ok="0"]{border-color:#E5C3BC;background:var(--red-tint)} .qo.shown[data-ok="0"] .mk{color:var(--red)}
-.qo.shown[data-ok="0"] .res{color:var(--red-text)}
-/* 쌓기 순서 */
-.stack{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:10px}
-.stack div{width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 16px}
-.stack b{font-family:var(--serif);font-size:40px;display:block}
-.stack small{display:block;font-size:24px;color:var(--soft);font-weight:600}
-.stack i{font-style:normal;font-size:30px;color:var(--soft);line-height:1.1}
-/* 점검표 */
-.chk-h{font:700 26px var(--sans);color:var(--soft)}
-.adv-chk{border:2px dashed var(--line-strong);border-radius:16px;padding:16px}
-.adv-chk label{font-size:25px;min-height:64px;box-shadow:none}
-.adv-chk .bx{width:42px;height:42px}
-.advnote{display:block;font-size:22px;color:var(--soft);font-weight:600;margin-top:4px}
-/* 선생님용 */
-.slide.teacher{background:repeating-linear-gradient(135deg,transparent 0 22px,rgb(31 58 107/.035) 22px 44px),var(--paper)}
-ul.tl{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:8px}
-ul.tl li{font-size:27px;padding-left:24px;position:relative;line-height:1.45}
-ul.tl li::before{content:"";position:absolute;left:4px;top:.62em;width:9px;height:9px;border-radius:50%;background:var(--navy)}
-.blank{display:inline-block;width:120px;border-bottom:3px solid var(--ink);margin-left:6px}
-/* 타이머 표시·끝 알림 */
-#tmr{font-weight:700;color:var(--navy)}
-.dial.ding{animation:ding .5s ease 6}
-@keyframes ding{50%{opacity:.25}}
-.btns button:disabled{opacity:.5;cursor:default}
-.edge.flash{background:linear-gradient(90deg,rgb(31 58 107/.14),transparent)}
-.edge.r.flash{background:linear-gradient(270deg,rgb(31 58 107/.14),transparent)}
-/* 기계 · 왜 그럴까 · 작은 아이콘 */
-.mach{position:relative;width:500px}
-#popTimer{gap:12px}
-.mach>svg{width:100%;height:auto;display:block}
-.mach.ding{animation:ding .5s ease 6}
-.mach .pop{inset:-10px 60px 40px -10px}
-.mbar{width:440px;height:16px;border-radius:999px;background:#E9E1D3;border:2px solid var(--line-strong);overflow:hidden}
-.mbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#EE6D63,#A8322D)}
-.why{margin-top:18px;background:#E7EEF6;border:1px solid #B7CADF;border-radius:12px;padding:12px 20px;font-size:24px;font-weight:600;display:flex;gap:14px;align-items:baseline;line-height:1.45;color:var(--ink)}
-.why .q{flex:none;background:var(--navy);color:#fff;border-radius:999px;padding:1px 14px;font-size:22px;font-weight:700}
-.ei{width:1.15em;height:1.15em;vertical-align:-.22em;display:inline-block}
-.chat{background:#fff;border:2px solid var(--line-strong);border-radius:16px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
-.chat .me{align-self:flex-end;max-width:92%;background:#E7EEF6;border-radius:16px 16px 4px 16px;padding:12px 14px;display:flex;gap:12px;align-items:center}
-.chat .me p{font-size:22px;font-weight:600;line-height:1.4}
-.chat .ai{align-self:flex-start;background:#F4EFE3;border-radius:16px 16px 16px 4px;padding:10px 16px;display:flex;gap:12px;align-items:center;font-size:22px;font-weight:700}
-.pr{background:#FFF8D6;border:2px solid #E3CC6A;border-radius:14px;padding:12px 18px}
-.pr-h{display:flex;justify-content:space-between;align-items:center;font-size:24px;margin-bottom:6px}
-.pr p{font-size:22px;font-weight:600;line-height:1.45}
-.cp{min-height:48px;padding:0 22px;border-radius:10px;border:2px solid var(--navy);background:var(--navy);color:#fff;font:700 22px var(--sans);cursor:pointer}
-.cp.ok{background:var(--p1);border-color:var(--p1)}
-.slide>.why{margin-right:150px}
-/* 파트 표지 */
-.cover{justify-content:center;align-items:center;text-align:center}
-.cover .num{font-size:30px;font-weight:700;color:#fff;padding:6px 30px;border-radius:999px;margin-bottom:22px}
-.cover h1{font-size:112px;line-height:1.1;font-weight:900}
-.cover p{font-size:34px;margin-top:18px;color:var(--soft)}
-.cover .card p{margin-top:0}
-.road{display:flex;align-items:center;gap:16px;margin-top:44px}
-.road .st{width:170px;text-align:center;font-size:28px;font-weight:700;opacity:.35}
-.road .st.now{opacity:1}
-.road .st .ic{width:116px;height:116px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;border:2px solid var(--line-strong);background:var(--raised);box-shadow:var(--shadow)}
-.road .st .ic svg{width:66px;height:66px}
-.road .dash{width:60px;border-top:4px dashed var(--line-strong);opacity:.6}
-
-/* 인터랙티브 타이머 */
-.timer{display:flex;flex-direction:column;align-items:center;gap:22px}
-.dial{width:320px;height:320px;position:relative}
-.dial svg{width:100%;height:100%;transform:rotate(-90deg)}
-.dial .n{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--sans);font-weight:800;font-size:104px;font-variant-numeric:tabular-nums}
-.btns{display:flex;gap:16px}
-.btns button{font-family:var(--sans);font-weight:700;font-size:28px;min-height:64px;border:2px solid var(--navy);border-radius:10px;padding:0 34px;background:var(--raised);color:var(--navy);cursor:pointer}
-.btns button.go{background:var(--navy);color:#fff}
-.btns button:active{transform:translateY(1px)}
-.pop{position:absolute;inset:0;display:none;place-items:center;pointer-events:none}
-.pop.show{display:grid;animation:fade .2s both}
-.rounds{display:flex;gap:18px}
-.rounds i{width:48px;height:48px;border-radius:50%;border:2px solid var(--line-strong);background:var(--raised);font-style:normal;display:grid;place-items:center;font-weight:700;font-size:24px}
-.rounds i.done{background:var(--p3);border-color:var(--p3);color:#fff}
-
-/* 체크리스트 */
-.check{display:flex;flex-direction:column;gap:16px}
-.check label{display:flex;align-items:center;gap:22px;font-size:29px;font-weight:600;cursor:pointer;background:var(--raised);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:16px;padding:12px 22px;min-height:76px}
-.check label{position:relative}.check input{position:absolute;opacity:0;width:1px;height:1px}
-.check input:focus-visible + .bx{outline:4px solid var(--focus);outline-offset:3px}
-.check .bx{width:52px;height:52px;flex:none;border:3px solid var(--line-strong);border-radius:10px;display:grid;place-items:center;background:#fff}
-.check input:checked + .bx{background:var(--navy);border-color:var(--navy)}
-.check input:checked + .bx::after{content:"✔";color:#fff;font-size:32px}
-.check label:has(input:checked){background:var(--navy-tint);border-color:var(--navy)}
-.check small{display:block;font-size:22px;color:var(--soft);font-weight:500}
-
-/* 상단 메뉴 (프랑스혁명 사이트 .menu) */
-#menu{position:absolute;inset:0 0 auto 0;height:var(--menu-h);display:flex;align-items:stretch;justify-content:space-between;
-  padding:0 40px 0 64px;background:var(--paper);border-bottom:1px solid var(--line);z-index:20;transition:opacity .2s}
-#menu.hide{opacity:0;pointer-events:none}
-.brand{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-weight:700;font-size:22px}
-.brand svg{width:30px;height:30px}
-.mlist{display:flex;align-items:stretch}
-.mi{position:relative;display:flex;align-items:center;gap:9px;padding:0 18px;font-size:22px;font-weight:600;color:var(--soft);background:none;border:0;font-family:var(--sans);cursor:pointer}
-.mi .key{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:6px;border:2px solid var(--line);font-size:18px;font-weight:700}
-.mi.cur{color:var(--navy);font-weight:700}
-.mi.cur .key{background:var(--navy);border-color:var(--navy);color:var(--paper)}
-.mi.cur::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:4px;background:var(--navy);border-radius:2px 2px 0 0}
-.tools-r{display:flex;align-items:center;gap:8px}
-.tb{height:52px;padding:0 16px;border-radius:8px;border:2px solid var(--line);background:var(--raised);font:600 19px var(--sans);color:var(--soft);cursor:pointer}
-.tb.on{border-color:var(--navy);color:var(--navy);background:var(--navy-tint)}
-
-/* 진행 표시 + 터치 넘김 */
-#progress{position:absolute;right:24px;bottom:10px;z-index:20;display:flex;align-items:center;gap:10px}
-#progress .pill{height:40px;padding:0 16px;border-radius:999px;background:rgb(245 239 224/.9);display:flex;align-items:center;gap:12px;
-  font:500 20px var(--sans);font-variant-numeric:tabular-nums;color:var(--soft)}
-#bar{width:120px;height:5px;border-radius:999px;background:var(--line);overflow:hidden}
-#bar i{display:block;height:100%;background:var(--navy);transition:width .2s}
-.nb{width:60px;height:60px;border-radius:10px;border:2px solid var(--navy);background:var(--raised);color:var(--navy);font-size:26px;cursor:pointer;display:grid;place-items:center}
-.nb.pri{background:var(--navy);color:#fff}
-.nb:active{transform:translateY(1px)}
-.edge{position:absolute;top:var(--menu-h);bottom:80px;width:64px;z-index:15;cursor:pointer}
-.edge.l{left:0}.edge.r{right:0}
-#hint{position:absolute;left:64px;bottom:20px;font:500 20px var(--sans);color:var(--soft);z-index:20;opacity:.8}
-#hint kbd{font:inherit;font-weight:700;padding:0 6px;border:1px solid var(--line-strong);border-radius:4px}
-html.cursor-hidden #hint{opacity:.55}
-#notes{position:fixed;left:0;right:auto;width:68vw;bottom:0;border-top-right-radius:14px;background:#1C1A17f0;color:#F5EFE0;padding:18px 28px 22px;font-size:22px;line-height:1.65;display:none;z-index:50;max-height:40vh;overflow:auto;user-select:text}
-#notes.show{display:block}
-#notes b{color:#FFD27A;font-weight:700;display:block;margin-bottom:4px}
-:focus{outline:none}:focus-visible{outline:4px solid var(--focus);outline-offset:3px}
-@media print{
-  html,body{overflow:visible;height:auto}
-  #viewport{position:static;display:block}
-  #deck{transform:none!important;height:auto;overflow:visible}
-  .slide{display:flex!important;position:relative;height:900px;page-break-after:always;animation:none;background:var(--paper)}
-  #menu,#progress,#notes,#hint,.edge{display:none!important}
-  .slide{padding-top:56px}
-  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .slide:last-of-type{page-break-after:auto}
-  @page{size:1600px 900px;margin:0}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px;min-height:100%;-webkit-tap-highlight-color:transparent}
+.hero{display:flex;align-items:center;gap:22px;margin-bottom:18px}
+.hero svg{width:150px;height:140px;flex:none}
+h1{font:900 clamp(34px,5.4vw,64px)/1.15 var(--serif)}
+h1 b{color:var(--red)}
+.sub{font:600 clamp(17px,2vw,24px) var(--sans);color:var(--soft);margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;width:min(1400px,100%);margin-top:26px}
+.ver{position:relative;display:flex;flex-direction:column;gap:8px;text-decoration:none;color:var(--ink);background:var(--raised);border:2px solid var(--line);border-radius:18px;padding:26px 22px 22px;box-shadow:0 2px 0 rgba(0,0,0,.04),0 6px 18px rgba(70,55,30,.08);transition:transform .15s,border-color .15s,box-shadow .15s;min-height:300px}
+.ver:hover,.ver:focus-visible{transform:translateY(-3px);border-color:var(--c);box-shadow:0 10px 26px rgba(70,55,30,.16);outline:none}
+.ver:focus-visible{outline:4px solid var(--focus);outline-offset:3px}
+.ver .ic{width:76px;height:76px;background:var(--bg);border-radius:50%;padding:8px;border:2px solid var(--c)}
+.ver .nm{font:900 32px var(--serif);color:var(--c);margin-top:6px}
+.ver .tg{font:700 17px var(--sans);color:var(--soft)}
+.ver .ds{font:500 18px/1.5 var(--sans);flex:1}
+.ver .go{align-self:flex-start;font:700 19px var(--sans);color:#fff;background:var(--c);border-radius:10px;padding:10px 18px;margin-top:6px}
+.ver .key{position:absolute;top:16px;right:18px;display:inline-grid;place-items:center;width:34px;height:34px;border-radius:8px;border:2px solid var(--line);font:700 18px var(--sans);color:var(--soft);background:#fff}
+.ver .last{display:none;position:absolute;top:-13px;left:18px;background:var(--yellow);border:1px solid #E3CC6A;border-radius:999px;padding:3px 12px;font:700 14px var(--sans)}
+.ver.is-last .last{display:block}
+.foot{margin-top:22px;font:500 16px var(--sans);color:var(--soft);text-align:center;line-height:1.7}
+.foot a{color:var(--navy);font-weight:700}
+.foot .k{display:inline-block;font-weight:700;font-size:.85em;background:#fff;border:2px solid var(--line);border-bottom-width:4px;border-radius:7px;padding:0 8px;margin:0 2px}
+@media (max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){
+  body{padding:16px 12px;justify-content:flex-start}
+  .hero{gap:10px;margin-bottom:4px}.hero svg{width:72px;height:68px}
+  h1{font-size:28px}.sub{font-size:15px;margin-top:4px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+  .ver{min-height:0;padding:16px 12px 14px;gap:5px;border-radius:14px}
+  .ver .ic{width:48px;height:48px;padding:5px}
+  .ver .nm{font-size:22px;margin-top:2px}
+  .ver .tg{font-size:13px;line-height:1.35}
+  .ver .ds{font-size:13px;line-height:1.45}
+  .ver .go{font-size:15px;padding:8px 12px;align-self:stretch;text-align:center}
+  .ver .key{display:none}
+  .ver .last{font-size:12px;top:-11px;left:10px;padding:2px 9px}
+  .foot{font-size:13px;margin-top:16px}.foot .kb{display:none}
+}
+@media (max-width:370px){h1{font-size:24px}.hero svg{width:56px;height:52px}.ver .nm{font-size:20px}}
+h1,.sub,.ver .tg,.ver .ds{word-break:keep-all}
+/* === 2026-10 고도화 === */
+html,body{height:auto}
+body{min-height:100vh}
+.ver{border-top:8px solid var(--c)}
+.ver:active{transform:translateY(1px);border-color:var(--c)}
+.ver[data-ver="elementary"]{--c:#3A7D44!important;--bg:#E2EEDF!important}
+.ver[data-ver="middle"]{--c:#7A5A00!important;--bg:#F5ECCB!important}
+.ver[data-ver="high"]{--c:#6B4423!important;--bg:#EFE3D6!important}
+@media (max-width:560px){
+  .ver{border-top-width:6px}
+  .ver .nm{font-size:24px}
+  .ver .tg{font-size:14px}
+  .ver .ds{font-size:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .ver .go{min-height:44px;display:grid;place-items:center;font-size:16px}
+}
+/* === 인트로 글 (2026-10-30) === */
+.lead{width:min(860px,100%);margin-top:6px;text-align:center;font:500 clamp(17px,1.5vw,20px)/1.65 var(--sans);color:var(--ink);word-break:keep-all}
+.lead b{color:var(--red);font-weight:800}
+.about{width:min(1400px,100%);margin-top:24px;background:var(--raised);border:2px solid var(--line);border-radius:18px}
+.about>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;padding:12px 20px;font:700 19px var(--sans);color:var(--navy);border-radius:16px}
+.about>summary::-webkit-details-marker{display:none}
+.about>summary::before{content:"+";display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--yellow);color:var(--ink);font:800 22px/1 var(--sans);border:1px solid #E3CC6A}
+.about[open]>summary::before{content:"−"}
+.about>summary:hover{background:#F3ECDA}
+.about>summary:focus-visible{outline:4px solid var(--focus);outline-offset:3px}
+.about-body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding:6px 22px 22px;border-top:2px dashed var(--line)}
+.about-body section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px 18px}
+.about-body h2{font:900 21px/1.3 var(--serif);color:var(--ink);margin-bottom:8px}
+.about-body h2 span{color:var(--red)}
+.about-body p,.about-body li{font:500 16.5px/1.6 var(--sans);color:var(--ink);word-break:keep-all}
+.about-body p+p{margin-top:6px}
+.about-body ul,.about-body ol{padding-left:0;list-style:none}
+.about-body li{position:relative;padding-left:18px;margin-top:4px}
+.about-body ul li::before{content:"";position:absolute;left:3px;top:.68em;width:7px;height:7px;border-radius:50%;background:var(--red)}
+.about-body .steps li{padding-left:36px;margin-top:7px}
+.about-body .steps li span{position:absolute;left:0;top:1px;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font:800 15px var(--sans)}
+.about-body .wide{grid-column:1/-1}
+.about-body .k{display:inline-block;font-weight:700;font-size:.85em;background:#fff;border:2px solid var(--line);border-bottom-width:4px;border-radius:7px;padding:0 7px;margin:0 2px;line-height:1.5}
+.about-body .thanks{background:#FFF7D6;border-color:#E3CC6A;text-align:center}
+.about-body .thanks p{color:var(--soft)}
+.about-body a{color:var(--navy);font-weight:700}
+@media (max-width:1000px){.about-body{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){
+  .lead{font-size:14.5px;line-height:1.6;margin-top:10px;text-align:left}
+  .lead .more{display:none}
+  .about{margin-top:16px;border-radius:14px}
+  .about>summary{font-size:16px;min-height:48px;padding:8px 12px}
+  .about>summary::before{width:26px;height:26px;font-size:19px}
+  .about-body{grid-template-columns:minmax(0,1fr);gap:10px;padding:4px 10px 12px}
+  .about-body section{padding:12px 13px 14px}
+  .about-body h2{font-size:18px;margin-bottom:5px}
+  .about-body p,.about-body li{font-size:14.5px;line-height:1.55}
+  .about-body .steps li span{width:22px;height:22px;font-size:13px}
+  .about-body .steps li{padding-left:30px}
+  .about-body .kb{display:none}
 }
 </style>
 </head>
 <body>
-
-<!-- 공용 그림 -->
-<svg width="0" height="0" style="position:absolute">
-  <defs>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
     <!-- 예시 도안: 고양이 -->
     <symbol id="cat" viewBox="0 0 200 200">
       <path d="M42 80 L54 26 L88 56 Q100 53 112 56 L146 26 L158 80 Q172 108 158 140 Q140 176 100 176 Q60 176 42 140 Q28 108 42 80Z" fill="none" style="stroke:var(--cat,#111)" stroke-width="13" stroke-linejoin="round"/>
@@ -334,13 +157,13 @@ html.cursor-hidden #hint{opacity:.55}
     </symbol>
     <linearGradient id="gGray" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7E8186"/><stop offset=".3" stop-color="#D5D7DA"/><stop offset=".6" stop-color="#A9ACB1"/><stop offset="1" stop-color="#6C6F74"/></linearGradient>
     <linearGradient id="gHole" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1E2024"/><stop offset="1" stop-color="#4A4D53"/></linearGradient>
-    <!-- 도장 손잡이 (민트 손잡이 · 회색 받침 · 아래 패드 자리) -->
+    <!-- 스탬프 본체 (민트색 스탬프 본체 · 회색 받침 · 아래 패드 자리) -->
     <symbol id="stampH" viewBox="180 -104 240 342"><path d="M265 70 C258 30 226 2 226 -50 C226 -90 252 -98 300 -98 C348 -98 374 -90 374 -50 C374 2 342 30 335 70Z" fill="url(#gWood)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M229 -60 Q300 -50 371 -60" fill="none" stroke="#136A63" stroke-width="3"/><path d="M246 -80 Q236 -40 252 -6" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".45" fill="none"/><rect x="268" y="66" width="64" height="58" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/><rect x="256" y="80" width="88" height="24" rx="4" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/><path d="M264 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M272 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M280 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M288 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M296 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M304 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M312 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M320 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M328 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M336 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M190 206 V156 Q190 124 236 120 H364 Q410 124 410 156 V206Z" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M244 122 L236 204 M300 120 V204 M356 122 L364 204" stroke="#7C7F84" stroke-width="2" opacity=".6"/><rect x="186" y="202" width="228" height="32" rx="6" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M212 234 V202 Q212 196 218 196 H382 Q388 196 388 202 V234" fill="url(#gHole)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></symbol>
     <symbol id="stampP" viewBox="180 -104 240 346"><path d="M265 70 C258 30 226 2 226 -50 C226 -90 252 -98 300 -98 C348 -98 374 -90 374 -50 C374 2 342 30 335 70Z" fill="url(#gWood)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M229 -60 Q300 -50 371 -60" fill="none" stroke="#136A63" stroke-width="3"/><path d="M246 -80 Q236 -40 252 -6" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".45" fill="none"/><rect x="268" y="66" width="64" height="58" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/><rect x="256" y="80" width="88" height="24" rx="4" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/><path d="M264 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M272 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M280 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M288 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M296 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M304 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M312 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M320 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M328 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M336 83 V101" stroke="#6F7277" stroke-width="2"/><path d="M190 206 V156 Q190 124 236 120 H364 Q410 124 410 156 V206Z" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M244 122 L236 204 M300 120 V204 M356 122 L364 204" stroke="#7C7F84" stroke-width="2" opacity=".6"/><rect x="186" y="202" width="228" height="32" rx="6" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M212 234 V202 Q212 196 218 196 H382 Q388 196 388 202 V234" fill="url(#gHole)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="215" y="208" width="170" height="30" rx="2" fill="url(#gRub)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></symbol>
-    <!-- 까만 동그란 고무판 -->
+    <!-- 까만 동그란 고무패드 -->
     <symbol id="pad" viewBox="0 0 200 130" preserveAspectRatio="none"><path d="M8 50 V74 A92 34 0 0 0 192 74 V50Z" fill="url(#gRubSide)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4" vector-effect="non-scaling-stroke"/><ellipse cx="100" cy="50" rx="92" ry="34" fill="url(#gRubTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4" vector-effect="non-scaling-stroke"/><path d="M40 34 Q80 20 128 22" fill="none" stroke="#fff" stroke-width="3" opacity=".25" stroke-linecap="round" vector-effect="non-scaling-stroke"/></symbol>
     <!-- 빨간 팝핑 머신 -->
-    <symbol id="machine" viewBox="20 10 410 400"><ellipse cx="225" cy="392" rx="200" ry="14" fill="#1C1A17" opacity=".14"/><g filter="url(#sh)"><path d="M40 92 L360 92 L410 58 L90 58Z" fill="url(#gRedTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M360 92 L410 58 L410 348 L360 382Z" fill="url(#gRedSide)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><rect x="40" y="92" width="320" height="290" rx="10" fill="url(#gRed)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M48 100 H352" stroke="#fff" stroke-width="3" opacity=".35" stroke-linecap="round"/><path d="M196 80 C192 30 262 18 300 58" fill="none" stroke="#1C1A17" stroke-width="22" stroke-linecap="round"/><path d="M204 72 C204 40 252 30 282 54" fill="none" stroke="#5A5C63" stroke-width="5" stroke-linecap="round"/><rect x="56" y="108" width="288" height="150" rx="8" fill="url(#gPanel)" stroke="#000" stroke-width="2"/><rect x="72" y="122" width="114" height="56" rx="4" fill="#1A0605" stroke="#000" stroke-width="2"/><text x="178" y="166" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-weight="700" font-size="44" fill="#3A0E0C">888</text><text class="" x="178" y="166" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-weight="700" font-size="44" fill="#FF4436" filter="url(#glow)">360</text><circle cx="202" cy="132" r="4" fill="#FF4436"/><circle cx="202" cy="148" r="4" fill="#55575E"/><circle cx="202" cy="164" r="4" fill="#55575E"/><rect x="232" y="122" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><path d="M252 130 l-6 9 h12z" fill="#444"/><rect x="282" y="122" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><rect x="232" y="156" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><path d="M252 175 l-6 -9 h12z" fill="#444"/><rect x="282" y="156" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><text x="302" y="175" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="800" font-size="11" fill="#333">start</text><text x="200" y="234" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="19" fill="#fff" opacity=".85">Popping Machine</text><rect x="56" y="262" width="288" height="30" fill="#17181B"/><rect x="78" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="130" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="182" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="234" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="286" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="56" y="298" width="288" height="72" rx="6" fill="url(#gRed)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M62 304 H338" stroke="#fff" stroke-width="2" opacity=".3"/><rect x="150" y="326" width="100" height="16" rx="8" fill="url(#gKey)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="2.5"/></g></symbol>
+    <symbol id="machine" viewBox="20 10 410 400"><ellipse cx="225" cy="392" rx="200" ry="14" fill="#1C1A17" opacity=".14"/><g filter="url(#sh)"><path d="M40 92 L360 92 L410 58 L90 58Z" fill="url(#gRedTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M360 92 L410 58 L410 348 L360 382Z" fill="url(#gRedSide)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><rect x="40" y="92" width="320" height="290" rx="10" fill="url(#gRed)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M48 100 H352" stroke="#fff" stroke-width="3" opacity=".35" stroke-linecap="round"/><path d="M196 80 C192 30 262 18 300 58" fill="none" stroke="#1C1A17" stroke-width="22" stroke-linecap="round"/><path d="M204 72 C204 40 252 30 282 54" fill="none" stroke="#5A5C63" stroke-width="5" stroke-linecap="round"/><rect x="56" y="108" width="288" height="150" rx="8" fill="url(#gPanel)" stroke="#000" stroke-width="2"/><rect x="72" y="122" width="114" height="56" rx="4" fill="#1A0605" stroke="#000" stroke-width="2"/><text x="178" y="166" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-weight="700" font-size="44" fill="#3A0E0C">888</text><text class="" x="178" y="166" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-weight="700" font-size="44" fill="#FF4436" filter="url(#glow)">380</text><circle cx="202" cy="132" r="4" fill="#FF4436"/><circle cx="202" cy="148" r="4" fill="#55575E"/><circle cx="202" cy="164" r="4" fill="#55575E"/><rect x="232" y="122" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><path d="M252 130 l-6 9 h12z" fill="#444"/><rect x="282" y="122" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><rect x="232" y="156" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><path d="M252 175 l-6 -9 h12z" fill="#444"/><rect x="282" y="156" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><text x="302" y="175" text-anchor="middle" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-weight="800" font-size="11" fill="#333">start</text><text x="200" y="234" text-anchor="middle" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-weight="700" font-size="19" fill="#fff" opacity=".85">Popping Machine</text><rect x="56" y="262" width="288" height="30" fill="#17181B"/><rect x="78" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="130" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="182" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="234" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="286" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="56" y="298" width="288" height="72" rx="6" fill="url(#gRed)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M62 304 H338" stroke="#fff" stroke-width="2" opacity=".3"/><rect x="150" y="326" width="100" height="16" rx="8" fill="url(#gKey)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="2.5"/></g></symbol>
     <!-- 작은 아이콘 -->
     <symbol id="e-search" viewBox="0 0 32 32"><circle cx="13" cy="13" r="8.5" fill="#DCEBF5" stroke="#1C1A17" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><path d="M19.5 19.5 L27 27" stroke="#1C1A17" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-width="4"/><path d="M9 9 q3 -3 7 -3" stroke="#fff" stroke-width="2" fill="none" opacity=".6" stroke-linecap="round"/></symbol>
     <symbol id="e-next" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#1F3A6B" stroke="#1C1A17" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><path d="M11 16 H21 M17 11 L22 16 L17 21" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -375,1262 +198,129 @@ html.cursor-hidden #hint{opacity:.55}
     <symbol id="tb-penc" viewBox="0 0 24 24"><path d="M4 20 L6 14 L16 4 L20 8 L10 18Z" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
     <symbol id="tb-text" viewBox="0 0 24 24"><path d="M5 5h14M12 5v15" stroke="currentColor" stroke-width="3" fill="none"/></symbol>
     <symbol id="cursor" viewBox="0 0 40 40"><path d="M6 3 L6 33 L14 25 L20 37 L25 35 L19 23 L30 23Z" fill="#fff" stroke="#1C1A17" stroke-width="3" stroke-linejoin="round"/></symbol>
-  </defs>
-</svg>
-
-<div id="viewport"><div id="deck">
-
-<!-- 1. 표지 -->
-<section class="slide cover" data-notes="오늘은 내가 그린 그림이 진짜 도장이 되는 '팝도장'을 만들어요. 그림 그리기 → 기계로 굽기 → 잉크 넣기 → 쾅! 찍기, 네 단계예요. 다 만들면 내 이름이나 그림을 공책, 편지, 상자에 찍을 수 있어요.">
-  <svg width="300" height="230" viewBox="0 0 300 230" style="margin-bottom:10px">
-    <g transform="rotate(-8 150 115)">
-      <circle cx="150" cy="115" r="98" fill="none" stroke="#A8322D" stroke-width="12"/>
-      <circle cx="150" cy="115" r="80" fill="none" stroke="#A8322D" stroke-width="4" stroke-dasharray="6 8"/>
-      <use href="#cat" x="95" y="56" width="110" height="110" style="filter:none" opacity=".92"/>
-    </g>
+  </defs></svg>
+<header class="hero">
+  <svg viewBox="0 0 300 280" aria-hidden="true">
+    <use href="#machine" x="0" y="20" width="200" height="196"/>
+    <use href="#stampP" x="200" y="88" width="96" height="140" filter="url(#sh)"/>
+    <g transform="translate(150 256) rotate(-6)"><ellipse rx="60" ry="16" fill="none" stroke="#A8322D" stroke-width="5"/></g>
   </svg>
-  <h1>나만의 <span class="red">팝도장</span> 만들기</h1>
-  <p>내가 그린 그림이 진짜 도장이 돼요!</p>
-  <div class="road">
-    <div class="st now"><div class="ic" style="background:var(--p1l)"><svg><use href="#i-pen"/></svg></div>도안 만들기</div><div class="dash"></div>
-    <div class="st now"><div class="ic" style="background:var(--p2l)"><svg><use href="#i-fire"/></svg></div>굽기</div><div class="dash"></div>
-    <div class="st now"><div class="ic" style="background:var(--p3l)"><svg><use href="#i-drop"/></svg></div>잉크 충전</div><div class="dash"></div>
-    <div class="st now"><div class="ic"><svg><use href="#i-stamp"/></svg></div>쾅! 찍기</div>
+  <div>
+    <h1>나만의 <b>팝도장</b> 만들기</h1>
+    <p class="sub">누구와 함께하나요? 버전을 골라 시작해요</p>
   </div>
-</section>
-
-<!-- 도장 이야기 -->
-<section class="slide" data-notes="도장은 '이건 내 거야', '내가 확인했어'를 알려 주는 오래된 발명품이에요. 5,000년도 더 전에 메소포타미아 사람들은 무늬를 새긴 돌기둥을 젖은 진흙 위에 굴려서 찍었어요. 조선의 임금님과 왕비에게도 '어보'라는 금빛 도장이 있었고, 지금은 유네스코 세계기록유산이에요. 150년쯤 전에는 고무를 단단하게 만드는 방법이 생기면서 고무 도장이 나왔어요. 오늘은 잉크 패드가 없어도 찍히는, 빛으로 굽는 최신 도장을 만들어 봐요. [질문] 도장이 없으면 어떤 점이 불편할까요? 돌 → 고무 → 빛, 무엇이 바뀌었을까요?">
-  <span class="tag t0"><i>?</i>도장 이야기</span>
-  <h2>도장은 <span class="hi">5,000년</span>도 넘게 쓰였어요 <small>“이건 내 거야!”를 알려 주는 오래된 발명품</small></h2>
-  <div style="flex:1;display:flex;align-items:center"><svg viewBox="50 56 1340 340" style="width:100%">
-      <path d="M90 300 H1350" stroke="#D9CFB8" stroke-width="8" stroke-linecap="round"/>
-      <g font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" text-anchor="middle">
-      <!-- 원통 인장 -->
-      <g transform="translate(200 0)">
-        <ellipse cx="0" cy="250" rx="130" ry="14" fill="#1C1A17" opacity=".12"/>
-        <g filter="url(#sh)"><path d="M-120 210 L100 210 L130 186 L-90 186Z" fill="url(#gClay)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="-120" y="210" width="220" height="26" fill="#A86C42" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g>
-        <g opacity=".55" stroke="#7A4A28" stroke-width="3" fill="none"><path d="M-96 200 h20 m10 0 h22 m10 0 h18"/><path d="M-86 194 l8 -6 l8 6 m14 0 l8 -6 l8 6"/></g>
-        <g filter="url(#sh)"><rect x="30" y="110" width="60" height="96" rx="8" fill="url(#gStone)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/><ellipse cx="60" cy="110" rx="30" ry="9" fill="#EFE4CD" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-          <g stroke="#7A6440" stroke-width="2.5" fill="none" opacity=".8"><path d="M40 136 h40 M40 156 l10 -8 l10 8 l10 -8 l10 8 M40 178 h40"/></g></g>
-        <path d="M-10 130 q-30 -30 -10 -60" stroke="#B5652A" stroke-width="4" fill="none" marker-end="url(#ar)"/>
-        <circle cx="0" cy="300" r="14" fill="#B5652A" stroke="#fff" stroke-width="4"/>
-        <text x="0" y="350" font-size="30" fill="#8A4A1C">5,000년 전</text><text x="0" y="386" font-size="26" fill="#1C1A17">굴려 찍는 돌 도장</text>
-      </g>
-      <!-- 어보 -->
-      <g transform="translate(550 0)">
-        <ellipse cx="0" cy="250" rx="100" ry="14" fill="#1C1A17" opacity=".12"/>
-        <g filter="url(#sh)">
-          <path d="M-70 180 L60 180 L90 160 L-40 160Z" fill="#FBE59A" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M60 180 L90 160 L90 214 L60 236Z" fill="#9C6B12" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="-70" y="180" width="130" height="56" fill="url(#gGold)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-          <path d="M-46 166 C-46 110 66 110 66 166Z" fill="url(#gGold)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/>
-          <g stroke="#8A5C0E" stroke-width="2.5" fill="none" opacity=".75"><path d="M-14 128 l12 -8 l12 8 v14 l-12 8 l-12 -8z M10 128 l12 -8 l12 8 v14 l-12 8 l-12 -8z M-28 150 h86"/></g>
-          <path d="M66 150 C86 146 98 132 92 120 C86 110 72 116 70 128" fill="url(#gGold)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/><circle cx="86" cy="124" r="2.5" fill="#1C1A17"/>
-        </g>
-        <circle cx="0" cy="300" r="14" fill="#B5652A" stroke="#fff" stroke-width="4"/>
-        <text x="0" y="350" font-size="30" fill="#8A4A1C">조선</text><text x="0" y="386" font-size="26" fill="#1C1A17">임금님 도장 ‘어보’</text>
-      </g>
-      <!-- 고무 도장 -->
-      <g transform="translate(900 0)">
-        <ellipse cx="0" cy="250" rx="90" ry="14" fill="#1C1A17" opacity=".12"/>
-        <g filter="url(#sh)">
-          <path d="M-18 150 C-30 120 -26 92 0 92 C26 92 30 120 18 150Z" fill="url(#gBrown)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/>
-          <rect x="-70" y="150" width="140" height="44" rx="6" fill="url(#gBrown)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/>
-          <rect x="-64" y="194" width="128" height="16" rx="3" fill="#B23A2F" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-          <path d="M-8 100 q-6 20 0 44" stroke="#fff" stroke-width="5" opacity=".35" fill="none" stroke-linecap="round"/>
-        </g>
-        <circle cx="0" cy="300" r="14" fill="#B5652A" stroke="#fff" stroke-width="4"/>
-        <text x="0" y="350" font-size="30" fill="#8A4A1C">약 150년 전</text><text x="0" y="386" font-size="26" fill="#1C1A17">고무 도장</text>
-      </g>
-      <!-- 팝도장 -->
-      <g transform="translate(1240 0)">
-        <use href="#machine" x="-120" y="70" width="170" height="166"/>
-        <use href="#stampP" x="46" y="92" width="68" height="132" filter="url(#sh)"/>
-        <circle cx="0" cy="300" r="18" fill="#A8322D" stroke="#fff" stroke-width="4"/>
-        <text x="0" y="350" font-size="30" fill="#A8322D">지금</text><text x="0" y="386" font-size="26" fill="#1C1A17">빛으로 굽는 팝도장!</text>
-      </g>
-      </g>
-    </svg></div>
-</section>
-
-<!-- 2. 팝도장의 비밀 -->
-<section class="slide" data-notes="팝도장은 칼로 깎지 않고 '빛'으로 만들어요. 까만 고무판에는 머리카락보다 훨씬 가는 구멍이 아주 많아요. 기계가 '펑' 하고 아주 센 빛을 쏘면, 빛을 받은 고무 표면이 순간 뜨거워져 살짝 녹으면서 구멍이 막혀요. 그런데 까만 그림이 있는 곳은 빛이 가려져서 구멍이 그대로 남아요. 그래서 잉크는 까만 그림 자리로만 스며 나와요. 까만 곳 = 찍히는 곳! [질문] 그럼 회색으로 그리면 어떻게 될까요? 빛을 반만 막아서 구멍도 반쯤 막혀요.">
-  <span class="tag t0"><i>?</i>팝도장의 비밀</span>
-  <h2>칼로 깎지 않고, <span class="hi">빛으로 구워요</span> <small>구멍 = 잉크가 지나가는 아주 작은 길</small></h2>
-  <div class="cols" style="grid-template-columns:1.2fr .8fr">
-    <svg viewBox="0 0 760 470">
-      <rect x="180" y="10" width="400" height="48" rx="24" fill="url(#gLamp)" stroke="#1C1A17" stroke-width="5" filter="url(#sh)"/>
-      <text x="380" y="44" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="28" fill="#5A3F7A">아주 센 빛 (펑!)</text>
-      <g stroke="#8F5BEA" stroke-width="6" stroke-linecap="round" marker-end="url(#arUV)">
-        <path d="M230 72 L230 190"/><path d="M300 72 L300 190"/><path d="M370 72 L370 186"/><path d="M440 72 L440 186"/><path d="M510 72 L510 190"/><path d="M580 72 L580 190"/>
-      </g>
-      <ellipse cx="400" cy="398" rx="290" ry="14" fill="#4A3B22" opacity=".14"/>
-      <g filter="url(#sh)">
-        <path d="M120 270 L640 270 L690 228 L170 228Z" fill="url(#gRubTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="5"/>
-        <path d="M320 270 L470 270 L520 228 L370 228Z" fill="#F3E2C2" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-        <path d="M640 270 L690 228 L690 348 L640 390Z" fill="url(#gRubSide)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="5"/>
-        <rect x="120" y="270" width="520" height="120" fill="url(#gRub)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="5"/>
-        <rect x="320" y="270" width="150" height="120" fill="url(#gSoft)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="5"/>
-        <path d="M326 266 L464 266 L512 232 L374 232Z" fill="#111"/><path d="M326 266 L464 266 L464 258 L326 258Z" fill="#000"/>
-      </g>
-      <g fill="#E0B97A"><circle cx="345" cy="300" r="10"/><circle cx="380" cy="330" r="13"/><circle cx="430" cy="300" r="9"/><circle cx="445" cy="355" r="12"/><circle cx="350" cy="360" r="9"/><circle cx="405" cy="370" r="7"/><circle cx="410" cy="295" r="6"/></g>
-      <path d="M600 200 Q560 196 522 236" fill="none" stroke="#1C1A17" stroke-width="3" marker-end="url(#ar)"/>
-      <text x="606" y="178" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="24" fill="#1C1A17">검은 그림이</text>
-      <text x="606" y="208" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="24" fill="#1C1A17">빛을 막아요</text>
-      <text x="215" y="330" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#fff">구멍 막힘</text>
-      <text x="560" y="330" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#fff">구멍 막힘</text>
-      <text x="215" y="372" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22" fill="#fff">잉크 ✕</text>
-      <text x="560" y="372" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22" fill="#fff">잉크 ✕</text>
-      <text x="395" y="440" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#B5652A">구멍이 그대로 → 잉크가 나와요</text>
-    </svg>
-    <div class="card" style="background:var(--sky)">
-      <p style="font-size:34px;font-family:var(--sans);font-weight:700">그래서 도안은...</p>
-      <p style="font-size:42px;font-family:var(--sans);font-weight:700;line-height:1.35;margin-top:8px"><span class="hi">까만 곳</span> = 찍히는 곳<br><span style="background:#fff;padding:0 6px;border:2px solid #bbb">하얀 곳</span> = 안 찍히는 곳</p>
-    </div>
-  </div>
-</section>
-
-<!-- 3. 도안 약속 3가지 -->
-<section class="slide" data-notes="도안을 그릴 때 꼭 지킬 약속 세 가지예요. 첫째, 회색이나 색깔 말고 새까만 검정만 써요. 회색은 빛을 반만 막아서 잉크가 잘 안 들어가요. 둘째, 선은 굵게! 너무 얇은 선은 도장에서 사라져요. 셋째, 작은 무늬를 많이 넣거나 안을 꽉 칠하지 말고, 선으로 단순하게 그려요. 넓게 칠한 곳은 얼룩덜룩하게 찍혀요. 도장은 생각보다 작아요. [질문] 다음 쪽 퀴즈에서 잘 나올 도안을 골라 볼까요?">
-  <span class="tag t1"><i>★</i>도안 약속</span>
-  <h2>멋진 도장을 위한 <span class="hi">약속 3가지</span></h2>
-  <div class="row" style="flex:1;align-items:stretch;margin-top:20px">
-    <div class="card" style="flex:1;text-align:center">
-      <div class="jua" style="font-size:44px;color:var(--p1)">① 새까만 검정만</div>
-      <svg viewBox="0 0 300 175" style="width:100%;margin:16px 0">
-        <circle cx="80" cy="68" r="44" fill="none" stroke="#9A9A9A" stroke-width="14"/><text x="80" y="168" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22">회색 ✕</text>
-        <path d="M45 35 L115 105 M115 35 L45 105" stroke="#A8322D" stroke-width="10" stroke-linecap="round"/>
-        <circle cx="220" cy="68" r="44" fill="none" stroke="#111" stroke-width="14"/><text x="220" y="168" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22">검정 ○</text>
-        <circle cx="220" cy="68" r="64" fill="none" stroke="#2E5D6B" stroke-width="6"/>
-      </svg>
-      <p>색깔·회색은 잉크가<br>잘 안 들어가요</p>
-    </div>
-    <div class="card" style="flex:1;text-align:center">
-      <div class="jua" style="font-size:44px;color:var(--p1)">② 선은 굵게</div>
-      <svg viewBox="0 0 300 175" style="width:100%;margin:16px 0">
-        <path d="M30 50 Q90 10 150 50 T270 50" stroke="#000" stroke-width="2" fill="none"/>
-        <text x="285" y="58" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22" fill="#A8322D" text-anchor="end">✕</text>
-        <path d="M30 112 Q90 72 150 112 T270 112" stroke="#000" stroke-width="14" fill="none" stroke-linecap="round"/>
-        <text x="150" y="168" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22" fill="#2E5D6B">사인펜 굵기 이상 ○</text>
-      </svg>
-      <p>얇은 선은 도장에서<br>사라져 버려요</p>
-    </div>
-    <div class="card" style="flex:1;text-align:center">
-      <div class="jua" style="font-size:44px;color:var(--p1)">③ 선으로 단순하게</div>
-      <svg viewBox="0 0 300 175" style="width:100%;margin:16px 0">
-        <g transform="translate(20 15)"><rect width="110" height="110" fill="#eee" stroke="#999"/>
-          <g stroke="#555" stroke-width="1.5"><path d="M10 20h90M10 35h90M10 50h90M10 65h90M10 80h90M10 95h90M20 10v90M40 10v90M60 10v90M80 10v90"/></g></g>
-        <path d="M30 30 L120 120 M120 30 L30 120" stroke="#A8322D" stroke-width="9" stroke-linecap="round"/>
-        <use href="#cat" x="170" y="15" width="115" height="115"/>
-      </svg>
-      <p>작은 무늬·꽉 칠하기는 빼고<br>선으로 크게!</p>
-    </div>
-  </div>
-</section>
-
-<!-- 퀴즈 1 -->
-<section class="slide" data-notes="퀴즈! 넷 중에 도장으로 가장 잘 나올 도안은 어느 것일까요? 손가락으로 하나씩 골라 보세요. 카드를 누르면 정답과 이유가 나와요. 정답은 굵은 선 하트! 회색은 빛을 반만 막아서 잉크가 잘 안 들어가고, 얇은 선은 굽는 동안 사라져요. 안을 꽉 채운 하트는 넓은 면에 잉크가 고르게 묻지 않아서 얼룩덜룩하게 찍혀요. 굵은 선으로 된 그림이 가장 또렷하고 예쁘게 나와요.">
-  <span class="tag t1"><i>?</i>도안 퀴즈</span>
-  <h2>어떤 도안이 <span class="hi">잘 찍힐까요?</span> <small>카드를 눌러 정답을 확인해요</small></h2>
-  <div class="quiz">
-    <button class="qo" data-ok="0"><span class="mk">✕</span>
-      <svg viewBox="0 0 200 200"><use href="#cat" x="20" y="20" width="160" height="160" opacity=".38"/></svg>회색 고양이
-      <span class="res">회색은 빛을 반만 막아요<br>→ 잉크가 잘 안 들어가요</span></button>
-    <button class="qo" data-ok="0"><span class="mk">✕</span>
-      <svg viewBox="0 0 200 200"><path d="M100 22l22 50 54 5-41 36 12 53-47-28-47 28 12-53-41-36 54-5z" fill="none" stroke="#111" stroke-width="2"/></svg>얇은 선 별
-      <span class="res">얇은 선은 굽는 동안<br>사라져 버려요</span></button>
-    <button class="qo" data-ok="0"><span class="mk">✕</span>
-      <svg viewBox="0 0 200 200"><path d="M100 172 C40 128 18 96 18 66 C18 40 38 24 60 24 C78 24 92 34 100 50 C108 34 122 24 140 24 C162 24 182 40 182 66 C182 96 160 128 100 172Z" fill="#111"/></svg>꽉 채운 하트
-      <span class="res">넓은 면은 잉크가<br>얼룩덜룩 묻어요</span></button>
-    <button class="qo" data-ok="1"><span class="mk">○</span>
-      <svg viewBox="0 0 200 200"><path d="M100 172 C40 128 18 96 18 66 C18 40 38 24 60 24 C78 24 92 34 100 50 C108 34 122 24 140 24 C162 24 182 40 182 66 C182 96 160 128 100 172Z" fill="none" stroke="#111" stroke-width="16" stroke-linejoin="round"/></svg>굵은 선 하트
-      <span class="res">선이 굵고 또렷해요<br>→ 가장 예쁘게 찍혀요!</span></button>
-  </div>
-</section>
-
-<!-- ===== PART 1 ===== -->
-<section class="slide cover" data-notes="첫 번째 단계, 도안 만들기예요. 도안은 도장에 들어갈 그림이에요. 순서대로 천천히 따라 하면 누구나 할 수 있어요.">
-  <div class="num" style="background:var(--p1)">1단계</div>
-  <h1 style="color:var(--p1)">도안 만들기</h1>
-  <p>도장에 들어갈 그림을 컴퓨터로 만들어요</p>
-  <div class="road">
-    <div class="st now"><div class="ic" style="background:var(--p1l)"><svg><use href="#i-pen"/></svg></div>도안 만들기</div><div class="dash"></div>
-    <div class="st"><div class="ic"><svg><use href="#i-fire"/></svg></div>굽기</div><div class="dash"></div>
-    <div class="st"><div class="ic"><svg><use href="#i-drop"/></svg></div>잉크 충전</div><div class="dash"></div>
-    <div class="st"><div class="ic"><svg><use href="#i-stamp"/></svg></div>쾅! 찍기</div>
-  </div>
-</section>
-
-<!-- 도안 전체 지도 -->
-<section class="slide" data-notes="도안 만들기는 크게 세 덩어리예요. 그림 준비하기(손으로 그리거나 오토드로우), 도안 생성기 사이트에서 도장 모양 만들기, 마지막으로 저장해서 선생님께 보내기. 우리 반은 모두 도안 생성기로 먼저 만들어요. 다 끝낸 친구만 잉크스케이프에 도전해요. 전자칠판은 생성기 화면으로 계속 보여 줄게요. 잉크스케이프 친구는 선생님이 나눠 준 안내 카드(19~27쪽 인쇄본)를 보고 혼자 해 봐요.">
-  <span class="tag t1"><i>1</i>도안 만들기</span>
-  <h2>도안은 이렇게 만들어요 <small>그림 준비 → 도안 생성기 → 선생님께 보내기</small></h2>
-  <div class="row" style="flex:1;align-items:center;gap:26px">
-    <div class="card" style="flex:1;background:var(--p1l)">
-      <div class="jua" style="font-size:40px"><svg class="ei" aria-hidden="true"><use href="#e-crayon"/></svg> 그림 준비</div>
-      <p style="font-size:28px;margin-top:10px">A. 종이에 직접 그리기<br>B. 오토드로우로 그리기<br><span style="color:var(--soft)">C. AI(인공지능)에게 부탁 · 선택</span><br>→ <b>화면 캡처</b></p>
-    </div>
-    <svg width="60" height="40"><path d="M5 20 H50" stroke="#1C1A17" stroke-width="6" marker-end="url(#ar)"/></svg>
-    <div style="flex:1.5;display:flex;flex-direction:column;gap:16px">
-      <div class="card">
-        <div class="jua" style="font-size:38px"><svg class="ei" aria-hidden="true"><use href="#e-monitor"/></svg> 도안 생성기 5단계 <span class="badge-basic">기본</span></div>
-        <p style="font-size:26px;margin-top:8px"><a href="https://happystamp.web.app/" target="happystamp" rel="noopener" class="inlink">happystamp.web.app</a><br>고르기 → 그림 → 흑백 → 글자 → 저장</p>
-      </div>
-      <div class="card adv-card">
-        <div class="jua" style="font-size:30px"><svg class="ei" aria-hidden="true"><use href="#e-puzzle"/></svg> 잉크스케이프 8단계 <span class="badge-adv">심화 · 선택</span></div>
-        <p style="font-size:24px;margin-top:4px">직접 하나하나 만들어 보고 싶은 친구</p>
-      </div>
-    </div>
-    <svg width="60" height="40"><path d="M5 20 H50" stroke="#1C1A17" stroke-width="6" marker-end="url(#ar)"/></svg>
-    <div class="card" style="flex:.9;background:var(--yellow)">
-      <div class="jua" style="font-size:40px"><svg class="ei" aria-hidden="true"><use href="#e-mail"/></svg> 완성!</div>
-      <p style="font-size:28px;margin-top:10px">저장해서<br>선생님께 보내기</p>
-    </div>
-  </div>
-</section>
-
-<!-- 그림 준비 A/B -->
-<section class="slide" data-notes="그림은 두 가지 방법 중 편한 걸로 골라요. A: 흰 종이에 검정 네임펜이나 굵은 사인펜으로 선을 굵고 또렷하게 그려요. 안을 꽉 칠하면 얼룩덜룩하게 찍히니까 선 그림으로 해요. B: 오토드로우(autodraw.com)는 대충 낙서를 하면 컴퓨터가 깔끔한 그림을 찾아 줘요. A를 고른 친구는 모둠 태블릿으로 그림을 찍어 우리 반 제출함에 올려요. 얼굴이나 이름표는 사진에 나오지 않게 해요. 그다음 컴퓨터에서 제출함의 내 사진을 내려받아 도안 생성기 [그림 넣기] 칸에 끌어다 놓아요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 그림 준비</span>
-  <h2>그림 준비는 <span class="hi">둘 중 하나</span>를 골라요</h2>
-  <div class="cols">
-    <div class="card" style="height:100%">
-      <div class="jua" style="font-size:48px;color:var(--p1)">A. 종이에 직접 그리기</div>
-      <svg viewBox="0 0 520 222" style="width:100%;margin:12px 0">
-        <rect x="20" y="20" width="200" height="170" rx="6" fill="#fff" stroke="#1C1A17" stroke-width="4"/>
-        <use href="#cat" x="55" y="40" width="130" height="130"/>
-        <g transform="translate(225 40) rotate(30)"><rect width="22" height="140" rx="6" fill="#1C1A17"/><path d="M0 140 L11 165 L22 140Z" fill="#111"/></g>
-        <path d="M300 105 H360" stroke="#1C1A17" stroke-width="6" marker-end="url(#ar)"/>
-        <rect x="380" y="55" width="120" height="100" rx="18" fill="#fff" stroke="#1C1A17" stroke-width="4"/>
-        <circle cx="440" cy="105" r="30" fill="none" stroke="#1C1A17" stroke-width="5"/><rect x="465" y="65" width="18" height="10" rx="3" fill="#1C1A17"/>
-        <text x="440" y="186" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="24">태블릿으로</text><text x="440" y="212" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="24">사진 찍기</text>
-      </svg>
-      <p>✔ <b>검정 네임펜</b>이나 굵은 사인펜 (연필 ✕)<br>✔ 선은 <b>굵고 또렷하게</b> (안은 비워요)<br>✔ 찍은 사진은 <b>[그림 넣기]</b> 칸에 쏙</p>
-    </div>
-    <div class="card" style="height:100%">
-      <div class="jua" style="font-size:48px;color:var(--p1)">B. 오토드로우로 그리기</div>
-      <svg viewBox="0 0 520 210" style="width:100%;margin:12px 0">
-        <rect x="20" y="10" width="480" height="190" rx="14" fill="#fff" stroke="#1C1A17" stroke-width="4"/>
-        <rect x="20" y="10" width="480" height="50" rx="14" fill="#F0F2F6"/>
-        <g transform="translate(150 16) scale(.38)"><use href="#cat" width="100" height="100"/></g>
-        <g transform="translate(210 16) scale(.38)" opacity=".5"><use href="#cat" width="100" height="100"/></g>
-        <g transform="translate(270 16) scale(.38)" opacity=".5"><use href="#cat" width="100" height="100"/></g>
-        <rect x="144" y="14" width="50" height="44" rx="8" fill="none" stroke="#FFD43B" stroke-width="5"/>
-        <path d="M150 170 C130 120 170 90 200 110 C215 80 250 80 260 110 C290 90 320 120 300 170 Z" fill="none" stroke="#777" stroke-width="5" stroke-linejoin="round"/>
-        <text x="390" y="135" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="26" fill="#4E473C">낙서하면</text>
-        <text x="390" y="168" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="26" fill="#4E473C">그림 추천!</text>
-      </svg>
-      <p>✔ 주소: <b>autodraw.com</b><br>✔ 대충 그려도 컴퓨터가 찾아 줘요</p>
-    </div>
-  </div>
-</section>
-
-<!-- 오토드로우 따라하기 -->
-<section class="slide" data-notes="오토드로우 사용법이에요. 1) autodraw.com에 들어가서 [Start Drawing](그리기 시작)을 눌러요. 2) 마우스로 원하는 모양을 대충 그려요. 3) 위쪽 줄에 컴퓨터가 추천한 그림이 나오면 마음에 드는 걸 클릭해요. 4) 안은 칠하지 말고 선 그림 그대로 써요. 굵은 선으로 된 그림이 도장으로 가장 예쁘게 나와요. 그림이 완성되면 다음 장에서 캡처하는 법을 배워요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 오토드로우</span>
-  <h2>오토드로우 따라 하기</h2>
-  <div class="cols w">
-    <ol class="go">
-      <li><b>autodraw.com</b> 들어가기<span>파란 [Start Drawing] 버튼 누르기</span></li>
-      <li>마우스로 <b>대충 그리기</b><span>고양이, 별, 하트... 뭐든 좋아요</span></li>
-      <li>위쪽 <b>추천 그림 클릭</b><span>내 낙서가 깔끔한 그림으로 바뀌어요</span></li>
-      <li>안은 칠하지 말고 <b>선 그림 그대로</b><span>굵은 선 그림이 가장 예쁘게 찍혀요</span></li>
-    </ol>
-    <div class="win">
-      <div class="bar"><i></i><i></i><i></i><span>AutoDraw</span></div>
-      <div style="display:flex;gap:10px;padding:10px 14px 10px 80px;background:#F0F2F6;border-bottom:2px solid #ddd;position:relative">
-        <svg width="66" height="66" style="border:4px solid var(--yellow);border-radius:10px;background:#fff"><use href="#cat" x="6" y="6" width="54" height="54"/></svg>
-        <svg width="66" height="66" style="opacity:.45"><use href="#cat" x="6" y="6" width="54" height="54"/></svg>
-        <svg width="66" height="66" style="opacity:.45"><use href="#cat" x="6" y="6" width="54" height="54"/></svg>
-        <div style="position:absolute;left:150px;top:-6px;background:var(--p1);color:#fff;font-family:var(--sans);font-weight:700;font-size:22px;border-radius:30px;padding:2px 14px">③ 클릭!</div>
-      </div>
-      <div class="body" style="height:360px">
-        <div class="tools"><b class="hl"><svg><use href="#tb-penc"/></svg></b><b><svg viewBox="0 0 24 24"><path d="M5 10 L12 3 L19 10 L12 17Z M15 14 Q19 20 19 20 Q20 14 15 14" fill="currentColor"/></svg></b><b><svg><use href="#tb-text"/></svg></b><b><svg><use href="#tb-circ"/></svg></b></div>
-        <div class="cv" style="border:none">
-          <svg class="art" viewBox="0 0 400 300"><path d="M130 240 C100 160 150 110 190 140 C200 80 260 90 260 140 C300 120 330 170 290 240 Z" fill="none" stroke="#888" stroke-width="7" stroke-linejoin="round"/>
-          <text x="210" y="285" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="24" fill="#4E473C">② 대충 그려도 OK</text></svg>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 캡처 -->
-<section class="slide" data-notes="그림이 완성되면 화면 캡처를 해요. 키보드에서 윈도우 키, 시프트, S 세 개를 같이 누르면 화면이 어두워져요. 그때 마우스로 내 그림만 네모로 쓱 드래그하면 복사가 끝나요. 화면 전체가 아니라 그림만 딱 잡는 게 중요해요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 캡처 (오토드로우 친구)</span>
-  <h2>그림만 <span class="hi">쏙! 캡처</span>하기</h2>
-  <div class="cols">
-    <div>
-      <div class="card center" style="display:flex;flex-direction:column;gap:20px;padding:40px">
-        <div style="display:flex;gap:18px;align-items:center;justify-content:center">
-          <span class="k" style="font-size:48px;padding:6px 26px">⊞ Win</span><span class="jua" style="font-size:50px">+</span>
-          <span class="k" style="font-size:48px;padding:6px 26px">Shift</span><span class="jua" style="font-size:50px">+</span>
-          <span class="k" style="font-size:48px;padding:6px 30px;background:var(--yellow)">S</span>
-        </div>
-        <p class="jua" style="font-size:34px">세 개를 <b>동시에</b> 꾹!</p>
-      </div>
-      <ol class="go" style="margin-top:34px">
-        <li>화면이 <b>살짝 어두워져요</b></li>
-        <li>마우스를 <b>누른 채로 끌어서</b> 내 그림만 네모로 감싸기<span>→ 저절로 복사돼요 (아직 아무것도 안 보여도 괜찮아요)</span></li>
+</header>
+<p class="lead"><b>팝도장(플래시 스탬프)</b>은 내가 그린 그림을 빛으로 구워 진짜 도장으로 만드는 활동이에요. <span class="more">칼로 깎지 않아서 누구나 안전하게 만들 수 있어요. </span>전자칠판에 바로 띄워 쓰는 발표 자료를 네 가지 버전으로 준비했어요.</p>
+<main class="grid">
+    <a class="ver" href="팝도장_초등.html" data-ver="elementary" style="--c:#2E5D6B;--bg:#DCE8EA">
+      <span class="key">1</span>
+      <svg viewBox="0 0 64 64" class="ic" aria-hidden="true"><use href="#i-stamp"/></svg>
+      <span class="nm">초등학교</span>
+      <span class="tg">4학년 눈높이 · 2차시</span>
+      <span class="ds">그림 그리기부터 굽기·잉크·찍기까지 쉬운 말과 퀴즈로 따라 해요.</span>
+      <span class="go">시작하기 →</span>
+      <span class="last">지난번에 고른 버전</span>
+    </a>
+    <a class="ver" href="팝도장_중등.html" data-ver="middle" style="--c:#B5652A;--bg:#F5E3D3">
+      <span class="key">2</span>
+      <svg viewBox="0 0 64 64" class="ic" aria-hidden="true"><use href="#i-stamp"/></svg>
+      <span class="nm">중학교</span>
+      <span class="tg">기술·가정 · 자유학기 · 2차시</span>
+      <span class="ds">빛 에너지와 열, 벡터·해상도까지 — 원리를 알고 설계해요.</span>
+      <span class="go">시작하기 →</span>
+      <span class="last">지난번에 고른 버전</span>
+    </a>
+    <a class="ver" href="팝도장_고등.html" data-ver="high" style="--c:#5A3F7A;--bg:#E8E0F0">
+      <span class="key">3</span>
+      <svg viewBox="0 0 64 64" class="ic" aria-hidden="true"><use href="#i-stamp"/></svg>
+      <span class="nm">고등학교</span>
+      <span class="tg">진로 · 메이커 · 동아리</span>
+      <span class="ds">원리 심화, 제품 기획과 지식재산까지 프로젝트로 만들어요.</span>
+      <span class="go">시작하기 →</span>
+      <span class="last">지난번에 고른 버전</span>
+    </a>
+    <a class="ver" href="팝도장_성인.html" data-ver="adult" style="--c:#A8322D;--bg:#F6DEDA">
+      <span class="key">4</span>
+      <svg viewBox="0 0 64 64" class="ic" aria-hidden="true"><use href="#i-stamp"/></svg>
+      <span class="nm">성인 · 연수</span>
+      <span class="tg">교사 연수 · 체험 부스 · 원데이 클래스</span>
+      <span class="ds">장비 운영, 대량 제작, 부스 운영과 문제 해결을 한 번에.</span>
+      <span class="go">시작하기 →</span>
+      <span class="last">지난번에 고른 버전</span>
+    </a>
+</main>
+<details class="about">
+  <summary>팝도장과 이 발표 자료, 자세히 보기</summary>
+  <div class="about-body">
+    <section>
+      <h2><span>①</span> 팝도장이 뭔가요?</h2>
+      <p>작은 구멍이 가득한 고무패드 위에 검은 도안을 올리고, 팝핑머신으로 빛을 ‘펑’ 비춰요.</p>
+      <p>빛을 받은 곳은 구멍이 막히고, 검은 선 아래만 잉크 길이 남아요. 그 길로 잉크가 나와 그림이 그대로 찍혀요.</p>
+    </section>
+    <section>
+      <h2><span>②</span> 만드는 순서</h2>
+      <ol class="steps">
+        <li><span>1</span><b>도안 만들기</b> — 검정만, 선은 진하게</li>
+        <li><span>2</span><b>굽기</b> — 고무패드·팝핑필름·팝핑전용지를 3겹으로 쌓아 ‘펑’</li>
+        <li><span>3</span><b>잉크 충전</b> — 그림 부분에 콕콕, 스며들 때까지 기다리기</li>
+        <li><span>4</span><b>찍기</b> — 연습 종이에 여러 번 찍으면 점점 또렷해져요</li>
       </ol>
-    </div>
-    <svg viewBox="0 0 600 440">
-      <rect x="10" y="10" width="580" height="400" rx="16" fill="#555" stroke="#1C1A17" stroke-width="5"/>
-      <rect x="60" y="50" width="480" height="320" fill="#777"/>
-      <rect x="190" y="90" width="230" height="230" fill="#fff" stroke="#fff" stroke-width="4" stroke-dasharray="14 8"/>
-      <use href="#cat" x="215" y="115" width="180" height="180"/>
-      <use href="#cursor" x="400" y="300" width="60" height="60"/>
-      <rect x="180" y="380" width="250" height="44" rx="22" fill="#2E5D6B"/>
-      <text x="305" y="410" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="26" fill="#fff">그림만 딱 맞게!</text>
-    </svg>
+    </section>
+    <section>
+      <h2><span>③</span> 도안은 두 가지 길</h2>
+      <ul>
+        <li><b>컴퓨터로</b> — 도안 생성기(<a href="https://happystamp.web.app/" target="happystamp" rel="noopener">happystamp.web.app</a>)에서 만들어 레이저 프린터로 팝핑전용지에 인쇄해요.</li>
+        <li><b>손으로</b> — 컴퓨터·프린터 없이 스탬프펜(팝핑마카)으로 팝핑전용지에 바로 그려요.</li>
+      </ul>
+    </section>
+    <section>
+      <h2><span>④</span> 준비물</h2>
+      <ul>
+        <li>팝핑머신(빨간 기계)</li>
+        <li>도장틀 G28 (28mm 원형 · 고무패드와 아크릴 캡 포함)</li>
+        <li>팝핑전용지 · 팝핑필름 · 스탬프 잉크</li>
+        <li>레이저 프린터 또는 스탬프펜</li>
+      </ul>
+      <p style="margin-top:6px;color:var(--soft)">수량과 값은 각 버전 안에 자세히 있어요.</p>
+    </section>
+    <section>
+      <h2><span>⑤</span> 이 발표 자료는</h2>
+      <ul>
+        <li>전자칠판용 · 초등학교 / 중학교 / 고등학교 / 성인·연수 네 버전</li>
+        <li><b>기본</b>으로 꼭 필요한 쪽만 보이고, <b>심화</b>(잉크스케이프) 쪽은 메뉴에서 켜요</li>
+        <li>쪽마다 선생님 <b>원고</b>가 있어요. 고쳐서 이 기기에 저장하거나 파일로 내려받을 수 있어요</li>
+        <li><b>목차</b>에서 원하는 쪽으로 바로 가요</li>
+      </ul>
+    </section>
+    <section>
+      <h2><span>⑥</span> 화면 다루기</h2>
+      <ul>
+        <li>다음·이전: 화면 양쪽 끝 누르기 · 옆으로 밀기<span class="kb" style="white-space:nowrap"> · 키보드 <span class="k">←</span><span class="k">→</span></span></li>
+        <li>목차 <span class="k">T</span> · 원고 <span class="k">N</span> · 전체화면 <span class="k">F</span></li>
+        <li>키보드가 없어도 화면 메뉴에서 모두 고를 수 있어요</li>
+      </ul>
+    </section>
+    <section class="wide thanks">
+      <p>재료 판매처 <b>올더스탬</b>에서 기계 사용법과 재료 정보에 대해 자문과 피드백을 주셨습니다. 고맙습니다.</p>
+    </section>
   </div>
-</section>
-
-<!-- AI에게 부탁하기 (선택) -->
-<section class="slide" data-notes="사진이나 손그림을 AI(챗GPT, 제미나이)에게 보여 주고 도장 도안으로 바꿔 달라고 부탁할 수도 있어요. AI 서비스는 나이 제한이 있어서, 여러분이 직접 하지 않고 선생님 화면으로 같이 해요. 1) 그림 사진을 올리고 2) 화면의 부탁 문장(프롬프트)을 붙여 넣어요. 3) 마음에 드는 그림이 나오면 그림을 오른쪽 클릭해서 '이미지 복사'를 누르고 4) 도안 생성기 [그림 넣기] 칸에서 Ctrl+V. AI가 만든 그림도 약속 3가지(검정·굵은 선·단순하게)를 지켰는지 꼭 확인해요. 글자는 AI가 틀리게 쓰는 일이 많아서, 글자는 도안 생성기에서 넣어요. 내 얼굴 사진이나 이름표처럼 개인 정보가 보이는 사진은 올리지 않아요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · AI에게 부탁하기 (선택)</span>
-  <h2>AI에게 <span class="hi">도안 부탁하기</span> <small>챗GPT·제미나이 — 선생님 화면으로 함께 해요</small></h2>
-  <div class="cols" style="grid-template-columns:1fr 1fr;align-items:start">
-    <div>
-      <ol class="go">
-        <li>그림이나 사진 <b>올리기</b></li>
-        <li>아래 <b>부탁 문장</b>을 붙여 넣어요<span>부탁 문장 = 프롬프트</span></li>
-        <li>그림을 오른쪽 클릭 → <b>[이미지 복사]</b></li>
-        <li>도안 생성기에 <span class="k">Ctrl</span>+<span class="k">V</span><span>글자는 생성기에서!</span></li>
-      </ol>
-      <div class="tip no" style="font-size:23px"><em>!</em>AI는 나이 제한이 있어요<br>얼굴·이름·가족 사진은 올리지 않기</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="chat">
-        <div class="me"><svg viewBox="0 0 120 90" width="150" height="112"><rect width="120" height="90" rx="8" fill="#C9B79A"/><circle cx="60" cy="52" r="26" fill="#8C7A5E"/><path d="M38 36 L44 14 L56 30 M82 36 L76 14 L64 30" fill="#8C7A5E"/><circle cx="51" cy="50" r="4" fill="#2B2620"/><circle cx="69" cy="50" r="4" fill="#2B2620"/><rect width="120" height="90" rx="8" fill="none" stroke="#1C1A17" stroke-width="2"/></svg><p>이 이미지를 기초로 도장 도안을 만들어 줘. 흰색 배경, 라인아트 스타일로 해 줘.</p></div>
-        <div class="ai"><svg viewBox="0 0 200 200" width="150" height="150"><circle cx="100" cy="100" r="92" fill="#fff" stroke="#E2DCCD" stroke-width="2"/><use href="#cat" x="35" y="35" width="130" height="130"/></svg><span>짜잔! 도장 도안이에요</span></div>
-      </div>
-      <div class="pr">
-        <div class="pr-h"><b>더 좋은 부탁 문장</b><button class="cp" data-copy="이 이미지를 기초로 도장 도안을 만들어 줘. 흰색 배경에 검은색 굵은 선만 쓰는 라인아트로 그려 줘. 색칠·회색·그림자는 넣지 말고, 작은 무늬는 빼서 단순하게. 그림은 가운데에 크게, 글자는 넣지 마.">복사</button></div>
-        <p>이 이미지를 기초로 도장 도안을 만들어 줘. 흰색 배경에 검은색 굵은 선만 쓰는 라인아트로 그려 줘. 색칠·회색·그림자는 넣지 말고, 작은 무늬는 빼서 단순하게. 그림은 가운데에 크게, 글자는 넣지 마.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 쉬운 길: 해피스탬프 도안 생성기 -->
-<section class="slide" data-notes="우리 반은 '스탬프 도안 생성기' 사이트로 도안을 만들어요. 주소는 happystamp.web.app. 화면의 파란 버튼을 누르면 바로 열려요. 1) 도장 모양과 크기를 고르고, 2) 캡처한 그림을 Ctrl+V로 붙여 넣고, 3) 흑백·크기를 맞추고, 4) 위·아래에 둥근 글자를 넣은 다음 저장하면 끝! 검은색 한 가지로는 저절로 바꿔 주지만, 굵은 선과 단순한 모양은 내가 지켜야 해요. 사이트에서 돌아올 때는 그 탭을 닫거나(Ctrl+W) 아래 작업 표시줄에서 발표자료를 눌러요. 인터넷이 안 되면 다음 쪽부터 나오는 그림으로 설명해요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 쉬운 길</span>
-  <h2>더 쉽게! <span class="hi">스탬프 도안 생성기</span> <small>사이트 하나에서 도안이 뚝딱 — 우리 반은 모두 이걸로 만들어요</small></h2>
-  <div class="cols w">
-    <div>
-      <a class="site" href="https://happystamp.web.app/" target="happystamp" rel="noopener">
-        <span class="site-ic"><svg class="ei" aria-hidden="true"><use href="#e-link"/></svg></span><span><b>happystamp.web.app</b><small>눌러서 사이트 열기</small></span>
-      </a>
-      <div class="tip" style="margin-top:30px"><em>✔</em>검정은 저절로! 굵은 선과 단순한 모양은 내가 지켜요</div>
-    </div>
-    <ol class="go">
-      <li><b>도장 고르기</b><span>우리 도장 모양·크기 선택 (선생님이 알려 줘요)</span></li>
-      <li><b>그림 넣기</b> <span class="k">Ctrl</span>+<span class="k">V</span><span>캡처한 그림을 붙여넣기</span></li>
-      <li><b>흑백 · 그림 크기</b><span>까맣고 또렷하게, 끌어서 가운데로</span></li>
-      <li><b>둥근 글자</b><span>위·아래에 이름 쓰기, 굵은 글꼴 고르기</span></li>
-      <li><b>저장</b> → 선생님께 보내기<span>다음 쪽부터 하나씩 따라 해요</span></li>
-    </ol>
-  </div>
-</section>
-
-<section class="slide" data-notes="맨 위 1번 칸에서 우리 반 도장을 골라요. 목록에서 선생님이 알려 준 도장 이름을 고르면 모양과 크기가 저절로 맞춰져요. 잉크 안전 여백은 80% 그대로 두고, 테두리 선 두께 막대를 오른쪽으로 밀어서 굵게 해요. 오른쪽 미리보기에 동그라미 테두리가 바로 보여요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 도안 생성기</span><div class="stepbig">5단계 중 ①</div>
-  <h2>① <span class="hi">도장 고르기</span></h2>
-  <div class="cols w">
-    <div><ol class="go"><li><b>[1. 도장 고르기]</b> 목록 누르기</li><li>선생님이 알려 준 <b>도장 이름</b> 고르기<span>모양·크기가 저절로 맞춰져요</span></li><li><b>테두리 선 두께</b> 막대를<br>오른쪽으로 밀기<span>굵을수록 잘 찍혀요 (1mm 정도)</span></li></ol><div class="tip"><em>✔</em>숫자 <b>80</b>은 건드리지 않아요 (가장자리를 비워 두는 칸)</div></div>
-    <div data-hs="h1"></div>
-  </div>
-</section>
-<section class="slide" data-notes="2번 칸에 아까 캡처한 그림을 넣어요. 칸을 한 번 누르고 Ctrl+V를 눌러요. 안 붙으면 아래 [복사한 그림 붙여넣기] 버튼을 눌러요. 그림 파일이 있으면 칸으로 끌어다 놓아도 돼요. 사진처럼 배경이 지저분하면 [누끼 따기]를 누르면 배경이 지워져요. 이름 칸에는 번호_이름을 써 두면 저장할 때 편해요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 도안 생성기</span><div class="stepbig">5단계 중 ②</div>
-  <h2>② <span class="hi">그림 넣기</span></h2>
-  <div class="cols w">
-    <div><ol class="go"><li>캡처한 그림을 <span class="k">Ctrl</span>+<span class="k">V</span><span>또는 [복사한 그림 붙여넣기] 버튼</span></li><li>배경이 지저분하면 <b>[누끼 따기]</b><span>뒤 배경을 지워 주는 버튼</span></li><li>이름 칸에 <b>"번호_이름"</b> 쓰기</li></ol><div class="tip"><em>✔</em>종이에 그린 친구는 찍은 사진 파일을 칸에 끌어다 놓아요</div></div>
-    <div data-hs="h2"></div>
-  </div>
-</section>
-<section class="slide" data-notes="3번 칸에서 흑백 방식은 [선 그림]을 골라요. 진하기 막대를 움직이면 그림이 더 까매지거나 연해져요. 선이 끊기지 않고 까맣게 보이는 곳에 멈춰요. 그림 크기는 막대로 조절하고, 미리보기에서 그림을 끌어서 옮길 수 있어요. 두 번 누르면 가운데로 와요. 검은 바탕에 흰 그림이면 [흑백 뒤집기]를 눌러요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 도안 생성기</span><div class="stepbig">5단계 중 ③</div>
-  <h2>③ <span class="hi">까맣게 · 알맞은 크기로</span></h2>
-  <div class="cols w">
-    <div><ol class="go"><li>흑백 방식 <b>[선 그림]</b></li><li><b>진하기 막대</b>를 밀어 까맣게<span>선이 끊기지 않는 곳에서 멈추기</span></li><li>미리보기에서 그림 <b>끌어 옮기기</b><span>두 번 누르면 가운데로!</span></li></ol><div class="tip no"><em>!</em>검은 바탕에 흰 그림이면 [흑백 뒤집기]</div></div>
-    <div data-hs="h3"></div>
-  </div>
-</section>
-<section class="slide" data-notes="4번 칸에서 위와 아래에 글자를 쓸 수 있어요. 위에는 학교나 반, 아래에는 이름을 쓰면 멋져요. 글꼴은 주아나 검은고딕처럼 굵은 걸 고르고 [굵게]를 체크해요. 글자가 너무 작으면 잘 안 찍히니까 글자 크기는 2mm 이상으로 해요. 글자를 넣으면 그림은 저절로 안쪽으로 줄어들어요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 도안 생성기</span><div class="stepbig">5단계 중 ④</div>
-  <h2>④ 테두리 따라 <span class="hi">둥근 글자</span></h2>
-  <div class="cols w">
-    <div><ol class="go"><li><b>위</b> 칸, <b>아래</b> 칸에 글자 쓰기<span>예) 위: 우리 반 최고 · 아래: 내 이름</span></li><li>글꼴은 <b>주아·검은고딕</b> 같은<br>굵은 글꼴 + <b>[굵게]</b></li><li>글자 크기 <b>2mm 이상</b></li></ol><div class="tip"><em>✔</em>그림은 저절로 글자 안쪽으로 줄어들어요</div></div>
-    <div data-hs="h4"></div>
-  </div>
-</section>
-<section class="slide" data-notes="다 됐으면 오른쪽 아래에서 해상도는 600 dpi(권장) 그대로 두고 빨간 [PNG 저장] 버튼을 눌러요. 파일은 보통 [다운로드] 폴더에 저장돼요. 저장된 파일을 우리 반 제출함에 올려요. 선생님은 [인쇄 목록에 넣기]로 여러 친구 도안을 한 번에 모아 인쇄할 수도 있어요. 사이트 아래쪽 [제작 시 필수 확인 사항]도 한 번 읽어 봐요.">
-  <span class="tag t1"><i>1</i>도안 만들기 · 도안 생성기</span><div class="stepbig">5단계 중 ⑤</div>
-  <h2>⑤ <span class="hi">저장</span>해서 보내기</h2>
-  <div class="cols w">
-    <div><ol class="go"><li><b>600</b>은 그대로 두기<span>그림을 또렷하게 해 주는 숫자예요</span></li><li>빨간 <b>[PNG 저장]</b> 누르기</li><li><b>우리 반 제출함</b>에 올리기<span>PNG도 PDF도 OK</span></li></ol><div class="tip"><em>✔</em>사이트 맨 아래 [제작 시 필수 확인 사항]도 읽어요</div></div>
-    <div data-hs="h5"></div>
-  </div>
-</section>
-
-<!-- 심화(선택) 시작 -->
-<section class="slide cover adv" data-sec="p1" data-notes="여기부터는 심화(선택) 과정이에요. 도안 생성기로 도안을 다 만든 친구는 건너뛰어도 돼요. 잉크스케이프는 선생님들도 쓰는 무료 그림 프로그램이에요. 하나하나 직접 만들어 보면 도장 도안이 어떻게 생기는지 더 잘 알 수 있어요. 선생님이 [도안 점검으로 건너뛰기] 버튼을 누르면 마지막 점검 쪽으로 바로 넘어가요.">
-  <div class="num" style="background:var(--soft)">심화 · 선택</div>
-  <h1 style="font-size:92px">잉크스케이프로<br><span style="color:var(--p1)">직접</span> 만들어 보기</h1>
-  <p>도안 생성기로 다 만들었다면 건너뛰어도 괜찮아요</p>
-  <div class="row" style="margin-top:36px">
-    <div class="card" style="padding:18px 28px"><p style="font-size:26px">✔ 더 도전하고 싶은 친구</p></div>
-    <div class="card" style="padding:18px 28px"><p style="font-size:26px">✔ 그림을 한 줄 한 줄 다듬고 싶은 친구</p></div>
-  </div>
-  <button class="skip" data-skip>도안 점검으로 건너뛰기 ▶</button>
-</section>
-
-<!-- STEP 1 -->
-<section class="slide adv-page" data-notes="이제 잉크스케이프라는 프로그램을 열어요. 하얀 종이 화면에서 Ctrl+V를 누르면 아까 캡처한 그림이 붙어요. 크기를 바꿀 때는 꼭 Ctrl 키를 누른 채로 모서리 화살표를 끌어야 해요. 그래야 고양이가 홀쭉해지거나 뚱뚱해지지 않아요.">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 ① / 8</div>
-  <h2>① 잉크스케이프에 <span class="hi">붙여넣기</span></h2>
-  <div class="cols w">
-    <ol class="go">
-      <li><b>잉크스케이프</b> 열기</li>
-      <li><span class="k">Ctrl</span>+<span class="k">V</span> 로 붙여넣기</li>
-      <li>크기 바꿀 땐<br><span class="k">Ctrl</span> 누른 채로 <b>모서리</b> 끌기<span>모양이 찌그러지지 않아요</span></li>
-    </ol>
-    <div data-win="s1"></div>
-  </div>
-</section>
-
-<!-- STEP 2 원리 -->
-<section class="slide adv-page" data-notes="왜 이렇게 하냐면요, 사진은 아주 작은 네모 점이 모여서 생긴 그림이라 크게 하면 계단처럼 깨져요. 비트맵 따라 그리기를 하면 컴퓨터가 점과 선으로 다시 그려서, 아무리 크게 해도 매끈해요. 도장 테두리도 매끈하게 나와요.">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 · 알아 두기</div>
-  <h2>먼저 알아 두기: <span class="hi">사진과 그림은 달라요</span> <small>비트맵 = 작은 네모 점으로 된 사진 · 비트맵 따라 그리기 = 점 사진을 매끈한 선 그림으로 바꾸기</small></h2>
-  <div class="row" style="flex:1;align-items:center;justify-content:center;gap:40px">
-    <div class="card center" style="display:flex;flex-direction:column;width:480px">
-      <svg viewBox="0 0 200 200" width="300" height="300" shape-rendering="crispEdges">
-        <g fill="#111"><rect x="20" y="60" width="40" height="40"/><rect x="60" y="20" width="40" height="40"/><rect x="60" y="60" width="80" height="80"/><rect x="100" y="20" width="40" height="40"/><rect x="140" y="60" width="40" height="40"/><rect x="20" y="100" width="40" height="40"/><rect x="140" y="100" width="40" height="40"/><rect x="60" y="140" width="80" height="40"/></g>
-        <rect x="68" y="88" width="24" height="24" fill="#fff"/><rect x="108" y="88" width="24" height="24" fill="#fff"/>
-      </svg>
-      <p class="jua" style="font-size:38px">사진 (크게 하면 <span class="red">깨져요</span>)</p>
-    </div>
-    <svg width="120" height="60"><path d="M10 30 H100" stroke="#1C1A17" stroke-width="8" marker-end="url(#ar)"/></svg>
-    <div class="card center" style="display:flex;flex-direction:column;width:480px">
-      <svg viewBox="0 0 200 200" width="300" height="300"><use href="#cat" width="200" height="200"/>
-        <g fill="#fff" stroke="#2E5D6B" stroke-width="3"><rect x="45" y="13" width="10" height="10"/><rect x="145" y="13" width="10" height="10"/><rect x="33" y="73" width="10" height="10"/><rect x="157" y="73" width="10" height="10"/><rect x="95" y="177" width="10" height="10"/><rect x="83" y="47" width="10" height="10"/></g></svg>
-      <p class="jua" style="font-size:38px">그림 (크게 해도 <span style="color:var(--p1)">매끈!</span>)</p>
-    </div>
-  </div>
-</section>
-
-<!-- STEP 2 -->
-<section class="slide adv-page" data-notes="지금 붙인 그림은 '사진'이라서 크게 하면 흐릿하고 울퉁불퉁해요. 그래서 컴퓨터가 선을 따라 다시 그리게 해요. 그림을 클릭하고, 위쪽 메뉴에서 '경로' → '비트맵 따라 그리기'를 눌러요. 오른쪽 창에서 '밝기 기준'을 0.45 정도로 두고 '적용'을 누르면 끝!">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 ② / 8</div>
-  <h2>② 사진을 <span class="hi">깔끔한 그림</span>으로 바꾸기</h2>
-  <div class="cols w">
-    <ol class="go">
-      <li>그림을 <b>한 번 클릭</b></li>
-      <li>메뉴 <b>[경로]</b> → <b>[비트맵 따라 그리기]</b></li>
-      <li><b>밝기 기준 0.45</b> 확인 →<br><b>[적용]</b> 누르기</li>
-    </ol>
-    <div data-win="s2"></div>
-  </div>
-</section>
-
-<!-- STEP 3 -->
-<section class="slide adv-page" data-notes="비트맵 따라 그리기를 하면 새 그림이 원래 사진 바로 위에 똑같이 겹쳐서 생겨요. 그래서 하나만 있는 것처럼 보여요. 그림을 마우스로 옆으로 끌어 보면 밑에 숨어 있던 원래 사진이 보여요. 원래 사진을 클릭하고 Delete 키로 지워요. 이걸 안 지우면 도장이 흐릿하게 나와요.">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 ③ / 8</div>
-  <h2>③ 밑에 숨은 <span class="hi">사진 지우기</span></h2>
-  <div class="cols w">
-    <div>
-      <ol class="go">
-        <li>그림을 <b>옆으로 쓱 끌기</b><span>밑에 똑같은 사진이 숨어 있어요!</span></li>
-        <li>남아 있는 <b>원래 사진 클릭</b></li>
-        <li><span class="k">Delete</span> 키로 지우기</li>
-      </ol>
-      <div class="tip no"><em>!</em>안 지우면 도장이 흐릿하게 나와요</div>
-    </div>
-    <div data-win="s3"></div>
-  </div>
-</section>
-
-<!-- STEP 4 -->
-<section class="slide adv-page" data-notes="이제 도장 테두리를 만들어요. 왼쪽 도구에서 동그라미 도구를 고르고, Ctrl을 누른 채 드래그하면 찌그러지지 않은 동그라미가 그려져요. 그다음 Shift+Ctrl+F를 눌러 채우기·윤곽선 창(채움 및 자획)을 열고, 채우기는 X(없음), 윤곽선은 검정, 두께는 3pt 이상으로 해요. 3pt는 약 1mm예요. 너무 얇으면 테두리가 끊겨서 찍혀요.">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 ④ / 8</div>
-  <h2>④ <span class="hi">동그라미 테두리</span> 그리기</h2>
-  <div class="cols w">
-    <ol class="go">
-      <li>왼쪽 <b>동그라미 도구</b> 클릭 <span class="k">E</span></li>
-      <li><span class="k">Ctrl</span> 누른 채로 드래그<span>똥그란 원이 돼요</span></li>
-      <li><span class="k">Shift</span>+<span class="k">Ctrl</span>+<span class="k">F</span><br>채우기 <b>[없음]</b> 고르기 · 윤곽선(테두리 선) <b>검정</b></li>
-      <li>두께 <b class="red">3pt 이상</b><span>약 1mm, 얇으면 테두리가 끊겨요</span></li>
-    </ol>
-    <div data-win="s4"></div>
-  </div>
-</section>
-
-<!-- STEP 5 -->
-<section class="slide adv-page" data-notes="글자를 넣을 때 조심할 게 하나 있어요. 글자 도구(T)를 고르고 화면을 '딱 한 번 클릭'한 다음 바로 글자를 쳐요. 마우스로 네모를 그리면서 글자 상자를 만들면, 나중에 크기를 바꿀 때 글자가 망가질 수 있어요. 글자 크기는 다 쓴 다음 선택 도구로 모서리를 Ctrl 누르고 끌어서 바꿔요.">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 ⑤ / 8</div>
-  <h2>⑤ <span class="hi">글자</span> 넣기 <small>이름이나 짧은 말 (넣지 않아도 괜찮아요)</small></h2>
-  <div class="cols w">
-    <div>
-      <ol class="go">
-        <li>왼쪽 <b>글자 도구</b> 클릭 <span class="k">T</span></li>
-        <li>화면을 <b>딱 한 번 클릭</b> → 바로 쓰기</li>
-        <li>크기는 다 쓴 뒤에<br><span class="k">Ctrl</span> 누르고 모서리 끌기</li>
-      </ol>
-      <div class="tip no"><em>✕</em>네모를 그려서 글상자 만들지 않기!</div>
-    </div>
-    <svg viewBox="0 0 640 420">
-      <rect x="10" y="20" width="300" height="300" rx="22" fill="#F8EBE7" stroke="#A8322D" stroke-width="5"/>
-      <text x="160" y="62" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#A8322D">드래그 ✕</text>
-      <rect x="45" y="110" width="230" height="110" fill="none" stroke="#1C1A17" stroke-width="3" stroke-dasharray="10 6"/>
-      <text x="160" y="190" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="62" fill="#1C1A17" transform="translate(160 165) scale(1.25 .7) translate(-160 -165)">냥냥</text>
-      <use href="#cursor" x="250" y="200" width="54" height="54"/>
-      <text x="160" y="290" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="26" fill="#A8322D">글자가 찌그러져요</text>
-      <rect x="330" y="20" width="300" height="300" rx="22" fill="#DCE8EA" stroke="#2E5D6B" stroke-width="5"/>
-      <text x="480" y="62" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#2E5D6B">한 번 클릭 ○</text>
-      <circle cx="410" cy="160" r="22" fill="none" stroke="#2E5D6B" stroke-width="5"/><circle cx="410" cy="160" r="8" fill="#2E5D6B"/>
-      <text x="440" y="185" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="68" fill="#1C1A17">냥냥</text>
-      <text x="480" y="290" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="26" fill="#2E5D6B">예쁜 비율 그대로!</text>
-      <text x="320" y="400" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="28" fill="#4E473C">글씨체는 굵은 걸로 고르면 더 잘 찍혀요</text>
-    </svg>
-  </div>
-</section>
-
-<!-- STEP 6 -->
-<section class="slide adv-page" data-notes="그림, 동그라미, 글자를 가운데로 예쁘게 모아요. Ctrl+A로 전부 선택하고, Shift+Ctrl+A로 '정렬 및 분산' 창을 열어요. '가운데(세로축)' 버튼과 '가운데(가로축)' 버튼을 차례로 누르면 모두 한가운데로 모여요. 글자는 그다음에 위나 아래로 살짝 옮겨도 돼요.">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 ⑥ / 8</div>
-  <h2>⑥ <span class="hi">가운데</span>로 모으기</h2>
-  <div class="cols w">
-    <ol class="go">
-      <li><span class="k">Ctrl</span> + <span class="k">A</span> 전부 선택</li>
-      <li><span class="k">Shift</span>+<span class="k">Ctrl</span>+<span class="k">A</span><br><b>[정렬 및 분산]</b> 창 열기</li>
-      <li><b>가운데 버튼 2개</b> 차례로 클릭<span>세로 가운데 ↕ · 가로 가운데 ↔</span></li>
-    </ol>
-    <div data-win="s6"></div>
-  </div>
-</section>
-
-<!-- STEP 7 -->
-<section class="slide adv-page" data-notes="이 단계를 빼먹는 친구가 정말 많아요! 우리 컴퓨터에 있는 글씨체가 선생님 컴퓨터에는 없을 수 있어요. 그러면 글씨가 다른 모양으로 바뀌어 버려요. 그래서 글자를 '그림'으로 굳혀 줘요. 글자를 클릭하고 메뉴 [경로] → [객체를 경로로]를 누르면 끝이에요. 단축키는 Shift+Ctrl+C.">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 ⑦ / 8</div>
-  <h2>⑦ 글자를 그림으로 <span class="hi">꽁꽁 굳히기</span></h2>
-  <div class="cols w">
-    <div>
-      <ol class="go">
-        <li><b>글자</b>를 클릭</li>
-        <li>메뉴 <b>[경로]</b> → <b>[객체를 경로로]</b><span>단축키 <span class="k">Shift</span>+<span class="k">Ctrl</span>+<span class="k">C</span></span></li>
-      </ol>
-      <div class="tip"><em>왜?</em>다른 컴퓨터에서 열면 글씨체가 바뀔 수 있어요. 그림으로 굳히면 그대로!</div>
-    </div>
-    <div data-win="s7"></div>
-  </div>
-</section>
-
-<!-- STEP 8 -->
-<section class="slide adv-page" data-notes="마지막 단계예요. 먼저 사각형 도구로 도안보다 조금 더 큰 네모를 그리고, 채우기와 윤곽선을 둘 다 '없음'으로 해서 투명하게 만들어요. 이 투명 네모가 있어야 도장에 네모난 자국이 안 생겨요. 그다음 Ctrl+A로 전부 선택하고 Ctrl+G로 하나로 묶어요. 마지막으로 파일 → 다른 이름으로 저장에서 형식을 PDF로 골라 저장하고 선생님께 보내요. 파일 이름은 '번호_이름'.">
-  <span class="tag t1 adv"><i>1</i>도안 만들기 · 심화(선택)</span><div class="stepbig adv">잉크스케이프 ⑧ / 8</div>
-  <h2>⑧ 묶어서 <span class="hi">PDF로 저장</span></h2>
-  <div class="cols w">
-    <ol class="go">
-      <li><b>사각형 도구</b>로 도안보다 큰 네모<span>채우기·윤곽선 모두 없음 → 투명 네모 (네모 자국 방지)</span></li>
-      <li><span class="k">Ctrl</span>+<span class="k">A</span> → <span class="k">Ctrl</span>+<span class="k">G</span> 하나로 묶기</li>
-      <li><b>[파일] → [다른 이름으로 저장]</b><br>형식 <b>PDF</b> 고르기</li>
-      <li>파일 이름 <b>"번호_이름"</b> → 선생님께!</li>
-    </ol>
-    <div data-win="s8"></div>
-  </div>
-</section>
-
-<!-- 도안 체크 -->
-<section class="slide" data-notes="보내기 전에 스스로 점검해요. 화면의 네모를 직접 눌러서 체크해 볼 수 있어요. 도안 생성기로 만든 친구는 왼쪽 네 개만 체크해요. 잉크스케이프로 만든 친구는 오른쪽 세 개도 함께! 하나라도 아니면 그 단계로 돌아가서 고쳐요. (1차시 끝) 오늘은 여기까지! 다음 시간엔 선생님이 인쇄한 도안으로 굽기를 해요. 도안은 2장 인쇄해요. 한 장은 굽기용, 한 장은 손잡이 이름표용이에요. 파일 이름이 '번호_이름'인지 마지막으로 확인해요.">
-  <span class="tag t1"><i>✔</i>도안 만들기 · 스스로 점검</span>
-  <h2>보내기 전에 <span class="hi">체크!</span> <small>눌러서 체크해 보세요</small></h2>
-  <div class="cols" style="grid-template-columns:1.25fr .75fr;align-items:start;margin-top:8px">
-    <div class="check">
-      <div class="chk-h">모두 체크</div>
-      <label><input type="checkbox"><span class="bx"></span><div>새까만 검정만 썼나요?<small>회색·색깔이 없어요</small></div></label>
-      <label><input type="checkbox"><span class="bx"></span><div>선과 테두리가 굵은가요?<small>테두리 1mm 정도</small></div></label>
-      <label><input type="checkbox"><span class="bx"></span><div>글자가 2mm 이상인가요?</div></label>
-      <label><input type="checkbox"><span class="bx"></span><div>파일 이름이 “번호_이름”인가요?</div></label>
-    </div>
-    <div class="check adv-chk">
-      <div class="chk-h">잉크스케이프 친구만 <span class="badge-adv">심화</span></div>
-      <label><input type="checkbox"><span class="bx"></span><div>숨은 사진 지웠나요?</div></label>
-      <label><input type="checkbox"><span class="bx"></span><div>글자를 [객체를 경로로] 바꿨나요?</div></label>
-      <label><input type="checkbox"><span class="bx"></span><div>투명 네모를 넣고 <span class="k">Ctrl</span>+<span class="k">G</span>로 묶었나요?</div></label>
-    </div>
-  </div>
-  <div class="tip" style="justify-content:center;margin-top:14px"><em><svg class="ei" aria-hidden="true"><use href="#e-clock"/></svg></em>오늘은 여기까지! 다음 시간엔 굽기를 해요.</div>
-</section>
-
-<!-- ===== PART 2 ===== -->
-<section class="slide cover" data-notes="(2차시 시작) 두 번째 단계, 굽기예요. 빵처럼 불로 굽는 게 아니라 빛으로 굽는 거예요. 안전 약속 셋! 기계는 선생님만 만져요. START·서랍·잠금에 손대지 않아요. 기계 둘레 한 걸음 안엔 내 차례만 들어가요.">
-  <div class="num" style="background:var(--p2)">2단계 · 2차시</div>
-  <h1 style="color:var(--p2)">굽기</h1>
-  <p>빛을 쏘아서 고무판을 도장으로 만들어요</p>
-  <div class="road">
-    <div class="st"><div class="ic"><svg><use href="#i-pen"/></svg></div>도안 만들기</div><div class="dash"></div>
-    <div class="st now"><div class="ic" style="background:var(--p2l)"><svg><use href="#i-fire"/></svg></div>굽기</div><div class="dash"></div>
-    <div class="st"><div class="ic"><svg><use href="#i-drop"/></svg></div>잉크 충전</div><div class="dash"></div>
-    <div class="st"><div class="ic"><svg><use href="#i-stamp"/></svg></div>쾅! 찍기</div>
-  </div>
-</section>
-
-<!-- 인쇄 -->
-<section class="slide" data-notes="선생님이 여러분 도안을 레이저 프린터로 같은 것 2장씩 인쇄해 줘요. 한 장은 굽기용, 한 장은 손잡이 이름표용이에요. 잉크젯 프린터는 잉크가 살짝 번져서 빛이 새요. 인쇄한 종이를 받으면 검은 그림 부분은 손가락으로 만지지 않아요. 지문이 묻으면 그 자국까지 도장에 찍혀요. 종이 끝(가장자리)만 살짝 잡아요. 투명 필름과 까만 고무판 겉면도 손가락으로 누르지 않아요. 지문 자국이 그대로 남아요.">
-  <span class="tag t2"><i>2</i>굽기 · 인쇄</span>
-  <h2>도안 종이 받기 <small>선생님이 내 도안을 인쇄한 종이 = “도안 종이”</small></h2>
-  <div class="cols">
-    <svg viewBox="-60 0 680 440">
-      <rect x="60" y="40" width="500" height="360" rx="12" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-width="5" filter="url(#sh)"/>
-      <g transform="translate(110 90)"><circle cx="80" cy="80" r="70" fill="none" stroke="#111" stroke-width="9"/><use href="#cat" x="35" y="25" width="90" height="90"/></g>
-      <g transform="translate(330 90)"><circle cx="80" cy="80" r="70" fill="none" stroke="#111" stroke-width="9"/><use href="#cat" x="35" y="25" width="90" height="90"/></g>
-      <!-- 손가락: 가장자리 -->
-      <use href="#pinch" x="-4" y="282" width="140" height="104" transform="scale(-1 1) translate(-136 0)" filter="url(#sh)"/>
-      <circle cx="108" cy="322" r="40" fill="none" stroke="#2E5D6B" stroke-width="7"/>
-      <text x="200" y="390" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="28" fill="#2E5D6B">종이 끝만 잡기 ○</text>
-    </svg>
-    <div>
-      <div class="card" style="margin-bottom:26px">
-        <p class="jua" style="font-size:40px"><svg class="ei" aria-hidden="true"><use href="#e-hand"/></svg> 그림은 만지지 않아요</p>
-        <p>손가락 지문도 도장에 <b class="red">찍혀요!</b><br>종이 <b>끝부분</b>만 살짝 잡기</p>
-      </div>
-      <div class="card" style="background:var(--p2l)">
-        <p class="jua" style="font-size:34px">선생님 확인 <svg class="ei" aria-hidden="true"><use href="#e-print"/></svg></p>
-        <p style="font-size:26px">선생님이 레이저 프린터로<br>진하게 인쇄해 줘요</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 샌드위치 -->
-<section class="slide" data-notes="이제 샌드위치처럼 세 겹을 쌓아요. 맨 아래에 까만 고무판, 그 위에 투명 필름, 맨 위에 도안 종이. 순서가 바뀌면 도장이 안 만들어져요. '고무 - 필름 - 종이' 세 번 따라 말해 볼까요?">
-  <span class="tag t2"><i>2</i>굽기 · 쌓기</span>
-  <h2>샌드위치처럼 <span class="hi">3겹 쌓기</span></h2>
-  <div class="cols">
-    <svg viewBox="0 0 800 540"><ellipse cx="360" cy="452" rx="150" ry="14" fill="#4A3B22" opacity=".14"/><g filter="url(#sh)"><g transform="translate(0 300)"><use href="#pad" x="225" y="40" width="270" height="110"/><text x="590" y="112" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#1C1A17">① 고무판</text></g></g><path d="M355 360 V318" stroke="#B5652A" stroke-width="6" marker-end="url(#ar)"/><g filter="url(#sh)"><g transform="translate(0 150)"><path d="M240 140 L560 140 L560 148 L240 148Z" fill="#C3CFE0" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M150 70 L240 140 L240 148 L150 78Z" fill="#AFBCCF" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M150 70 L470 70 L560 140 L240 140Z" fill="url(#gFilmTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><text x="590" y="112" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#1C1A17">② 투명 필름</text></g></g><path d="M355 210 V168" stroke="#B5652A" stroke-width="6" marker-end="url(#ar)"/><g filter="url(#sh)"><g transform="translate(0 0)"><path d="M240 140 L560 140 L560 150 L240 150Z" fill="#E4DED1" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M150 70 L240 140 L240 150 L150 80Z" fill="#D2CABA" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M150 70 L470 70 L560 140 L240 140Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><g transform="matrix(.75 0 .2 .16 285 79)" opacity=".28"><use href="#cat" width="200" height="200"/></g><text x="590" y="112" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#1C1A17">③ 도안 종이</text></g></g></svg>
-    <div>
-      <div class="card" style="text-align:center;padding:36px">
-        <p class="jua" style="font-size:32px;color:var(--soft)">맨 밑부터 ① ② ③ 차례로</p>
-        <div class="stack">
-          <div><b>③ 도안 종이</b><small>맨 위 · 그림 면이 아래로</small></div><i>⬆ 그 위에</i>
-          <div><b>② 투명 필름</b></div><i>⬆ 그 위에</i>
-          <div><b>① 고무판</b><small>맨 밑에 먼저 놓기</small></div>
-        </div>
-      </div>
-      <div class="tip"><em><svg class="ei" aria-hidden="true"><use href="#e-speak"/></svg></em>“고무 → 필름 → 종이!” 세 번 따라 말하기</div>
-    </div>
-  </div>
-</section>
-
-<!-- 그림면 아래 -->
-<section class="slide" data-notes="가장 많이 하는 실수! 도안 종이는 꼭 '그림이 그려진 면이 아래'로 가게 뒤집어서 놓아요. 그림 면이 위로 가면 두 가지 문제가 생겨요. 첫째, 빛이 종이 두께를 지나면서 퍼져서 그림이 흐릿해져요. 둘째, 도장을 찍으면 글씨가 거울처럼 거꾸로 찍혀요. 선생님이 한 명씩 확인할게요. [확인] 종이를 손바닥 위에 올려 보세요. 그림이 그려진 면이 손바닥에 닿아야 해요! 짝꿍 것도 확인해 줄까요?">
-  <span class="tag t2"><i>2</i>굽기 · 가장 중요!</span>
-  <h2>도안 종이는 <span class="hi">그림이 아래로</span> 뒤집어요</h2>
-  <div class="row" style="flex:1;align-items:center;gap:40px">
-    <div class="card" style="flex:1;background:#F8EBE7;border-color:var(--red);text-align:center">
-      <p class="jua" style="font-size:42px;color:var(--red)">그림이 위 ✕</p>
-      <svg viewBox="0 0 420 220" style="width:100%;max-height:270px">
-        <g filter="url(#sh)"><ellipse cx="210.0" cy="153" rx="180.0" ry="9" fill="#4A3B22" opacity=".14"/><use href="#pad" x="40" y="68" width="340" height="96"/><path d="M40 97 L340 97 L380 73 L80 73Z" fill="url(#gFilmTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M340 97 L380 73 L380 80 L340 104Z" fill="#AFBCCF" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="40" y="97" width="300" height="7" fill="#C3CFE0" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M40 59 L340 59 L380 35 L80 35Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M340 59 L380 35 L380 47 L340 71Z" fill="#D2CABA" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="40" y="59" width="300" height="12" fill="#E4DED1" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M147.0 54.2 L249.0 54.2 L273.0 39.8 L171.0 39.8Z" fill="#111"/><rect x="147.0" y="54.2" width="102.0" height="5" fill="#000"/></g>
-        <text x="210" y="208" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="62" fill="#A8322D" transform="translate(420 0) scale(-1 1)">냥냥</text>
-      </svg>
-      <p>흐릿하고 <b>글씨가 거꾸로!</b></p>
-    </div>
-    <div class="card" style="flex:1;background:var(--p1l);border-color:var(--p1);text-align:center">
-      <p class="jua" style="font-size:42px;color:var(--p1)">그림이 아래 ○</p>
-      <svg viewBox="0 0 420 220" style="width:100%;max-height:270px">
-        <g filter="url(#sh)"><ellipse cx="210.0" cy="153" rx="180.0" ry="9" fill="#4A3B22" opacity=".14"/><use href="#pad" x="40" y="68" width="340" height="96"/><path d="M40 97 L340 97 L380 73 L80 73Z" fill="url(#gFilmTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M340 97 L380 73 L380 80 L340 104Z" fill="#AFBCCF" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="40" y="97" width="300" height="7" fill="#C3CFE0" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="145.0" y="71" width="102.00000000000001" height="6" fill="#111"/><path d="M40 59 L340 59 L380 35 L80 35Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M340 59 L380 35 L380 47 L340 71Z" fill="#D2CABA" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="40" y="59" width="300" height="12" fill="#E4DED1" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M147.0 54.2 L249.0 54.2 L273.0 39.8 L171.0 39.8Z" fill="#111" opacity=".16"/></g>
-        <text x="210" y="208" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="62" fill="#2E5D6B">냥냥</text>
-      </svg>
-      <p>선명하고 <b>글씨도 바르게!</b></p>
-    </div>
-  </div>
-  <div class="why"><span class="q">왜?</span><span>그림이 고무에 딱 붙어야 선명해요. 도장은 좌우가 바뀌니까 뒤집어야 글씨가 바르게 나와요.</span></div>
-  <div class="tip" style="justify-content:center;margin-top:12px"><em><svg class="ei" aria-hidden="true"><use href="#e-hand"/></svg></em>놓기 전에 "선생님, 확인해 주세요!"</div>
-</section>
-
-<!-- 퀴즈 2 -->
-<section class="slide" data-notes="O/X 퀴즈! 도안 종이를 놓을 때 그림 면은 위일까요, 아래일까요? 카드를 눌러 확인해요. 정답은 아래(필름 쪽)! 위로 놓으면 흐릿하고 글씨가 거꾸로 찍혀요.">
-  <span class="tag t2"><i>?</i>굽기 퀴즈</span>
-  <h2>도안 종이, <span class="hi">그림 면은 어디로?</span> <small>카드를 눌러 정답을 확인해요</small></h2>
-  <div class="quiz wide">
-    <button class="qo" data-ok="0"><span class="mk">✕</span>
-      <svg viewBox="0 -44 420 206"><g filter="url(#sh)"><ellipse cx="210.0" cy="153" rx="180.0" ry="9" fill="#4A3B22" opacity=".14"/><use href="#pad" x="40" y="68" width="340" height="96"/><path d="M40 97 L340 97 L380 73 L80 73Z" fill="url(#gFilmTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M340 97 L380 73 L380 80 L340 104Z" fill="#AFBCCF" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="40" y="97" width="300" height="7" fill="#C3CFE0" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M40 59 L340 59 L380 35 L80 35Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M340 59 L380 35 L380 47 L340 71Z" fill="#D2CABA" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="40" y="59" width="300" height="12" fill="#E4DED1" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M147.0 54.2 L249.0 54.2 L273.0 39.8 L171.0 39.8Z" fill="#111"/><rect x="147.0" y="54.2" width="102.0" height="5" fill="#000"/></g><text x="210" y="-12" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#A8322D">그림이 위</text></svg>그림이 위 (보여요)
-      <span class="res">흐릿하고 글씨가 거꾸로 찍혀요</span></button>
-    <button class="qo" data-ok="1"><span class="mk">○</span>
-      <svg viewBox="0 -44 420 206"><g filter="url(#sh)"><ellipse cx="210.0" cy="153" rx="180.0" ry="9" fill="#4A3B22" opacity=".14"/><use href="#pad" x="40" y="68" width="340" height="96"/><path d="M40 97 L340 97 L380 73 L80 73Z" fill="url(#gFilmTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M340 97 L380 73 L380 80 L340 104Z" fill="#AFBCCF" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="40" y="97" width="300" height="7" fill="#C3CFE0" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="145.0" y="71" width="102.00000000000001" height="6" fill="#111"/><path d="M40 59 L340 59 L380 35 L80 35Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M340 59 L380 35 L380 47 L340 71Z" fill="#D2CABA" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><rect x="40" y="59" width="300" height="12" fill="#E4DED1" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M147.0 54.2 L249.0 54.2 L273.0 39.8 L171.0 39.8Z" fill="#111" opacity=".16"/></g><text x="210" y="-12" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="30" fill="#2E5D6B">그림이 아래</text></svg>그림이 아래 (필름 쪽)
-      <span class="res">선명하고 글씨도 바르게!</span></button>
-  </div>
-</section>
-
-<!-- 기계 굽기 + 타이머 -->
-<section class="slide" data-notes="쌓은 샌드위치를 선생님께 드려요. 선생님이 기계 서랍에 넣고 꽉 잠근 다음 START를 눌러요. 기계 화면의 숫자가 올라가서 360이 될 때까지 기다려요. 이 숫자는 온도가 아니라 빛을 쏠 힘이 다 모였다는 표시예요. 360이 되면 '펑!' 하고 아주 센 빛이 나와요. 소리가 크니까 선생님이 '셋, 둘, 하나' 하고 알려 줄게요. 귀를 막아도 괜찮아요. 기계 안은 전기가 아주 세요. START·서랍·잠금은 선생님만 만지고, 펑 할 때 기계 안을 들여다보지 않아요. 오른쪽 START를 누르면 숫자가 올라가는 모습을 미리 볼 수 있어요. 실제 속도는 기계 화면을 보세요. 기계 앞에는 한 모둠만 와요. 다른 모둠은 자리에서 펀치로 이름표를 만들거나(38쪽) 활동지를 써요.">
-  <span class="tag t2"><i>2</i>굽기 · 기계</span>
-  <h2>기계에 넣고 <span class="hi">360까지</span>! <small>기계는 선생님만 만져요</small></h2>
-  <div class="cols">
-    <div>
-      <ol class="go" style="--c:var(--p2)">
-        <li>샌드위치를 <b>선생님께 드려요</b><span>서랍은 선생님이 넣어요</span></li>
-        <li>선생님이 <b>꽉 잠그고 START</b></li>
-        <li>숫자가 <b>360</b>이 될 때까지 기다리기<span>360 = 빛을 쏠 힘이 다 모였다는 숫자</span></li>
-        <li><b>"펑!"</b> 소리 나면 완성!<span>소리가 커요 · 셋, 둘, 하나! 귀 막아도 돼요</span></li>
-      </ol>
-      <div class="tip"><em><svg class="ei" aria-hidden="true"><use href="#e-group"/></svg></em>기계 앞에는 한 모둠씩!</div>
-    </div>
-    <div class="timer" id="popTimer">
-      <div class="mach">
-        <svg viewBox="0 0 560 420"><ellipse cx="225" cy="392" rx="200" ry="14" fill="#1C1A17" opacity=".14"/><g filter="url(#sh)"><path d="M40 92 L360 92 L410 58 L90 58Z" fill="url(#gRedTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M360 92 L410 58 L410 348 L360 382Z" fill="url(#gRedSide)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><rect x="40" y="92" width="320" height="290" rx="10" fill="url(#gRed)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><path d="M48 100 H352" stroke="#fff" stroke-width="3" opacity=".35" stroke-linecap="round"/><path d="M196 80 C192 30 262 18 300 58" fill="none" stroke="#1C1A17" stroke-width="22" stroke-linecap="round"/><path d="M204 72 C204 40 252 30 282 54" fill="none" stroke="#5A5C63" stroke-width="5" stroke-linecap="round"/><rect x="56" y="108" width="288" height="150" rx="8" fill="url(#gPanel)" stroke="#000" stroke-width="2"/><rect x="72" y="122" width="114" height="56" rx="4" fill="#1A0605" stroke="#000" stroke-width="2"/><text x="178" y="166" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-weight="700" font-size="44" fill="#3A0E0C">888</text><text class="n" x="178" y="166" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-weight="700" font-size="44" fill="#FF4436" filter="url(#glow)">0</text><circle cx="202" cy="132" r="4" fill="#FF4436"/><circle cx="202" cy="148" r="4" fill="#55575E"/><circle cx="202" cy="164" r="4" fill="#55575E"/><rect x="232" y="122" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><path d="M252 130 l-6 9 h12z" fill="#444"/><rect x="282" y="122" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><rect x="232" y="156" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><path d="M252 175 l-6 -9 h12z" fill="#444"/><rect x="282" y="156" width="40" height="28" rx="5" fill="url(#gKey)" stroke="#000" stroke-width="1.5"/><text x="302" y="175" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="800" font-size="11" fill="#333">start</text><text x="200" y="234" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="19" fill="#fff" opacity=".85">Popping Machine</text><rect x="56" y="262" width="288" height="30" fill="#17181B"/><rect x="78" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="130" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="182" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="234" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="286" y="273" width="38" height="7" rx="3.5" fill="#3B3C42"/><rect x="56" y="298" width="288" height="72" rx="6" fill="url(#gRed)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M62 304 H338" stroke="#fff" stroke-width="2" opacity=".3"/><rect x="150" y="326" width="100" height="16" rx="8" fill="url(#gKey)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="2.5"/></g>
-          <g font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="26" fill="#1C1A17">
-            <path d="M100 118 L100 40" stroke="#1C1A17" stroke-width="2.5"/><text x="20" y="32">숫자 화면</text>
-            <path d="M324 170 L470 170" stroke="#1C1A17" stroke-width="2.5"/><text x="476" y="178">START</text>
-            <path d="M344 334 L470 334" stroke="#1C1A17" stroke-width="2.5"/><text x="476" y="342">서랍</text>
-          </g>
-        </svg>
-        <div class="pop"><svg viewBox="0 0 300 300" width="300" height="300">
-          <path d="M150 10 L180 90 L265 55 L215 130 L295 160 L210 185 L250 265 L170 220 L150 295 L125 220 L45 265 L90 185 L5 160 L85 130 L35 55 L120 90Z" fill="#FFD43B" stroke="#1C1A17" stroke-width="6" stroke-linejoin="round"/>
-          <text x="150" y="182" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="88" fill="#A8322D" stroke="#1C1A17" stroke-width="3">펑!</text></svg></div>
-      </div>
-      <div class="mbar" aria-hidden="true"><i class="arc"></i></div>
-      <div class="btns"><button class="go">START</button><button class="rs">다시</button></div>
-      <p style="font-size:22px;color:var(--soft);text-align:center">미리 보기 · 실제 속도는 기계 화면을 보세요</p>
-    </div>
-  </div>
-</section>
-
-<!-- 꺼내서 살펴보기 -->
-<section class="slide" data-notes="펑 소리가 나면 선생님이 꺼내서 식었는지 확인해 줘요. 위에 있는 종이와 필름을 살살 떼어 내요. 고무판을 빛에 비춰 보면 내 그림 모양이 살짝 보여요. 그림 부분은 말랑하고, 나머지는 반질반질 단단해졌어요. 손톱으로 긁지 않게 조심해요.">
-  <span class="tag t2"><i>2</i>굽기 · 확인</span>
-  <h2>꺼내서 <span class="hi">살펴보기</span></h2>
-  <div class="cols">
-    <svg viewBox="0 0 660 450">
-      <ellipse cx="290" cy="392" rx="200" ry="12" fill="#4A3B22" opacity=".14"/><g filter="url(#sh)"><use href="#pad" x="70" y="110" width="420" height="290"/></g>
-      <g opacity=".9" transform="translate(280 222) scale(1 .62) translate(-280 -250)"><circle cx="280" cy="250" r="90" fill="none" stroke="#9BA1AC" stroke-width="10"/><use href="#cat" x="215" y="180" width="130" height="130" style="--cat:#9BA1AC"/></g>
-      <path d="M300 120 Q430 40 560 70 L540 260 Q440 220 470 140 Z" fill="url(#gPaperTop)" fill-opacity=".92" stroke="#1C1A17" stroke-width="4" filter="url(#sh)"/>
-      <use href="#pinch" x="470" y="30" width="130" height="96" filter="url(#sh)"/>
-      <text x="280" y="436" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="28">종이·필름을 살살 떼어요</text>
-    </svg>
-    <div class="card">
-      <ol class="go" style="--c:var(--p2)">
-        <li>종이·필름 <b>살살 떼기</b><span>식었는지 선생님이 확인한 뒤에</span></li>
-        <li>빛에 비춰 <b>그림 모양</b> 찾기</li>
-        <li>그림 부분은 <b>말랑</b>,<br>나머지는 <b>반질반질 단단</b></li>
-      </ol>
-      <div class="tip no" style="font-size:24px"><em>!</em>손톱으로 긁지 않기</div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== PART 3 ===== -->
-<section class="slide cover" data-notes="세 번째 단계, 잉크 충전이에요. 도장에 잉크를 먹여요. 이 단계는 '기다리기'가 제일 중요해요.">
-  <div class="num" style="background:var(--p3)">3단계</div>
-  <h1 style="color:var(--p3)">잉크 충전</h1>
-  <p>말랑한 그림 부분에 잉크를 먹여요</p>
-  <div class="road">
-    <div class="st"><div class="ic"><svg><use href="#i-pen"/></svg></div>도안 만들기</div><div class="dash"></div>
-    <div class="st"><div class="ic"><svg><use href="#i-fire"/></svg></div>굽기</div><div class="dash"></div>
-    <div class="st now"><div class="ic" style="background:var(--p3l)"><svg><use href="#i-drop"/></svg></div>잉크 충전</div><div class="dash"></div>
-    <div class="st"><div class="ic"><svg><use href="#i-stamp"/></svg></div>쾅! 찍기</div>
-  </div>
-</section>
-
-<!-- 손잡이 붙이기 -->
-<section class="slide" data-notes="먼저 고무판 뒤에 양면테이프를 작게 한 조각만 살짝 붙이고, 도장 손잡이 아래의 파인 곳에 쏙 넣어 꾹 붙여요. 그림이 보이는 면이 바깥(아래)으로 가야 해요. 삐뚤어지지 않게 가운데를 잘 맞춰요.">
-  <span class="tag t3"><i>3</i>잉크 충전 · 붙이기</span>
-  <h2>도장 손잡이에 <span class="hi">붙이기</span></h2>
-  <div class="cols">
-    <svg viewBox="0 -120 600 560">
-      <use href="#stampH" x="180" y="-104" width="240" height="342" filter="url(#sh)"/>
-      <rect x="262" y="198" width="76" height="8" rx="2" fill="#FFD43B" stroke="#1C1A17" stroke-linejoin="round" stroke-width="2.5"/>
-      <path d="M450 236 L342 204" stroke="#1C1A17" stroke-width="2.5"/>
-      <text x="458" y="244" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="24">양면테이프</text>
-      <path d="M150 262 L212 222" stroke="#1C1A17" stroke-width="2.5"/>
-      <text x="20" y="276" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="24" fill="#2E5D6B">고무판 넣는 곳</text>
-      <path d="M300 300 V252" stroke="#1C1A17" stroke-width="6" marker-end="url(#ar)"/>
-      <g filter="url(#sh)"><use href="#pad" x="208" y="292" width="184" height="62"/></g>
-      <text x="300" y="396" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="28">그림 면이 바깥(아래)으로</text>
-    </svg>
-    <ol class="go" style="--c:var(--p3)">
-      <li>고무판 뒤에 <b>양면테이프</b><span>작게 한 조각만 살짝</span></li>
-      <li>받침 아래 <b>파인 곳</b>에 꾹!<span>가운데를 잘 맞춰요</span></li>
-      <li>그림 면은 <b>바깥(아래)쪽</b></li>
-    </ol>
-  </div>
-</section>
-
-<!-- 펀치 · 아크릴 캡 -->
-<section class="slide" data-notes="고무판을 붙였으면 손잡이 위에 내 그림 이름표를 달아요. 굽기에 쓰지 않은 이름표용 도안 종이를 동그라미 펀치 앞쪽 틈에 넣어요. 그다음 펀치를 뒤집어서 아래 구멍으로 보며 그림이 한가운데 오도록 종이를 움직여요. 가운데가 맞으면 다시 바로 놓고 위의 은색 버튼을 꾹 눌러 뚫어요. 뚫은 동그라미를 손잡이 맨 위 동그란 자리에 올리는데, 이때 그림 방향을 도장으로 찍었을 때 나오는 방향과 똑같이 맞춰요. 손잡이 맨 위 뚜껑에는 얕게 파인 동그란 홈이 있어요. 그 홈에 그림을 넣고, 얇고 투명한 아크릴 캡을 위에 꾹 끼우면 끝! 이렇게 하면 손잡이 그림만 보고도 도장을 바른 방향으로 찍을 수 있어요.">
-  <span class="tag t3"><i>3</i>잉크 충전 · 이름표</span>
-  <h2>펀치로 뚫고 <span class="hi">아크릴 캡</span> 씌우기</h2>
-  <div class="row" style="flex:1;align-items:stretch;gap:18px;margin-top:10px">
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--p1l);border-color:var(--p1)"><svg viewBox="0 0 300 230" style="width:100%;max-height:300px">
-  <g filter="url(#sh)"><path d="M20 30 L170 22 L176 206 L26 214Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g>
-  <g filter="url(#sh)">
-    <path d="M232 92 C262 88 290 104 286 124 C282 142 256 146 232 140Z" fill="#3E78D6" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-    <rect x="70" y="40" width="180" height="160" rx="78" fill="#7C4FB0" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/>
-    <rect x="84" y="54" width="152" height="132" rx="64" fill="#6A3F9C" stroke="#1C1A17" stroke-width="2"/>
-    <circle cx="156" cy="120" r="50" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-    <circle cx="156" cy="120" r="42" fill="#FFFDF6" stroke="#1C1A17" stroke-width="2.5"/>
-    <circle cx="156" cy="120" r="30" fill="#fff" stroke="#111" stroke-width="3.5"/><use href="#cat" x="137" y="100" width="38" height="38"/>
-  </g>
-  <path d="M156 58 V182 M94 120 H218" stroke="#2E5D6B" stroke-width="2.5" stroke-dasharray="6 5"/>
-  <text x="150" y="22" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="20" fill="#4E473C">뒤집어서 아래에서 본 모습</text>
-  <text x="150" y="226" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="18" fill="#2E5D6B">구멍으로 보며 맞춰요</text>
-</svg><p class="jua" style="font-size:30px">① 뒤집어 맞추기</p><p style="font-size:22px">구멍으로 보며 그림을 한가운데로</p></div>
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><svg viewBox="0 0 300 230" style="width:100%;max-height:300px">
-  <ellipse cx="160" cy="210" rx="110" ry="10" fill="#1C1A17" opacity=".13"/>
-  <g filter="url(#sh)"><path d="M6 168 L112 160 L114 182 L8 190Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g>
-  <g filter="url(#sh)">
-    <path d="M86 180 H234 V190 Q234 206 160 207 Q86 206 86 190Z" fill="#7C4FB0" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/>
-    <path d="M92 176 C86 122 104 96 160 92 C216 96 234 122 228 176Z" fill="url(#gWood)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/>
-    <rect x="90" y="174" width="140" height="7" rx="3" fill="#2B2340"/>
-    <path d="M108 120 C112 106 124 100 138 98" stroke="#fff" stroke-width="5" opacity=".5" fill="none" stroke-linecap="round"/>
-    <path d="M144 98 L150 66 H184 L180 98Z" fill="#2A5DB0" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-    <path d="M118 70 C112 48 142 36 172 42 L238 32 C268 28 286 48 274 68 C264 84 238 86 216 80 L170 84 C144 88 124 86 118 70Z" fill="#3E78D6" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/>
-    <path d="M132 58 C142 48 160 44 176 46" stroke="#fff" stroke-width="4" opacity=".45" fill="none" stroke-linecap="round"/>
-    <ellipse cx="244" cy="56" rx="22" ry="14" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-    <path d="M230 51 Q238 45 250 47" stroke="#fff" stroke-width="3" opacity=".7" fill="none" stroke-linecap="round"/>
-  </g>
-  <path d="M244 4 V30" stroke="#1C1A17" stroke-width="4" marker-end="url(#ar)"/><text x="276" y="22" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="20">꾹!</text>
-  <text x="4" y="128" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="18" fill="#4E473C">종이를</text><text x="4" y="150" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="18" fill="#4E473C">틈에 쏙</text>
-  <g transform="translate(270 190)"><ellipse rx="22" ry="9" fill="#fff" stroke="#1C1A17" stroke-width="2.5"/><g transform="scale(1 .42)"><use href="#cat" x="-14" y="-15" width="28" height="28"/></g></g>
-  
-</svg><p class="jua" style="font-size:30px">② 꾹 눌러 뚫기</p><p style="font-size:22px">종이를 틈에 넣고 버튼을 꾹</p><p style="font-size:20px;color:var(--red-text)">손가락은 틈에 넣지 않기</p></div>
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--p1l);border-color:var(--p1)"><svg viewBox="0 0 300 230" style="width:100%;max-height:300px"><g filter="url(#sh)"><circle cx="74" cy="104" r="60" fill="url(#gWood)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="4"/><circle cx="74" cy="104" r="45" fill="#E9F4F2" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g><circle cx="74" cy="104" r="34" fill="#fff" stroke="#111" stroke-width="3.8"/><use href="#cat" x="52.9" y="81.6" width="42.2" height="42.2" style="--cat:#111"/><text x="74" y="196" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="20">손잡이 위</text><g filter="url(#sh)"><path d="M178 50 L290 44 L294 164 L182 170Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g><g transform="translate(236 106)"><circle r="36" fill="none" stroke="#5A3F7A" stroke-width="4"/><use href="#cat" x="-22" y="-24" width="44" height="44" style="--cat:#5A3F7A"/></g><text x="236" y="196" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="20">찍힌 모습</text><text x="156" y="120" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="48" fill="#2E5D6B">=</text></svg><p class="jua" style="font-size:30px">③ 방향 맞춰 올리기</p><p style="font-size:22px">인쇄된 그대로 (글씨가 바르게 읽히게)</p></div>
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><svg viewBox="0 0 300 230" style="width:100%;max-height:300px">
-  <g filter="url(#sh)">
-    <rect x="116" y="206" width="68" height="24" rx="3" fill="url(#gGray)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M122 210 V226" stroke="#6F7277" stroke-width="2"/><path d="M129 210 V226" stroke="#6F7277" stroke-width="2"/><path d="M136 210 V226" stroke="#6F7277" stroke-width="2"/><path d="M143 210 V226" stroke="#6F7277" stroke-width="2"/><path d="M150 210 V226" stroke="#6F7277" stroke-width="2"/><path d="M157 210 V226" stroke="#6F7277" stroke-width="2"/><path d="M164 210 V226" stroke="#6F7277" stroke-width="2"/><path d="M171 210 V226" stroke="#6F7277" stroke-width="2"/><path d="M178 210 V226" stroke="#6F7277" stroke-width="2"/>
-    <path d="M86 104 C84 82 114 70 150 70 C186 70 216 82 214 104 C218 150 184 178 172 208 H128 C116 178 82 150 86 104Z" fill="url(#gWood)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3.5"/>
-    <path d="M88 118 Q150 140 212 118" fill="none" stroke="#136A63" stroke-width="3"/>
-    <path d="M100 92 Q150 74 200 92" fill="none" stroke="#9BEDE3" stroke-width="3" opacity=".7"/>
-    <ellipse cx="150" cy="92" rx="42" ry="12" fill="#2A9C90" stroke="#1C1A17" stroke-width="2.5"/>
-    <ellipse cx="150" cy="93" rx="37" ry="10" fill="#fff"/>
-    <g transform="translate(150 93) scale(1 .3)"><use href="#cat" x="-26" y="-27" width="52" height="52"/></g>
-    <path d="M104 124 Q108 160 124 186" stroke="#fff" stroke-width="6" opacity=".4" fill="none" stroke-linecap="round"/>
-  </g>
-  <g filter="url(#sh)">
-    <path d="M110 30 V36 A40 11 0 0 0 190 36 V30" fill="#CFE2F0" fill-opacity=".6" stroke="#1C1A17" stroke-linejoin="round" stroke-width="2.5"/>
-    <ellipse cx="150" cy="30" rx="40" ry="11" fill="#EAF4FB" fill-opacity=".7" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/>
-    <path d="M124 27 Q136 21 156 21" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
-  </g>
-  <path d="M150 46 V66" stroke="#1C1A17" stroke-width="4" marker-end="url(#ar)"/>
-  <path d="M106 30 L92 30" stroke="#1C1A17" stroke-width="2.5"/><text x="6" y="26" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="19">아크릴</text><text x="6" y="48" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="19">캡</text>
-  <path d="M190 96 L230 120" stroke="#1C1A17" stroke-width="2.5"/><text x="226" y="140" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="19" fill="#4E473C">홈에</text><text x="226" y="162" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="19" fill="#4E473C">내 그림</text>
-</svg><p class="jua" style="font-size:30px">④ 캡 꾹 끼우기</p><p style="font-size:22px">손잡이 위 홈에 그림 → 캡 꾹</p><p style="font-size:20px;color:var(--red-text)">캡은 작아요 · 입에 넣지 않기</p></div>
-  </div>
-  <div class="why"><span class="q">왜?</span><span>손잡이 그림이 찍히는 방향과 같아야, 그림만 보고도 도장을 바르게 찍을 수 있어요.</span></div>
-</section>
-
-<!-- 잉크 콕콕 -->
-<section class="slide" data-notes="잉크 통 끝을 그림 부분에 대고 살짝 눌러서 잉크를 콕콕 올려요. 말랑한 그림 부분에만 올려요. 딱딱한 빈 곳에 묻히면 잉크가 안 들어가고 번지기만 해요. 한꺼번에 많이 붓지 말고 조금씩!">
-  <span class="tag t3"><i>3</i>잉크 충전 · 바르기</span>
-  <h2>그림 부분에만 <span class="hi">콕콕</span></h2>
-  <div class="cols">
-    <svg viewBox="0 0 600 440">
-      <ellipse cx="300" cy="398" rx="250" ry="12" fill="#4A3B22" opacity=".14"/><g filter="url(#sh)"><use href="#pad" x="50" y="130" width="500" height="290"/></g>
-      <g transform="translate(300 241) scale(1 .62) translate(-300 -265)">
-      <circle cx="300" cy="265" r="90" fill="none" stroke="#8C929D" stroke-width="16"/>
-      <use href="#cat" x="240" y="205" width="120" height="120" style="--cat:#8C929D"/>
-      <g fill="url(#gInk)"><circle cx="300" cy="190" r="13"/><circle cx="215" cy="270" r="11"/><circle cx="380" cy="300" r="12"/><circle cx="300" cy="275" r="14"/></g></g>
-      <g transform="translate(330 20) rotate(25)"><g filter="url(#sh)"><rect x="0" y="0" width="56" height="120" rx="12" fill="url(#gBottle)" stroke="#1C1A17" stroke-width="5"/><rect x="6" y="40" width="44" height="74" rx="8" fill="url(#gInk)" opacity=".85"/><path d="M14 120 L28 170 L42 120Z" fill="url(#gBottle)" stroke="#1C1A17" stroke-width="5"/></g></g>
-      <path d="M110 210 L150 250 M150 210 L110 250" stroke="#FF7A6E" stroke-width="8" stroke-linecap="round"/>
-      <text x="130" y="282" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22" fill="#FFB3AA">빈 곳 ✕</text>
-    </svg>
-    <div>
-      <ol class="go" style="--c:var(--p3)">
-        <li>잉크 통 끝을 <b>그림에 대고</b></li>
-        <li>살짝 눌러 <b>콕콕</b> 올리기</li>
-        <li>딱딱한 <b>빈 곳은 피하기</b></li>
-      </ol>
-      <div class="tip"><em><svg class="ei" aria-hidden="true"><use href="#e-drop"/></svg></em>한꺼번에 많이 ✕ · 조금씩 여러 번 ○</div>
-      <div class="why"><span class="q">왜?</span><span>빛을 받은 곳은 구멍이 막혀서 잉크를 먹지 못해요. 거기 묻은 잉크는 겉에 남아 번져요.</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- 5분 x 3번 타이머 -->
-<section class="slide" data-notes="잉크가 고무 속까지 스며들 시간이 필요해요. 잉크를 올리고 5분 기다려요. 이걸 3번 해요. 오른쪽 타이머를 같이 써요. 한 번 끝날 때마다 동그라미에 색이 칠해져요. [질문] 잉크를 바르고 바로 찍으면 어떻게 될지 예상해 볼까요? 기다릴 때는 도장을 고무 면이 위로 오게 눕혀 두어요. 엎어 두면 잉크가 번져요. 기다리는 동안 활동지(41쪽)를 해요.">
-  <span class="tag t3"><i>3</i>잉크 충전 · 기다리기</span>
-  <h2><span class="hi">5분 기다리기 × 3번</span> <small>고무 면을 위로 · 기다리며 활동지</small></h2>
-  <div class="cols">
-    <div>
-      <svg viewBox="0 0 600 160" style="width:100%">
-        <g transform="translate(20 20)"><use href="#pad" x="0" y="-22" width="160" height="92" filter="url(#sh)"/><circle cx="80" cy="0" r="22" fill="url(#gInk)"/></g>
-        <path d="M178 55 H214" stroke="#1C1A17" stroke-width="5" marker-end="url(#ar)"/>
-        <g transform="translate(220 20)"><use href="#pad" x="0" y="-22" width="160" height="92" filter="url(#sh)"/><path d="M60 0 Q80 40 100 0 Z" fill="url(#gInk)"/><circle cx="80" cy="-4" r="10" fill="url(#gInk)"/></g>
-        <path d="M378 55 H414" stroke="#1C1A17" stroke-width="5" marker-end="url(#ar)"/>
-        <g transform="translate(420 20)"><use href="#pad" x="0" y="-22" width="160" height="92" filter="url(#sh)"/><path d="M50 0 Q80 70 110 0 Z" fill="url(#gInk)"/></g>
-        <text x="100" y="140" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="28">콕!</text>
-        <text x="300" y="140" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="28">스며드는 중</text>
-        <text x="500" y="140" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="28">쏙!</text>
-      </svg>
-      <ol class="go" style="--c:var(--p3);margin-top:14px">
-        <li>잉크 콕콕 → <b>5분</b> 기다리기</li>
-        <li>또 콕콕 → <b>5분</b></li>
-        <li>마지막 콕콕 → <b>5분</b></li>
-      </ol>
-      <div class="why"><span class="q">왜?</span><span>잉크는 아주 작은 구멍으로 천천히 스며들어요. 나눠서 기다려야 속까지 꽉 차요.</span></div>
-    </div>
-    <div class="timer" id="inkTimer">
-      <div class="rounds"><i>1</i><i>2</i><i>3</i></div>
-      <div class="dial">
-        <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="#fff" stroke="#eee" stroke-width="12"/><circle class="arc" cx="60" cy="60" r="52" fill="none" stroke="#5A3F7A" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="0"/></svg>
-        <div class="n" style="font-size:84px">5:00</div>
-      </div>
-      <div class="btns"><button class="go" style="background:var(--p3)">시작</button><button class="rs">처음부터</button></div>
-    </div>
-  </div>
-</section>
-
-<!-- 내 도장 발명하기 -->
-<section class="slide" data-notes="잉크가 스며드는 15분 동안 생각해 봐요. 도장은 지금도 여러 곳에서 쓰여요. 선생님 칭찬 도장, 편지 봉투의 우체국 도장, 책에 찍는 도장, 여행지 스탬프 투어도 있죠. 내 도장을 누가, 어디에, 왜 쓸지 떠올리는 것이 발명가의 첫걸음이에요. 도장은 어떤 불편함을 해결했을까요? 더하기·빼기·바꾸기로 생각해 봐요. 팝도장은 잉크 패드를 뺀 발명이에요. 활동지에 내 도장 이름과 쓰임, 아이디어 하나를 적어요.">
-  <span class="tag t3"><i>3</i>잉크 기다리는 동안</span>
-  <h2>내 도장을 <span class="hi">발명해요</span> <small>도장은 어디에 쓰일까?</small></h2>
-  <div class="cols" style="grid-template-columns:1.15fr .85fr;align-items:center">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
-      <div class="card center" style="padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:4px"><svg viewBox="0 0 200 130" width="200" height="130"><g filter="url(#sh)"><path d="M40 20 L170 14 L176 116 L46 122Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g><g stroke="#C9D5E6" stroke-width="2"><path d="M56 44 H160 M57 64 H162 M58 84 H163"/></g><g transform="rotate(-12 128 86)"><circle cx="128" cy="86" r="26" fill="none" stroke="#A8322D" stroke-width="4"/><text x="128" y="82" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="13" fill="#A8322D">참</text><text x="128" y="98" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="11" fill="#A8322D">잘했어요</text></g></svg><p style="font-size:24px;font-weight:700">칭찬 도장</p></div><div class="card center" style="padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:4px"><svg viewBox="0 0 200 130" width="200" height="130"><g filter="url(#sh)"><rect x="26" y="28" width="150" height="88" rx="4" fill="#FFFDF6" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g><path d="M26 30 L101 78 L176 30" fill="none" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><g transform="translate(150 50)"><circle r="17" fill="none" stroke="#1F3A6B" stroke-width="3"/><path d="M-24 -4 q6 -5 12 0 t12 0 t12 0 t12 0" stroke="#1F3A6B" stroke-width="2.5" fill="none"/></g></svg><p style="font-size:24px;font-weight:700">우체국 도장</p></div><div class="card center" style="padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:4px"><svg viewBox="0 0 200 130" width="200" height="130"><g filter="url(#sh)"><path d="M100 26 C80 16 50 16 30 24 V114 C50 106 80 106 100 116Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/><path d="M100 26 C120 16 150 16 170 24 V114 C150 106 120 106 100 116Z" fill="#F4EEE2" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g><g transform="translate(136 70)"><rect x="-22" y="-16" width="44" height="32" rx="4" fill="none" stroke="#2E5D6B" stroke-width="3"/><path d="M-14 6 l8 -10 l7 7 l5 -5 l8 8" stroke="#2E5D6B" stroke-width="2.5" fill="none"/></g></svg><p style="font-size:24px;font-weight:700">책 도장</p></div><div class="card center" style="padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:4px"><svg viewBox="0 0 200 130" width="200" height="130"><g filter="url(#sh)"><rect x="34" y="16" width="132" height="102" rx="8" fill="#FFFDF6" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g><g fill="none" stroke-width="3"><circle cx="72" cy="48" r="16" stroke="#A8322D"/><circle cx="128" cy="48" r="16" stroke="#2E5D6B"/><circle cx="72" cy="90" r="16" stroke="#5A3F7A"/><circle cx="128" cy="90" r="16" stroke="#D9CFB8" stroke-dasharray="4 5"/></g><text x="128" y="96" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="18" fill="#B9AF98">?</text></svg><p style="font-size:24px;font-weight:700">스탬프 투어</p></div>
-    </div>
-    <div class="card">
-      <p class="jua" style="font-size:36px;color:var(--p3)">생각해 보기</p>
-      <ol class="go" style="--c:var(--p3);margin-top:10px">
-        <li><b>누가, 어디에</b> 쓸까요?</li>
-        <li>무엇을 <b>더할까요?</b><span>도장 + 날짜, 도장 + 칭찬 말</span></li>
-        <li>무엇을 <b>뺄까요?</b><span>잉크 패드를 뺐더니 → 팝도장!</span></li>
-        <li>무엇을 <b>바꿀까요?</b><span>모양·크기·쓰는 사람</span></li>
-      </ol>
-    </div>
-  </div>
-</section>
-
-<!-- 닦고 찍기 -->
-<section class="slide" data-notes="잉크가 다 스며들면 이제 찍어 봐요! 처음에는 겉에 남은 잉크가 많아서 까맣게 번져서 찍혀요. 괜찮아요. 연습 종이에 여러 번 꾹꾹 찍어 보세요. 찍을수록 겉의 잉크가 빠지고, 그림이 또렷하게 나와요. 깨끗하게 나오면 공책, 엽서, 종이 상자에 마음껏 찍어요! 찍을 때는 위에서 수직으로 꾹 눌러요. 휴지로 닦지 않아도 돼요.">
-  <span class="tag t0"><i>4</i>쾅! 찍기</span>
-  <h2>연습 종이에 <span class="hi">여러 번 꾹꾹!</span></h2>
-  <div class="row" style="flex:1;align-items:center;gap:30px">
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
-      <svg viewBox="0 0 220 170" width="270" height="208"><g filter="url(#sh)"><path d="M18 34 L196 18 L206 150 L28 160Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g><g opacity="0.95"><ellipse cx="62" cy="70" rx="22" ry="18.919999999999998" fill="#1C1A17"/><ellipse cx="74.1" cy="65.6" rx="9.9" ry="7.699999999999999" fill="#1C1A17"/></g><g opacity="0.85"><ellipse cx="118" cy="62" rx="22" ry="18.919999999999998" fill="#1C1A17"/><ellipse cx="130.1" cy="57.6" rx="9.9" ry="7.699999999999999" fill="#1C1A17"/></g><g opacity="0.6"><circle cx="170" cy="58" r="22" fill="none" stroke="#5A3F7A" stroke-width="4"/><use href="#cat" x="156.36" y="43.48" width="27.28" height="27.28" style="--cat:#5A3F7A"/></g><path d="M50 118 H178" stroke="#1C1A17" stroke-width="3" marker-end="url(#ar)"/><text x="114" y="146" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="20" fill="#4E473C">꾹 · 꾹 · 꾹</text></svg>
-      <p class="jua" style="font-size:36px">① 연습 종이에 여러 번</p><p style="font-size:24px">처음엔 까맣게 번져도 괜찮아요</p>
-    </div>
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
-      <svg viewBox="0 0 220 170" width="270" height="208"><g filter="url(#sh)"><path d="M18 34 L196 18 L206 150 L28 160Z" fill="url(#gPaperTop)" stroke="#1C1A17" stroke-linejoin="round" stroke-width="3"/></g><g opacity="1"><circle cx="112" cy="86" r="48" fill="none" stroke="#5A3F7A" stroke-width="4"/><use href="#cat" x="82.24000000000001" y="54.32" width="59.519999999999996" height="59.519999999999996" style="--cat:#5A3F7A"/></g></svg>
-      <p class="jua" style="font-size:36px">② 또렷해지면 OK</p><p style="font-size:24px">선이 깨끗하게 보일 때까지</p>
-    </div>
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--yellow)">
-      <svg viewBox="0 0 220 170" width="270" height="208"><ellipse cx="110" cy="158" rx="70" ry="8" fill="#1C1A17" opacity=".14"/><use href="#stampP" x="66" y="2" width="88" height="128" filter="url(#sh)"/><path d="M48 40 V80 M172 40 V80" stroke="#1C1A17" stroke-width="3" stroke-linecap="round" opacity=".5"/><g transform="translate(110 140)"><ellipse rx="40" ry="10" fill="none" stroke="#5A3F7A" stroke-width="4"/></g></svg>
-      <p class="jua" style="font-size:36px">③ 위에서 꾹, 쾅!</p><p style="font-size:24px">공책·엽서·상자에 찍기</p>
-    </div>
-  </div>
-  <div class="why"><span class="q">왜?</span><span>처음엔 겉 잉크가 많아 번져요. 여러 번 찍으면 또렷해져요.</span></div>
-</section>
-
-<!-- 이럴 땐 이렇게 -->
-<section class="slide" data-notes="도장이 생각대로 안 나와도 괜찮아요. 원인을 찾으면 고칠 수 있어요. 잉크가 안 들어가고 겉돌면 도안이 회색이었던 거예요. 다음엔 새까만 검정으로! 글씨가 거꾸로 나오면 종이를 그림이 위로 놓았던 거예요. 가장자리에 네모난 자국이 생기면 연습 종이에 몇 번 더 찍어서 겉에 남은 잉크를 빼요. 잉크스케이프로 만든 친구는 투명 네모를 빼먹지 않았는지도 봐요. 선이 사라졌다면 선이 너무 얇았던 거예요.">
-  <span class="tag t0"><i>?</i>이럴 땐 이렇게</span>
-  <h2>도장이 이상해요! <small>발명가는 원인 찾기 → 고치기를 반복해요</small></h2>
-  <div class="row" style="flex:1;align-items:stretch;margin-top:18px">
-    <div class="card" style="flex:1">
-      <p class="jua" style="font-size:32px;color:var(--red-text)">잉크가 위에 떠요</p>
-      <svg viewBox="0 0 300 110" style="width:100%;margin:10px 0"><use href="#pad" x="14" y="6" width="272" height="100"/><g fill="url(#gInk)"><ellipse cx="70" cy="45" rx="22" ry="10"/><ellipse cx="160" cy="60" rx="30" ry="12"/><ellipse cx="240" cy="40" rx="18" ry="8"/></g></svg>
-      <p style="font-size:26px"><svg class="ei" aria-hidden="true"><use href="#e-search"/></svg> 도안이 <b>회색</b>이었어요<br><svg class="ei" aria-hidden="true"><use href="#e-next"/></svg> <b>새까만 검정</b>으로!</p>
-    </div>
-    <div class="card" style="flex:1">
-      <p class="jua" style="font-size:32px;color:var(--red-text)">글씨가 거꾸로예요</p>
-      <svg viewBox="0 0 300 110" style="width:100%;margin:10px 0"><text x="150" y="85" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="80" fill="#5A3F7A" transform="translate(300 0) scale(-1 1)">냥냥</text></svg>
-      <p style="font-size:26px"><svg class="ei" aria-hidden="true"><use href="#e-search"/></svg> 종이 <b>그림이 위</b>였어요<br><svg class="ei" aria-hidden="true"><use href="#e-next"/></svg> <b>그림이 아래</b>로 뒤집기!</p>
-    </div>
-    <div class="card" style="flex:1">
-      <p class="jua" style="font-size:32px;color:var(--red-text)">네모 자국이 생겨요</p>
-      <svg viewBox="0 0 300 110" style="width:100%;margin:10px 0"><rect x="90" y="8" width="120" height="94" fill="none" stroke="#5A3F7A" stroke-width="5" opacity=".6"/><circle cx="150" cy="55" r="38" fill="none" stroke="#5A3F7A" stroke-width="8"/></svg>
-      <p style="font-size:26px"><svg class="ei" aria-hidden="true"><use href="#e-search"/></svg> 가장자리에 잉크가 묻었어요<br><svg class="ei" aria-hidden="true"><use href="#e-next"/></svg> 연습 종이에 <b>몇 번 더 찍기</b><br><small class="advnote">잉크스케이프 친구: ⑧단계 투명 네모</small></p>
-    </div>
-    <div class="card" style="flex:1">
-      <p class="jua" style="font-size:32px;color:var(--red)">선이 사라졌어요</p>
-      <svg viewBox="0 0 300 110" style="width:100%;margin:10px 0"><path d="M30 60 Q90 20 150 60" stroke="#5A3F7A" stroke-width="3" fill="none"/><path d="M175 60 Q210 85 270 60" stroke="#5A3F7A" stroke-width="3" fill="none" stroke-dasharray="4 14" opacity=".5"/></svg>
-      <p style="font-size:26px"><svg class="ei" aria-hidden="true"><use href="#e-search"/></svg> 선이 <b>너무 얇았어요</b><br><svg class="ei" aria-hidden="true"><use href="#e-next"/></svg> 테두리 1mm · 글자 2mm 이상</p>
-    </div>
-  </div>
-</section>
-
-<!-- 안전 약속 -->
-<section class="slide" data-notes="안전 약속 세 가지! 굽는 기계는 선생님만 만져요. 잉크는 쓰고 나면 바로 뚜껑을 꽉 닫아요. 안 닫으면 말라서 다음 친구가 못 써요. 끝나면 손을 깨끗이 씻고, 연습 종이와 신문지를 정리해요. 잉크가 옷이나 손에 묻으면 잘 안 지워져요. 신문지 위에서 하고 소매를 걷어요. 잉크는 입이나 눈에 닿지 않게 해요. 기계 둘레 한 걸음 안에는 차례가 된 친구만 들어가요.">
-  <span class="tag t0"><i>!</i>안전 약속</span>
-  <h2>꼭 지켜요, <span class="hi">안전 약속</span></h2>
-  <div class="row" style="flex:1;align-items:stretch;margin-top:18px">
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;background:var(--p2l)">
-      <svg width="150" height="150" viewBox="0 0 64 64"><use href="#i-fire"/></svg>
-      <p class="jua" style="font-size:44px">기계는<br>선생님만</p>
-      <p style="font-size:26px">START·서랍·잠금 손대지 않기</p>
-    </div>
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;background:var(--p3l)">
-      <svg width="150" height="150" viewBox="0 0 64 64"><use href="#i-drop"/></svg>
-      <p class="jua" style="font-size:44px">잉크 뚜껑<br>꽉 닫기</p>
-      <p style="font-size:26px">안 닫으면 말라 버려요</p>
-    </div>
-    <div class="card center" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;background:var(--p1l)">
-      <svg width="150" height="150" viewBox="0 0 64 64"><use href="#e-hand" x="6" y="8" width="50" height="50"/><g fill="#DCEBF5" stroke="#5BA4E6" stroke-width="2"><circle cx="50" cy="16" r="6"/><circle cx="56" cy="30" r="4"/><circle cx="12" cy="20" r="4.5"/><circle cx="44" cy="6" r="3"/></g></svg>
-      <p class="jua" style="font-size:44px">손 씻고<br>깨끗이 정리</p>
-      <p style="font-size:26px">연습 종이·신문지 치우기</p>
-    </div>
-  </div>
-  <div class="tip" style="justify-content:center"><em>!</em>신문지 깔고 소매 걷기 · 잉크가 눈에 들어가면 바로 물로 씻고 선생님께 · 기계 옆엔 내 차례만</div>
-</section>
-
-<!-- 마무리 -->
-<section class="slide cover" data-notes="오늘 처음부터 완벽한 도장이 나오지 않아도 괜찮아요. 발명가들도 여러 번 실패하면서 고쳐 나가요. 친구들 도장을 돌아보면서 서로 하나씩 찍어 주고, 잘된 점을 말해 줘요. 책상 위에 도장과 찍은 종이를 펼쳐 두고 한 바퀴 돌아요. 친구 종이에 잘된 점 스티커를 붙여 줘요. 자리에 돌아오면 활동지 세 칸을 채워요. 내 도장이 누구의 어떤 불편을 풀었는지, 안 된 점과 원인, 다음에 더하고·빼고·바꿀 점. 집에 가서 가족 카드에 찍어 줘도 좋아요.">
-  <svg width="220" height="220" viewBox="0 0 200 200" style="margin-bottom:8px">
-    <g transform="rotate(-10 100 100)"><circle cx="100" cy="100" r="86" fill="none" stroke="#A8322D" stroke-width="10"/>
-    <text x="100" y="92" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="40" fill="#A8322D">참</text>
-    <text x="100" y="138" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="40" fill="#A8322D">잘했어요</text></g>
-  </svg>
-  <h1 style="font-size:96px">실수해도 괜찮아요!</h1>
-  <p>발명가들도 여러 번 고쳐서 완성해요</p>
-  <div class="row" style="margin-top:34px;align-items:stretch">
-    <div class="card" style="padding:20px 30px;text-align:left"><p class="jua" style="font-size:32px"><svg class="ei" aria-hidden="true"><use href="#e-hand"/></svg> 친구 작품 구경하기</p><p style="font-size:26px;margin-top:6px">도장과 찍은 종이를 펼쳐 두고 한 바퀴!<br>친구 종이에 “잘된 점” 스티커 붙이기<br>친구 종이에 내 도장 하나 찍어 주기</p></div>
-    <div class="card" style="padding:20px 30px;text-align:left;background:#FFF0A6;border-color:#E3CC6A"><p class="jua" style="font-size:32px"><svg class="ei" aria-hidden="true"><use href="#e-pencil"/></svg> 활동지 세 칸</p><p style="font-size:26px;margin-top:6px">① 누구의 어떤 불편을 풀었나요?<br>② 안 된 점과 원인 ③ 더하고·빼고·바꿀 점</p></div>
-  </div>
-</section>
-
-<!-- ===== 선생님용 부록 ===== -->
-<section class="slide teacher" data-notes="선생님용 쪽이에요. 수업 전에 보세요. 학생 화면에는 띄우지 않아도 돼요.">
-  <span class="tag t0"><i>T</i>선생님용 · 수업 전</span>
-  <h2>준비물과 사전 준비</h2>
-  <div class="cols" style="align-items:stretch;flex:none;margin-top:24px">
-    <div class="card"><p class="jua" style="font-size:32px"><svg class="ei" aria-hidden="true"><use href="#e-box"/></svg> 준비물</p>
-      <ul class="tl"><li>감광 기계 · 고무판 · 투명 필름 · 레이저 전용지</li><li>레이저 프린터 (1200 dpi 최고 화질)</li><li>손잡이 · 아크릴 캡 · 동그라미 펀치 · 양면테이프 · 리필 잉크</li><li>연습 종이 · 신문지 · 물티슈 · 마른 휴지(정리용)</li><li>활동지 · 잘된 점 스티커 · 여분 고무판</li></ul></div>
-    <div class="card"><p class="jua" style="font-size:32px"><svg class="ei" aria-hidden="true"><use href="#e-check"/></svg> 사전 준비</p>
-      <ul class="tl"><li>활동지 인쇄: <a href="활동지_초등.pdf" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">활동지_초등.pdf</a> (A4 앞뒤 · 앞면 1차시, 뒷면 2차시)</li><li>도안 생성기에서 우리 반 <b>도장 이름</b> 정하기</li><li>도안 <b>제출함</b> 만들기 (PNG·PDF)</li><li>기계: START → <b>360</b>에서 '펑'</li><li>그을음이 생기면 ↓로 낮추기</li><li>도안 <b>2장씩</b> · 배율 <b>100%</b> (펀치 구멍과 크기가 맞아요)</li><li>고무판이 7mm보다 얇으면 두꺼운 종이 덧대기</li><li>전원선은 통로 밖 · 플러그는 바로 뽑을 수 있게 · 귀마개(원하는 학생)</li><li>학교 PC에서 캡처(<span class="k">Win</span>+<span class="k">Shift</span>+<span class="k">S</span>)·사이트 접속 되는지</li></ul></div>
-  </div>
-</section>
-
-<section class="slide teacher" data-notes="2차시 운영 계획이에요. 기계가 한 대라 굽기에서 줄이 생기기 쉬워요. 잉크 15분 기다리는 동안 다음 모둠이 굽도록 엇갈려 돌려요.">
-  <span class="tag t0"><i>T</i>선생님용 · 운영</span>
-  <h2>2차시로 나누기 · 기계 1대 돌리기</h2>
-  <div class="row" style="align-items:stretch;margin-top:24px">
-    <div class="card" style="flex:1"><p class="jua" style="font-size:30px"><svg class="ei" aria-hidden="true"><use href="#e-clock"/></svg> 차시 나누기</p>
-      <ul class="tl"><li><b>1차시</b> 표지 ~ 도안 점검·제출</li><li>쉬는 시간: 도안 2장씩 인쇄 ([인쇄 목록에 넣기]로 모아서)</li><li><b>2차시</b> 3쪽(빛 원리)·32쪽(그림 면 아래) 복습 → 굽기</li></ul></div>
-    <div class="card" style="flex:1"><p class="jua" style="font-size:30px"><svg class="ei" aria-hidden="true"><use href="#e-group"/></svg> 모둠 역할</p>
-      <ul class="tl"><li><b>기술 부장</b> 쌓기 순서·그림 면 확인</li><li><b>디자인 부장</b> 도안 제출·이름 확인</li><li><b>정리 부장</b> 잉크 뚜껑·신문지·연습 종이</li><li>기계 앞에는 한 모둠만</li></ul></div>
-    <div class="card" style="flex:1"><p class="jua" style="font-size:30px"><svg class="ei" aria-hidden="true"><use href="#e-hourglass"/></svg> 엇갈려 돌리기</p>
-      <ul class="tl"><li>A모둠 잉크 15분 동안 → B모둠 굽기</li><li>기다리는 모둠: 펀치·아크릴 캡 이름표(38쪽) → 활동지</li></ul></div>
-  </div>
-</section>
-
-<section class="slide teacher" data-notes="순회하며 볼 것과 끝나고 할 장비 관리예요. 전자칠판 판서는 쪽이 바뀌어도 남으니 쪽을 넘기기 전에 지워 주세요.">
-  <span class="tag t0"><i>T</i>선생님용 · 점검</span>
-  <h2>순회 점검 · 장비 관리 · 전자칠판 팁</h2>
-  <div class="row" style="align-items:stretch;margin-top:24px">
-    <div class="card" style="flex:1"><p class="jua" style="font-size:30px"><svg class="ei" aria-hidden="true"><use href="#e-eyes"/></svg> 순회 점검</p>
-      <ul class="tl"><li>쌓기 순서 (고무 → 필름 → 종이)</li><li>그림 면 아래</li><li>샌드위치는 학생이 건네고, 서랍은 교사가</li><li>잉크 기다릴 때 고무 면 위로</li><li>회색·얇은 선 없는지</li><li>잉크스케이프: 글자 경로로</li></ul></div>
-    <div class="card" style="flex:1"><p class="jua" style="font-size:30px"><svg class="ei" aria-hidden="true"><use href="#e-broom"/></svg> 장비 관리</p>
-      <ul class="tl"><li>플러그 뽑고 식힌 뒤 그을음 닦기</li><li>잉크 캡 꽉 닫기</li><li>습기 없는 곳에 보관</li></ul></div>
-    <div class="card" style="flex:1"><p class="jua" style="font-size:30px"><svg class="ei" aria-hidden="true"><use href="#e-monitor"/></svg> 전자칠판</p>
-      <ul class="tl"><li>판서는 쪽 넘기기 전에 지우기</li><li>사이트 탭은 <span class="k">Ctrl</span>+<span class="k">W</span>로 닫고 돌아오기</li><li>인터넷이 안 되면 그림 쪽으로 설명</li><li>잉크스케이프 쪽(19~27쪽)은 인쇄해 카드로</li></ul></div>
-  </div>
-</section>
-
-  <nav id="menu">
-    <div class="brand"><svg viewBox="0 0 64 64"><use href="#i-stamp"/></svg>팝도장 만들기</div>
-    <div class="mlist" id="mlist"></div>
-    <div class="tools-r"><button class="tb" id="bNotes">원고</button><button class="tb" id="bFull">전체화면</button></div>
-  </nav>
-  <div class="edge l" id="edgeL" title="이전"></div><div class="edge r" id="edgeR" title="다음"></div>
-  <div id="hint"><span class="k">←</span> <span class="k">→</span> 넘기기 · 화면 양끝 터치 · <span class="k">N</span> 원고</div>
-  <div id="progress"><div class="pill"><span id="tmr" hidden></span><span id="count"></span><div id="bar"><i></i></div></div>
-    <button class="nb" id="prev" aria-label="이전">◀</button><button class="nb pri" id="next" aria-label="다음">▶</button></div>
-</div></div>
-<div id="notes"></div>
-
+</details>
+<p class="foot"><span class="kb">키보드 <span class="k">1</span>~<span class="k">4</span>로도 고를 수 있어요 · </span>초등 활동지: <a href="활동지_초등.pdf" target="_blank" rel="noopener">활동지_초등.pdf</a><br>도안 만들기 사이트: <a href="https://happystamp.web.app/" target="happystamp" rel="noopener">happystamp.web.app</a></p>
 <script>
-/* ---------- 잉크스케이프 흉내 창 ---------- */
-const TOOLS=[['sel','tb-sel'],['node','tb-node'],['rect','tb-rect'],['circ','tb-circ'],['star','tb-star'],['pen','tb-penc'],['text','tb-text']];
-const MENUS=['파일','편집','보기','객체','경로','텍스트'];
-const CAT=(x,y,s,extra='')=>`<use href="#cat" x="${x}" y="${y}" width="${s}" height="${s}" ${extra}/>`;
-const PTR=(x,y)=>`<svg class="pointer" style="left:${x}px;top:${y}px" viewBox="0 0 40 40"><use href="#cursor"/></svg>`;
-const SELBOX=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#2E5D6B" stroke-width="2" stroke-dasharray="6 4"/>`;
-const WINS={
-  s1:{tool:'sel',art:`${CAT(130,40,220,'filter="url(#rough)" opacity=".85"')}${SELBOX(125,35,230,230)}
-      <g fill="#2E5D6B"><path d="M118 28 l14 0 l-14 14z"/><path d="M362 272 l-14 0 l14 -14z"/></g>
-      <text x="240" y="300" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22" fill="#2E5D6B">Ctrl 누르고 모서리 ↘</text>`,
-      extra:PTR(410,330)+`<div class="panel" style="width:200px;right:-20px;bottom:auto;top:110px"><h4>붙여넣기</h4><div style="font-size:30px;text-align:center"><span class="k">Ctrl</span>+<span class="k">V</span></div></div>`},
-  s2:{tool:'sel',menu:'경로',drop:[['객체를 경로로','Shift+Ctrl+C'],['비트맵 따라 그리기...','Shift+Alt+B']],dropHl:1,dropLeft:255,
-      art:`${CAT(80,70,190,'filter="url(#rough)" opacity=".85"')}`,
-      extra:PTR(430,150)+`<div class="panel"><h4>비트맵 따라 그리기</h4><div class="f">방식 <span class="v">밝기 기준</span></div><div class="f">값 <span class="v hl">0.45</span></div><div class="btn">적용</div></div>`},
-  s3:{tool:'sel',art:`${CAT(60,60,190,'filter="url(#rough)" opacity=".7"')}${SELBOX(55,55,200,200)}
-      <text x="155" y="285" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22" fill="#A8322D">원래 사진 → Delete</text>
-      ${CAT(270,60,190)}<path d="M200 30 Q260 0 320 40" stroke="#1C1A17" stroke-width="3" fill="none" stroke-dasharray="6 5" marker-end="url(#ar)"/>
-      <text x="365" y="285" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="22" fill="#2E5D6B">새 그림</text>`,
-      extra:PTR(150,180)},
-  s4:{tool:'circ',art:`<circle cx="230" cy="175" r="140" fill="none" stroke="#111" stroke-width="10"/>${CAT(150,85,160)}`,
-      extra:`<div class="panel"><h4>채움 및 자획</h4><div class="f">채우기 <span class="v hl">✕ 없음</span></div><div class="f">윤곽선 <span class="v">■ 검정</span></div><div class="f">두께 <span class="v hl">3 pt</span></div></div>`},
-  s6:{tool:'sel',art:`<circle cx="230" cy="175" r="140" fill="none" stroke="#111" stroke-width="10"/>${CAT(80,40,140)}
-      <text x="330" y="300" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="44" fill="#111">냥냥</text>${SELBOX(85,30,300,290)}
-      <path d="M150 110 L195 135" stroke="#2E5D6B" stroke-width="4" marker-end="url(#ar)"/>`,
-      extra:`<div class="panel"><h4>정렬 및 분산</h4><div style="display:flex;gap:10px;justify-content:center;margin:8px 0">
-        <span class="v" style="min-width:0;padding:4px 8px">⫷</span><span class="v hl" style="min-width:0;padding:4px 10px">↕</span><span class="v" style="min-width:0;padding:4px 8px">⫸</span>
-        <span class="v hl" style="min-width:0;padding:4px 10px">↔</span></div><div style="font-size:18px;color:#666;text-align:center">가운데 버튼 2개!</div></div>`},
-  s7:{tool:'sel',menu:'경로',drop:[['객체를 경로로','Shift+Ctrl+C'],['비트맵 따라 그리기...','Shift+Alt+B']],dropHl:0,dropLeft:255,
-      art:`<circle cx="230" cy="175" r="140" fill="none" stroke="#111" stroke-width="10"/>${CAT(165,60,130)}
-      <text x="230" y="265" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="50" fill="#111">냥냥</text>${SELBOX(170,222,120,56)}`,
-      extra:PTR(440,128)},
-  s8:{tool:'rect',menu:'파일',art:`<rect x="70" y="20" width="320" height="320" fill="none" stroke="#2E5D6B" stroke-width="3" stroke-dasharray="10 6"/>
-      <text x="230" y="14" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="18" fill="#2E5D6B">투명 네모 (화면에만 보여요)</text>
-      <circle cx="230" cy="180" r="130" fill="none" stroke="#111" stroke-width="10"/>${CAT(170,80,120)}
-      <text x="230" y="265" text-anchor="middle" font-family="Pretendard, 'Malgun Gothic', sans-serif" font-weight="700" font-size="46" fill="#111">냥냥</text>`,
-      extra:`<div class="panel"><h4>다른 이름으로 저장</h4><div class="f">이름 <span class="v">12_김하늘</span></div><div class="f">형식 <span class="v hl">PDF (*.pdf)</span></div><div class="btn">저장</div></div>`}
-};
-document.querySelectorAll('[data-win]').forEach(el=>{
-  const c=WINS[el.dataset.win];
-  const tools=TOOLS.map(([k,s])=>`<b class="${c.tool===k?'hl':''}"><svg viewBox="0 0 24 24"><use href="#${s}"/></svg></b>`).join('');
-  const menu=MENUS.map(m=>`<span class="${c.menu===m?'hl':''}">${m}</span>`).join('');
-  const drop=c.drop?`<div class="drop" style="left:${c.dropLeft}px">${c.drop.map((d,i)=>`<div class="${i===c.dropHl?'hl':''}">${d[0]}<small>${d[1]}</small></div>`).join('')}</div>`:'';
-  el.innerHTML=`<div class="win"><div class="bar"><i></i><i></i><i></i><span>Inkscape</span></div><div class="menu">${menu}</div>${drop}
-    <div class="body"><div class="tools">${tools}</div><div class="cv"><svg class="art" viewBox="0 0 460 350">${c.art}</svg></div></div>${c.extra||''}</div>`;
-});
-
-/* ---------- 도안 생성기(happystamp.web.app) 흉내 화면 ---------- */
-const HS_SECS=['1. 도장 고르기','2. 그림 넣기','3. 흑백 · 그림 크기','4. 원형 글자 (원형 도장 전용)'];
-const pv=(o={})=>`<svg viewBox="0 0 300 300">
-  <defs><path id="arcT${o.id||''}" d="M60 150 A90 90 0 0 1 240 150"/><path id="arcB${o.id||''}" d="M44 150 A106 106 0 0 0 256 150"/></defs>
-  <circle cx="150" cy="150" r="128" fill="none" stroke="#111" stroke-width="${o.sw||10}"/>
-  ${o.cat===false?'':`<use href="#cat" x="${o.cx||90}" y="${o.cy||90}" width="${o.cs||120}" height="${o.cs||120}" ${o.f||''}/>`}
-  ${o.txt?`<text font-family="Pretendard,'Malgun Gothic',sans-serif" font-weight="700" font-size="26" fill="#111" text-anchor="middle"><textPath href="#arcT${o.id}" startOffset="50%">우리반 최고</textPath></text>
-  <text font-family="Pretendard,'Malgun Gothic',sans-serif" font-weight="700" font-size="26" fill="#111" text-anchor="middle"><textPath href="#arcB${o.id}" startOffset="50%">★ 김하늘 ★</textPath></text>`:''}
-  ${o.extra||''}</svg>`;
-const HS={
-  h1:{on:0,body:`<div class="hs-sel hl2">P28 원형 파스텔스탬프 · 28mm <b>▾</b></div>
-      <div class="hs-row"><span class="a">원형</span><span>타원</span><span>정사각형</span></div>
-      <div style="font-size:20px">잉크 안전 여백</div><div class="hs-row"><span class="a">80%</span><span>85%</span><span>90%</span></div>
-      <div style="font-size:20px">테두리 선 두께</div><div class="hs-slider hl2" style="--v:75%"><i></i><b>1.0mm</b></div>`,pv:pv({cat:false})},
-  h2:{on:1,body:`<div class="hs-drop hl2">☁ 클릭하여 파일 선택 · 끌어다 놓기 · <b>Ctrl+V</b></div>
-      <div class="hs-row"><span class="hl2">📋 복사한 그림 붙여넣기</span><span>✂ 누끼 따기</span></div>
-      <div class="hs-slider">이름 <span class="hs-in" style="flex:1">12_김하늘</span></div>`,pv:pv({f:'filter="url(#rough)" opacity=".8"'})},
-  h3:{on:2,body:`<div style="font-size:20px">흑백 방식</div><div class="hs-row"><span class="a hl2">선 그림</span><span>사진 (점·선 무늬)</span></div>
-      <div style="font-size:20px">흑백 대비</div><div class="hs-slider hl2" style="--v:50%"><i></i><b>128</b></div>
-      <div style="font-size:20px">그림 크기</div><div class="hs-slider" style="--v:90%"><i></i><b>90%</b></div>
-      <div style="font-size:20px;color:#555">☐ 흑백 뒤집기</div>`,
-      pv:pv({cx:85,cy:80,cs:130})},
-  h4:{on:3,body:`<div class="hs-slider">위 <span class="hs-in hl2" style="flex:1">우리반 최고</span></div>
-      <div class="hs-slider">아래 <span class="hs-in hl2" style="flex:1">김하늘</span></div>
-      <div class="hs-slider">글꼴 <span class="hs-sel" style="flex:1">주아 <b>▾</b></span><span class="hl2" style="padding:2px 8px">☑ 굵게</span></div>
-      <div class="hs-slider">글자 크기 <span class="hs-in">3 mm</span></div>`,pv:pv({txt:true,id:'4',cx:105,cy:100,cs:90})},
-  h5:{on:-1,body:'',pv:pv({txt:true,id:'5',cx:105,cy:100,cs:90}),save:true}
-};
-document.querySelectorAll('[data-hs]').forEach(el=>{
-  const c=HS[el.dataset.hs];
-  const secs=HS_SECS.map((t,i)=>i===c.on?`<div class="hs-sec on"><div class="hd">● ${t}</div>${c.body}</div>`:`<div class="hs-sec">${t}</div>`).join('');
-  const save=c.save?`<div class="hs-slider">해상도 <span class="hs-sel hl2" style="flex:1">600 dpi (권장) <b>▾</b></span></div>
-     <div class="hs-btns"><span class="png hl2">PNG 저장</span><span>SVG 저장</span></div><div class="hs-btns"><span style="font-size:20px">🖨 인쇄 목록에 넣기</span></div>`
-    :`<div class="hs-btns"><span class="png">PNG 저장</span><span>SVG 저장</span></div>`;
-  el.innerHTML=`<div class="hs"><div class="hs-top"><span class="lg">印</span>스탬프 도안 생성기<span class="tab">① 도안 만들기</span></div>
-    <div class="hs-body"><div class="hs-l">${secs}</div><div class="hs-r"><div class="hs-pv">${c.pv}</div>${save}</div></div></div>`;
-});
-
-/* ---------- 슬라이드 넘기기 ---------- */
-const slides=[...document.querySelectorAll('.slide')];
-const $=id=>document.getElementById(id);
-const deck=$('deck'), notes=$('notes'), menu=$('menu');
-/* 단원 나누기: 시작 · 도안 · 굽기 · 잉크 · 찍기 */
-const SECTIONS=[['intro','시작'],['p1','도안 만들기'],['p2','굽기'],['p3','잉크 충전'],['end','찍기·정리']];
-const phaseOf=s=>s.querySelector('.t1,.num[style*="p1"]')?'p1':s.querySelector('.t2,.num[style*="p2"]')?'p2':s.querySelector('.t3,.num[style*="p3"]')?'p3':null;
-let seen=false;
-slides.forEach(s=>{const p=s.dataset.sec||phaseOf(s);if(p)seen=true;s.dataset.sec=p||(seen?'end':'intro')});
-$('mlist').innerHTML=SECTIONS.map(([k,name],i)=>`<button class="mi" data-sec="${k}">${i?`<span class="key">${i}</span>`:''}${name}</button>`).join('');
-document.querySelectorAll('.mi').forEach(b=>b.onclick=()=>{let i=slides.findIndex(s=>s.dataset.sec===b.dataset.sec&&s.classList.contains('cover')&&!s.classList.contains('adv')&&s.querySelector('.num'));if(i<0)i=slides.findIndex(s=>s.dataset.sec===b.dataset.sec);if(i>=0)show(i)});
-let cur=Math.min(Math.max(parseInt(location.hash.slice(1))-1||0,0),slides.length-1);
-function show(n){
-  cur=Math.max(0,Math.min(slides.length-1,n));
-  slides.forEach((s,i)=>s.classList.toggle('on',i===cur));
-  const s=slides[cur];
-  menu.classList.toggle('hide',s.classList.contains('cover'));
-  document.querySelectorAll('.mi').forEach(b=>b.classList.toggle('cur',b.dataset.sec===s.dataset.sec));
-  $('count').textContent=`${cur+1} / ${slides.length}`;
-  $('bar').firstElementChild.style.width=((cur+1)/slides.length*100)+'%';
-  notes.innerHTML=`<b>선생님 원고 · ${cur+1}쪽</b>${s.dataset.notes||''}`;
-  try{history.replaceState(null,'','#'+(cur+1))}catch(err){}
-  badge();
-}
-function fit(){const k=Math.min(innerWidth/1600,innerHeight/900);deck.style.transform=`scale(${k})`}
-addEventListener('resize',fit);fit();show(cur);
-addEventListener('hashchange',()=>{const n=parseInt(location.hash.slice(1))-1;if(n!==cur&&n>=0)show(n)});
-const toggleNotes=()=>{notes.classList.toggle('show');$('bNotes').classList.toggle('on',notes.classList.contains('show'))};
-const toggleFull=()=>{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})};
-addEventListener('keydown',e=>{
-  if(e.ctrlKey||e.altKey||e.metaKey)return;
-  if([' ','Enter'].includes(e.key)&&e.target.closest&&e.target.closest('button,a,input'))return;
-  if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();show(cur+1)}
-  else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();show(cur-1)}
-  else if(e.key==='Home')show(0); else if(e.key==='End')show(slides.length-1);
-  else if(e.key==='n'||e.key==='N'||e.key==='ㅜ')toggleNotes();
-  else if(e.key==='f'||e.key==='F'||e.key==='ㄹ')toggleFull();
-  else if(/^[0-4]$/.test(e.key))document.querySelectorAll('.mi')[+e.key].click();
-});
-document.addEventListener('fullscreenchange',()=>$('bFull').classList.toggle('on',!!document.fullscreenElement));
-$('prev').onclick=()=>show(cur-1);
-$('next').onclick=()=>show(cur+1);
-/* 화면 양끝 터치: 펜·끌기는 무시하고, 누른 쪽을 잠깐 보여 줌 */
-[['edgeL',-1],['edgeR',1]].forEach(([id,d])=>{const el=$(id);let x0=null;
-  el.addEventListener('pointerdown',e=>{x0=(e.pointerType==='pen'||e.button!==0)?null:e.clientX});
-  el.addEventListener('pointerup',e=>{if(x0==null||Math.abs(e.clientX-x0)>20)return;x0=null;el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),200);show(cur+d)});});
-document.querySelectorAll('[data-skip]').forEach(b=>b.onclick=()=>{const i=slides.findIndex(s=>s.querySelector('.check'));if(i>=0)show(i)});
-/* 부탁 문장 복사 */
-document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{const t=b.dataset.copy;
-  let ok=true;try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement('textarea');a.value=t;a.readOnly=true;a.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(a);a.select();try{ok=document.execCommand('copy')}catch(_){ok=false}a.remove()}
-  if(!ok){b.textContent='직접 선택해서 복사해요';setTimeout(()=>b.textContent='복사',2500);return}
-  b.textContent='복사됨 ✔';b.classList.add('ok');setTimeout(()=>{b.textContent='복사';b.classList.remove('ok')},1800)});
-$('bNotes').onclick=toggleNotes; $('bFull').onclick=toggleFull;
-/* 전자칠판: 손가락으로 밀어서 넘기기 (버튼·체크 위에서는 무시) */
-let tx=null,ty=0,tid=null,tt=0;
-addEventListener('touchstart',e=>{
-  if(e.touches.length>1||e.touches[0].touchType==='stylus'||e.target.closest('a,button,label,#notes,.edge')){tx=null;return}
-  const t=e.touches[0];tx=t.clientX;ty=t.clientY;tid=t.identifier;tt=Date.now()},{passive:true});
-addEventListener('touchend',e=>{
-  if(tx==null)return;const sx=tx;tx=null;
-  const t=[...e.changedTouches].find(c=>c.identifier===tid);if(!t||e.touches.length)return;
-  const dx=t.clientX-sx,dy=t.clientY-ty;
-  if(Math.abs(dx)>80&&Math.abs(dy)<60&&Date.now()-tt<600)show(cur+(dx<0?1:-1))});
-document.querySelectorAll('.qo').forEach(b=>{b.setAttribute('aria-pressed','false');b.onclick=()=>b.setAttribute('aria-pressed',b.classList.toggle('shown'))});
-/* 마우스·터치로 누른 버튼은 포커스를 풀어 Space/Enter가 쪽 넘기기로 가게 */
-addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button,label,a');if(b&&e.detail){b.blur();const c=b.control;if(c)setTimeout(()=>c.blur())}},true);
-/* 커서 숨김: 3초 멈추거나 키를 누르면 */
-let idle;const wake=()=>{document.documentElement.classList.remove('cursor-hidden');clearTimeout(idle);idle=setTimeout(()=>document.documentElement.classList.add('cursor-hidden'),3000)};
-addEventListener('mousemove',wake);addEventListener('keydown',()=>{clearTimeout(idle);document.documentElement.classList.add('cursor-hidden')});wake();
-
-/* ---------- 타이머 (시계 기준 계산, 다른 쪽·탭에 가도 정확) ---------- */
-let actx=null;
-function audioOn(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){}}
-function beep(f=880,ms=250){try{if(!actx)return;const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;o.connect(g);g.connect(actx.destination);g.gain.setValueAtTime(.25,actx.currentTime);o.start();o.stop(actx.currentTime+ms/1000)}catch(e){}}
-var TIMERS=[];
-function badge(){const b=document.getElementById('tmr');if(!b||!TIMERS)return;
-  const r=TIMERS.find(t=>t.running&&!t.root.closest('.slide').classList.contains('on'));
-  b.hidden=!r;if(r)b.textContent='⏱ '+r.fmt(r.left)}
-function makeTimer(root,total,fmt,onEnd){
-  const arc=root.querySelector('.arc'),n=root.querySelector('.n'),dial=root.querySelector('.dial');let left=total,end=0,id=null;
-  const draw=()=>{n.textContent=fmt(left);arc.style.strokeDashoffset=326.7*(1-left/total)};
-  const stop=()=>{clearInterval(id);id=null;badge()};
-  const tick=()=>{if(!id)return;const l=Math.max(0,Math.ceil((end-Date.now())/1000));if(l!==left){left=l;draw();badge()}
-    if(left<=0){stop();dial.classList.remove('ding');void dial.offsetWidth;dial.classList.add('ding');onEnd()}};
-  const t={root,fmt,get running(){return !!id},get left(){return left},
-    start(){if(id)return false;if(left<=0)left=total;end=Date.now()+left*1000;id=setInterval(tick,250);draw();badge();return true},
-    reset(){stop();left=total;dial.classList.remove('ding');draw()},tick};
-  draw();TIMERS.push(t);return t;
-}
-document.addEventListener('visibilitychange',()=>TIMERS.forEach(t=>t.tick()));
-(()=>{const r=document.getElementById('popTimer'),pop=r.querySelector('.pop'),n=r.querySelector('.n'),bar=r.querySelector('.arc'),box=r.querySelector('.mach');
-  const DUR=16000,MAX=360;let t0=0,id=null,val=0;
-  const draw=()=>{n.textContent=val;bar.style.width=(val/MAX*100)+'%'};
-  const T={root:r,fmt:v=>v+'/360',get running(){return !!id},get left(){return val},
-    tick(){if(!id)return;const v=Math.min(MAX,Math.floor((Date.now()-t0)/DUR*MAX));if(v===val&&v<MAX)return;val=v;draw();badge();
-      if(val>=MAX){clearInterval(id);id=null;badge();box.classList.remove('ding');void box.offsetWidth;box.classList.add('ding');
-        pop.classList.add('show');beep(660,180);setTimeout(()=>beep(990,300),180)}}};
-  TIMERS.push(T);draw();
-  r.querySelector('.go').onclick=()=>{audioOn();if(id)return;pop.classList.remove('show');box.classList.remove('ding');val=0;t0=Date.now();id=setInterval(T.tick,100);draw()};
-  r.querySelector('.rs').onclick=()=>{clearInterval(id);id=null;val=0;pop.classList.remove('show');box.classList.remove('ding');draw();badge()};})();
-(()=>{const r=document.getElementById('inkTimer'),dots=[...r.querySelectorAll('.rounds i')],go=r.querySelector('.go');let round=0;
-  const label=()=>{go.disabled=round>=3;go.textContent=round>=3?'완료 ✔':round?`${round+1}번째 시작`:'시작'};
-  const t=makeTimer(r,300,s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`,()=>{dots[round]&&dots[round].classList.add('done');round++;beep(880,400);label()});
-  go.onclick=()=>{audioOn();if(t.running||round>=3)return;t.reset();t.start();go.textContent='기다리는 중…';go.disabled=true};
-  const rs=r.querySelector('.rs');let armed=0;rs.onclick=()=>{if(t.running&&Date.now()-armed>2500){armed=Date.now();rs.textContent='한 번 더 누르면 처음부터';setTimeout(()=>rs.textContent='처음부터',2500);return}
-    armed=0;rs.textContent='처음부터';t.reset();round=0;dots.forEach(d=>d.classList.remove('done'));label()};})();
+(function(){
+  var KEY='popstamp-ver',last=null;
+  try{last=localStorage.getItem(KEY)}catch(e){}
+  var cards=[].slice.call(document.querySelectorAll('.ver'));
+  cards.forEach(function(a){
+    if(a.dataset.ver===last)a.classList.add('is-last');
+    a.addEventListener('click',function(){try{localStorage.setItem(KEY,a.dataset.ver)}catch(e){}});
+  });
+  addEventListener('keydown',function(e){
+    if(e.ctrlKey||e.altKey||e.metaKey)return;
+    var n=parseInt(e.key,10);
+    if(n>=1&&n<=cards.length){cards[n-1].click()}
+  });
+})();
 </script>
 </body>
 </html>
