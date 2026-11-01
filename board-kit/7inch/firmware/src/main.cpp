@@ -315,17 +315,35 @@ static const uint32_t NIX_GLOW = 0xFF5F14, NIX_CORE = 0xFFD696;
 static const lv_font_t *FNIX(bool core) { return big() ? (core ? &nix100c : &nix100g) : (core ? &nix80c : &nix80g); }
 static const lv_font_t *FNIXS(bool core) { return big() ? (core ? &nix70c : &nix70g) : (core ? &nix56c : &nix56g); }
 static int nixH() { return big() ? 100 : 80; }                    // 시·분 숫자 높이
+static int nixGap() { return nixH() * (s_h12 ? 6 : 12) / 100; }   // 분 → 초 간격(12시간은 오전/오후 자리 때문에 좁게)
+static char s_secTxt[3] = "--";   // 닉시 초: 빛·심지 라벨이 함께 보는 글(set_text_static). 매초 이것만 고치고 바뀐 칸만 다시 그린다
 // 큰 시계 둘레(오전/오후 · 닉시 빛 · 초)를 큰 시계 글자에 맞춰 놓는다. 시계 글이 바뀌어 폭이 달라질 때마다 부른다
 static void placeClock() {
   lv_obj_update_layout(s_big);
   const int m = s_nixOn ? FNIX(true)->base_line : 1;              // 글자 아래 여백(num120·140 은 1)
   if (!lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN))
-    lv_obj_align_to(s_bigAmPm, s_big, LV_ALIGN_OUT_LEFT_BOTTOM, -8 + (s_nixOn ? m : 0), -13 - m);
+    lv_obj_align_to(s_bigAmPm, s_big, LV_ALIGN_OUT_LEFT_BOTTOM, s_nixOn ? -4 + m : -8, -13 - m);
   if (!s_nixOn) return;
   const int ms = FNIXS(true)->base_line;
   lv_obj_align_to(s_bigGlow, s_big, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_obj_align_to(s_sec, s_big, LV_ALIGN_OUT_RIGHT_BOTTOM, -m - ms + nixH() * 12 / 100, ms - m);   // 숫자 아랫줄을 맞춘다
+  lv_obj_align_to(s_sec, s_big, LV_ALIGN_OUT_RIGHT_BOTTOM, -m - ms + nixGap(), ms - m);   // 숫자 아랫줄을 맞춘다
   lv_obj_align_to(s_secGlow, s_sec, LV_ALIGN_TOP_LEFT, 0, 0);
+}
+// 닉시 초를 sec 로. 바뀐 숫자 칸만 다시 그리게 알린다(라벨 상자만, LVGL 이 붙이는 줄높이/4 여유 없이).
+// 초의 90%는 일의 자리 칸만 → 매초 PSRAM 에 쓰는 양이 전보다 약 70% 적다(흔들림 위험을 줄인다).
+// 숫자 폭이 모두 같아 라벨 크기는 그대로라 다시 정렬할 필요가 없다. LVGL 잠금 안에서 부른다.
+static void nixSecShow(int sec, bool force) {
+  const char t = '0' + sec / 10, u = '0' + sec % 10;
+  const bool tens = force || s_secTxt[0] != t;
+  if (!tens && s_secTxt[1] == u) return;
+  s_secTxt[0] = t; s_secTxt[1] = u;
+  const int adv = lv_font_get_glyph_width(FNIXS(false), '0', '0');
+  lv_obj_t *objs[2] = {s_secGlow, s_sec};
+  for (lv_obj_t *o : objs) {
+    lv_area_t a; lv_obj_get_coords(o, &a);
+    if (!tens) a.x1 += adv;                 // 일의 자리 칸만
+    lv_obj_invalidate_area(o, &a);          // 두 번째는 같은 영역이라 LVGL 이 합친다
+  }
 }
 // ── 시계 화면 배치 ──
 // 왼쪽 칸: 큰 시계 → 바로 아래 날짜 → 남은 자리에 카드(날씨 · 오늘). 맨 아래는 '다음 수업' 띠 자리(보일 때만 비운다).
@@ -349,8 +367,8 @@ static void layoutClock() {
   const int CLK_H = s_nixOn ? nixH() : big() ? lv_font_get_line_height(FCLK()) : 88;   // num120 줄 높이 88
   if (s_nixOn) {   // 시·분과 초를 한 덩어리로 가운데에. 글자 위 빛 여백만큼 올린다
     lv_obj_update_layout(s_sec);
-    const int wSec = lv_obj_get_width(s_sec) - 2 * FNIXS(true)->base_line + nixH() * 12 / 100;
-    lv_obj_align(s_big, LV_ALIGN_TOP_MID, (s_h12 ? S(30) : 0) - wSec / 2, CLK_Y - FNIX(true)->base_line);
+    const int wSec = lv_obj_get_width(s_sec) - 2 * FNIXS(true)->base_line + nixGap();
+    lv_obj_align(s_big, LV_ALIGN_TOP_MID, (s_h12 ? S(24) : 0) - wSec / 2, CLK_Y - FNIX(true)->base_line);   // 12시간: 초 빛이 칸 밖으로 잘리지 않게 조금 왼쪽
   } else lv_obj_align(s_big, LV_ALIGN_TOP_MID, s_h12 ? S(30) : 0, CLK_Y);
   const int DATE_Y = CLK_Y + CLK_H + S(20);
   lv_obj_set_width(s_bigDate, LW); lv_obj_set_pos(s_bigDate, 0, DATE_Y);
@@ -3256,6 +3274,12 @@ static bool overlayOpen() {
   return false;
 }
 
+// 닉시 초를 지금 값으로(시계 화면이 다시 보일 때·닉시를 켤 때). LVGL 잠금 안에서 부른다
+static void nixSecNow() {
+  if (!s_nixOn || !s_sec || !timeValid()) return;
+  time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
+  nixSecShow(tm.tm_sec, true);
+}
 static void showView(View v) {
   const View old = s_view;
   s_view = v;
@@ -3281,6 +3305,7 @@ static void showView(View v) {
   if (v == V_DECK) deckStateText();
   if (v == V_WEEK && !s_principal && s_weekDirty) renderWeek();   // 숨어 있는 동안 미뤄 둔 주간표
   if (v == V_CLOCK && !s_principal && s_todayDirty) { s_todayDirty = false; renderToday(); }   // 미뤄 둔 오늘 시간표
+  if (v == V_CLOCK && !s_principal) nixSecNow();                  // 숨어 있던 동안 멈춘 초를 바로 지금 값으로
   if (v == V_SET) disarmButtons();
   if (v != V_FIND) s_findFromTeach = false;
   if (s_findBack) vis(s_findBack, v == V_FIND && s_findFromTeach && s_principal);
@@ -3311,13 +3336,15 @@ static void applyNixie() {
   lv_obj_set_style_text_color(s_big, lv_color_hex(s_nixOn ? NIX_CORE : D_TEXT), 0);
   lv_obj_set_style_pad_hor(s_big, s_nixOn ? FNIX(true)->base_line : 0, 0);
   showIf(s_bigGlow, s_nixOn); showIf(s_sec, s_nixOn); showIf(s_secGlow, s_nixOn);
+  nixSecNow();
 }
 static void onNixBtn(lv_event_t *) {
   s_nixOn = !s_nixOn;
   s_prefs.putBool("nixie", s_nixOn);
   refreshClockSettings();
   applyNixie(); layoutClock();
-  setStatus(s_nixOn ? "닉시 시계: 숫자를 닉시관처럼, 초도 보입니다" : "닉시 시계를 껐습니다");
+  setStatus(s_principal ? "닉시 시계는 교사용 시계 화면에서만 보입니다"
+            : s_nixOn ? "닉시 시계: 숫자를 닉시관처럼, 초도 보입니다" : "닉시 시계를 껐습니다");
 }
 static void onUseBtn(lv_event_t *) {   // [사용량]: 누를 때마다 켜짐/꺼짐
   s_useOn = !s_useOn;
@@ -3572,9 +3599,11 @@ static void buildUI() {
   lv_obj_clear_flag(left, LV_OBJ_FLAG_CLICKABLE);                    // 눌러도 시계 화면이 받게
   s_bigGlow = label(left, FNIX(false), NIX_GLOW, "--:--");          // 닉시 빛(심지 글자 아래). 켜고 끄기는 applyNixie
   lv_obj_set_style_pad_hor(s_bigGlow, FNIX(false)->base_line, 0);
-  s_secGlow = label(left, FNIXS(false), NIX_GLOW, "00");
+  s_secGlow = label(left, FNIXS(false), NIX_GLOW, "");
+  lv_label_set_text_static(s_secGlow, s_secTxt);                    // 초는 setTextIf 를 쓰지 않는다(nixSecShow)
   lv_obj_set_style_pad_hor(s_secGlow, FNIXS(false)->base_line, 0);
-  s_sec = label(left, FNIXS(true), NIX_CORE, "00");
+  s_sec = label(left, FNIXS(true), NIX_CORE, "");
+  lv_label_set_text_static(s_sec, s_secTxt);
   lv_obj_set_style_pad_hor(s_sec, FNIXS(true)->base_line, 0);
   s_big = label(left, FCLK(), D_TEXT, "--:--");
   s_bigAmPm = label(left, &kr28, D_SUB, "");
@@ -4514,11 +4543,14 @@ void loop() {
     }
   }
 
-  // 시계와 '지금' 표시 (1초마다 시계, 1분마다 표)
-  if (ms - lastTick >= 1000) {
-    lastTick = ms;
+  // 시계와 '지금' 표시 (1초마다 시계, 1분마다 표). 시각을 알면 시스템 시각의 '초'가 바뀌는 순간에 맞춘다
+  // (millis 1000ms 간격은 loop 가 늦을 때마다 밀려 닉시 초가 가끔 건너뛰었다)
+  static time_t lastSecT = 0;
+  const time_t nowT = timeValid() ? time(nullptr) : 0;
+  if (nowT ? nowT != lastSecT : ms - lastTick >= 1000) {
+    lastTick = ms; lastSecT = nowT;
     if (timeValid()) {
-      time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
+      time_t t = nowT ? nowT : time(nullptr); struct tm tm; localtime_r(&t, &tm);
       static const char *W[7] = {"일", "월", "화", "수", "목", "금", "토"};
       // 분이 바뀔 때만 그린다. 이 보드(RGB 화면)는 한 번 그릴 때마다 화면 전체를 PSRAM 에 다시 쓰므로
       // 매초 글자를 바꾸면 화면이 흔들린다(2026-09-30 확인). 화면 불이 꺼져 있으면 그리지 않는다(켤 때 한 번에 최신으로).
@@ -4534,6 +4566,7 @@ void loop() {
           setTextFmtIf(s_date, "%d월 %d일 (%s)", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
           const bool bigChg = setTextIf(s_big, hm);
           setTextIf(s_bigGlow, hm);
+          if (s_nixOn) nixSecShow(tm.tm_sec, true);      // 분이 바뀌는 그 그리기에 초도 함께
           const bool apChg = setTextIf(s_bigAmPm, ampm);
           if (*ampm) {                                   // "오후"를 숫자 왼쪽 아래에 붙인다(자리는 layoutClock 이 잡는다)
             const bool was = lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
@@ -4561,10 +4594,11 @@ void loop() {
         unlock();
       }
       // 닉시 시계의 초: 이것만 매초 바꾼다(작은 글자 두 개라 다시 그리는 곳이 좁다). 시계 화면이 보일 때만.
-      // 매초 그리기는 화면 흔들림 때문에 피해 왔다(5장) → 흔들리면 [닉시]를 끄면 초도 멈춘다
-      if (s_nixOn && !s_blOff && !lv_obj_has_flag(s_viewClock, LV_OBJ_FLAG_HIDDEN)) {
-        char sc[4]; snprintf(sc, sizeof sc, "%02d", tm.tm_sec);
-        lock(); setTextIf(s_sec, sc); setTextIf(s_secGlow, sc); unlock();
+      // 매초 그리기는 화면 흔들림 때문에 피해 왔다(5장) → 흔들리면 [닉시]를 끄면 초도 멈춘다.
+      // 와이파이로 받는 중(느린 박자)에는 멈춘다: 흔들리기 가장 쉬운 때다. 끝나면 다음 초에 바로 맞춰진다
+      if (s_nixOn && !s_blOff && !s_lcdSlow && s_sync == SYNC_IDLE &&
+          !lv_obj_has_flag(s_viewClock, LV_OBJ_FLAG_HIDDEN)) {
+        lock(); nixSecShow(tm.tm_sec, false); unlock();
       }
     }
   }

@@ -12,7 +12,7 @@ import math, os
 from PIL import Image, ImageDraw, ImageFilter
 
 OUT = os.path.join(os.path.dirname(__file__), '..', 'firmware', 'src', 'fonts')
-CHARS = '0123456789:'
+CHARS = '0123456789:-'   # '-' 는 따로 cmap(45)
 WK, GAPK, COLK, MARGINK = .58, .14, .22, .25   # 숫자 폭·간격·':' 폭·빛 여백 (숫자 높이에 대한 비율)
 # (이름, 숫자 높이): 7B(1024x600) 시 100 · 초 70 / 800x480 시 80 · 초 56
 SIZES = [('nix100', 100), ('nix70', 70), ('nix80', 80), ('nix56', 56)]
@@ -23,17 +23,40 @@ def arc(cx, cy, rx, ry, a0, a1, n=40):
              cy + ry * math.sin(math.radians(a0 + (a1 - a0) * i / n))) for i in range(n + 1)]
 
 
-def strokes(ch):   # 상자: 가로 0~1, 세로 0(위)~1(아래)
-    if ch == '0': return [arc(.5, .5, .48, .5, 0, 360, 80)]
-    if ch == '1': return [[(.28, .2), (.58, 0), (.58, 1)]]
-    if ch == '2': return [arc(.5, .26, .44, .26, 180, 360) + [(.94, .3), (.05, 1), (.97, 1)]]
-    if ch == '3': return [[(.06, 0), (.94, 0), (.42, .38)] + arc(.5, .67, .46, .33, -100, 150)[1:]]
-    if ch == '4': return [[(.72, 1), (.72, 0), (.02, .7), (.98, .7)]]
-    if ch == '5': return [[(.92, 0), (.18, 0), (.1, .44)] + arc(.5, .67, .46, .33, -135, 150)[3:]]
-    if ch == '6': return [arc(1.15, .7, 1.1, .7, -125, -180, 30) + arc(.5, .7, .45, .3, 180, 540, 70)]
-    if ch == '7': return [[(.03, 0), (.97, 0), (.38, 1)]]
-    if ch == '8': return [arc(.5, .23, .38, .23, 90, 450, 60), arc(.5, .72, .47, .28, -90, 270, 70)]
-    if ch == '9': return [[(1 - x, 1 - y) for x, y in s] for s in strokes('6')]
+def bez(p0, p1, p2, p3, n=24):
+    """3차 베지어 곡선 점들(p0 포함)"""
+    out = []
+    for i in range(n + 1):
+        t = i / n; u = 1 - t
+        out.append((u**3*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t**3*p3[0],
+                    u**3*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t**3*p3[1]))
+    return out
+
+
+def oval(cx, cy, rx, ry, a0, a1, n=80, e=2.5):
+    """옆이 조금 곧은 달걀꼴(초타원). e=2 면 보통 타원, 클수록 옆이 곧다"""
+    pts = []
+    for i in range(n + 1):
+        a = math.radians(a0 + (a1 - a0) * i / n); c, s = math.cos(a), math.sin(a)
+        pts.append((cx + rx * math.copysign(abs(c) ** (2 / e), c),
+                    cy + ry * math.copysign(abs(s) ** (2 / e), s)))
+    return pts
+
+
+def strokes(ch):   # 상자: 가로 0~1, 세로 0(위)~1(아래). IN-14 모양을 따랐다(2026-11-01 다듬음)
+    if ch == '0': return [oval(.5, .5, .43, .5, 0, 360, 96)]                 # 옆이 곧은 좁은 달걀꼴
+    if ch == '1': return [[(.30, .13), (.54, 0), (.54, 1)]]                 # 곧은 기둥 + 짧은 깃발, 칸 가운데
+    if ch == '2':                                                           # 둥근 머리 → 오목하게 휘는 목 → 바닥
+        head = arc(.5, .27, .43, .27, 180, 360, 40)[:-6]
+        return [head + bez(head[-1], (.98, .42), (.30, .66), (.05, 1))[1:] + [(.97, 1)]]
+    if ch == '3': return [[(.07, 0), (.93, 0), (.40, .39)] + arc(.5, .68, .46, .32, -103, 150, 44)[1:]]
+    if ch == '4': return [[(.70, 1), (.70, 0), (.03, .69), (.97, .69)]]
+    if ch == '5': return [[(.90, 0), (.17, 0), (.12, .43)] + arc(.5, .68, .46, .32, -128, 150, 44)[3:]]
+    if ch == '6': return [bez((.80, 0), (.42, .10), (.06, .40), (.05, .70), 20) + arc(.5, .70, .45, .30, 180, 540, 72)[1:]]
+    if ch == '7': return [[(.03, 0), (.97, 0)] + bez((.97, 0), (.72, .32), (.48, .62), (.40, 1), 18)[1:]]
+    if ch == '8': return [arc(.5, .225, .36, .225, 90, 450, 60), arc(.5, .725, .47, .275, -90, 270, 72)]
+    if ch == '9': return [[(1 - x, 1 - y) for x, y in s] for s in strokes('6')]   # IN-14 처럼 6을 뒤집은 모양
+    if ch == '-': return [[(.18, .55), (.82, .55)]]                          # 시간을 받기 전 "--:--"
     return []
 
 
@@ -60,17 +83,25 @@ def mask(ch, H, stroke, S=4):
     return img.resize((w, h), Image.LANCZOS), adv, m
 
 
-def layers(ch, H):   # 미리보기의 '① 주황 닉시'와 같은 값
-    core, adv, m = mask(ch, H, H * .055)
-    wide = mask(ch, H, H * .11)[0].filter(ImageFilter.GaussianBlur(H * .09))
-    near = core.filter(ImageFilter.GaussianBlur(H * .025))
+def layers(ch, H):   # 미리보기 '① 주황 닉시'를 다듬은 값: 심지 조금 굵게(56px 에서 3.4px) + 심지 둘레 주황 띠
+    core, adv, m = mask(ch, H, H * .06)
+    wide = mask(ch, H, H * .12)[0].filter(ImageFilter.GaussianBlur(H * .085))
+    sheath = mask(ch, H, H * .10)[0].filter(ImageFilter.GaussianBlur(H * .022))
     glow = Image.new('L', wide.size)
-    gw, gn = wide.load(), near.load(); out = glow.load()
+    gw, gs = wide.load(), sheath.load(); out = glow.load()
     for y in range(glow.height):
         for x in range(glow.width):
-            a, b = gw[x, y] / 255 * .85, gn[x, y] / 255
+            a, b = gw[x, y] / 255 * .90, gs[x, y] / 255 * .95
             out[x, y] = round(255 * (1 - (1 - a) * (1 - b)))           # 두 빛을 겹친 진하기
     return glow, core, adv, m
+
+
+BAYER4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
+def nib_dither(v, x, y):
+    """0..255 → 0..15. 빛은 4x4 떨림(바이어)으로 16단계 등고선 무늬를 없앤다"""
+    if v < 26: return (v + 8) // 17                 # 아주 흐린 곳은 떨림 없이(먼 데 점 반짝임 방지)
+    t = (BAYER4[y & 3][x & 3] + .5) / 16
+    return max(1, min(15, int(v / 17 + t)))
 
 
 def write_font(name, H, which):
@@ -82,7 +113,8 @@ def write_font(name, H, which):
         bb = img.point(lambda v: 255 if v >= 9 else 0).getbbox()        # 4bpp 로 0이 되는 곳은 잘라 낸다
         x0, y0, x1, y1 = bb
         px = img.crop(bb).load(); bw, bh = x1 - x0, y1 - y0
-        nib = [min(15, (px[x, y] + 8) // 17) for y in range(bh) for x in range(bw)]
+        nib = [(nib_dither(px[x, y], x, y) if which == 'g' else min(15, (px[x, y] + 8) // 17))
+               for y in range(bh) for x in range(bw)]
         if len(nib) % 2: nib.append(0)
         start = len(bitmap)
         bitmap += [(nib[i] << 4) | nib[i + 1] for i in range(0, len(nib), 2)]
@@ -102,12 +134,14 @@ def write_font(name, H, which):
     lines += ['};', '',
               'static const lv_font_fmt_txt_cmap_t cmaps[] = {',
               '    {.range_start = 48, .range_length = 11, .glyph_id_start = 1,',
+              '     .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY},',
+              '    {.range_start = 45, .range_length = 1, .glyph_id_start = 12,',   # '-'
               '     .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY}',
               '};', '',
               'static lv_font_fmt_txt_glyph_cache_t cache;',
               'static const lv_font_fmt_txt_dsc_t font_dsc = {',
               '    .glyph_bitmap = glyph_bitmap, .glyph_dsc = glyph_dsc, .cmaps = cmaps, .kern_dsc = NULL,',
-              '    .kern_scale = 0, .cmap_num = 1, .bpp = 4, .kern_classes = 0, .bitmap_format = 0, .cache = &cache',
+              '    .kern_scale = 0, .cmap_num = 2, .bpp = 4, .kern_classes = 0, .bitmap_format = 0, .cache = &cache',
               '};', '',
               f'const lv_font_t {G} = {{',
               '    .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt, .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,',
