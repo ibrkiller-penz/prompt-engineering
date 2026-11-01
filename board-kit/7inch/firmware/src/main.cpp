@@ -1694,7 +1694,7 @@ static void disarmButtons() {   // loop 에서: 3초 지난 '한 번 더' 글을
 }
 
 // 화면: 0 주간 시간표 · 1 설정 · 2 시계 모드 · 3 선생님 찾기
-enum View { V_WEEK = 0, V_SET = 1, V_CLOCK = 2, V_FIND = 3, V_DECK = 4 };
+enum View { V_WEEK = 0, V_SET = 1, V_CLOCK = 2, V_FIND = 3, V_DECK = 4, V_OFF = 5 };
 static View s_view = V_CLOCK;   // 켜면 시계 화면(교장 모드면 교장 화면)
 static View s_backView = V_WEEK; // 시계 화면을 누르면 돌아갈 탭(자동 전환 전에 보던 시간표·단축키)
 // 주간표는 보일 때만 그리고, 숨어 있으면 표시만 해 두었다가 열 때 그린다
@@ -2406,6 +2406,7 @@ static void renderUse() {
   useRowsSet(s_ucRow); useRowsSet(s_udRow);   // 시계·단축키 화면 막대(틀 보이기는 layoutClock · 위 showIf)
 }
 // '@use 12 6 15:00 35 1 09:00' → 숫자로. 시각 자리 '-' 는 모름
+static void agLine(const char *p);   // 사무실 탭(아래 showView 앞)
 static void useLine(const char *p) {
   if (!strncmp(p, "err ", 4)) { s_useErr = atoi(p + 4); if (s_useErr < 1 || s_useErr > 3) s_useErr = 3; }
   else {
@@ -2441,6 +2442,7 @@ static void deckPoll(uint32_t ms) {
         }
       }
       else if (!strncmp(buf, "@use ", 5)) useLine(buf + 5);   // 탭덱이 알려 주는 Claude 사용량
+      else if (!strcmp(buf, "@ag") || !strncmp(buf, "@ag ", 4)) agLine(buf + 3);   // 탭덱이 알려 주는 Claude 작업(사무실 탭)
       else if (!strncmp(buf, "@pconly ", 8)) {   // 시험용: '컴퓨터만' 을 컴퓨터에서 켜고 끈다(설정 단추와 같다)
         const bool on = atoi(buf + 8) != 0;
         if (on != s_pcOnly) { lock(); s_pcOnly = on; s_prefs.putBool("pconly", on); segStyle(s_pcBtn, on); if (!on && s_prefs.isKey("ssid")) s_syncReq = true; else if (on) s_syncReq = true; refreshWifiLabel(); renderToday(); unlock(); }
@@ -2451,7 +2453,7 @@ static void deckPoll(uint32_t ms) {
         const int t = atoi(buf + 7);
         if (t >= 0 && t < THEME_N) { s_prefs.putInt("theme", t); s_themeIdx = t; Serial.printf("@theme ok %d", t); Serial.println(); s_themeRestartAt = ms ? ms : 1; }
       }
-      else if (!strncmp(buf, "@view ", 6)) { const int v = atoi(buf + 6); if (v >= 0 && v <= 4) { lock(); showView((View)v); lv_disp_trig_activity(NULL); unlock(); } }
+      else if (!strncmp(buf, "@view ", 6)) { const int v = atoi(buf + 6); if (v >= 0 && v <= 5) { lock(); showView((View)v); lv_disp_trig_activity(NULL); unlock(); } }
       else if (!strcmp(buf, "@deckhelp")) { lock(); showDeckHelp(); lv_disp_trig_activity(NULL); unlock(); }   // 도우미 안내 창 미리 보기(화면 찍기 시험용)
       else if (!strcmp(buf, "@pcui ok") && s_deckState) {   // [꾸미기] 탭덱이 창을 열었다
         s_deckUiAt = 0;
@@ -3355,6 +3357,169 @@ static void nixSecNow() {
   nixSecShow(tm.tm_sec, true);
 }
 static void renderUse();
+// ── 사무실 탭(2026-11-01 사용자 지시): 컴퓨터의 Claude 작업 하나 = 직원 한 명. Pixel Agents(MIT)를 본뜸, 그림 출처 tools/office_art/출처.md
+//  탭덱이 '@ag 자리,캐릭터,상태,이름;…' 을 바뀔 때마다·10초마다 보낸다. 30초 넘게 못 받으면 비운다(탭덱 꺼짐).
+//  상태 w 타자 · r 읽기 · q 허락 기다림(노란 ?) · d 끝남(초록 ✓) · i 쉬는 중(오른쪽 쉼터로)
+//  그림은 작은 원본(office_art.c)을 켤 때 OFF_Z 배로 늘려 PSRAM 에 둔다. 자리 수치는 tools/make_office.py 와 같아야 한다
+extern const lv_img_dsc_t office_bg, office_desk, office_chr0, office_chr1, office_chr2, office_chr3, office_chr4, office_chr5;
+static const int OFF_DX[3] = {16, 80, 144}, OFF_DY[2] = {56, 127};
+static const int OFF_LX[3] = {244, 292, 236}, OFF_LY[3] = {62, 62, 100};
+static const int OFF_W = 336, OFF_H = 176, OFF_N = 6, OFF_LN = 3;
+struct OffAgent { int8_t slot, chr; char st; char name[40]; };
+static OffAgent s_ag[OFF_N];
+static int s_agN = 0;
+static uint32_t s_agAt = 0;                 // 마지막으로 '@ag' 를 받은 때
+static int s_offZ = 3;
+static lv_obj_t *s_viewOff = nullptr, *s_tabOff = nullptr, *s_offEmpty = nullptr;
+static lv_obj_t *s_offChr[OFF_N], *s_offBub[OFF_N], *s_offBubT[OFF_N], *s_offTag[OFF_N];
+static lv_obj_t *s_offLChr[OFF_LN], *s_offLTag[OFF_LN];
+static char s_offSt[OFF_N];                 // 책상마다 지금 상태(0 = 빈 책상) — 움직임 타이머가 본다
+static const lv_img_dsc_t *s_offChrImg[6];
+static uint32_t s_offTick = 0;
+
+// 작은 그림을 z 배로 늘린다(점을 그대로 키움 — 픽셀 그림이 흐려지지 않게). 실패하면 원본을 쓴다
+static const lv_img_dsc_t *imgScale(const lv_img_dsc_t *src, int z) {
+  const int bpp = src->header.cf == LV_IMG_CF_TRUE_COLOR_ALPHA ? 3 : 2;
+  const int w = src->header.w, h = src->header.h, W2 = w * z, H2 = h * z;
+  uint8_t *d = (uint8_t *)heap_caps_malloc((size_t)W2 * H2 * bpp, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  lv_img_dsc_t *ds = (lv_img_dsc_t *)heap_caps_calloc(1, sizeof(lv_img_dsc_t), MALLOC_CAP_SPIRAM);
+  if (!d || !ds) { if (d) heap_caps_free(d); if (ds) heap_caps_free(ds); return src; }
+  for (int y = 0; y < h; y++) {
+    uint8_t *row = d + (size_t)y * z * W2 * bpp;
+    const uint8_t *s = src->data + (size_t)y * w * bpp;
+    for (int x = 0; x < w; x++) for (int k = 0; k < z; k++) memcpy(row + ((size_t)x * z + k) * bpp, s + x * bpp, bpp);
+    for (int k = 1; k < z; k++) memcpy(row + (size_t)k * W2 * bpp, row, (size_t)W2 * bpp);
+  }
+  ds->header = src->header; ds->header.w = W2; ds->header.h = H2;
+  ds->data_size = (uint32_t)W2 * H2 * bpp; ds->data = d;
+  return ds;
+}
+// 직원 그림(7칸 줄)에서 col 번째 칸만 보이게 한다: 0~2 걷기 · 3~4 타자 · 5~6 읽기
+static void offFrame(lv_obj_t *img, int col) {
+  const lv_coord_t ox = -col * 16 * s_offZ;
+  if (lv_img_get_offset_x(img) != ox) lv_img_set_offset_x(img, ox);
+}
+static void offChrSrc(lv_obj_t *img, int chr) {
+  const lv_img_dsc_t *d = s_offChrImg[chr % 6];
+  if (lv_img_get_src(img) != d) lv_img_set_src(img, d);
+  lv_obj_set_size(img, 16 * s_offZ, 32 * s_offZ);   // set_src 가 크기를 그림 전체로 되돌린다
+}
+static void renderOffice() {
+  if (!s_viewOff) return;
+  bool desk[OFF_N] = {}; int lounge = 0;
+  for (int i = 0; i < s_agN; i++) {
+    const OffAgent &a = s_ag[i];
+    if (a.st == 'i') {   // 쉬는 중: 쉼터 세 자리까지(넘치면 안 보인다)
+      if (lounge >= OFF_LN) continue;
+      offChrSrc(s_offLChr[lounge], a.chr); offFrame(s_offLChr[lounge], 1);
+      setTextIf(s_offLTag[lounge], a.name);
+      showIf(s_offLChr[lounge], true); showIf(s_offLTag[lounge], true);
+      lounge++;
+      continue;
+    }
+    const int k = a.slot;
+    desk[k] = true; s_offSt[k] = a.st;
+    offChrSrc(s_offChr[k], a.chr);
+    setTextIf(s_offTag[k], a.name);
+    showIf(s_offChr[k], true); showIf(s_offTag[k], true); showIf(s_offBub[k], true);
+    const bool q = a.st == 'q', d = a.st == 'd';
+    setBgIf(s_offBub[k], q ? 0xFFC440 : d ? 0x6ED278 : 0xF0F0F0);
+    if (q) setTextIf(s_offBubT[k], "?");
+    else if (d) setTextIf(s_offBubT[k], LV_SYMBOL_OK);
+    if (q || d) offFrame(s_offChr[k], 1);
+  }
+  for (int k = 0; k < OFF_N; k++) if (!desk[k]) { s_offSt[k] = 0; showIf(s_offChr[k], false); showIf(s_offTag[k], false); showIf(s_offBub[k], false); }
+  for (int j = lounge; j < OFF_LN; j++) { showIf(s_offLChr[j], false); showIf(s_offLTag[j], false); }
+  showIf(s_offEmpty, s_agN == 0);
+}
+// 0.45초마다: 타자·읽기 움직임, 일하는 중 말풍선의 점. 탭덱이 30초 넘게 조용하면 비운다
+static void offTimer(lv_timer_t *) {
+  if (s_agN && millis() - s_agAt > 30000) { s_agN = 0; renderOffice(); }
+  if (s_view != V_OFF) return;
+  s_offTick++;
+  static const char *DOTS[3] = {"·", "··", "···"};
+  for (int k = 0; k < OFF_N; k++) {
+    const char st = s_offSt[k];
+    if (st == 'w') offFrame(s_offChr[k], 3 + (s_offTick & 1));
+    else if (st == 'r') offFrame(s_offChr[k], 5 + ((s_offTick >> 1) & 1));
+    else continue;
+    setTextIf(s_offBubT[k], DOTS[(s_offTick >> 1) % 3]);
+  }
+}
+static void agLine(const char *p) {
+  int n = 0;
+  while (*p == ' ') p++;
+  while (*p && n < OFF_N) {
+    const char *e = strchr(p, ';'); if (!e) e = p + strlen(p);
+    int slot, chr; char st; int used = 0;
+    if (sscanf(p, "%d,%d,%c,%n", &slot, &chr, &st, &used) == 3 && used > 0 && slot >= 0 && slot < OFF_N && chr >= 0 && strchr("wrqdi", st)) {
+      OffAgent &a = s_ag[n++];
+      a.slot = slot; a.chr = chr % 6; a.st = st;
+      size_t len = e - (p + used); if (len >= sizeof a.name) len = sizeof a.name - 1;
+      memcpy(a.name, p + used, len); a.name[len] = 0;
+    }
+    p = *e ? e + 1 : e;
+  }
+  s_agN = n; s_agAt = millis();
+  lock(); renderOffice(); unlock();
+}
+static void buildOffice(lv_obj_t *scr, int top) {
+  const int Z = s_offZ = big() ? 3 : 2;
+  const lv_img_dsc_t *CH[6] = {&office_chr0, &office_chr1, &office_chr2, &office_chr3, &office_chr4, &office_chr5};
+  for (int i = 0; i < 6; i++) s_offChrImg[i] = imgScale(CH[i], Z);
+  const lv_img_dsc_t *bg = imgScale(&office_bg, Z), *desk = imgScale(&office_desk, Z);
+  const int VH = s_H - top;
+  s_viewOff = box(scr, D_BG, 0, 0);
+  lv_obj_set_size(s_viewOff, s_W, VH); lv_obj_set_pos(s_viewOff, 0, top);
+  lv_obj_add_flag(s_viewOff, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_t *sc = lv_img_create(s_viewOff);   // 바닥·벽·가구(맨 아래 판). 직원·책상은 이 위에 놓는다
+  lv_img_set_src(sc, bg);
+  lv_obj_clear_flag(sc, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_pos(sc, (s_W - OFF_W * Z) / 2, (VH - OFF_H * Z) / 2);
+  auto mkTag = [&](int cx, int ty, int tw) {   // tw: 이름표 너비(작은 그림 점)
+    lv_obj_t *t = label(sc, FM(), D_TEXT, "");
+    lv_obj_set_style_bg_color(t, lv_color_hex(0x14181F), 0); lv_obj_set_style_bg_opa(t, LV_OPA_80, 0);
+    lv_obj_set_style_radius(t, 6, 0); lv_obj_set_style_pad_hor(t, 4, 0); lv_obj_set_style_pad_ver(t, 1, 0);
+    lv_obj_set_width(t, tw * Z); lv_label_set_long_mode(t, LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_align(t, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_pos(t, cx - tw * Z / 2, ty);
+    lv_obj_add_flag(t, LV_OBJ_FLAG_HIDDEN);
+    return t;
+  };
+  auto mkChr = [&](int x, int y) {
+    lv_obj_t *c = lv_img_create(sc);
+    lv_img_set_src(c, s_offChrImg[0]);
+    lv_obj_set_size(c, 16 * Z, 32 * Z); lv_obj_set_pos(c, x, y);
+    lv_obj_add_flag(c, LV_OBJ_FLAG_HIDDEN);
+    return c;
+  };
+  for (int k = 0; k < OFF_N; k++) s_offChr[k] = mkChr((OFF_DX[k % 3] + 16) * Z, (OFF_DY[k / 3] - 22) * Z);
+  for (int j = 0; j < OFF_LN; j++) s_offLChr[j] = mkChr(OFF_LX[j] * Z, OFF_LY[j] * Z);
+  for (int k = 0; k < OFF_N; k++) {   // 책상은 직원보다 나중에 만들어 위에 그린다(다리를 가린다)
+    lv_obj_t *dk = lv_img_create(sc);
+    lv_img_set_src(dk, desk);
+    lv_obj_set_pos(dk, OFF_DX[k % 3] * Z, (OFF_DY[k / 3] - 23) * Z);
+  }
+  const int BW = big() ? 44 : 34, BH = big() ? 30 : 24;
+  for (int k = 0; k < OFF_N; k++) {
+    const int cx = (OFF_DX[k % 3] + 24) * Z, y = OFF_DY[k / 3];
+    s_offTag[k] = mkTag(cx, (y + 26) * Z, 48);
+    lv_obj_t *b = s_offBub[k] = box(sc, 0xF0F0F0, 0, 0);
+    lv_obj_set_style_radius(b, BH / 2, 0);   // box() 의 R() 는 테마에 따라 0 이 된다 → 말풍선은 늘 둥글게
+    lv_obj_set_size(b, BW, BH); lv_obj_set_pos(b, cx - BW / 2, (y - 20) * Z - BH - 4);
+    s_offBubT[k] = label(b, FM(), 0x1E1E1E, "");
+    lv_obj_center(s_offBubT[k]);
+    lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN);
+  }
+  for (int j = 0; j < OFF_LN; j++) s_offLTag[j] = mkTag((OFF_LX[j] + 8) * Z, (OFF_LY[j] + 33) * Z, 44);
+  s_offEmpty = label(s_viewOff, FM(), D_TEXT, "Claude 작업을 기다리는 중이에요\n컴퓨터의 탭덱이 작업을 알려 주면 직원이 자리에 앉아요");
+  lv_obj_set_style_text_align(s_offEmpty, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_style_bg_color(s_offEmpty, lv_color_hex(0x14181F), 0); lv_obj_set_style_bg_opa(s_offEmpty, LV_OPA_80, 0);
+  lv_obj_set_style_radius(s_offEmpty, 10, 0); lv_obj_set_style_pad_all(s_offEmpty, 14, 0);
+  lv_obj_align(s_offEmpty, LV_ALIGN_CENTER, -60, 0);
+  lv_timer_create(offTimer, 450, nullptr);
+}
+
 static void showView(View v) {
   const View old = s_view;
   s_view = v;
@@ -3371,13 +3536,16 @@ static void showView(View v) {
   if (s_viewPrin) vis(s_viewPrin, v == V_CLOCK && s_principal);
   vis(s_viewFind, v == V_FIND);
   if (s_viewDeck) vis(s_viewDeck, v == V_DECK);
+  if (s_viewOff) vis(s_viewOff, v == V_OFF);
   if (s_pickView) vis(s_pickView, false);   // 다른 탭으로 가면 '볼 시간표' 판은 닫는다
   tabStyle(s_tabTT, v == V_WEEK);
   tabStyle(s_tabSet, v == V_SET);
   tabStyle(s_tabClock, v == V_CLOCK);
   tabStyle(s_tabFind, v == V_FIND);
   if (s_tabDeck) tabStyle(s_tabDeck, v == V_DECK);
+  if (s_tabOff) tabStyle(s_tabOff, v == V_OFF);
   if (v == V_DECK) deckStateText();
+  if (v == V_OFF) renderOffice();
   if (v == V_WEEK && !s_principal && s_weekDirty) renderWeek();   // 숨어 있는 동안 미뤄 둔 주간표
   if (v == V_CLOCK && !s_principal && s_todayDirty) { s_todayDirty = false; renderToday(); }   // 미뤄 둔 오늘 시간표
   if (v == V_CLOCK && !s_principal) nixSecNow();                  // 숨어 있던 동안 멈춘 초를 바로 지금 값으로
@@ -3551,10 +3719,10 @@ static void buildUI() {
     }
   }
 
-  // 탭 다섯: 시간표 · 시계 · 단축키 · 찾기 · 설정(2026-10-25 사용자 지정 순서)
-  const int TABW = small ? 66 : 86, TABH = TOP - 14;
+  // 탭 여섯: 시간표 · 시계 · 단축키 · 사무실 · 찾기 · 설정(2026-10-25 사용자 지정 순서, 사무실은 2026-11-01 더함)
+  const int TABW = small ? 56 : 74, TABH = TOP - 14;
   lv_obj_t *tabs = box(s_top, D_ROW, D_LINE, 10);
-  lv_obj_set_size(tabs, TABW * 5 + 4 * 2 + 8, TOP - 6); lv_obj_align(tabs, LV_ALIGN_LEFT_MID, small ? 178 : 250, 0);
+  lv_obj_set_size(tabs, TABW * 6 + 5 * 2 + 8, TOP - 6); lv_obj_align(tabs, LV_ALIGN_LEFT_MID, small ? 178 : 250, 0);
   auto mkTab = [&](const char *txt, int i, bool on, lv_event_cb_t cb) {
     lv_obj_t *b = button(tabs, txt, TABW, TABH, on ? D_LINE : D_ROW, on ? D_TEXT : D_MUTED);
     lv_obj_set_pos(b, 4 + i * (TABW + 2), 3);
@@ -3565,12 +3733,13 @@ static void buildUI() {
   s_tabTT = mkTab("시간표", 0, true, onTabTT);
   s_tabClock = mkTab("시계", 1, false, onTabClock);
   s_tabDeck = mkTab("단축키", 2, false, [](lv_event_t *) { showView(V_DECK); });
-  s_tabFind = mkTab("찾기", 3, false, onTabFind);
-  s_tabSet = mkTab("설정", 4, false, onTabSet);
+  s_tabOff = mkTab("사무실", 3, false, [](lv_event_t *) { showView(V_OFF); });
+  s_tabFind = mkTab("찾기", 4, false, onTabFind);
+  s_tabSet = mkTab("설정", 5, false, onTabSet);
 
 
   s_wifiLbl = label(s_top, FM(), D_MUTED, LV_SYMBOL_WIFI " 연결 안 됨");   // 켤 때의 상태(경고가 아니다 → 흐린 글자)
-  lv_obj_set_width(s_wifiLbl, small ? 130 : 168);
+  lv_obj_set_width(s_wifiLbl, small ? 112 : 148);   // 탭이 여섯이 되어 조금 줄임
   lv_label_set_long_mode(s_wifiLbl, LV_LABEL_LONG_DOT);
   lv_obj_set_style_text_align(s_wifiLbl, LV_TEXT_ALIGN_RIGHT, 0);
   lv_obj_align(s_wifiLbl, LV_ALIGN_RIGHT_MID, small ? -118 : -156, 0);   // 12시간 모드 "오후 3:40" 자리까지
@@ -3951,6 +4120,7 @@ static void buildUI() {
   layoutClock();                                     // 시계 화면 자리 잡기(설정 '보이기' 반영)
   buildFinder(scr, TOP);
   buildDeck(scr, TOP);   // 단축키 화면(숨김)
+  buildOffice(scr, TOP); // 사무실 화면(숨김)
 
   // 비밀번호 입력 (위쪽 창 + 화면 아래 키보드)
   buildPrincipal(scr);   // 교장실 모드 화면(숨김)
@@ -4774,7 +4944,7 @@ void loop() {
     const uint32_t idle = lv_disp_get_inactive_time(NULL), lim = (uint32_t)s_autoClkMin * 60 * 1000;
     // 비밀번호를 입력하던 중이면 한도의 두 배까지 기다린다. 시계 화면이어도 열린 덮개 창은 닫는다.
     const bool typing = s_pwBox && !lv_obj_has_flag(s_pwBox, LV_OBJ_FLAG_HIDDEN) && idle < lim * 2;
-    if (s_autoClkMin > 0 && idle > lim && !typing && (s_view != V_CLOCK || overlayOpen())) {
+    if (s_autoClkMin > 0 && idle > lim && !typing && s_view != V_OFF && (s_view != V_CLOCK || overlayOpen())) {   // 사무실은 지켜보는 화면이라 그대로 둔다
       hideOverlays();
       if (s_view != V_CLOCK) showView(V_CLOCK);       // 보던 탭(시간표·단축키)은 showView 가 기억한다 → 시계를 누르면 돌아간다
     }

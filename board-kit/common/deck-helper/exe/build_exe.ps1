@@ -9,7 +9,7 @@ if (-not (Test-Path $csc)) { $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framewo
 if (-not (Test-Path $csc)) { throw '.NET Framework 4 컴파일러(csc.exe)를 못 찾았어요' }
 $out = Join-Path (Split-Path -Parent $PSScriptRoot) '탭덱.exe'
 # 소스: DeckHelper.cs(통신) + DeckConfig.cs(deck.json) + DeckIcons.cs(아이콘) + DeckForm.cs('단축키 꾸미기' 창) + 화면 부품(DeckTheme·DeckControls·DeckBoardView·DeckActionList·DeckInspector) + DeckPreview.cs(--preview 그림)
-$src = 'DeckHelper.cs', 'DeckConfig.cs', 'DeckIcons.cs', 'DeckForm.cs', 'DeckLibrary.cs', 'DeckFonts.cs', 'DeckTheme.cs', 'DeckControls.cs', 'DeckBoardView.cs', 'DeckActionList.cs', 'DeckInspector.cs', 'DeckPreview.cs', 'DeckActions.cs', 'DeckDialogs.cs', 'DeckTour.cs' | ForEach-Object { Join-Path $PSScriptRoot $_ }
+$src = 'DeckHelper.cs', 'DeckConfig.cs', 'DeckIcons.cs', 'DeckForm.cs', 'DeckLibrary.cs', 'DeckFonts.cs', 'DeckTheme.cs', 'DeckControls.cs', 'DeckBoardView.cs', 'DeckActionList.cs', 'DeckInspector.cs', 'DeckPreview.cs', 'DeckActions.cs', 'DeckDialogs.cs', 'DeckTour.cs', 'DeckAgents.cs' | ForEach-Object { Join-Path $PSScriptRoot $_ }
 # 기본 그림 16개를 exe 안에 묻는다(처음 켤 때 %LOCALAPPDATA%\PeneduBoard\icons\기본 에 풀림). 없으면 7inch\tools\export_deck_icons.py 로 만든다
 $icons = Join-Path (Split-Path -Parent $PSScriptRoot) 'icons\기본'
 $keys = 'explorer','claude','gemini','gpt','cmd','powershell','neis','naver','youtube','coolmsg','kakao','excel','ppt','close','hwp','desktop'

@@ -66,6 +66,14 @@ board-kit\
 
 > 급식·날씨 값을 `board_config.h` 에 안 넣었으면 그 카드에는 "설정 필요"가 보입니다. 안 쓰려면 '보이기'에서 꺼 두세요. D-day 는 `SUNEUNG_DATE` 를 넣었을 때만 나옵니다.
 
+## 사무실 탭 (Claude 작업 보기)
+컴퓨터에서 **탭덱**이 켜져 있으면, Claude Code 작업 하나마다 직원 한 명이 책상에 앉습니다(최대 6명). 이름표는 작업 제목입니다.
+- 흰 말풍선 `···` 일하는 중(타자·종이 읽기) · 노란 `?` 허락 기다림 · 초록 `✓` 끝남(선생님 차례)
+- 끝난 지 10분이 넘으면 오른쪽 쉼터로 가고(3명까지), 1시간 넘게 조용한 작업은 사라집니다.
+- 탭덱은 이 컴퓨터의 Claude 기록 파일로 상태만 가려내고, 보드에는 제목과 상태만 보냅니다.
+- 노란 `?` 는 고치기(Edit·Write) 허락을 기다릴 때만 정확합니다. 오래 걸리는 명령은 허락 대기와 구별하지 못해 `···` 로 보입니다.
+- 사무실 화면은 '시계로 전환' 시간이 지나도 그대로 둡니다.
+
 ## 이 키트에서 바꾸면 안 되는 것 (화면 흔들림 대책)
 이 보드의 RGB 화면은 메모리(PSRAM)를 와이파이·플래시 쓰기와 나눠 쓰기 때문에 설정을 잘못 건드리면 **화면이 지지직거리거나 옆으로 밀립니다.**
 힘들게 찾은 값이니 `firmware\platformio.ini` 의 `custom_sdkconfig`, `include\esp_panel_board_custom_conf.h` 의 화면 박자(16MHz 픽셀 클록 등), `src\main.cpp` 의 `initDisplay()` 는 **그대로 두세요.** 이유와 목록은 `CLAUDE.md` 5장.
@@ -88,3 +96,4 @@ board-kit\
 자료 형식을 알고 싶으면 `common\tools\data-format.md`, AI 도우미용 지시서는 `CLAUDE.md` 입니다.
 
 > 이 키트의 화면 글꼴은 Pretendard(SIL OFL), 화면 라이브러리는 LVGL(MIT)·Espressif ESP32_Display_Panel 등(Apache-2.0)입니다. 각 라이선스 파일이 `firmware\fonts\src`, `firmware\lib\*` 에 들어 있습니다.
+> 사무실 탭 그림은 Pixel Agents(MIT, Pablo De Lucca)에서 가져왔고, 직원 그림은 JIK-A-4 의 "Metro City" 캐릭터 묶음이 바탕입니다. 출처와 라이선스: `tools\office_art\출처.md`, `LICENSE_PixelAgents.txt`.

@@ -8,11 +8,12 @@ import argparse, os, sys, time, tempfile
 import serial
 from PIL import Image
 
-NAMES = {0: "시간표", 1: "설정", 2: "시계", 3: "찾기", 4: "단축키"}
+NAMES = {0: "시간표", 1: "설정", 2: "시계", 3: "찾기", 4: "단축키", 5: "사무실"}
 ap = argparse.ArgumentParser()
 ap.add_argument("--port", default=os.environ.get("PIO_PORT", ""))
 ap.add_argument("--out", default="shots")
 ap.add_argument("--views", default="")
+ap.add_argument("--send", action="append", default=[], help="찍기 전에 보낼 줄(시험용, 예: '@ag 0,0,w,시험')")
 ap.add_argument("--wait", type=float, default=2.0, help="화면을 바꾼 뒤 기다릴 초")
 a = ap.parse_args()
 if not a.port:
@@ -80,6 +81,8 @@ try:
     sp.dtr = False; sp.rts = False      # 열 때 보드가 다시 시작되지 않게
     sp.open()
     time.sleep(0.5)
+    for ln in a.send:
+        sp.write(("\n" + ln + "\n").encode("utf-8")); time.sleep(0.3)
     views = [int(x) for x in a.views.split(",") if x.strip()] or [None]
     for v in views:
         if v is not None:

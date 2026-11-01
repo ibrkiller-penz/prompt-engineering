@@ -88,6 +88,8 @@ class Board
     public bool Ok;              // '@board ok' 를 받았나
     public DateTime TimeAt;      // 마지막으로 '@time' 을 보낸 때
     public DateTime UseAt;       // 마지막으로 '@use'(Claude 사용량)를 보낸 때
+    public DateTime AgAt;        // 마지막으로 '@ag'(Claude 사무실)를 보낸 때
+    public string AgLine;        // 그때 보낸 줄(바뀌면 바로 다시 보낸다)
     public DateTime Opened;
     // 아이콘 보내기
     public volatile bool Pushing;   // 보내는 스레드가 포트를 쓰는 중(이때 Loop 는 읽지도 쓰지도 않는다)
@@ -416,6 +418,16 @@ class Helper : ApplicationContext
                 var now = DateTime.Now;
                 if ((now - lastScan).TotalSeconds >= 5) { lastScan = now; Scan(now); }
                 ClaudeUsage.Tick();
+                ClaudeAgents.Tick();
+                {   // Claude 사무실: 바뀌면 바로, 안 바뀌어도 10초마다(보드는 30초 넘게 못 받으면 비운다)
+                    string al = ClaudeAgents.Line;
+                    lock (boards) foreach (var n in new List<string>(boards.Keys))
+                    {
+                        var ab = boards[n];
+                        if (ab.Pushing || !ab.Ok || !ab.CanDeck) continue;
+                        if (al != ab.AgLine || (now - ab.AgAt).TotalSeconds >= 10) { ab.AgLine = al; ab.AgAt = now; Send(n, al); }
+                    }
+                }
                 if ((now - lastBeat).TotalSeconds >= 5)
                 {
                     lastBeat = now;
