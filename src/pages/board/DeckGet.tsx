@@ -79,6 +79,28 @@ export default function DeckGet() {
       >
         ⬇ 탭덱 받기 (탭덱.exe{mb(kits.helperExe.bytes)})
       </a>
+      {/* 2026-11-02: Windows 보안(디펜더)이 받은 압축 파일을 Trojan:Script/Sabsik.FL.A!ml 로 막음 — 서명 없는 exe 에 흔한 기계 학습 오진 */}
+      <div className="mt-3 rounded-card border border-line bg-surface p-4 text-sm leading-relaxed">
+        <p className="font-bold">“바이러스(Trojan)”라고 막히면</p>
+        <p className="mt-1 text-muted">
+          Windows 보안이 <b className="text-ink">Trojan:Script/Sabsik…!ml</b> 같은 이름으로 막을 수 있어요. 끝의 <b className="text-ink">!ml</b> 은 실제
+          바이러스를 찾은 게 아니라 <b className="text-ink">“모양이 비슷하다”는 기계 학습 추측</b>이에요. 탭덱처럼 개인이 만들어 서명(돈 내고 받는 신분증)이
+          없는 새 프로그램에 자주 생기는 오진이에요. 탭덱은 이 컴퓨터의 Claude 사용량·작업 기록을 읽어 보드로 보내는 기능이 있어서 더 의심받아요.
+        </p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted">
+          <li>
+            시작 메뉴 → <b className="text-ink">Windows 보안</b> → <b className="text-ink">바이러스 및 위협 방지</b> → <b className="text-ink">보호 기록</b>
+          </li>
+          <li>
+            맨 위 “위협이 차단됨”(탭덱.zip)을 누르고 → <b className="text-ink">작업 → 허용</b>(또는 복원)
+          </li>
+          <li>이 쪽에서 다시 받아요.</li>
+        </ol>
+        <p className="mt-2 text-muted">
+          학교 컴퓨터라 허용 단추가 없으면 정보 담당 선생님께 부탁해요. 마음이 놓이지 않으면 받지 않아도 돼요 — 탭덱 없이도 알림판의 시간표·시계는 그대로
+          돼요.
+        </p>
+      </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-[1.4fr_1fr]">
         <a
           href="/board/manual/index.html"
