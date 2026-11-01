@@ -1440,8 +1440,8 @@ class Helper : ApplicationContext
 }
 
 // ════ Claude 사용량 — Claude Code 에 로그인해 둔 열쇠(%USERPROFILE%\.claude\.credentials.json)로 사용량 주소를 물어
-//  보드에 '@use 5시간% 초기화시각 주간% 요일 초기화시각' 으로 알린다(사용자 지시 2026-10-31). 열쇠는 이 컴퓨터에서 Anthropic 에만 보내고,
-//  파일에 쓰거나 기록에 남기지 않는다. 보드에는 숫자만 간다. 열쇠가 만료되면 새로 받지 않고 'Claude Code 를 한 번 켜 주세요' 로 알린다.
+//  보드에 '@use 5시간% 요일 초기화시각 주간% 요일 초기화시각' 으로 알린다(사용자 지시 2026-10-31). 열쇠는 이 컴퓨터에서 Anthropic 에만 보내고
+//  기록에 남기지 않는다. 보드에는 숫자만 간다. 열쇠가 만료되면 갱신 열쇠로 새로 받아 같은 파일의 Claude 칸만 고쳐 적는다(Renew, Claude Code 와 같은 방식).
 //  보기: 킥스타터 Token Monitor 의 공개 코드(fractal-manifold/mcp-marketplace, claude.go)와 같은 주소·머리글 ══
 static class ClaudeUsage
 {
@@ -1451,6 +1451,8 @@ static class ClaudeUsage
     static DateTime next = DateTime.MinValue;
     static volatile bool busy;
     static string lastLog = "";
+    static DateTime okAt = DateTime.MinValue;   // 마지막으로 숫자를 받은 때
+    static readonly Regex OauthRx = new Regex(@"""claudeAiOauth""\s*:\s*\{([^}]*)\}");   // 앞의 mcpOAuth(다른 서비스 열쇠)가 아니라 Claude 로그인 칸만
 
     // Loop 에서 자주 부른다. 3분마다 한 번 받는다(따로 스레드). 보드를 꽂자마자 보여 줄 수 있게 보드가 없어도 받아 둔다
     public static void Tick()
@@ -1464,7 +1466,9 @@ static class ClaudeUsage
     {
         string line, why;
         try { line = Get(out why); }
-        catch (Exception ex) { line = "@use err 3"; why = "받기 실패: " + ex.GetType().Name; }
+        catch (Exception ex) { line = null; why = "받기 실패: " + ex.GetType().Name; }   // 파일 잠김 등
+        if (line == null) line = Line != null && (DateTime.Now - okAt).TotalMinutes < 15 ? Line : "@use err 3";   // 잠깐 실패는 앞 숫자, 15분 넘으면 실패로
+        else if (!line.StartsWith("@use err")) okAt = DateTime.Now;
         Line = line;
         if (why != lastLog) { lastLog = why; Helper.Log("Claude 사용량: " + why); }   // 바뀔 때만 남긴다(열쇠는 남기지 않는다)
         busy = false;
@@ -1474,7 +1478,7 @@ static class ClaudeUsage
     {
         if (!File.Exists(CredFile)) { why = "로그인 파일 없음"; return "@use err 1"; }
         string j = File.ReadAllText(CredFile);
-        var co = Regex.Match(j, @"""claudeAiOauth""\s*:\s*\{([^}]*)\}");   // 앞의 mcpOAuth(다른 서비스 열쇠)가 아니라 Claude 로그인 칸만
+        var co = OauthRx.Match(j);
         if (!co.Success) { why = "Claude 로그인 없음"; return "@use err 1"; }
         j = co.Groups[1].Value;
         var tk = Regex.Match(j, @"""accessToken""\s*:\s*""([^""]+)""");
@@ -1506,7 +1510,7 @@ static class ClaudeUsage
             var r = wex.Response as HttpWebResponse; int code = r != null ? (int)r.StatusCode : -1;
             if (code == 401) { why = "로그인 만료(401)"; return "@use err 2"; }
             if (code == 429) next = DateTime.Now.AddMinutes(10);   // 너무 자주 물었다 → 10분 쉰다
-            why = "받기 실패(" + code + ")"; return Line ?? "@use err 3";   // 앞서 받은 숫자가 있으면 그대로 둔다
+            why = "받기 실패(" + code + ")"; return null;   // 앞 숫자를 둘지는 Fetch 가 정한다
         }
         string a = Window(body, "five_hour"), b = Window(body, "seven_day");
         if (a == null) { why = "답 모양이 다름"; return "@use err 3"; }
@@ -1528,7 +1532,7 @@ static class ClaudeUsage
         lock (fileLock)
         {
             string all = File.ReadAllText(CredFile);
-            var co = Regex.Match(all, @"""claudeAiOauth""\s*:\s*\{([^}]*)\}");
+            var co = OauthRx.Match(all);
             var rt = co.Success ? Regex.Match(co.Groups[1].Value, @"""refreshToken""\s*:\s*""([^""]+)""") : Match.Empty;
             if (!rt.Success) { err = "갱신 열쇠 없음"; return null; }
             string resp;
@@ -1555,8 +1559,14 @@ static class ClaudeUsage
             if (ei.Success) seg = Regex.Replace(seg, @"(""expiresAt""\s*:\s*)\d+", delegate (Match m) { return m.Groups[1].Value + (NowMs() + long.Parse(ei.Groups[1].Value) * 1000); });
             string outAll = all.Substring(0, co.Groups[1].Index) + seg + all.Substring(co.Groups[1].Index + co.Groups[1].Length);
             string tmp = CredFile + ".tapdeck.tmp";
-            File.WriteAllText(tmp, outAll, new UTF8Encoding(false));
-            File.Copy(tmp, CredFile, true); File.Delete(tmp);   // 다 쓴 뒤 한 번에 바꾼다(쓰다 끊겨 파일이 깨지지 않게)
+            try
+            {
+                File.WriteAllText(tmp, outAll, new UTF8Encoding(false));
+                for (int i = 0; ; i++)   // Claude Code 가 잠깐 열고 있으면 몇 번 다시(새 갱신 열쇠를 잃으면 Claude Code 로그인이 풀린다)
+                    try { File.Replace(tmp, CredFile, null); break; }   // 한 번에 바꾼다(쓰다 끊겨 파일이 깨지지 않게)
+                    catch (IOException) { if (i >= 9) throw; Thread.Sleep(300); }
+            }
+            finally { try { File.Delete(tmp); } catch { } }   // 열쇠가 든 임시 파일을 남기지 않는다
             return at.Groups[1].Value;
         }
     }
@@ -1566,10 +1576,10 @@ static class ClaudeUsage
     {
         var m = Regex.Match(body, @"""" + key + @"""\s*:\s*\{([^}]*)\}");
         if (!m.Success) return null;
-        var u = Regex.Match(m.Groups[1].Value, @"""utilization""\s*:\s*([0-9.]+)");
+        var u = Regex.Match(m.Groups[1].Value, @"""utilization""\s*:\s*([0-9.eE+-]+)");   // 5e-05 같은 지수 꼴도 통째로
         var r = Regex.Match(m.Groups[1].Value, @"""resets_at""\s*:\s*""([^""]+)""");
-        int pct = 0;
-        if (u.Success) pct = (int)Math.Round(double.Parse(u.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture));
+        int pct = 0; double d;
+        if (u.Success && double.TryParse(u.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out d)) pct = (int)Math.Round(d);
         DateTimeOffset t;
         if (r.Success && DateTimeOffset.TryParse(r.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out t))
         {

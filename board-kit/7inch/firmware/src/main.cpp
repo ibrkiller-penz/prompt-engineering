@@ -301,11 +301,12 @@ static void unlock() { esp_lv_adapter_unlock(); }
 
 // Claude 사용량 상태(설정 [사용량] 을 켠 보드만 보인다 — 처음엔 꺼짐, 사용자 지시 2026-10-31). 그리기는 renderUse
 static bool s_useOn = false;
-static int s_useP5 = 0, s_useP7 = 0, s_useW5 = -1, s_useW7 = -1, s_useErr = 0;
+static int s_useP5 = 0, s_useP7 = 0, s_useW7 = -1, s_useErr = 0;
 static char s_useR5[6] = "", s_useR7[6] = "";
 static uint32_t s_useAt = 0;
 static lv_obj_t *s_logo, *s_useL5, *s_useL7, *s_useBtn, *s_useClk;
-static bool useShown() { return s_useOn && s_useAt && millis() - s_useAt < 20UL * 60000UL; }   // 20분 넘게 소식이 없으면(탭덱 꺼짐) 숨긴다
+static const uint32_t USE_STALE_MS = 20UL * 60000UL;              // 20분 넘게 소식이 없으면(탭덱 꺼짐) 숨긴다
+static bool useShown() { return s_useOn && s_useAt && millis() - s_useAt < USE_STALE_MS; }
 // 닉시 시계(설정 [닉시] — 처음엔 꺼짐, 사용자 지시 2026-10-31). 숫자는 tools/make_nixie_font.py 로 만든 글꼴.
 // 한 숫자를 빛(주황, 아래)과 심지(밝은 호박색, 위) 두 글자로 겹쳐 그리고, 초를 분 오른쪽에 70% 크기로 붙인다.
 // 글꼴 상자에 빛 여백(base_line 과 같은 값)이 있어 글자 좌우에 같은 여백(pad)을 준다(안 주면 빛이 잘린다).
@@ -380,10 +381,11 @@ static void layoutClock() {
   lv_obj_set_size(s_notice, CW, NOTICE_H); lv_obj_set_pos(s_notice, P, PH - P - NOTICE_H + S(6));
   lv_obj_set_width(s_noticeLbl, CW - S(24)); lv_obj_center(s_noticeLbl);
   const int TOP = DATE_Y + DATE_H + S(24);
-  const int USE_H = S(30), useY = PH - P - (s_noticeOn ? NOTICE_H + S(4) : 0) - USE_H;   // Claude 사용량 한 줄(켰을 때만): 카드 아래·띠 위
+  const int bandTop = PH - P - (s_noticeOn ? NOTICE_H + S(4) : 0);   // 띠 위(띠가 없으면 아래 여백)
+  const int USE_H = S(30), useY = bandTop - USE_H;   // Claude 사용량 한 줄(켰을 때만): 카드 아래·띠 위
   const bool useOn = s_useClk && useShown();
   if (s_useClk) { vis(s_useClk, useOn); lv_obj_set_width(s_useClk, CW); lv_obj_set_pos(s_useClk, P, useY + (USE_H - lv_font_get_line_height(FM())) / 2); }
-  const int BOT = PH - P - (s_noticeOn ? NOTICE_H + S(4) : 0) - (useOn ? USE_H + S(4) : 0);
+  const int BOT = bandTop - (useOn ? USE_H + S(4) : 0);
   const int avail = BOT - TOP;
   const int WX_BASE = dust ? S(96) : S(74);                            // 날씨 카드: 위 블록 70 + 미세먼지 줄 28
   int wxX = P, wxY = TOP, wxW = CW, wxH = 0, inX = P, inY = TOP, inW = CW, inH = 0;
@@ -2321,36 +2323,37 @@ static void renderUse() {
   const bool show = useShown();
   static bool clkWas = false;
   if (s_useClk && show != clkWas) { clkWas = show; layoutClock(); }   // 시계 화면: 줄이 생기거나 없어지면 카드 자리를 다시 잡는다
-  if (show) { lv_obj_add_flag(s_title, LV_OBJ_FLAG_HIDDEN); if (s_logo) lv_obj_add_flag(s_logo, LV_OBJ_FLAG_HIDDEN); lv_obj_clear_flag(s_useL5, LV_OBJ_FLAG_HIDDEN); lv_obj_clear_flag(s_useL7, LV_OBJ_FLAG_HIDDEN); }
-  else { lv_obj_clear_flag(s_title, LV_OBJ_FLAG_HIDDEN); if (s_logo) lv_obj_clear_flag(s_logo, LV_OBJ_FLAG_HIDDEN); lv_obj_add_flag(s_useL5, LV_OBJ_FLAG_HIDDEN); lv_obj_add_flag(s_useL7, LV_OBJ_FLAG_HIDDEN); return; }
+  // 보이기·색은 바뀔 때만(showIf·setTextColIf). 같은 값으로 다시 부르기만 해도 LVGL 이 다시 그린다 → 1분마다 막대가 다시 그려졌다
+  showIf(s_title, !show); showIf(s_logo, !show); showIf(s_useL5, show); showIf(s_useL7, show);
+  if (!show) return;
   static const char *WD[7] = {"일", "월", "화", "수", "목", "금", "토"};
   char a[64], b[64];
   if (s_useErr) {
     snprintf(a, sizeof a, "Claude 사용량");
     snprintf(b, sizeof b, "%s", s_useErr == 1 ? "로그인 없음" : s_useErr == 2 ? "로그인 다시 필요" : "받기 실패");
-    lv_obj_set_style_text_color(s_useL5, lv_color_hex(D_MUTED), 0); lv_obj_set_style_text_color(s_useL7, lv_color_hex(C_WARN), 0);
+    setTextColIf(s_useL5, D_MUTED); setTextColIf(s_useL7, C_WARN);
   } else {
     if (s_useR5[0]) snprintf(a, sizeof a, "5시간 %d%% · %s 리셋", s_useP5, s_useR5); else snprintf(a, sizeof a, "5시간 %d%%", s_useP5);
     if (s_useP7 < 0) snprintf(b, sizeof b, "주간 한도 없음");
     else if (s_useR7[0] && s_useW7 >= 0 && s_useW7 < 7) snprintf(b, sizeof b, "주간 %d%% · %s %s 리셋", s_useP7, WD[s_useW7], s_useR7); else snprintf(b, sizeof b, "주간 %d%%", s_useP7);
-    lv_obj_set_style_text_color(s_useL5, lv_color_hex(useCol(s_useP5)), 0); lv_obj_set_style_text_color(s_useL7, lv_color_hex(s_useP7 < 0 ? D_MUTED : useCol(s_useP7)), 0);
+    setTextColIf(s_useL5, useCol(s_useP5)); setTextColIf(s_useL7, s_useP7 < 0 ? D_MUTED : useCol(s_useP7));
   }
   if (strcmp(lv_label_get_text(s_useL5), a)) lv_label_set_text(s_useL5, a);
   if (strcmp(lv_label_get_text(s_useL7), b)) lv_label_set_text(s_useL7, b);
   if (s_useClk) {   // 시계 화면 한 줄: 두 줄을 이어 붙인다
     char c[140]; snprintf(c, sizeof c, "Claude 사용량   %s   %s", s_useErr ? b : a, s_useErr ? "" : b);
     if (strcmp(lv_label_get_text(s_useClk), c)) lv_label_set_text(s_useClk, c);
-    lv_obj_set_style_text_color(s_useClk, lv_color_hex(s_useErr ? C_WARN : useCol(s_useP5)), 0);
+    setTextColIf(s_useClk, s_useErr ? C_WARN : useCol(s_useP5));
   }
 }
 // '@use 12 6 15:00 35 1 09:00' → 숫자로. 시각 자리 '-' 는 모름
 static void useLine(const char *p) {
   if (!strncmp(p, "err ", 4)) { s_useErr = atoi(p + 4); if (s_useErr < 1 || s_useErr > 3) s_useErr = 3; }
   else {
-    char r5[8] = "", w5[4] = "", r7[8] = "", w7[4] = ""; int p5 = 0, p7 = 0;
-    if (sscanf(p, "%d %3s %7s %d %3s %7s", &p5, w5, r5, &p7, w7, r7) != 6) return;
+    char r5[8] = "", r7[8] = "", w7[4] = ""; int p5 = 0, p7 = 0;
+    if (sscanf(p, "%d %*s %7s %d %3s %7s", &p5, r5, &p7, w7, r7) != 5) return;   // 5시간 요일은 건너뛴다(화면에 안 씀)
     s_useErr = 0; s_useP5 = constrain(p5, 0, 100); s_useP7 = p7 < 0 ? -1 : constrain(p7, 0, 100);   // -1 = 주간 한도 없는 요금제
-    s_useW5 = w5[0] == '-' ? -1 : atoi(w5); s_useW7 = w7[0] == '-' ? -1 : atoi(w7);
+    s_useW7 = w7[0] == '-' ? -1 : atoi(w7);
     snprintf(s_useR5, sizeof s_useR5, "%s", r5[0] == '-' ? "" : r5); snprintf(s_useR7, sizeof s_useR7, "%s", r7[0] == '-' ? "" : r7);
   }
   s_useAt = millis() ? millis() : 1;
@@ -4408,7 +4411,7 @@ void loop() {
     if (!s_pcOnly && !s_deckUp && (s_syncReq || due) && ms >= 5000) { s_syncReq = false; startSync(); }   // '컴퓨터만' 이면 와이파이를 켜지 않는다
     pcSyncTick(ms);                                              // '컴퓨터만': 탭덱이 대신 받아 준다
     static uint32_t useChk = 0;
-    if (s_useAt && ms - useChk > 30000) { useChk = ms; if (ms - s_useAt >= 20UL * 60000UL) { lock(); renderUse(); unlock(); } }   // 탭덱이 꺼지면 20분 뒤 제목으로
+    if (s_useAt && ms - useChk > 30000) { useChk = ms; if (ms - s_useAt >= USE_STALE_MS) { s_useAt = 0; lock(); renderUse(); unlock(); } }   // 탭덱이 꺼지면 20분 뒤 제목으로(한 번만)
   } else if (s_sync == SYNC_CONNECTING) {
     if (WiFi.isConnected()) {
       s_sync = SYNC_TIME; s_syncStart = ms; s_wifiFails = 0; s_lastWifiKind = 0;
@@ -4568,12 +4571,9 @@ void loop() {
           setTextIf(s_bigGlow, hm);
           if (s_nixOn) nixSecShow(tm.tm_sec, true);      // 분이 바뀌는 그 그리기에 초도 함께
           const bool apChg = setTextIf(s_bigAmPm, ampm);
-          if (*ampm) {                                   // "오후"를 숫자 왼쪽 아래에 붙인다(자리는 layoutClock 이 잡는다)
-            const bool was = lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);
-            showIf(s_bigAmPm, true);
-            if (bigChg || apChg || was) placeClock();
-          } else showIf(s_bigAmPm, false);
-          if (bigChg && s_nixOn) placeClock();
+          const bool apNew = *ampm && lv_obj_has_flag(s_bigAmPm, LV_OBJ_FLAG_HIDDEN);   // "오후"가 막 보이기 시작
+          showIf(s_bigAmPm, *ampm);                      // "오후"는 숫자 왼쪽 아래(자리는 placeClock)
+          if ((bigChg && s_nixOn) || (*ampm && (bigChg || apChg || apNew))) placeClock();
           setTextFmtIf(s_bigDate, "%d월 %d일 %s요일", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
           if (s_renderPending) {                         // 화면 불이 꺼진 동안 받은 자료
             s_renderPending = false;
