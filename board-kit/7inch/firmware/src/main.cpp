@@ -3451,6 +3451,7 @@ static void offUse() {
     setTextIf(s_offPct[i], b);
     setTextColIf(s_offPct[i], has && P[i] >= 90 ? 0xD03030 : 0x2A3240);
   }
+  setTextIf(s_offCNm[1], s_useName[0] ? s_useName : "주간");   // 팀 요금제는 모델별 주간 한도(예: Fable) — 그 이름을 보인다
 }
 // 0.45초마다: 타자·읽기 움직임, 일하는 중 말풍선의 점. 탭덱이 30초 넘게 조용하면 비운다
 static void offTimer(lv_timer_t *) {
