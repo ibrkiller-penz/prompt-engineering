@@ -96,5 +96,5 @@ board-kit\
 
 자료 형식을 알고 싶으면 `common\tools\data-format.md`, AI 도우미용 지시서는 `CLAUDE.md` 입니다.
 
-> 이 키트의 화면 글꼴은 Pretendard(SIL OFL), 화면 라이브러리는 LVGL(MIT)·Espressif ESP32_Display_Panel 등(Apache-2.0)입니다. 각 라이선스 파일이 `firmware\fonts\src`, `firmware\lib\*` 에 들어 있습니다.
+> 이 키트의 화면 글꼴은 에스코어 드림 3·4·5(S-Core, 무료 재배포 허용 — `firmwareonts\src\LICENSE_SCDream.txt`), 화면 라이브러리는 LVGL(MIT)·Espressif ESP32_Display_Panel 등(Apache-2.0)입니다. 각 라이선스 파일이 `firmware\fonts\src`, `firmware\lib\*` 에 들어 있습니다.
 > 사무실 탭 그림은 Pixel Agents(MIT, Pablo De Lucca)에서 가져왔고, 직원 그림은 JIK-A-4 의 "Metro City" 캐릭터 묶음이 바탕입니다. 출처와 라이선스: `tools\office_art\출처.md`, `LICENSE_PixelAgents.txt`.

@@ -466,6 +466,7 @@ static void layoutClock() {
 static lv_obj_t *label(lv_obj_t *parent, const lv_font_t *font, uint32_t color, const char *txt) {
   lv_obj_t *l = lv_label_create(parent);
   lv_obj_set_style_text_font(l, font, 0);
+  lv_obj_set_style_text_line_space(l, lv_font_get_line_height(font) / 8, 0);   // 두 줄 글이 붙어 보이지 않게(에스코어 드림으로 바꾸며 2026-11-03)
   lv_obj_set_style_text_color(l, lv_color_hex(color), 0);
   lv_label_set_text(l, txt);
   return l;
@@ -3931,7 +3932,7 @@ static void buildUI() {
   s_infoHr = box(ic, D_LINE, 0, 0);
   s_mealTitle = label(ic, FM(), D_MUTED, "점심");
   s_meal = label(ic, FM(), D_SUB, "");
-  lv_obj_set_style_text_line_space(s_meal, 2, 0);
+  lv_obj_set_style_text_line_space(s_meal, 6, 0);   // 반찬이 두 줄일 때 읽기 좋게
   lv_label_set_long_mode(s_meal, LV_LABEL_LONG_DOT);
   s_kcal = label(ic, FM(), D_MUTED, "");
 

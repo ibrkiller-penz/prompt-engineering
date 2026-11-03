@@ -1,4 +1,5 @@
-// 한글 글꼴 만들기: Pretendard SemiBold(OFL) → LVGL C 글꼴 (firmware/src/fonts/kr*.c)
+// 한글 글꼴 만들기: 에스코어 드림 3·4·5(출처·조건: src/LICENSE_SCDream.txt) → LVGL C 글꼴 (firmware/src/fonts/kr*.c)
+//  굵기(사용자 지시 2026-11-03, 탭덱 화면과 같은 규칙): 제목·큰 글자(28·20)·숫자 = 5 Medium, 보통 글(16) = 4 Regular, 작은 풀이(14) = 3 Light
 // 글자: ASCII + KS X 1001 한글 2,350자 + 화면에 쓰는 기호.  node fonts/build_fonts.cjs  (먼저 fonts 폴더에서 npm install)
 const { execFileSync } = require('child_process');
 const fs = require('fs'), path = require('path');
@@ -9,12 +10,14 @@ const scrub = t => t.replace(/^ \* Opts: .*$/m, ' * Opts: (생성 방법은 font
 const hangul = fs.readFileSync(path.join(here, 'src', 'hangul2350.txt'), 'utf8');
 // 압축하지 않는다: 압축 글꼴은 글자를 그릴 때마다 풀어야 해서 화면 다시 그리기가 느려진다(플래시는 더 쓴다)
 const NOCOMP = ['--no-compress'];
+const SC = n => path.join(here, 'src', `SCDream${n}.otf`);
+const WEIGHT = { 14: 3, 16: 4, 20: 5, 28: 5 };
 const ranges = '0x20-0x7E,0xB0,0xB7,0x2192,0x25B6,0x25C0,0x25CF'; // ° · → ▶ ◀ ●
 for (const size of [14, 16, 20, 28]) {
   const file = path.join(out, `kr${size}.c`);
   // 셸을 거치지 않는다(경로의 빈칸·한글이 잘린다). 먼저 이 폴더에서 npm install 할 것.
   execFileSync(process.execPath, [require.resolve('lv_font_conv/lv_font_conv.js', { paths: [here] }),
-    '--font', path.join(here, 'src', 'Pretendard-SemiBold.otf'), '-r', ranges, '--symbols', hangul,
+    '--font', SC(WEIGHT[size]), '-r', ranges, '--symbols', hangul,
     '--size', String(size), '--bpp', '4', ...NOCOMP, '--format', 'lvgl', '--lv-include', 'lvgl.h',
     '-o', file], { stdio: 'inherit' }); // 글꼴 이름은 파일 이름(kr16)을 따른다
   // 한글 글꼴에 없는 LVGL 기호(와이파이·화살표 등)는 같은 크기의 Montserrat 에서 빌린다(lv_conf.h 에서 켜 둔다)
@@ -29,7 +32,7 @@ for (const [name, size, symbols] of [['num120', 120, '0123456789:'], ['num36', 3
                                      ['num140', 140, '0123456789:'], ['num44', 44, '0123456789-°']]) {
   const file = path.join(out, `${name}.c`);
   execFileSync(process.execPath, [require.resolve('lv_font_conv/lv_font_conv.js', { paths: [here] }),
-    '--font', path.join(here, 'src', 'Pretendard-SemiBold.otf'), '--symbols', symbols,
+    '--font', SC(5), '--symbols', symbols,
     '--size', String(size), '--bpp', '4', ...NOCOMP, '--format', 'lvgl', '--lv-include', 'lvgl.h', '-o', file], { stdio: 'inherit' });
   fs.writeFileSync(file, scrub(fs.readFileSync(file, 'utf8')));
   console.log(`${name}.c ${(fs.statSync(file).size / 1024).toFixed(0)}KB`);
