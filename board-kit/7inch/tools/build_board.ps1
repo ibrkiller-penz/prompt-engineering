@@ -52,11 +52,11 @@ if (-not $NoUpload -and -not $Port) {
 }
 
 # 화면 글자 점검(경고만): main.cpp 의 문자열에 글꼴에 없는 글자(… “ ” × 등, KS X 1001 2,350자 밖 한글)가 있으면 화면에 빈 네모로 보인다.
-# 주석은 보지 않는다. 글꼴에 있는 기호: ASCII · ° · → ▶ ◀ ●
+# 주석은 보지 않는다. 글꼴에 있는 기호: ASCII · ° · → ▶ ◀ ● ♥ ♪ ★
 try {
   $okSet = New-Object 'System.Collections.Generic.HashSet[char]'
   foreach ($ch in [IO.File]::ReadAllText((Join-Path $src 'fonts\src\hangul2350.txt'), [Text.Encoding]::UTF8).ToCharArray()) { [void]$okSet.Add($ch) }
-  foreach ($ch in @([char]0xB0, [char]0xB7, [char]0x2192, [char]0x25B6, [char]0x25C0, [char]0x25CF)) { [void]$okSet.Add($ch) }
+  foreach ($ch in @([char]0xB0, [char]0xB7, [char]0x2192, [char]0x25B6, [char]0x25C0, [char]0x25CF, [char]0x2665, [char]0x266A, [char]0x2605)) { [void]$okSet.Add($ch) }
   $ln = 0; $warn = 0
   foreach ($line in [IO.File]::ReadAllLines((Join-Path $src 'src\main.cpp'), [Text.Encoding]::UTF8)) {
     $ln++; $inStr = $false; $bad = ''

@@ -12,7 +12,7 @@ const hangul = fs.readFileSync(path.join(here, 'src', 'hangul2350.txt'), 'utf8')
 const NOCOMP = ['--no-compress'];
 const SC = n => path.join(here, 'src', `SCDream${n}.otf`);
 const WEIGHT = { 14: 3, 16: 4, 20: 5, 28: 5 };
-const ranges = '0x20-0x7E,0xB0,0xB7,0x2192,0x25B6,0x25C0,0x25CF'; // ° · → ▶ ◀ ●
+const ranges = '0x20-0x7E,0xB0,0xB7,0x2192,0x25B6,0x25C0,0x25CF,0x2665,0x266A,0x2605'; // ° · → ▶ ◀ ● ♥ ♪ ★(♥♪★ 는 사무실 펫)
 for (const size of [14, 16, 20, 28]) {
   const file = path.join(out, `kr${size}.c`);
   // 셸을 거치지 않는다(경로의 빈칸·한글이 잘린다). 먼저 이 폴더에서 npm install 할 것.

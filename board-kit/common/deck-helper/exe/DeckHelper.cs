@@ -90,6 +90,8 @@ class Board
     public DateTime UseAt;       // 마지막으로 '@use'(Claude 사용량)를 보낸 때
     public DateTime AgAt;        // 마지막으로 '@ag'(Claude 사무실)를 보낸 때
     public string AgLine;        // 그때 보낸 줄(바뀌면 바로 다시 보낸다)
+    public DateTime PetAt;       // 마지막으로 '@pet'(Claude 펫)을 보낸 때
+    public string PetLine;       // 그때 보낸 줄
     public DateTime Opened;
     // 아이콘 보내기
     public volatile bool Pushing;   // 보내는 스레드가 포트를 쓰는 중(이때 Loop 는 읽지도 쓰지도 않는다)
@@ -434,6 +436,17 @@ class Helper : ApplicationContext
                 if ((now - lastScan).TotalSeconds >= 5) { lastScan = now; Scan(now); }
                 ClaudeUsage.Tick();
                 ClaudeAgents.Tick();
+                ClaudePet.Tick();
+                {   // Claude 펫: 바뀌면 바로, 안 바뀌어도 10초마다
+                    string pl = ClaudePet.Line;
+                    if (pl != null)
+                        lock (boards) foreach (var n in new List<string>(boards.Keys))
+                        {
+                            var pb = boards[n];
+                            if (pb.Pushing || !pb.Ok || !pb.CanDeck) continue;
+                            if (pl != pb.PetLine || (now - pb.PetAt).TotalSeconds >= 10) { pb.PetLine = pl; pb.PetAt = now; Send(n, pl); }
+                        }
+                }
                 {   // Claude 사무실: 바뀌면 바로, 안 바뀌어도 10초마다(보드는 30초 넘게 못 받으면 비운다)
                     string al = ClaudeAgents.Line;
                     lock (boards) foreach (var n in new List<string>(boards.Keys))
@@ -675,6 +688,8 @@ class Helper : ApplicationContext
             }
             else if (line == "@pc?") { if (!b.Ok) Confirm(b); Send(n, "@pc on"); Log("보드가 연결을 다시 확인함(새로 고침): " + n); }   // 보드의 [새로 고침] 단추: 바로 답한다
             else if (line == "@pcui") { if (!b.Ok) Confirm(b); FormFromBoard(n); Send(n, "@pcui ok"); }   // 보드의 [꾸미기] 단추: 이 컴퓨터에 꾸미기 창을 띄운다
+            else if (line == "@petgacha") { if (!b.Ok) Confirm(b); ClaudePet.Gacha(); b.PetLine = null; }   // 보드의 선물 상자: 이번 주 펫 뽑기(다음 Loop 에서 새 '@pet' 을 보낸다)
+            else if (line == "@petsel") { if (!b.Ok) Confirm(b); ClaudePet.Next(); b.PetLine = null; }      // 보드의 도감 글: 가진 펫 중 다음 펫
             else if (line.StartsWith("@get ")) { if (!b.Ok) Confirm(b); StartFetch(b, line); }   // 설정 '컴퓨터만' 인 보드가 시간표·날씨·급식을 부탁한다
             else if (line.StartsWith("@deck "))
             {
@@ -1371,6 +1386,8 @@ class Helper : ApplicationContext
                 if (line.StartsWith("@board ok deck=")) b.Hash = line.Substring(15).Trim();
                 else if (line == "@pc?") Write(b, "@pc on");
                 else if (line == "@pcui") { FormFromBoard(b.Name); Write(b, "@pcui ok"); }
+                else if (line == "@petgacha") { ClaudePet.Gacha(); b.PetLine = null; }
+                else if (line == "@petsel") { ClaudePet.Next(); b.PetLine = null; }
                 else if (Regex.IsMatch(line, "^(sync|heap|deck|restart|reset reason)")) BoardLog(b.Name, line);
             }
             if (b.Buf.Length > 8192) b.Buf = "";

@@ -2430,6 +2430,7 @@ static void useLine(const char *p) {
   s_useAt = millis() ? millis() : 1;
   lock(); renderUse(); unlock();
 }
+static void petLine(const char *p);   // 사무실 펫(아래)
 static void deckPoll(uint32_t ms) {
   static char buf[320]; static uint16_t n = 0;   // 가장 긴 줄 '@deckdata 15 80 <base64 256자>' 273자
   while (Serial.available()) {
@@ -2453,6 +2454,7 @@ static void deckPoll(uint32_t ms) {
       }
       else if (!strncmp(buf, "@use ", 5)) useLine(buf + 5);   // 탭덱이 알려 주는 Claude 사용량
       else if (!strcmp(buf, "@ag") || !strncmp(buf, "@ag ", 4)) agLine(buf + 3);   // 탭덱이 알려 주는 Claude 작업(사무실 탭)
+      else if (!strncmp(buf, "@pet ", 5)) petLine(buf + 5);                          // 탭덱이 키우는 Claude 펫(사무실 쉼터)
       else if (!strncmp(buf, "@pconly ", 8)) {   // 시험용: '컴퓨터만' 을 컴퓨터에서 켜고 끈다(설정 단추와 같다)
         const bool on = atoi(buf + 8) != 0;
         if (on != s_pcOnly) { lock(); s_pcOnly = on; s_prefs.putBool("pconly", on); segStyle(s_pcBtn, on); if (!on && s_prefs.isKey("ssid")) s_syncReq = true; else if (on) s_syncReq = true; refreshWifiLabel(); renderToday(); unlock(); }
@@ -3373,6 +3375,21 @@ static void renderUse();
 //  상태 w 타자 · r 읽기 · q 허락 기다림(노란 ?) · d 끝남(초록 ✓) · i 쉬는 중(오른쪽 쉼터로)
 //  그림은 작은 원본(office_art.c)을 켤 때 OFF_Z 배로 늘려 PSRAM 에 둔다. 자리 수치는 tools/make_office.py 와 같아야 한다
 extern const lv_img_dsc_t office_bg, office_desk, office_chr0, office_chr1, office_chr2, office_chr3, office_chr4, office_chr5;
+extern const lv_img_dsc_t office_pet0, office_pet1, office_pet2, office_pet3, office_pet4, office_pet5, office_pet6;
+// ── Claude 펫(사용자 지시 2026-11-03, Tamamon 처럼): 탭덱이 Claude 가 쓴 글의 양으로 키우고 '@pet 종류 단계 % 기분 먹음 뽑기표 도감' 을 보낸다.
+//  펫은 쉼터 바닥을 천천히 돌아다닌다(사무실 움직임과 같은 0.45초 박자 — 더 자주 그리면 화면이 흔들린다).
+//  밤(22~7시)에는 잔다. 누르면 기뻐한다. 선물 상자(한 주에 한 번)를 누르면 '@petgacha', 위의 이름표를 누르면 '@petsel'(다음 펫)
+static const int PET_N = 7;
+static const char *PET_NM[PET_N] = {"말랑이", "냥냥이", "토실이", "뿔뿔이", "새싹이", "별빛이", "부캉이"};
+static const char *PET_STN[4] = {"알", "아기", "어린이", "어른"};
+static const int PET_WP[6][2] = {{240, 140}, {252, 150}, {232, 150}, {254, 136}, {246, 146}, {236, 144}};   // 돌아다니는 곳(16x16 칸의 왼쪽 위, 작은 그림 점). 이름표가 정수기를 덮지 않게 왼쪽(x 254 까지)
+static const lv_img_dsc_t *s_petBig = nullptr;   // 지금 종류의 늘린 그림(종류가 바뀌면 지우고 다시 만든다)
+static int s_petBigK = -1;
+static lv_obj_t *s_petImg, *s_petFx, *s_petTag, *s_petGift, *s_petPop, *s_petPopT;   // s_petPop: 누르면 뜨는 상태 창
+static int s_petSp = -1, s_petSt = 0, s_petPct = 0, s_petTicket = 0;
+static char s_petMood = 'i', s_petDex[8] = "-------";
+static uint32_t s_petAt = 0, s_petFedAt = 0;
+static int s_petX = 244, s_petY = 144, s_petTo = 0, s_petTouch = 0, s_petWow = 0, s_petGiftWait = 0, s_petPopTick = 0;
 static const int OFF_DX[3] = {16, 80, 144}, OFF_DY[2] = {56, 127};
 static const int OFF_LX[3] = {244, 292, 236}, OFF_LY[3] = {62, 62, 100};
 static const int OFF_W = 336, OFF_H = 176, OFF_N = 6, OFF_LN = 3;
@@ -3447,6 +3464,96 @@ static void renderOffice() {
   showIf(s_offEmpty, s_agN == 0);
   offUse();
 }
+static const lv_img_dsc_t *const PET_SRC[PET_N] = {&office_pet0, &office_pet1, &office_pet2, &office_pet3, &office_pet4, &office_pet5, &office_pet6};
+// 그림을 종류 k 로. 늘린 그림은 하나만 둔다(6종을 미리 늘리면 PSRAM 이 모자랐다 2026-11-03). 늘리기에 실패하면 펫을 숨긴다
+static bool petSrc(int k) {
+  if (!s_petImg) return false;
+  if (k != s_petBigK || !s_petBig) {
+    if (s_petBig && s_petBig != PET_SRC[s_petBigK]) { heap_caps_free((void *)s_petBig->data); heap_caps_free((void *)s_petBig); }
+    s_petBig = imgScale(PET_SRC[k], s_offZ); s_petBigK = k;
+    lv_img_set_src(s_petImg, s_petBig);
+    lv_obj_set_size(s_petImg, 16 * s_offZ, 16 * s_offZ);   // set_src 가 크기를 그림 전체로 되돌린다
+  }
+  return s_petBig != PET_SRC[k] || s_offZ == 1;
+}
+static void petInfo() {   // 위 이름표·선물 상자(바뀐 것만 다시 그린다)
+  if (!s_petTag) return;
+  const bool on = s_petSp >= 0 && s_petAt && millis() - s_petAt < 60000 && petSrc(s_petSp);
+  showIf(s_petImg, on); showIf(s_petTag, on); showIf(s_petGift, on && s_petTicket);
+  if (!on) { showIf(s_petFx, false); return; }
+  int n = 0; for (int k = 0; k < PET_N; k++) if (s_petDex[k] != '-') n++;
+  char b[80];
+  snprintf(b, sizeof b, "%s", s_petGiftWait ? "두근두근..." : PET_NM[s_petSp]);   // 이름표는 이름만(자세한 것은 눌러서 뜨는 창, 사용자 지시)
+  if (s_petPopT) {   // 상태 창 글
+    static const char *NEXT[3] = {"알에서 깨기까지", "어린이까지", "어른까지"};
+    char t[200];
+    if (s_petSt >= 3) snprintf(t, sizeof t, "%s · 어른\n다 자랐어요!\n도감 %d/%d", PET_NM[s_petSp], n, PET_N);
+    else snprintf(t, sizeof t, "%s · %s\n%s %d%%\n도감 %d/%d", PET_NM[s_petSp], PET_STN[s_petSt], NEXT[s_petSt], s_petPct, n, PET_N);
+    setTextIf(s_petPopT, t);
+  }
+  if (setTextIf(s_petTag, b)) {
+    lv_obj_update_layout(s_petTag);
+    lv_obj_set_pos(s_petTag, (s_petX + 8) * s_offZ - lv_obj_get_width(s_petTag) / 2, (s_petY + 16) * s_offZ);
+  }
+}
+static void petLine(const char *p) {
+  int sp, st, pct, fed, tk; char mood; char dex[8] = "";
+  if (sscanf(p, "%d %d %d %c %d %d %7s", &sp, &st, &pct, &mood, &fed, &tk, dex) < 6 || sp < 0 || sp >= PET_N || st < 0 || st > 3) return;
+  lock();
+  if (s_petSp >= 0 && (sp != s_petSp || st != s_petSt)) s_petWow = 8;   // 새 펫·자람: 잠깐 '★'
+  s_petSp = sp; s_petSt = st; s_petPct = constrain(pct, 0, 100); s_petMood = mood; s_petTicket = tk;
+  if (dex[0]) snprintf(s_petDex, sizeof s_petDex, "%s", dex);
+  if (fed) s_petFedAt = millis() ? millis() : 1;
+  s_petAt = millis() ? millis() : 1;
+  s_petGiftWait = 0;
+  petInfo();
+  unlock();
+}
+static void petFrame(int col) {
+  const lv_coord_t ox = -col * 16 * s_offZ, oy = -s_petSt * 16 * s_offZ;
+  if (lv_img_get_offset_x(s_petImg) != ox) lv_img_set_offset_x(s_petImg, ox);
+  if (lv_img_get_offset_y(s_petImg) != oy) lv_img_set_offset_y(s_petImg, oy);
+}
+static void petFx(const char *t, uint32_t col) {
+  if (!t) { showIf(s_petFx, false); return; }
+  setTextIf(s_petFx, t); setTextColIf(s_petFx, col);
+  const int Z = s_offZ;
+  lv_obj_set_pos(s_petFx, (s_petX + 11) * Z, (s_petY - 2) * Z - lv_font_get_line_height(FM()) / 2);
+  showIf(s_petFx, true);
+}
+static void petTick() {   // offTimer 가 사무실을 볼 때만 부른다
+  if (!s_petImg || s_petSp < 0 || lv_obj_has_flag(s_petImg, LV_OBJ_FLAG_HIDDEN)) return;
+  const int Z = s_offZ, t = (int)s_offTick;
+  bool night = false;
+  if (timeValid()) { time_t now = time(nullptr); struct tm tm; localtime_r(&now, &tm); night = tm.tm_hour >= 22 || tm.tm_hour < 7; }
+  const bool fed = s_petFedAt && millis() - s_petFedAt < 8000;
+  int col = 0;
+  if (s_petWow) { s_petWow--; col = 3; petFx("★", 0xFFD84A); }
+  else if (s_petTouch) { s_petTouch--; col = 3; petFx("♥", 0xFF6680); }
+  else if (night) { col = 2; petFx((t >> 2) & 1 ? "Zz" : "z", 0xBFD8FF); }
+  else if (s_petSt == 0) { col = (t % 6 == 0) ? 1 : 0; petFx(nullptr, 0); }        // 알: 가끔 흔들
+  else if (fed) { col = (t & 1) ? 4 : 0; petFx("♪", 0xFFFFFF); }                    // Claude 가 방금 글을 써서 먹는 중
+  else if (s_petMood == 'q') { col = (t & 1) ? 3 : 0; petFx("?", 0xFFC440); }       // 허락을 기다리는 작업이 있다
+  else {
+    petFx(nullptr, 0);
+    const int tx = PET_WP[s_petTo][0], ty = PET_WP[s_petTo][1];
+    const bool walk = s_petMood == 'w' || (t / 20) % 3 == 0;                        // 일하는 중이면 계속, 쉬면 가끔 걷는다
+    if (walk && (s_petX != tx || s_petY != ty)) {
+      s_petX += (tx > s_petX) - (tx < s_petX); s_petY += (ty > s_petY) - (ty < s_petY);
+      col = (t & 1) ? 1 : 0;
+    } else {
+      if (s_petX == tx && s_petY == ty) s_petTo = (s_petTo + 1 + (t % 3)) % 6;
+      col = (t % 9 == 0) ? 3 : 0;                                                     // 서 있다가 가끔 웃는다
+    }
+  }
+  petFrame(col);
+  if (s_petPopTick && !--s_petPopTick) showIf(s_petPop, false);   // 상태 창은 10초 뒤 저절로 닫힌다
+  if (lv_obj_get_x(s_petImg) != s_petX * Z || lv_obj_get_y(s_petImg) != s_petY * Z) {
+    lv_obj_set_pos(s_petImg, s_petX * Z, s_petY * Z);
+    lv_obj_set_pos(s_petTag, (s_petX + 8) * Z - lv_obj_get_width(s_petTag) / 2, (s_petY + 16) * Z);   // 이름표도 따라간다
+  }
+  if (s_petGift && s_petTicket && !lv_obj_has_flag(s_petGift, LV_OBJ_FLAG_HIDDEN)) lv_obj_set_y(s_petGift, (104 - ((t >> 1) & 1)) * Z);   // 선물 상자가 통통
+}
 // 정수기 물 = 남은 사용량(사용자 지시 2026-11-01): 많이 쓸수록 물이 줄어든다. 탭덱 소식이 없으면 빈 통과 '-'
 static void offUse() {
   if (!s_offWater[0]) return;
@@ -3467,7 +3574,9 @@ static void offUse() {
 // 0.45초마다: 타자·읽기 움직임, 일하는 중 말풍선의 점. 탭덱이 30초 넘게 조용하면 비운다
 static void offTimer(lv_timer_t *) {
   if (s_agN && millis() - s_agAt > 30000) { s_agN = 0; renderOffice(); }
+  if (s_petAt && millis() - s_petAt > 60000) { s_petAt = 0; petInfo(); }   // 탭덱이 1분 넘게 조용하면 펫을 숨긴다
   if (s_view != V_OFF) return;
+  petTick();
   if (!(s_offTick & 7)) offUse();   // 약 4초마다(바뀐 것만 다시 그린다)
   s_offTick++;
   static const char *DOTS[3] = {"·", "··", "···"};
@@ -3558,6 +3667,46 @@ static void buildOffice(lv_obj_t *scr, int top) {
     lv_obj_set_pos(t, (cx - 8) * Z, (OFF_CY + 25) * Z);
     s_offCNm[i] = mkTag(cx * Z, (OFF_CY + 37) * Z, 30);
     setTextIf(s_offCNm[i], i ? "주간" : "5시간"); lv_obj_clear_flag(s_offCNm[i], LV_OBJ_FLAG_HIDDEN);
+  }
+  {   // Claude 펫: 그림(종류마다 80x64 → Z 배) · 효과 글(♥ Zz ♪ ★) · 위 이름표 · 선물 상자
+    lv_obj_t *pi = s_petImg = lv_img_create(sc);   // 그림은 첫 '@pet' 을 받을 때 petSrc 가 넣는다
+    s_petBig = nullptr; s_petBigK = -1;                 // 화면을 다시 만들 때(화면 색 바꿈) 옛 그림은 버린다
+    lv_obj_set_size(pi, 16 * Z, 16 * Z); lv_obj_set_pos(pi, s_petX * Z, s_petY * Z);
+    lv_obj_add_flag(pi, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(pi, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_ext_click_area(pi, 8);
+    auto petOpen = [](lv_event_t *) { s_petTouch = 6; petInfo(); showIf(s_petPop, true); lv_obj_move_foreground(s_petPop); s_petPopTick = 22; };
+    lv_obj_add_event_cb(pi, petOpen, LV_EVENT_CLICKED, nullptr);
+    s_petFx = label(sc, FM(), 0xFFFFFF, "");
+    lv_obj_add_flag(s_petFx, LV_OBJ_FLAG_HIDDEN);
+    s_petTag = mkTag((s_petX + 8) * Z, (s_petY + 16) * Z, 70);
+    lv_obj_set_width(s_petTag, LV_SIZE_CONTENT);   // 글 길이만큼(가운데는 petTick 이 맞춘다)
+    lv_obj_add_flag(s_petTag, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(s_petTag, petOpen, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t *g = s_petGift = box(sc, 0xE04848, 0x7A1E1E, 0);   // 선물 상자 12x10(작은 그림 점) + 노란 끈
+    lv_obj_set_style_radius(g, Z, 0); lv_obj_set_style_border_width(g, Z / 2 + 1, 0);
+    lv_obj_set_size(g, 12 * Z, 10 * Z); lv_obj_set_pos(g, 312 * Z, 104 * Z);
+    lv_obj_t *r1 = box(g, 0xFFD84A, 0, 0); lv_obj_set_size(r1, 2 * Z, 10 * Z); lv_obj_center(r1); lv_obj_clear_flag(r1, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_t *r2 = box(g, 0xFFD84A, 0, 0); lv_obj_set_size(r2, 12 * Z, 2 * Z); lv_obj_align(r2, LV_ALIGN_TOP_MID, 0, 2 * Z); lv_obj_clear_flag(r2, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(g, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(g, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_ext_click_area(g, 10);
+    lv_obj_add_event_cb(g, [](lv_event_t *) { Serial.printf("\n@petgacha\n"); s_petGiftWait = 1; petInfo(); }, LV_EVENT_CLICKED, nullptr);
+    // 상태 창: 쉼터 위 가운데. 글 세 줄 + [다음 펫] [닫기]
+    const int PW = big() ? 300 : 240, PH = big() ? 190 : 160, BW = (PW - 36) / 2, BH = big() ? 44 : 36;
+    lv_obj_t *pp = s_petPop = box(s_viewOff, 0x1C2230, 0x6A7A96, 0);
+    lv_obj_set_style_radius(pp, 14, 0); lv_obj_set_style_border_width(pp, 2, 0);
+    lv_obj_set_size(pp, PW, PH); lv_obj_set_pos(pp, (s_W - OFF_W * Z) / 2 + 282 * Z - PW / 2, (VH - OFF_H * Z) / 2 + 40 * Z);   // 좌표가 아직 0 일 수 있어 직접 셈
+    s_petPopT = label(pp, FM(), 0xFFFFFF, "");
+    lv_obj_set_width(s_petPopT, PW - 24); lv_obj_set_style_text_align(s_petPopT, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(s_petPopT, LV_ALIGN_TOP_MID, 0, 14);
+    lv_obj_t *bn = button(pp, "다음 펫", BW, BH, C_ALT, C_TEXT);
+    lv_obj_align(bn, LV_ALIGN_BOTTOM_LEFT, 12, -12);
+    lv_obj_add_event_cb(bn, [](lv_event_t *) { Serial.printf("\n@petsel\n"); showIf(s_petPop, false); s_petPopTick = 0; }, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t *bc = button(pp, "닫기", BW, BH, C_ALT, C_TEXT);
+    lv_obj_align(bc, LV_ALIGN_BOTTOM_RIGHT, -12, -12);
+    lv_obj_add_event_cb(bc, [](lv_event_t *) { showIf(s_petPop, false); s_petPopTick = 0; }, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_flag(pp, LV_OBJ_FLAG_HIDDEN);
   }
   s_offEmpty = label(s_viewOff, FM(), D_TEXT, "Claude 작업을 기다리는 중이에요\n컴퓨터의 탭덱이 작업을 알려 주면 직원이 자리에 앉아요");
   lv_obj_set_style_text_align(s_offEmpty, LV_TEXT_ALIGN_CENTER, 0);
