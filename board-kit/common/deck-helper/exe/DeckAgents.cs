@@ -16,6 +16,7 @@ static class ClaudeAgents
     public static volatile string Line = "@ag";   // 보드에 보낼 줄(작업이 없으면 '@ag')
     static DateTime next = DateTime.MinValue;
     static volatile bool busy;
+    static DateTime busyAt;   // 훑기를 시작한 때. 1분 넘게 안 끝나면 걸린 것으로 보고 새로 훑는다(2026-11-03 탭덱이 멈춰 사무실이 비었다)
 
     class Seat { public int Slot, Chr; }
     class Info { public DateTime Mt; public long Len; public string State, Tool, Name; }
@@ -35,8 +36,8 @@ static class ClaudeAgents
     // Loop 에서 자주 부른다. 2초마다 한 번 훑는다(따로 스레드)
     public static void Tick()
     {
-        if (busy || DateTime.Now < next) return;
-        busy = true; next = DateTime.Now.AddSeconds(2);
+        if ((busy && (DateTime.Now - busyAt).TotalMinutes < 1) || DateTime.Now < next) return;
+        busy = true; busyAt = DateTime.Now; next = DateTime.Now.AddSeconds(2);
         new Thread(Scan) { IsBackground = true, Name = "claude agents" }.Start();
     }
 

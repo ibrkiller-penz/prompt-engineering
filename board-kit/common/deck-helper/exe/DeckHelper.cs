@@ -361,9 +361,23 @@ class Helper : ApplicationContext
         catch (Exception ex) { Log("바로 가기를 만들지 못함: " + ex.Message); }
     }
 
+    // 굽기·화면 찍기 도구가 만든 멈춤 파일(빈 파일)이 1시간 넘게 남아 있으면 도구가 지우지 못하고 끝난 것 → 지우고 다시 연결(2026-11-03:
+    //  화면 찍기가 시간 제한에 걸려 끊긴 뒤 파일이 밤새 남아 사용량·사무실이 안 왔다). 처음 빌드가 45분까지 걸려 1시간으로 둔다
+    static bool StaleStop()
+    {
+        try
+        {
+            var fi = new FileInfo(StopFile);
+            if (fi.Length > 0 || (DateTime.Now - fi.LastWriteTime).TotalMinutes < 60) return false;
+            fi.Delete(); Log("오래 남은 멈춤 파일을 지움(1시간 넘음)");
+            return true;
+        }
+        catch { return false; }
+    }
+
     void TogglePause()
     {
-        try { if (File.Exists(StopFile)) File.Delete(StopFile); else File.WriteAllText(StopFile, ""); } catch { }
+        try { if (File.Exists(StopFile)) File.Delete(StopFile); else File.WriteAllText(StopFile, "user"); } catch { }   // 'user' = 사람이 메뉴로 멈춤(저절로 지우지 않는다)
     }
 
     void Quit()
@@ -399,6 +413,7 @@ class Helper : ApplicationContext
             try
             {
                 paused = File.Exists(StopFile);   // 이 바퀴에서는 이 값만 쓴다(StateText·UpdateTray 도)
+                if (paused && StaleStop()) paused = false;
                 if (paused)
                 {
                     lock (boards) foreach (var n in new List<string>(boards.Keys)) Drop(n, "포트 놓음(멈춤)");
@@ -1462,6 +1477,7 @@ static class ClaudeUsage
     public static volatile string Line;          // 보드에 보낼 줄(아직 없으면 null)
     static DateTime next = DateTime.MinValue;
     static volatile bool busy;
+    static DateTime busyAt;                      // 받기를 시작한 때. 2분 넘게 안 끝나면 걸린 것으로 보고 새로 받는다
     static string lastLog = "";
     static DateTime okAt = DateTime.MinValue;   // 마지막으로 숫자를 받은 때
     static readonly Regex OauthRx = new Regex(@"""claudeAiOauth""\s*:\s*\{([^}]*)\}");   // 앞의 mcpOAuth(다른 서비스 열쇠)가 아니라 Claude 로그인 칸만
@@ -1469,8 +1485,8 @@ static class ClaudeUsage
     // Loop 에서 자주 부른다. 3분마다 한 번 받는다(따로 스레드). 보드를 꽂자마자 보여 줄 수 있게 보드가 없어도 받아 둔다
     public static void Tick()
     {
-        if (busy || DateTime.Now < next) return;
-        busy = true; next = DateTime.Now.AddMinutes(3);
+        if ((busy && (DateTime.Now - busyAt).TotalMinutes < 2) || DateTime.Now < next) return;
+        busy = true; busyAt = DateTime.Now; next = DateTime.Now.AddMinutes(3);
         new Thread(Fetch) { IsBackground = true, Name = "claude usage" }.Start();
     }
 
