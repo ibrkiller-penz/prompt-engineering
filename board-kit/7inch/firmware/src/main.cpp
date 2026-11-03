@@ -323,7 +323,7 @@ static void useRowPlace(UseRow &u, int w, int y) {   // 폭 w 로 한 줄을 다
 }
 static const uint32_t USE_STALE_MS = 20UL * 60000UL;              // 20분 넘게 소식이 없으면(탭덱 꺼짐) 숨긴다
 static bool useShown() { return s_useOn && s_useAt && millis() - s_useAt < USE_STALE_MS; }
-// 닉시 시계(설정 [닉시] — 처음엔 꺼짐, 사용자 지시 2026-10-31). 숫자는 tools/make_nixie_font.py 로 만든 글꼴.
+// 닉시 시계(설정 [닉시] — 처음부터 켜짐, 사용자 지시 2026-11-03). 숫자는 tools/make_nixie_font.py 로 만든 글꼴.
 // 한 숫자를 빛(주황, 아래)과 심지(밝은 호박색, 위) 두 글자로 겹쳐 그리고, 초를 분 오른쪽에 70% 크기로 붙인다.
 // 글꼴 상자에 빛 여백(base_line 과 같은 값)이 있어 글자 좌우에 같은 여백(pad)을 준다(안 주면 빛이 잘린다).
 static bool s_nixOn = false;
@@ -4475,7 +4475,7 @@ void setup() {
   s_autoClkMin = s_prefs.getInt("autoclk", 20);
   s_lastOkT = (time_t)s_prefs.getULong("lastok", 0);
   s_pcOnly = s_prefs.getBool("pconly", false);
-  s_nixOn = s_prefs.getBool("nixie", false);   // 닉시 시계도 처음엔 꺼짐
+  s_nixOn = s_prefs.getBool("nixie", true);    // 닉시 시계는 처음부터 켜짐(사용자 지시 2026-11-03)
   s_useOn = s_prefs.getBool("useon", false);   // 처음엔 꺼짐(필요한 보드만 설정에서 켠다)
   s_show = s_prefs.getInt("show", SH_ALL);
   s_themeIdx = constrain(s_prefs.getInt("theme", 0), 0, THEME_N - 1);   // 화면 색(buildUI 전에)

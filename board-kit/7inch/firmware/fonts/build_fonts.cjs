@@ -26,10 +26,10 @@ for (const size of [14, 16, 20, 28]) {
   fs.writeFileSync(file, scrub(src));
   console.log(`kr${size}.c ${(fs.statSync(file).size / 1024 / 1024).toFixed(1)}MB`);
 }
-// 큰 숫자: 시계(120px, 숫자와 ':'), 날씨 온도(36px, 숫자와 '-', '°')
+// 큰 숫자: 시계(120px, 숫자와 ':', 시각을 모를 때 '--:--' 의 '-'), 날씨 온도(36px, 숫자와 '-', '°')
 // num140·num44 는 1024x600(7B) 화면용(시계·기온)
-for (const [name, size, symbols] of [['num120', 120, '0123456789:'], ['num36', 36, '0123456789-°'],
-                                     ['num140', 140, '0123456789:'], ['num44', 44, '0123456789-°']]) {
+for (const [name, size, symbols] of [['num120', 120, '0123456789:-'], ['num36', 36, '0123456789-°'],
+                                     ['num140', 140, '0123456789:-'], ['num44', 44, '0123456789-°']]) {
   const file = path.join(out, `${name}.c`);
   execFileSync(process.execPath, [require.resolve('lv_font_conv/lv_font_conv.js', { paths: [here] }),
     '--font', SC(5), '--symbols', symbols,
