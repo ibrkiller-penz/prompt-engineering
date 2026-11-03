@@ -74,7 +74,7 @@ const PAL = {
 };
 const STYLE = { n:0x34d399, d:0xfb923c, j:0x818cf8, x:0xf87171, c:0xa78bfa, e:0xf472b6, f:0x38bdf8, h:0xf87171 };   // styleOf().border
 // 글꼴: 크기와 줄 높이(src/fonts/*.c 의 line_height)
-const FONT = { kr14:[14,16], kr16:[16,17], kr20:[20,21], kr28:[28,29], num120:[120,88], num140:[140,102], num36:[36,25], num44:[44,32] };
+const FONT = { kr14:[14,16], kr16:[16,17], kr20:[20,21], kr28:[28,29], num120:[120,88], num140:[140,102], num36:[36,25], num38:[38,32] };
 const PERIOD_START = ["08:40","09:40","10:40","11:40","13:30","14:40","15:40"];
 const DOW = ["월","화","수","목","금"];
 
@@ -101,7 +101,7 @@ function rebuild() {
   const W = st.W, H = st.H, K = W / 800, S = v => Math.round(v * K), big = W > 800, small = W <= 800;
   const R = r => (st.soft && r >= 10) ? r : 0;           // UI_FANCY 0 · UI_SOFT 규칙
   const RP = r => st.soft ? 999 : 0;                     // 알약
-  const FM = big ? "kr16" : "kr14", FCLK = big ? "num140" : "num120", FTEMP = big ? "num44" : "num36";
+  const FM = big ? "kr16" : "kr14", FCLK = big ? "num140" : "num120", FTEMP = big ? "num38" : "num36";
   const scr = $("screen"); scr.innerHTML = "";
   scr.style.width = W + "px"; scr.style.height = H + "px"; scr.style.background = hex(P.D_BG);
   scr.style.transform = `scale(${$("zoom").value})`;

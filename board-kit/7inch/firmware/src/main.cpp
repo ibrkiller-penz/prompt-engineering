@@ -35,7 +35,7 @@ LV_FONT_DECLARE(kr28);
 LV_FONT_DECLARE(num120);   // 시계 (2026-10-06 140 → 120, 미리보기 F)
 LV_FONT_DECLARE(num36);    // 날씨 기온 (44 → 36)
 LV_FONT_DECLARE(num140);   // 1024x600 시계
-LV_FONT_DECLARE(num44);    // 1024x600 기온
+LV_FONT_DECLARE(num38);    // 1024x600 기온(44 는 위아래 글자에 붙어 보여 줄임, 2026-11-03)
 LV_FONT_DECLARE(nix100g); LV_FONT_DECLARE(nix100c); LV_FONT_DECLARE(nix70g); LV_FONT_DECLARE(nix70c);   // 닉시 시계 1024x600(시·초)
 LV_FONT_DECLARE(nix80g); LV_FONT_DECLARE(nix80c); LV_FONT_DECLARE(nix56g); LV_FONT_DECLARE(nix56c);     // 닉시 시계 800x480(시·초)
 
@@ -63,7 +63,7 @@ static int s_W = 800, s_H = 480;   // 화면 크기(initDisplay 가 패널에서
 static bool big() { return s_W > 800; }                                   // 1024x600 인가
 static const lv_font_t *FM() { return big() ? &kr16 : &kr14; }             // 작은 설명 글자(1024 는 한 단계 크게)
 static const lv_font_t *FCLK() { return big() ? &num140 : &num120; }       // 큰 시계
-static const lv_font_t *FTEMP() { return big() ? &num44 : &num36; }        // 기온
+static const lv_font_t *FTEMP() { return big() ? &num38 : &num36; }        // 기온
 // ← 우리 학교 교시 시작 시각으로 바꾸기. 아래 코드의 "12:30"·"13:30"(점심), "08:40"(수업 전), "16:30"(수업 끝) 도 같이 확인한다.
 static const char *PERIOD_START[7] = {"08:40", "09:40", "10:40", "11:40", "13:30", "14:40", "15:40"};
 static const char *DOW[5] = {"월", "화", "수", "목", "금"};
@@ -400,16 +400,16 @@ static void layoutClock() {
   lv_obj_set_width(s_noticeLbl, CW - S(24)); lv_obj_center(s_noticeLbl);
   const int TOP = DATE_Y + DATE_H + S(24);
   const int bandTop = PH - P - (s_noticeOn ? NOTICE_H + S(4) : 0);   // 띠 위(띠가 없으면 아래 여백)
-  const int ULH = lv_font_get_line_height(FM()), USE_H = 2 * ULH + S(8), useY = bandTop - USE_H;   // Claude 사용량 막대 두 줄(켰을 때만): 카드 아래·띠 위
+  const int ULH = lv_font_get_line_height(FM()), USE_H = 2 * ULH + S(8), useY = bandTop - USE_H + S(8);   // Claude 사용량 막대 두 줄(켰을 때만): 카드 아래·띠 위
   const bool useOn = s_useClk && useShown();
   if (s_useClk) {
     vis(s_useClk, useOn); lv_obj_set_size(s_useClk, CW, USE_H); lv_obj_set_pos(s_useClk, P, useY);
     useRowPlace(s_ucRow[0], CW, S(2)); useRowPlace(s_ucRow[1], CW, S(6) + ULH);
     if (useOn) useRowsSet(s_ucRow);            // 폭이 바뀌었으면 막대 길이도 다시
   }
-  const int BOT = bandTop - (useOn ? USE_H + S(4) : 0);
+  const int BOT = bandTop - (useOn ? USE_H - S(8) + GAP : 0);   // 카드 ~ 막대도 카드 사이와 같은 간격
   const int avail = BOT - TOP;
-  const int WX_BASE = dust ? S(96) : S(74);                            // 날씨 카드: 위 블록 70 + 미세먼지 줄 28
+  const int WX_BASE = dust ? S(106) : S(84);                           // 날씨 카드: 위 블록 80 + 미세먼지 줄 28
   int wxX = P, wxY = TOP, wxW = CW, wxH = 0, inX = P, inY = TOP, inW = CW, inH = 0;
   if (tt) {                                                            // 세로로 쌓기
     wxH = wx ? WX_BASE : 0;
@@ -432,18 +432,18 @@ static void layoutClock() {
   vis(s_wxCard, wx);
   if (wx) {
     lv_obj_set_size(s_wxCard, wxW, wxH); lv_obj_set_pos(s_wxCard, wxX, wxY);
-    const int topArea = dust ? wxH - S(28) : wxH, yOff = (topArea - S(70)) / 2;   // 그림 52 · 기온 36 블록 높이 70
-    lv_obj_set_size(s_wxSep, 1, S(48)); lv_obj_set_pos(s_wxSep, wxW / 2, yOff + S(10));
+    const int topArea = dust ? wxH - S(28) : wxH, yOff = (topArea - S(80)) / 2;   // 그림 52 · 기온 블록 높이 80(위·아래 글과 기온 사이를 띄운다, 디자인 검토 2026-11-03)
+    lv_obj_set_size(s_wxSep, 1, S(48)); lv_obj_set_pos(s_wxSep, wxW / 2, yOff + S(15));
     vis(s_wxSep2, dust); vis(s_dust, dust);
     lv_obj_set_size(s_wxSep2, wxW - S(28), 1); lv_obj_set_pos(s_wxSep2, S(14), wxH - S(28));
     lv_obj_set_width(s_dust, wxW - S(28)); lv_obj_set_pos(s_dust, S(14), wxH - S(21));
     for (int i = 0; i < 2; i++) {
       const int x0 = i * wxW / 2;
       WxCard &k = s_card[i];
-      lv_obj_set_pos(k.img, x0 + S(8), yOff + (S(70) - 2 - 52) / 2);
-      lv_obj_set_pos(k.desc, x0 + S(66), yOff + S(10));
-      lv_obj_set_pos(k.temp, x0 + S(66), yOff + S(26));
-      lv_obj_set_width(k.hilo, wxW / 2 - S(74)); lv_obj_set_pos(k.hilo, x0 + S(66), yOff + S(52));
+      lv_obj_set_pos(k.img, x0 + S(8), yOff + (S(80) - 2 - 52) / 2);
+      lv_obj_set_pos(k.desc, x0 + S(66), yOff + S(6));
+      lv_obj_set_pos(k.temp, x0 + S(66), yOff + S(27));
+      lv_obj_set_width(k.hilo, wxW / 2 - S(74)); lv_obj_set_pos(k.hilo, x0 + S(66), yOff + S(58));
     }
   }
   // '오늘' 카드 안
@@ -864,6 +864,7 @@ static void renderToday() {
 
 // ── 주간 시간표 ──
 // 1분마다 다시 부르므로 값이 바뀐 칸만 다시 쓴다. 숨어 있으면 부르지 않는다(s_weekDirty).
+static int s_cellAOff = -9;   // 교실 줄이 있을 때 과목 줄을 위로 올리는 만큼(buildWeek 에서 정한다)
 static void renderWeek() {
   s_weekDirty = false;
   if (!s_ttLoaded) {
@@ -914,6 +915,14 @@ static void renderWeek() {
       setTextColIf(s_cellA[d][p], nowCell ? C_TEXT : D_TEXT);
       setTextColIf(s_cellB[d][p], nowCell ? C_MUTED : D_SUB);
       showIf(s_cellTag[d][p], *g);
+      {   // 교실 줄이 없으면 과목을 칸 가운데로. 꼬리표가 있으면 과목을 왼쪽에 붙여 꼬리표와 겹치지 않게(디자인 검토 2026-11-03)
+        lv_obj_t *A = s_cellA[d][p];
+        const int cw = lv_obj_get_style_width(o, LV_PART_MAIN);   // 처음 그릴 때는 좌표가 아직 0 일 수 있어 정한 폭을 읽는다
+        lv_obj_set_width(A, *g ? cw * 5 / 9 : cw - 12);
+        lv_obj_set_style_text_align(A, *g ? LV_TEXT_ALIGN_LEFT : LV_TEXT_ALIGN_CENTER, 0);
+        if (*g) lv_obj_align(A, LV_ALIGN_LEFT_MID, 6, *b ? s_cellAOff : 0);
+        else lv_obj_align(A, LV_ALIGN_CENTER, 0, *b ? s_cellAOff : 0);
+      }
     }
     const char *lunch = day["lunch"] | "";
     bool duty = strcmp(kind, "teacher") == 0 && *lunch;
@@ -2508,8 +2517,9 @@ static void buildDeck(lv_obj_t *scr, int top) {
   lv_obj_set_size(panel, PW, PH); lv_obj_set_pos(panel, M, M);
   lv_obj_clear_flag(panel, LV_OBJ_FLAG_CLICKABLE);
   // 8칸 × 2줄. 칸 하나 = 아이콘(72) + 이름. 칸은 판보다 밝은 단추 모양(누를 수 있게 보이도록)
-  const int COLS = 8, CW = (PW - 2 * M) / COLS, CH = small ? 118 : 150, GY = small ? 18 : 40;
-  const int gridH = 2 * CH + GY, y0 = (PH - 40 - gridH) / 2;
+  const int COLS = 8, CW = (PW - 2 * M) / COLS, CH = small ? 118 : 160, GY = small ? 18 : 14;
+  const int gridH = 2 * CH + GY, y0 = small ? (PH - 40 - gridH) / 2 : M + 4;   // 1024: 위에서 20(디자인 검토 2026-11-03)
+  const int BI = small ? M - 10 : 12;                     // 아래 단추와 판 끝 사이
   for (int i = 0; i < 16; i++) {
     const int c = i % COLS, r = i / COLS;
     lv_obj_t *cell = box(panel, D_ROW, D_LINE, 14);
@@ -2530,7 +2540,7 @@ static void buildDeck(lv_obj_t *scr, int top) {
   {   // Claude 사용량 막대 두 줄: 단추 칸 아래 ~ 아래 단추 줄 위 빈자리 가운데(보이기는 renderUse)
     const lv_font_t *f = small ? &kr14 : &kr16;
     const int lh = lv_font_get_line_height(f), UH = 2 * lh + 6, UW = (PW - 2 * M) * 2 / 3;
-    const int gridB = y0 + gridH, btnT = PH - (M - 10) - 38;
+    const int gridB = y0 + gridH, btnT = PH - BI - 38;
     s_useDeck = box(panel, D_PANEL, 0, 0);
     lv_obj_set_style_bg_opa(s_useDeck, LV_OPA_TRANSP, 0); lv_obj_clear_flag(s_useDeck, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(s_useDeck, UW, UH); lv_obj_set_pos(s_useDeck, (PW - UW) / 2, gridB + max(0, (btnT - gridB - UH) / 2));
@@ -2545,20 +2555,20 @@ static void buildDeck(lv_obj_t *scr, int top) {
   lv_obj_set_style_text_align(s_deckState, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(s_deckState, LV_ALIGN_BOTTOM_MID, 0, -M);
   lv_obj_t *rb = button(panel, LV_SYMBOL_REFRESH, RB, 38, D_ROW, D_TEXT);
-  lv_obj_align(rb, LV_ALIGN_BOTTOM_RIGHT, -M, -(M - 10));
+  lv_obj_align(rb, LV_ALIGN_BOTTOM_RIGHT, -M, -BI);
   lv_obj_add_event_cb(rb, onDeckRefresh, LV_EVENT_CLICKED, nullptr);
   // 왼쪽 아래 [꾸미기]: 컴퓨터에 탭덱의 꾸미기 창을 띄운다(늘 보인다)
   s_deckEditW = small ? 104 : 124;
   lv_obj_t *eb = button(panel, LV_SYMBOL_SETTINGS " 꾸미기", s_deckEditW, 38, D_ROW, D_TEXT);
   lv_obj_set_style_text_font(lv_obj_get_child(eb, 0), small ? &kr14 : &kr16, 0);
-  lv_obj_align(eb, LV_ALIGN_BOTTOM_LEFT, M, -(M - 10));
+  lv_obj_align(eb, LV_ALIGN_BOTTOM_LEFT, M, -BI);
   lv_obj_add_event_cb(eb, onDeckEdit, LV_EVENT_CLICKED, nullptr);
   // [새로 고침] 왼쪽 옆 [기본 아이콘]: 컴퓨터에서 꾸민 설정이 있을 때만 보인다. 3초 안에 두 번 눌러야 되돌린다.
   // (설계는 설정 화면이지만 설정 화면에 빈자리가 없어 단축키 화면에 둔다)
   s_deckPW = PW; s_deckM = M; s_deckResetArmed = 0;
   s_deckResetBtn = button(panel, "기본 아이콘", small ? 112 : 136, 38, D_ROW, D_SUB);
   lv_obj_set_style_text_font(lv_obj_get_child(s_deckResetBtn, 0), &kr14, 0);
-  lv_obj_align(s_deckResetBtn, LV_ALIGN_BOTTOM_RIGHT, -(M + RB + 8), -(M - 10));
+  lv_obj_align(s_deckResetBtn, LV_ALIGN_BOTTOM_RIGHT, -(M + RB + 8), -BI);
   lv_obj_add_event_cb(s_deckResetBtn, [](lv_event_t *e) {
     lv_obj_t *b = lv_event_get_current_target(e);
     if (!s_deckResetArmed || millis() - s_deckResetArmed > 3000) { s_deckResetArmed = millis(); lv_label_set_text(lv_obj_get_child(b, 0), "한 번 더"); return; }
@@ -3838,16 +3848,17 @@ static void buildUI() {
       lv_label_set_long_mode(s_cellA[d][p], LV_LABEL_LONG_DOT); lv_obj_set_width(s_cellA[d][p], CW - 14);
       lv_obj_set_style_text_align(s_cellA[d][p], LV_TEXT_ALIGN_CENTER, 0);
       lv_obj_align(s_cellA[d][p], LV_ALIGN_CENTER, 0, small ? -8 : -9);
+      s_cellAOff = small ? -8 : -9;
       s_cellB[d][p] = label(c, FM(), C_LIGHT, "");
       lv_label_set_long_mode(s_cellB[d][p], LV_LABEL_LONG_DOT); lv_obj_set_width(s_cellB[d][p], CW - 14);
       lv_obj_set_style_text_align(s_cellB[d][p], LV_TEXT_ALIGN_CENTER, 0);
       lv_obj_align(s_cellB[d][p], LV_ALIGN_CENTER, 0, small ? 10 : 13);
-      s_cellTag[d][p] = label(c, FM(), 0xffffff, "");
+      s_cellTag[d][p] = label(c, &kr14, 0xffffff, "");
       lv_obj_set_style_bg_opa(s_cellTag[d][p], LV_OPA_COVER, 0);
       lv_obj_set_style_bg_color(s_cellTag[d][p], lv_color_hex(0xc2410c), 0);
       lv_obj_set_style_radius(s_cellTag[d][p], RP(6), 0);
       lv_obj_set_style_pad_hor(s_cellTag[d][p], 3, 0);
-      lv_obj_align(s_cellTag[d][p], LV_ALIGN_TOP_RIGHT, -1, 0);
+      lv_obj_align(s_cellTag[d][p], LV_ALIGN_TOP_RIGHT, -3, 3);
       lv_obj_add_flag(s_cellTag[d][p], LV_OBJ_FLAG_HIDDEN);
     }
   }
