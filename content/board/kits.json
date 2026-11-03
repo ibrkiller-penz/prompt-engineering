@@ -1,19 +1,19 @@
 {
   "7inch": {
     "file": "penedu-board-7inch-starter.zip",
-    "bytes": 31550896,
+    "bytes": 31551613,
     "date": "2026-11-03",
     "files": 1983
   },
   "4inch": {
     "file": "penedu-board-4inch-starter.zip",
-    "bytes": 36093839,
+    "bytes": 36094556,
     "date": "2026-11-03",
     "files": 1805
   },
   "helper": {
     "file": "penedu-board-deck-helper.zip",
-    "bytes": 23800702,
+    "bytes": 23800991,
     "date": "2026-11-03",
     "files": 6
   },
@@ -23,7 +23,7 @@
   },
   "helperExe": {
     "file": "penedu-deck-helper-exe.zip",
-    "bytes": 14724926,
+    "bytes": 14725215,
     "date": "2026-11-03"
   }
 }
