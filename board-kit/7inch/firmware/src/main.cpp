@@ -3786,11 +3786,28 @@ static void onNixBtn(lv_event_t *) {
   setStatus(s_principal ? "닉시 시계는 교사용 시계 화면에서만 보입니다"
             : s_nixOn ? "닉시 시계: 숫자를 닉시관처럼, 초도 보입니다" : "닉시 시계를 껐습니다");
 }
+// 탭 줄: 설정 [사용량]을 끄면 [사무실] 탭을 숨기고 나머지를 당겨 붙인다(사용자 지시 2026-11-04). 사무실을 보던 중이면 시계로
+static lv_obj_t *s_tabBox = nullptr;
+static int s_tabW = 74;
+static void layoutTabs() {
+  if (!s_tabBox) return;
+  showIf(s_tabOff, s_useOn);
+  lv_obj_t *t[6] = {s_tabTT, s_tabClock, s_tabDeck, s_tabOff, s_tabFind, s_tabSet};
+  int n = 0;
+  for (int i = 0; i < 6; i++) {
+    if (!t[i] || (t[i] == s_tabOff && !s_useOn)) continue;
+    lv_obj_set_pos(t[i], 4 + n * (s_tabW + 2), 3);
+    n++;
+  }
+  lv_obj_set_width(s_tabBox, s_tabW * n + (n - 1) * 2 + 8);
+  if (!s_useOn && s_view == V_OFF) showView(V_CLOCK);
+}
 static void onUseBtn(lv_event_t *) {   // [사용량]: 누를 때마다 켜짐/꺼짐
   s_useOn = !s_useOn;
   s_prefs.putBool("useon", s_useOn);
   segStyle(s_useBtn, s_useOn);
   renderUse();
+  layoutTabs();
   setStatus(s_useOn ? (s_useAt ? "Claude 사용량을 위쪽에 보입니다" : "Claude 사용량: 컴퓨터의 탭덱이 알려 주면 위쪽에 보입니다") : "Claude 사용량을 숨겼습니다");
 }
 static void onPcOnly(lv_event_t *) {   // [컴퓨터만]: 누를 때마다 켜짐/꺼짐. 켜면 와이파이를 쓰지 않는다
@@ -3917,7 +3934,8 @@ static void buildUI() {
 
   // 탭 여섯: 시간표 · 시계 · 단축키 · 사무실 · 찾기 · 설정(2026-10-25 사용자 지정 순서, 사무실은 2026-11-01 더함)
   const int TABW = small ? 56 : 74, TABH = TOP - 14;
-  lv_obj_t *tabs = box(s_top, D_ROW, D_LINE, 10);
+  lv_obj_t *tabs = s_tabBox = box(s_top, D_ROW, D_LINE, 10);
+  s_tabW = TABW;
   lv_obj_set_size(tabs, TABW * 6 + 5 * 2 + 8, TOP - 6); lv_obj_align(tabs, LV_ALIGN_LEFT_MID, small ? 178 : 250, 0);
   auto mkTab = [&](const char *txt, int i, bool on, lv_event_cb_t cb) {
     lv_obj_t *b = button(tabs, txt, TABW, TABH, on ? D_LINE : D_ROW, on ? D_TEXT : D_MUTED);
@@ -3932,6 +3950,7 @@ static void buildUI() {
   s_tabOff = mkTab("사무실", 3, false, [](lv_event_t *) { showView(V_OFF); });
   s_tabFind = mkTab("찾기", 4, false, onTabFind);
   s_tabSet = mkTab("설정", 5, false, onTabSet);
+  layoutTabs();                                   // [사용량]이 꺼져 있으면 [사무실] 탭을 숨긴다
 
 
   s_wifiLbl = label(s_top, FM(), D_MUTED, LV_SYMBOL_WIFI " 연결 안 됨");   // 켤 때의 상태(경고가 아니다 → 흐린 글자)
