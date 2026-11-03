@@ -2417,6 +2417,7 @@ static void renderUse() {
 }
 // '@use 12 6 15:00 35 1 09:00' → 숫자로. 시각 자리 '-' 는 모름
 static void agLine(const char *p);   // 사무실 탭(아래 showView 앞)
+static void offUseReply();   // 사무실 화분으로 부탁한 사용량이 왔다(아래)
 static void useLine(const char *p) {
   if (!strncmp(p, "err ", 4)) { s_useErr = atoi(p + 4); if (s_useErr < 1 || s_useErr > 3) s_useErr = 3; }
   else {
@@ -2428,7 +2429,7 @@ static void useLine(const char *p) {
     snprintf(s_useR5, sizeof s_useR5, "%s", r5[0] == '-' ? "" : r5); snprintf(s_useR7, sizeof s_useR7, "%s", r7[0] == '-' ? "" : r7);
   }
   s_useAt = millis() ? millis() : 1;
-  lock(); renderUse(); unlock();
+  lock(); renderUse(); offUseReply(); unlock();
 }
 static void petLine(const char *p);   // 사무실 펫(아래)
 static void deckPoll(uint32_t ms) {
@@ -3395,6 +3396,8 @@ static const int OFF_LX[3] = {244, 292, 236}, OFF_LY[3] = {62, 62, 100};
 static const int OFF_W = 336, OFF_H = 176, OFF_N = 6, OFF_LN = 3;
 static const int OFF_CX[2] = {286, 318}, OFF_CY = 128;   // 정수기 2대(5시간 · 주간 사용량). 물통 안쪽 x-5~x+4, y+1~y+14
 static lv_obj_t *s_offWater[2], *s_offPct[2], *s_offCNm[2];
+static lv_obj_t *s_offToast = nullptr;     // 화분을 두 번 눌러 사용량을 부탁했을 때 잠깐 뜨는 글
+static uint32_t s_useReqAt = 0, s_offToastAt = 0;
 struct OffAgent { int8_t slot, chr; char st; char name[40]; };
 static OffAgent s_ag[OFF_N];
 static int s_agN = 0;
@@ -3554,6 +3557,31 @@ static void petTick() {   // offTimer 가 사무실을 볼 때만 부른다
   }
   if (s_petGift && s_petTicket && !lv_obj_has_flag(s_petGift, LV_OBJ_FLAG_HIDDEN)) lv_obj_set_y(s_petGift, (104 - ((t >> 1) & 1)) * Z);   // 선물 상자가 통통
 }
+// 화분 두 번 누르기(사용자 지시 2026-11-04): 탭덱에 '@useq' 로 사용량을 지금 다시 받아 달라고 한다
+static void offToast(const char *t) {
+  if (!s_offToast) return;
+  setTextIf(s_offToast, t); showIf(s_offToast, true); lv_obj_move_foreground(s_offToast);
+  s_offToastAt = millis() ? millis() : 1;
+}
+static void offPlantTap(lv_event_t *) {
+  static uint32_t last = 0;
+  const uint32_t now = millis();
+  if (now - last > 500) { last = now; return; }   // 0.5초 안에 두 번째로 누를 때만
+  last = 0;
+  Serial.printf("\n@useq\n");
+  s_useReqAt = now ? now : 1;
+  offToast("Claude 사용량을 탭덱에 다시 부탁했어요...");
+}
+static void offUseReply() {
+  if (!s_useReqAt) return;
+  s_useReqAt = 0;
+  char b[96];
+  if (s_useErr) snprintf(b, sizeof b, "사용량을 못 받았어요 · 컴퓨터의 Claude 로그인을 확인하세요");
+  else if (s_useP7 < 0) snprintf(b, sizeof b, "받았어요 · 5시간 %d%%", s_useP5);
+  else snprintf(b, sizeof b, "받았어요 · 5시간 %d%% · %s %d%%", s_useP5, s_useName[0] ? s_useName : "주간", s_useP7);
+  offToast(b);
+  offUse();
+}
 // 정수기 물 = 남은 사용량(사용자 지시 2026-11-01): 많이 쓸수록 물이 줄어든다. 탭덱 소식이 없으면 빈 통과 '-'
 static void offUse() {
   if (!s_offWater[0]) return;
@@ -3575,6 +3603,8 @@ static void offUse() {
 static void offTimer(lv_timer_t *) {
   if (s_agN && millis() - s_agAt > 30000) { s_agN = 0; renderOffice(); }
   if (s_petAt && millis() - s_petAt > 60000) { s_petAt = 0; petInfo(); }   // 탭덱이 1분 넘게 조용하면 펫을 숨긴다
+  if (s_useReqAt && millis() - s_useReqAt > 30000) { s_useReqAt = 0; offToast("탭덱이 답하지 않아요 · 컴퓨터의 탭덱을 확인하세요"); }
+  if (s_offToastAt && millis() - s_offToastAt > (s_useReqAt ? 31000u : 6000u)) { s_offToastAt = 0; showIf(s_offToast, false); }
   if (s_view != V_OFF) return;
   petTick();
   if (!(s_offTick & 7)) offUse();   // 약 4초마다(바뀐 것만 다시 그린다)
@@ -3707,6 +3737,22 @@ static void buildOffice(lv_obj_t *scr, int top) {
     lv_obj_align(bc, LV_ALIGN_BOTTOM_RIGHT, -12, -12);
     lv_obj_add_event_cb(bc, [](lv_event_t *) { showIf(s_petPop, false); s_petPopTick = 0; }, LV_EVENT_CLICKED, nullptr);
     lv_obj_add_flag(pp, LV_OBJ_FLAG_HIDDEN);
+  }
+  {   // 화분 다섯 개 위에 보이지 않는 누름 자리(두 번 누르면 사용량 다시 받기). 작은 그림 점: x, y, 너비, 높이
+    static const int PL[5][4] = {{232, 0, 16, 32}, {304, 18, 32, 48}, {0, 128, 16, 32}, {204, 132, 16, 32}, {226, 128, 16, 32}};
+    for (int i = 0; i < 5; i++) {
+      lv_obj_t *h = lv_obj_create(sc);
+      lv_obj_remove_style_all(h);
+      lv_obj_set_size(h, PL[i][2] * Z, PL[i][3] * Z); lv_obj_set_pos(h, PL[i][0] * Z, PL[i][1] * Z);
+      lv_obj_add_flag(h, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_add_event_cb(h, offPlantTap, LV_EVENT_CLICKED, nullptr);
+    }
+    lv_obj_move_foreground(s_petImg); lv_obj_move_foreground(s_petTag); lv_obj_move_foreground(s_petGift);   // 펫이 화분 앞을 지나갈 때도 펫이 눌리게
+    s_offToast = label(s_viewOff, FM(), 0xFFFFFF, "");
+    lv_obj_set_style_bg_color(s_offToast, lv_color_hex(0x14181F), 0); lv_obj_set_style_bg_opa(s_offToast, LV_OPA_90, 0);
+    lv_obj_set_style_radius(s_offToast, 10, 0); lv_obj_set_style_pad_hor(s_offToast, 16, 0); lv_obj_set_style_pad_ver(s_offToast, 10, 0);
+    lv_obj_align(s_offToast, LV_ALIGN_TOP_MID, 0, 12);
+    lv_obj_add_flag(s_offToast, LV_OBJ_FLAG_HIDDEN);
   }
   s_offEmpty = label(s_viewOff, FM(), D_TEXT, "Claude 작업을 기다리는 중이에요\n컴퓨터의 탭덱이 작업을 알려 주면 직원이 자리에 앉아요");
   lv_obj_set_style_text_align(s_offEmpty, LV_TEXT_ALIGN_CENTER, 0);

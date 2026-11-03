@@ -88,6 +88,7 @@ class Board
     public bool Ok;              // '@board ok' 를 받았나
     public DateTime TimeAt;      // 마지막으로 '@time' 을 보낸 때
     public DateTime UseAt;       // 마지막으로 '@use'(Claude 사용량)를 보낸 때
+    public int UseSeq;           // 그때의 ClaudeUsage.Seq(새로 받으면 1분을 기다리지 않고 바로 보낸다)
     public DateTime AgAt;        // 마지막으로 '@ag'(Claude 사무실)를 보낸 때
     public string AgLine;        // 그때 보낸 줄(바뀌면 바로 다시 보낸다)
     public DateTime PetAt;       // 마지막으로 '@pet'(Claude 펫)을 보낸 때
@@ -469,9 +470,9 @@ class Helper : ApplicationContext
                             Send(n, "@time " + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds);
                         }
                         string ul = ClaudeUsage.Line;
-                        if (ul != null && boards.TryGetValue(n, out tb) && tb.Ok && (now - tb.UseAt).TotalSeconds >= 60)
-                        {   // Claude 사용량: 1분마다(보드 설정에서 끄면 보드가 숨긴다)
-                            tb.UseAt = now;
+                        if (ul != null && boards.TryGetValue(n, out tb) && tb.Ok && ((now - tb.UseAt).TotalSeconds >= 60 || tb.UseSeq != ClaudeUsage.Seq))
+                        {   // Claude 사용량: 1분마다, 그리고 새로 받으면 바로(보드 설정에서 끄면 보드가 숨긴다)
+                            tb.UseAt = now; tb.UseSeq = ClaudeUsage.Seq;
                             Send(n, ul);
                         }
                     }
@@ -688,6 +689,7 @@ class Helper : ApplicationContext
             }
             else if (line == "@pc?") { if (!b.Ok) Confirm(b); Send(n, "@pc on"); Log("보드가 연결을 다시 확인함(새로 고침): " + n); }   // 보드의 [새로 고침] 단추: 바로 답한다
             else if (line == "@pcui") { if (!b.Ok) Confirm(b); FormFromBoard(n); Send(n, "@pcui ok"); }   // 보드의 [꾸미기] 단추: 이 컴퓨터에 꾸미기 창을 띄운다
+            else if (line == "@useq") { if (!b.Ok) Confirm(b); ClaudeUsage.Now(); }   // 보드 사무실의 화분을 두 번 누름: 사용량을 지금 다시 받아 달라
             else if (line == "@petgacha") { if (!b.Ok) Confirm(b); ClaudePet.Gacha(); b.PetLine = null; }   // 보드의 선물 상자: 이번 주 펫 뽑기(다음 Loop 에서 새 '@pet' 을 보낸다)
             else if (line == "@petsel") { if (!b.Ok) Confirm(b); ClaudePet.Next(); b.PetLine = null; }      // 보드의 도감 글: 가진 펫 중 다음 펫
             else if (line.StartsWith("@get ")) { if (!b.Ok) Confirm(b); StartFetch(b, line); }   // 설정 '컴퓨터만' 인 보드가 시간표·날씨·급식을 부탁한다
@@ -1386,6 +1388,7 @@ class Helper : ApplicationContext
                 if (line.StartsWith("@board ok deck=")) b.Hash = line.Substring(15).Trim();
                 else if (line == "@pc?") Write(b, "@pc on");
                 else if (line == "@pcui") { FormFromBoard(b.Name); Write(b, "@pcui ok"); }
+                else if (line == "@useq") ClaudeUsage.Now();
                 else if (line == "@petgacha") { ClaudePet.Gacha(); b.PetLine = null; }
                 else if (line == "@petsel") { ClaudePet.Next(); b.PetLine = null; }
                 else if (Regex.IsMatch(line, "^(sync|heap|deck|restart|reset reason)")) BoardLog(b.Name, line);
@@ -1492,6 +1495,7 @@ static class ClaudeUsage
     const string Url = "https://api.anthropic.com/api/oauth/usage";
     static readonly string CredFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", ".credentials.json");
     public static volatile string Line;          // 보드에 보낼 줄(아직 없으면 null)
+    public static volatile int Seq;              // 받기를 마칠 때마다 1씩(보드에 바로 보내는 표시)
     static DateTime next = DateTime.MinValue;
     static volatile bool busy;
     static DateTime busyAt;                      // 받기를 시작한 때. 2분 넘게 안 끝나면 걸린 것으로 보고 새로 받는다
@@ -1507,6 +1511,15 @@ static class ClaudeUsage
         new Thread(Fetch) { IsBackground = true, Name = "claude usage" }.Start();
     }
 
+    // 보드가 부탁함(사무실 화분 두 번 누르기, 2026-11-04): 3분을 기다리지 않고 지금 받는다. 20초 넘게 걸린 받기는 버리고 새로
+    public static void Now()
+    {
+        Helper.Log("Claude 사용량: 보드가 다시 받기를 부탁함");
+        if (busy && (DateTime.Now - busyAt).TotalSeconds < 20) return;   // 지금 받는 중 → 그 결과를 보낸다
+        busy = false; next = DateTime.MinValue;
+        lastLog = "";                                                    // 결과가 같아도 기록에 남긴다
+    }
+
     static void Fetch()
     {
         string line, why;
@@ -1516,6 +1529,7 @@ static class ClaudeUsage
         else if (!line.StartsWith("@use err")) okAt = DateTime.Now;
         Line = line;
         if (why != lastLog) { lastLog = why; Helper.Log("Claude 사용량: " + why); }   // 바뀔 때만 남긴다(열쇠는 남기지 않는다)
+        Seq++;
         busy = false;
     }
 
