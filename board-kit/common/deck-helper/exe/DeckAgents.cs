@@ -3,6 +3,7 @@
 //  상태: w 일하는 중(타자) · r 읽는 중 · q 허락 기다림 · d 끝남(선생님 차례) · i 쉬는 중(끝나고 10분 넘음)
 //  기록은 이 컴퓨터에서 상태를 가리는 데만 쓰고, 보드에는 작업 제목(앞 12자)과 상태 글자만 간다 ══
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -19,7 +20,7 @@ static class ClaudeAgents
     static DateTime busyAt;   // 훑기를 시작한 때. 1분 넘게 안 끝나면 걸린 것으로 보고 새로 훑는다(2026-11-03 탭덱이 멈춰 사무실이 비었다)
 
     class Seat { public int Slot, Chr; }
-    class Info { public DateTime Mt; public long Len; public string State, Tool, Name; }
+    class Info { public DateTime Mt, At; public long Len; public string State, Tool, Name; }   // At: 상태를 정한 기록 줄의 시각(UTC)
     static readonly Dictionary<string, Seat> seats = new Dictionary<string, Seat>();
     static readonly Dictionary<string, Info> cache = new Dictionary<string, Info>();   // 파일이 안 바뀌었으면 다시 읽지 않는다
 
@@ -28,6 +29,7 @@ static class ClaudeAgents
     static readonly Regex SubRx = new Regex("\"subtype\":\"([a-z_]+)\"");
     static readonly Regex TitleRx = new Regex("\"customTitle\":\"((?:[^\"\\\\]|\\\\.)*)\"");
     static readonly Regex NameRx = new Regex("\"agentName\":\"((?:[^\"\\\\]|\\\\.)*)\"");
+    static readonly Regex TsRx = new Regex("\"timestamp\":\"([0-9T:.-]+Z)\"");
     static readonly Regex CwdRx = new Regex("\"cwd\":\"((?:[^\"\\\\]|\\\\.)*)\"");
     // 끝나는 데 시간이 걸리지 않는 도구: 기록이 8초 넘게 멈춰 있으면 허락을 기다리는 것으로 본다
     static readonly HashSet<string> AskTools = new HashSet<string> { "Edit", "Write", "MultiEdit", "NotebookEdit" };
@@ -64,19 +66,28 @@ static class ClaudeAgents
                     if ((now - mt).TotalMinutes < 60) live.Add(new KeyValuePair<string, DateTime>(f, mt));
                 }
             }
+        // 파일 시각만 보면 안 된다: Claude 앱이 끝난 지 오래된 대화에도 비용 기록(cost-state) 줄을 덧붙여 파일 시각이 새로 바뀐다(2026-11-03 어제 작업이
+        //  방금 끝난 것처럼 책상에 앉았다). 그래서 마지막 대화 줄의 시각(At)으로 다시 거르고 줄 세운다
+        var infos = new Dictionary<string, Info>();
+        for (int i = live.Count - 1; i >= 0; i--)
+        {
+            Info inf = Read(live[i].Key, live[i].Value);
+            if (inf == null || inf.State == null || (now - inf.At).TotalMinutes >= 60) { live.RemoveAt(i); continue; }
+            infos[live[i].Key] = inf;
+            live[i] = new KeyValuePair<string, DateTime>(live[i].Key, inf.At);
+        }
         live.Sort(delegate (KeyValuePair<string, DateTime> a, KeyValuePair<string, DateTime> b) { return b.Value.CompareTo(a.Value); });
         if (live.Count > Max) live.RemoveRange(Max, live.Count - Max);
 
         var keep = new HashSet<string>();
         foreach (var kv in live) keep.Add(kv.Key);
         foreach (var k in new List<string>(seats.Keys)) if (!keep.Contains(k)) seats.Remove(k);
-        foreach (var k in new List<string>(cache.Keys)) if (!keep.Contains(k)) cache.Remove(k);
+        foreach (var k in new List<string>(cache.Keys)) if (!infos.ContainsKey(k)) cache.Remove(k);
 
         var parts = new List<string>();
         foreach (var kv in live)
         {
-            Info inf = Read(kv.Key, kv.Value);
-            if (inf == null || inf.State == null) continue;
+            Info inf = infos[kv.Key];
             Seat s = SeatFor(kv.Key);
             double age = (now - kv.Value).TotalSeconds;
             string st = inf.State;
@@ -134,6 +145,10 @@ static class ClaudeAgents
             var k = KindRx.Match(ln);
             if (!k.Success) continue;
             string kind = k.Groups[1].Value;
+            var ts = TsRx.Match(ln);
+            DateTime at;
+            if (ts.Success && DateTime.TryParse(ts.Groups[1].Value, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out at)) inf.At = at;
+            else inf.At = mt;
             if (kind == "system")
             {
                 var sm = SubRx.Match(ln);
