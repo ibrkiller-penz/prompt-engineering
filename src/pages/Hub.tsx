@@ -151,7 +151,7 @@ export default function Hub() {
   }, []);
   return (
     <div className="min-h-screen">
-      <main className="mx-auto max-w-4xl px-4 py-12 sm:py-20">
+      <main className="mx-auto w-full max-w-4xl px-4 py-12 sm:py-20 lg:max-w-none lg:px-10 xl:px-14">
         <div className="flex items-center gap-4 sm:gap-6">
           <img
             src="/icon-512.png"
@@ -193,7 +193,7 @@ export default function Hub() {
           </Link>
         ))}
 
-        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {SECTIONS.filter((s) => !s.featured).map((s) => {
             const cls =
               "group block h-full rounded-card border border-line bg-surface p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg";
