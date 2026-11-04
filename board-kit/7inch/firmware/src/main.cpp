@@ -1262,6 +1262,7 @@ static float s_wxNow = NAN;
 static int s_wxNowCode = -1;
 static WxDay s_wx[2];
 static bool s_wxOk = false;
+static char s_wxDate[12] = "";   // 받은 날씨의 '오늘' 날짜. 오늘이 아니면 보이지 않는다(다시 켤 때 다른 날 저장본이 '비 100%'로 보였다 2026-11-04)
 
 // WMO 날씨 코드 → 그림 종류(0 해 1 해+구름 2 구름 3 비 4 눈 5 천둥 6 안개)
 static int wxKind(int c) {
@@ -1276,7 +1277,7 @@ static int wxKind(int c) {
 }
 static const char *wxName(int c) {
   if (c == 0) return "맑음";
-  if (c == 1) return "대체로 맑음";
+  if (c == 1) return "맑은 편";   // "대체로 맑음" 은 날씨 칸에서 "비 10%" 가 잘렸다(2026-11-04)
   if (c == 2) return "구름 조금";
   if (c == 3) return "흐림";
   if (c == 45 || c == 48) return "안개";
@@ -1303,6 +1304,7 @@ static bool parseWeather(const String &body) {
     s_wx[i].tmin = d["daily"]["temperature_2m_min"][i] | NAN;
     s_wx[i].pop = d["daily"]["precipitation_probability_max"][i] | -1;
   }
+  snprintf(s_wxDate, sizeof s_wxDate, "%s", (const char *)(d["daily"]["time"][0] | ""));
   s_wxOk = s_wx[0].code >= 0;
   return s_wxOk;
 }
@@ -1340,7 +1342,7 @@ static void renderWeather() {
     const WxDay &w = s_wx[i];
     const char *day = i == 0 ? "오늘" : "내일";
     // 같은 글·같은 그림이면 다시 쓰지 않는다(1시간마다 날씨 카드 전체를 다시 그리지 않게)
-    if (!s_wxOk) {
+    if (!s_wxOk || todayIso() != s_wxDate) {   // 시각을 아직 모르거나 다른 날 날씨면 '받는 중'
       showIf(k.img, false);
       setTextIf(k.desc, day);
       setTextIf(k.temp, "--");
@@ -2450,7 +2452,7 @@ static void deckPoll(uint32_t ms) {
           const bool first = !timeValid();
           struct timeval tv = {(time_t)t, 0}; settimeofday(&tv, nullptr);
           setenv("TZ", "KST-9", 1); tzset();
-          if (first) { lock(); refreshWifiLabel(); unlock(); Serial.println("sync: time from pc"); }
+          if (first) { lock(); refreshWifiLabel(); renderWeather(); unlock(); Serial.println("sync: time from pc"); }   // 날씨는 날짜를 알아야 보인다
         }
       }
       else if (!strncmp(buf, "@use ", 5)) useLine(buf + 5);   // 탭덱이 알려 주는 Claude 사용량
@@ -4656,7 +4658,7 @@ static void pcSyncTick(uint32_t ms) {
     const uint32_t wait = s_pcMissN ? min(syncWaitMs(), (uint32_t)(RETRY_MIN[s_pcMissN - 1] * 60000UL)) : syncWaitMs();
     const bool want = s_syncReq || !s_triedOnce || ms - s_lastSync > wait;
     if (!want || !s_usbOn || !timeValid() || s_deckUp || ms < 5000) return;
-    if (!s_syncReq && s_triedOnce && inClassNow()) return;   // 수업 중에는 쉬는 시간까지 미룬다
+    if (!s_syncReq && s_triedOnce && !s_pcMissN && inClassNow()) return;   // 수업 중에는 쉬는 시간까지 미룬다. 못 받은 것이 있으면 수업 중에도 곧 다시(켜자마자 끊겨 날씨가 '받는 중'으로 남았다 2026-11-04)
     s_syncReq = false;
     s_pcN = 0;
     static const char *ALL[PC_MAX] = {"idx", "tt", "whr", "wx", "meal", "air", "sch"};
