@@ -3756,11 +3756,11 @@ static void buildOffice(lv_obj_t *scr, int top) {
     lv_obj_align(s_offToast, LV_ALIGN_TOP_MID, 0, 12);
     lv_obj_add_flag(s_offToast, LV_OBJ_FLAG_HIDDEN);
   }
-  s_offEmpty = label(s_viewOff, FM(), D_TEXT, "Claude 작업을 기다리는 중이에요\n컴퓨터의 탭덱이 작업을 알려 주면 직원이 자리에 앉아요");
-  lv_obj_set_style_text_align(s_offEmpty, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_style_bg_color(s_offEmpty, lv_color_hex(0x14181F), 0); lv_obj_set_style_bg_opa(s_offEmpty, LV_OPA_80, 0);
-  lv_obj_set_style_radius(s_offEmpty, 10, 0); lv_obj_set_style_pad_all(s_offEmpty, 14, 0);
-  lv_obj_align(s_offEmpty, LV_ALIGN_CENTER, -60, 0);
+  // 작업이 하나도 없을 때: 가운데 큰 상자 대신 사무실 그림 아래쪽에 작은 한 줄(사용자 지시 2026-11-04 — '기다리는 중'은 고장처럼 보였다)
+  s_offEmpty = label(s_viewOff, FM(), 0xC8D0DC, "모두 퇴근했어요 · Claude에게 일을 맡기면 출근해요");
+  lv_obj_set_style_bg_color(s_offEmpty, lv_color_hex(0x14181F), 0); lv_obj_set_style_bg_opa(s_offEmpty, LV_OPA_50, 0);
+  lv_obj_set_style_radius(s_offEmpty, 8, 0); lv_obj_set_style_pad_hor(s_offEmpty, 10, 0); lv_obj_set_style_pad_ver(s_offEmpty, 4, 0);
+  lv_obj_align_to(s_offEmpty, sc, LV_ALIGN_BOTTOM_MID, 0, -6);
   lv_timer_create(offTimer, 450, nullptr);
 }
 
