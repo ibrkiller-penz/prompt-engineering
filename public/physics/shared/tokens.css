@@ -63,6 +63,11 @@
   --color-copper-text:    #7A4612; /* 구리색 글자 (6.8:1) */
   --color-copper-tint:    #F1E4D3; /* 안내 칩·'다시 시작' 꼬리표 바탕 */
 
+  /* R9: '중학교에서 배운 것'(복습 장) 표시색 — 청록·구리와 다른 남보라 */
+  --color-review:         #5B5F97;
+  --color-review-text:    #484C82;
+  --color-review-tint:    #E7E8F3;
+
   /* ---------- 3. 물리량 공통 색 (모든 시뮬레이터에서 같은 뜻) ----------- */
   --color-q-velocity:      var(--color-primary); /* 속도 화살표 */
   --color-q-force:         var(--color-copper);  /* 힘·가속도 화살표 */
@@ -70,6 +75,8 @@
   --color-q-energy-p:      #B07A00; /* 위치 에너지 (면·선 전용) */
   --color-q-energy-p-text: #8A5A00; /* 위치 에너지 글자 */
   --color-q-energy-heat:   #A8432A; /* 열·손실 */
+  --color-q-energy-spring: #4B5FB5; /* R8(D1) 용수철에 저장된 탄성 E_p — 열(#A8432A 적갈) 과 색약에서도 구분(청보라), 점선 테두리와 함께 */
+  --fs-canvas-min: 18px; /* R8(A12) 캔버스 글자 하한 — SK.fs 헬퍼가 읽음. ≥1600 은 아래 미디어쿼리 26px */
   --color-q-ghost:         rgb(28 26 23 / 0.35); /* 직전 실행 흐림 */
 
   /* ---------- 4. 기록 5회 = 색 + 선 모양 ------------------------------- */
@@ -148,10 +155,10 @@
   --fs-h2:      calc(40 * var(--u));
   --fs-h3:      calc(32 * var(--u)); /* (32/21) 카드 제목·질문 판 */
   --fs-body-lg: calc(30 * var(--u));
-  --fs-body:    calc(28 * var(--u)); /* (28/19) 본문·버튼 — 본문 최소 */
+  --fs-body:    max(18px, calc(28 * var(--u))); /* (28/19) 본문·버튼 — 본문 최소 */
   --fs-control: max(14px, calc(26 * var(--u))); /* (26/17) 변수 이름·탭 (R6 하한 14px — 1024 에서 13.9px) */
-  --fs-meta:    max(13px, calc(24 * var(--u))); /* (24/16) 상태 줄·라벨·표 (R6 하한 13px — 1024 에서 12.8px, 1280 이상은 변화 없음) */
-  --fs-caption: max(13px, calc(24 * var(--u))); /* (24/16) 꼬리표·눈금·축 글자 최소값 (R2 20→22, R6 22→24 · 하한 13px). 캔버스 글자는 22u 이상 */
+  --fs-meta:    max(16px, calc(24 * var(--u))); /* (24/16) 상태 줄·라벨·표 (R6 하한 13px — 1024 에서 12.8px, 1280 이상은 변화 없음) */
+  --fs-caption: max(16px, calc(24 * var(--u))); /* (24/16) 꼬리표·눈금·축 글자 최소값 (R2 20→22, R6 22→24 · 하한 13px). 캔버스 글자는 22u 이상 */
   --fs-task:    calc(28 * var(--u)); /* (28/19) R2 '지금 할 일' 문장 (굵게) */
 
   /* R2: 손가락으로 누르는 최소 크기 (1280 에서 44px) — ± 버튼·✕·접기·칩 토글·허브 버튼 */
@@ -269,3 +276,5 @@
 [data-sim="collision-momentum"]  { --sim: var(--color-sim-collision);  --sim-tint: var(--color-sim-collision-tint);  --sim-text: var(--color-sim-collision-text); }
 [data-sim="orbit-gravity"]       { --sim: var(--color-sim-orbit);      --sim-tint: var(--color-sim-orbit-tint);      --sim-text: var(--color-sim-orbit-text); }
 [data-sim="convex-lens"]         { --sim: var(--color-sim-lens);       --sim-tint: var(--color-sim-lens-tint);       --sim-text: var(--color-sim-lens-text); }
+
+@media (min-width: 1600px) { :root { --fs-canvas-min: 26px; } }

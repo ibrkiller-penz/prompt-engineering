@@ -125,3 +125,97 @@ html.is-simple .simple-meter[data-key="look"] .simple-meter__value.is-text { fon
 
 /* R6: 심플 측정 칸 이름에는 용어 풀이 괄호를 붙이지 않는다(공통 틀 rich 의 첫 등장 풀이) */
 html.is-simple .simple-meter__label .term-inline { display: none; }
+
+/* ── R7(C5): 자세히 패널 '빛의 길 보기' = 칩 ①②③ 한 줄 (선 견본 + 이름, 켜짐 = 채움 + ✓ · 꺼짐 = 윤곽선) ── */
+.sim-panel .lens-rays .check {
+  grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "pill name state";
+  min-height: calc(56 * var(--u)); padding: calc(4 * var(--u)) var(--space-1); gap: calc(6 * var(--u));
+}
+.sim-panel .lens-ray-icon { width: calc(30 * var(--u)); height: calc(12 * var(--u)); }
+.sim-panel .lens-ray-pill { padding: calc(2 * var(--u)) calc(4 * var(--u)); }
+.sim-panel .lens-rays .check__text { overflow: hidden; text-overflow: clip; }
+.sim-panel .lens-rays .check__state { font-size: 0; }
+.sim-panel .lens-rays .check[aria-pressed="true"] .check__state::before { width: var(--fs-caption); height: var(--fs-caption); }
+/* R7(C5): '빛의 길' 이름 + 칩 ①②③ 한 줄 · 가림판 칩 + 스크린 한 줄 · 수치 안내 줄은 말풍선으로 */
+.sim-panel .lens-raysctl { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--space-2); }
+.sim-panel .lens-raysctl > .ctl__label { margin: 0; }
+.sim-panel .lens-raysctl > .ctl__label .apply-ico { display: none; }
+.sim-panel .lens-rays .check { grid-template-columns: auto auto auto; justify-content: center; }
+.sim-panel .lens-rays .check__text { font-size: var(--fs-control); }
+.lens-sitrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-2); }
+.lens-sitrow > .ctl { min-width: 0; }
+.sim-panel .lens-sitrow > .ctl[data-key="blocker"] { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--space-2); }
+.sim-panel .lens-sitrow > .ctl[data-key="blocker"] > .ctl__label { margin: 0; }
+.sim-panel .lens-sitrow > .ctl[data-key="blocker"] > .ctl__label .apply-ico { display: none; }
+.sim-panel .lens-sitrow .seg__opt { padding-inline: calc(6 * var(--u)); white-space: nowrap; }
+.sim-panel .lens-sitrow .check { min-height: calc(56 * var(--u)); padding-inline: var(--space-2); gap: var(--space-1); }
+.sim-panel .lens-sitrow .check__state { display: none; }
+.sim-panel .var > .var__hint:not(.lens-hint) { display: none; }
+@media (orientation: portrait) and (min-width: 601px) {
+  /* 세로: 패널 두 칸(수치 | 상황)이 스크롤 없이 — 무대가 그만큼 짧아짐(788 × 약 560u, 그림 전부 보임) */
+  [data-sim="convex-lens"] .sim { --panel-h7: calc(540 * var(--u)); }
+}
+/* R7(C6): ⚙ 설정 안 '기호 보기' 줄 (예전 그림 위 범례 칩) */
+.lens-legend--set {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2);
+  margin-top: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  background: var(--color-paper-raised); box-shadow: inset 0 0 0 1px var(--color-line);
+  white-space: normal; pointer-events: auto; font-weight: var(--font-weight-medium);
+}
+.lens-legend--set > b { font-weight: var(--font-weight-medium); color: var(--color-ink); }
+
+/* R7-3(C6b): 설명 7장 표 — 행 전체 = [해 보기] (첫 칸 단추 + 행 누름), 고른 행 강조 */
+.lesson__table tr.cl-row { cursor: pointer; }
+.lesson__table tr.cl-row:hover > * { background: var(--sim-tint); }
+.lesson__table tr.cl-row.is-sel > * { background: var(--sim-tint); box-shadow: inset 0 -2px 0 var(--sim); }
+.cl-rowtry {
+  display: inline-flex; align-items: center; gap: calc(4 * var(--u)); padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; color: var(--sim-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em; white-space: nowrap;
+}
+.cl-rowtry .ico { width: 0.9em; height: 0.9em; }
+.cl-rowtry:focus-visible { outline: var(--space-focus-ring) solid var(--color-focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+/* R7 학생점검(A8): 수치 칸·그림 라벨 글자 하한 18px */
+.lens-kind__label, .lens-kind__sub, .lens-figcap { font-size: max(18px, calc(24 * var(--u))); }
+.lens-kind__main { font-size: max(18px, calc(27 * var(--u))); }
+.lens-cases { font-size: max(18px, calc(24 * var(--u))); }
+
+/* ── R8 (UI팀3) ── */
+/* F7: 가림판 칩 글자 한 줄(없음·위·구멍) — 1024 에서 잘리지 않게 */
+.lens-sitrow .seg__opt { white-space: nowrap; min-width: calc(64 * var(--u)); }
+@media (max-width: 1100px) {
+  .sim-panel .lens-sitrow { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+  .sim-panel .lens-sitrow > .ctl[data-key="screen"] { justify-self: start; }
+}
+/* 학생C(1024): 하단 '상의 모습' 칸 — 둘째 줄이 잘리지 않게 높이는 내용만큼 */
+.sim-band .lens-kind { height: auto; min-height: 0; align-content: center; }
+.sim-band .lens-kind__sub { white-space: normal; overflow: visible; }
+/* A11: 잠긴 계기 칸 — 이름 줄은 그대로, 값 자리에 자물쇠 + '실행 뒤' 한 줄(공통 ::before/::after 는 이 띠에서 칸 높이를 넘겨서 값 자리로 옮김) */
+.sim-band .meter.is-locked::before, .sim-band .meter.is-locked[data-reason]::after { content: none; display: none; }
+.sim-band .meter.is-locked .meter__value, .sim-band .meters.has-core .meter.is-core.is-locked .meter__value { display: flex; align-items: center; gap: .3em; font: var(--font-weight-regular) max(16px, var(--fs-caption))/1.2 var(--font-sans) !important; color: var(--color-ink-muted); white-space: nowrap; }
+.sim-band .meter.is-locked .meter__value > * { display: none; }
+.sim-band .meter.is-locked .meter__value::before { content: ""; display: inline-block; flex: none; width: .9em; height: .9em; background: currentColor; -webkit-mask: var(--ico-lock) center/contain no-repeat; mask: var(--ico-lock) center/contain no-repeat; }
+.sim-band .meter.is-locked .meter__value::after { content: "실행 뒤"; }
+@media (max-width: 1100px) {
+  .sim-band .lens-kind { padding-top: 2px; padding-bottom: 2px; row-gap: 0; }
+  .sim-band .lens-kind__main { font-size: 17px !important; line-height: 1.15; white-space: nowrap; }
+  .sim-band .lens-kind__sub { font-size: 16px !important; line-height: 1.15; }
+}
+
+/* ---------- R9 UI팀3 — 단계(초급·중급·고급) 보조 규칙 (html[data-level] · 이 파일만) ---------- */
+/* 고급 전용 계기 '렌즈 공식' — 중급·초급에서는 칸 자리도 차지하지 않는다(중급 = R8 띠 그대로) */
+html:not([data-level="adv"]) .sim-band .meter[data-key="check"] { display: none; }
+.sim-band .meter[data-key="check"] .meter__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sim-band .meter[data-key="check"] .meter__value, .sim-band .meter[data-key="check"] .meter__value .num { white-space: nowrap; font-size: 22px !important; letter-spacing: 0; }/* 카드 ① 보기 'F 자리 · 2F 자리' 풀이 한 줄(predict.info) — 공통은 띠에서 info 를 숨기지만 렌즈는 보기 옆에 한 줄 보인다(R9 U3-2a, 문구만) */
+.pop--band .predict__info { display: -webkit-box; }
+/* 초급은 슬라이더가 없어 레일이 비므로 — 무대·측정 칸이 레일 자리까지 넓어진다(값 s·f 는 그대로, 카드가 정함) */
+html.is-simple .simple-rail { display: none !important; }
+@media (min-aspect-ratio: 17/10) {
+  html.is-simple .sim { --sw: calc(1840 * var(--u)); }
+}
+@media (orientation: landscape) and (max-aspect-ratio: 17/10) {
+  html.is-simple .sim { --rail-h: calc(0px - var(--gap-s)); }
+}
+@media (orientation: portrait) and (min-width: 601px) {
+  html.is-simple .sim { --rail-h: calc(0px - 8 * var(--p)); }
+}

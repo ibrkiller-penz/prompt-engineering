@@ -45,6 +45,8 @@
 .pe-meters .meter[data-key="x"] { flex-grow: 0.82; }
 .pe-meters .meter[data-key="vx"] { flex-grow: 0.98; }
 .pe-meters .meter[data-key="vy"] { flex-grow: 1.6; }
+/* R7(A2): core 3칸(x·vₓ·v_y) + [수치 더 보기 ▸] — 4칸 비율을 core 순서에 맞춤(시간 t 칸은 팝오버로 감) */
+.pe-meters.has-core { grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr) minmax(0, 1.22fr) auto; }   /* R7 학생점검: vy 라벨이 짧아져(B7) 세 칸을 고르게 — 1180 에서 x·vₓ 칸 글자가 옆 칸과 붙던 것 */
 .pe-meters .meter__value { font-size: calc(36 * var(--u)); }
 .pe-meters .meter__unit { font-size: var(--fs-caption); }
 .pe-meters .meter__label sub { font-size: 0.75em; vertical-align: -0.25em; line-height: 0; }
@@ -74,6 +76,37 @@
 .pe-formula__item code { font: var(--font-weight-medium) var(--fs-meta)/1.4 var(--font-num); color: var(--color-ink); white-space: normal; overflow-wrap: anywhere; }
 
 
+/* R7(A2): 자세히 패널의 '어디에서 던질까?' 는 수치 묶음 맨 아래 한 줄 — 이름 줄은 화면에서만 숨김(읽기 도구는 그대로 읽음).
+   선택지(지구·달·화성)와 아래 안내 줄(g 가 작을수록 천천히)이 뜻을 보여 주고, 심플 레일에서는 이름이 보인다 */
+html:not(.is-simple) .sim-panel [data-key="planet"] > .ctl__label {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
 /* R6 심플 모드: 화살표 범례 글자 28u (섬광 줄은 sim.js 가 뺌) */
 html.is-simple .pe-legend { font-size: calc(28 * var(--u)); max-width: min(calc(440 * var(--u)), 100%); }
 html.is-simple .pe-legend__row svg { width: calc(52 * var(--u)); height: calc(20 * var(--u)); }
+
+/* R7-2(팀장): 기호 칩 줄·식 옆 설명·해설 후속 [해 보기] 는 공통(shell.css · base.css .note-try)으로 옮김 */
+
+/* =====================================================================
+   R9 단계 (docs/개선/R9_중학교연계_난이도.md §4-1) — pe- 접두사만
+   ===================================================================== */
+/* 초급 측정 칸 '에너지 막대' — 숫자 없이 길이만(.simple-meter.is-plain 안). 운동 | 위치 | (열) · 전체 칸 = 처음 에너지 */
+.pe-ebar { display: grid; gap: calc(6 * var(--u)); width: 100%; min-width: 0; }
+.pe-ebar__track {
+  display: flex; height: calc(28 * var(--u)); min-height: 10px; overflow: hidden;
+  border-radius: calc(6 * var(--u)); background: var(--color-paper-sunk);
+  border: calc(2 * var(--u)) solid var(--color-ink);
+}
+.pe-ebar__track > i { display: block; height: 100%; flex: none; width: 0; transition: width 80ms linear; }
+.pe-ebar__k { background: var(--color-q-energy-k); }
+.pe-ebar__p { background: var(--color-q-energy-p); }
+.pe-ebar__heat { background: repeating-linear-gradient(45deg, var(--color-q-energy-heat) 0 3px, transparent 3px 8px); }
+.pe-ebar__keys { display: flex; gap: var(--space-4); font: var(--font-weight-regular) max(14px, calc(22 * var(--u)))/1.1 var(--font-sans); color: var(--color-ink-chip); white-space: nowrap; }
+.pe-ebar__key::before { content: ""; display: inline-block; width: 0.7em; height: 0.7em; margin-right: 0.3em; vertical-align: -0.05em; border-radius: 2px; }
+.pe-ebar__key--k::before { background: var(--color-q-energy-k); }
+.pe-ebar__key--p::before { background: var(--color-q-energy-p); }
+@media (prefers-reduced-motion: reduce) { .pe-ebar__track > i { transition: none; } }
+
+/* 고급: 시간 t 칸이 띠로 올라오면 core 3칸 + [수치 더 보기] (4칸 정의 그대로 — t·x·vₓ) */
+.pe-meters.has-core.has-t { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.08fr) auto; }

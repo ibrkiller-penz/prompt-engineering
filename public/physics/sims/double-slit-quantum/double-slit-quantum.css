@@ -50,8 +50,12 @@
 .dsq-skip { width: 100%; }
 
 /* 화면에 표시하기 2 × 2 */
-.dsq-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-.dsq-grid2 .check { padding: 0 var(--space-3); gap: var(--space-2); font-size: var(--fs-meta); }
+.dsq-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }   /* R8(A9): minmax(0,1fr) — 긴 이름이 2열을 밀어내지 않게 */
+.dsq-grid2 .check { padding: 0 var(--space-3); gap: var(--space-2); font-size: var(--fs-meta); min-width: 0; }
+.dsq-grid2 .check__label, .dsq-grid2 .check > span { min-width: 0; overflow-wrap: anywhere; word-break: keep-all; }
+.dsq-grid2 > * { min-width: 0; }
+/* R8(A9): ⚙ 팝업 폭이 360px 보다 좁으면(화면 ≈ 390px 이하) 1열 */
+@media (max-width: 400px) { .dsq-grid2 { grid-template-columns: minmax(0, 1fr); } }
 
 /* 하단 띠 왼쪽: 계기판 1줄 3칸 */
 .dsq-meters {
@@ -104,7 +108,7 @@
 .dsq-val { display: inline-flex; align-items: center; white-space: nowrap; margin-right: var(--space-2); font-size: var(--fs-caption); font-weight: var(--font-weight-semibold); }
 .dsq-val .dsq-dot { width: calc(14 * var(--u)); height: calc(14 * var(--u)); margin-right: calc(5 * var(--u)); }
 .dsq-nowrap { white-space: nowrap; }
-.dsq-muted { color: var(--color-ink-muted); font-family: var(--font-sans); font-size: var(--fs-caption); }
+.dsq-muted { color: var(--color-ink-muted); font-family: var(--font-sans); font-size: max(16px, var(--fs-caption)); }   /* R7 학생점검(디자인B·C): 띠 보조 글 하한 16px */
 .dsq-reveal { min-height: calc(40 * var(--u)); padding: 0 var(--space-3); font-size: var(--fs-caption); }
 
 /* 비교 체크리스트 (기록 큰 판 맨 위) */
@@ -152,11 +156,11 @@
 }
 .dsq-step__name {
   display: flex; align-items: center; gap: calc(6 * var(--u));
-  font: var(--font-weight-bold) max(13px, calc(24 * var(--u)))/1.2 var(--font-sans); color: var(--color-ink-muted);
+  font: var(--font-weight-bold) max(16px, calc(24 * var(--u)))/1.2 var(--font-sans); color: var(--color-ink-muted);   /* R7 학생점검(디자인B·C): 하한 13 → 16px */
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .dsq-step__name .circ { font-size: calc(17 * var(--u)); width: calc(24 * var(--u)); height: calc(24 * var(--u)); }
-.dsq-step__val { font: var(--font-weight-medium) max(13px, calc(22 * var(--u)))/1.2 var(--font-num); font-variant-numeric: tabular-nums; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsq-step__val { font: var(--font-weight-medium) max(16px, calc(22 * var(--u)))/1.2 var(--font-num); font-variant-numeric: tabular-nums; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dsq-step.is-now { border-color: var(--color-sim-slit); background: var(--sim-tint, var(--color-paper-raised)); }
 .dsq-step.is-now .dsq-step__name, .dsq-step.is-now .dsq-step__val { color: var(--color-sim-slit-text, var(--color-ink)); }
 .dsq-step.is-done .dsq-step__name { color: var(--color-ok-text, var(--color-ok)); }
@@ -188,4 +192,130 @@ html.is-simple .simple-rail [data-key="dR"] .var__ticks span:nth-child(2) { disp
 /* R6(팀장): 세로(태블릿)에서는 [그림 보기] 가 오른쪽 위 '확대창' 제목을 가린다 → 무대 왼쪽 위(빈 곳)로 */
 @media (orientation: portrait) and (min-width: 601px) {
   html:not(.is-simple) .sim .predict__peek, html:not(.is-simple) .sim .is-top > .predict__peek { left: var(--space-4); right: auto; }   /* 무대 왼쪽 위(레이저 위 빈 곳) */
+  /* R7 학생점검(UI팀2·팀장): 심플 세로에서 '✓ 실험이 끝났어요' 토스트가 '확대 보기' 제목을 덮던 것 — 상태 칩 아래 왼쪽(레이저 위 빈 곳)으로 */
+  html.is-simple .sim-stage > .notice-zone:not(.is-low) { left: var(--space-4); transform: none; top: calc(56 * var(--u)); max-width: calc(60% - var(--space-4)); }
 }
+
+/* ── R7 1차 (UI팀2 B4·B5) — 패널 = 수치 3개 + 상황 1줄, 띠 = 핵심 2칸 ── */
+/* 단위 칩(nm = 10⁻⁹ m · 드브로이 파장 · 그림은 줄임)은 띠 값 칩·실험 화면 치수선·설명 2·4·6장과 같은 말이라 자세히 패널에서는 숨김
+   (⚙ 안의 d·L '칸' 칩과 심플 레일은 그대로) */
+html:not(.is-simple) .sim-panel .var__hint.dsq-unitchip { display: none; }
+/* 보낼 것 설명 한 줄(구슬·전자·광자)도 패널에서는 숨김 — 실험 화면 '모형 단위' 라벨·결과 해설 카드가 같은 말 */
+html:not(.is-simple) .sim-panel .dsq-sendnote { display: none; }
+/* 빠르기 3단 + '1만 개 한꺼번에' 한 줄 4칸 */
+.dsq-speed { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dsq-speed .dsq-skip { width: auto; }
+/* 측정기 스위치: 패널에서는 보통 높이 */
+html:not(.is-simple) .sim-panel .dsq-bigswitch .check { min-height: calc(64 * var(--u)); }
+/* 띠 왼쪽(빛): '무늬 간격 Δy 재기' 머리 + ①②③ */
+.dsq-steps__t {
+  flex: 0 0 auto; align-self: center; margin: 0; max-width: calc(150 * var(--u));
+  font: var(--font-weight-medium) max(16px, calc(22 * var(--u)))/1.25 var(--font-sans); color: var(--sim-text, var(--color-ink));   /* R7 학생점검(디자인B·C): 하한 16px */
+  word-break: keep-all;
+}
+/* 띠 왼쪽(하나씩): 핵심 2칸 */
+.dsq-meters.dsq-meters--core { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+/* 측정기 풀이 글은 패널에서 숨김(스위치 title·결과 해설·설명 7장에 같은 말) · 빠르기 단추 부제(1초에 ○개)는 title·알림으로 */
+html:not(.is-simple) .sim-panel .dsq-detnote { display: none; }
+html:not(.is-simple) .sim-panel .dsq-speed .btn__sub { display: none; }
+html:not(.is-simple) .sim-panel .dsq-speed .btn { min-height: calc(64 * var(--u)); }
+/* '1만 개 한꺼번에' 는 빠르기 단계가 아니라 동작 — 눌린 모양(채움)과 헷갈리지 않게 단원색 테두리 + 앞 칸과 간격 */
+.dsq-speed .dsq-skip { margin-left: var(--space-2); border-color: var(--sim); color: var(--sim-text, var(--color-ink)); }
+
+/* R7-3(B2): --band-top 삭제 — 예측 띠는 무대 흐름 안 첫 자식(공통 S3) */
+
+/* R7-2(B3): 빛 갈래 식 칸 — 윗줄 '이론 Δy | 🔒 기록 뒤 보여요(또는 값)', 아랫줄 값 칩 3개를 칸 전체 폭에 한 줄로
+   (1280·820 에서 칩이 오른쪽 칸 안에서 두 줄로 접혀 세 줄이 되며 아래가 잘리던 것) */
+.dsq-eq.dsq-eq--wide .dsq-eq__f { grid-row: 1; }
+.dsq-eq.dsq-eq--wide .dsq-eq__l1 { grid-column: 1 / -1; grid-row: 2; flex-wrap: nowrap; }
+.dsq-eq.dsq-eq--wide .dsq-eq__l1 .dsq-val { margin-right: 0; margin-left: var(--space-2); }
+/* R7 학생점검(C3): 잠금 줄 '🔒 이론 Δy · 기록 뒤 보여요' — 두 덩이는 각각 한 줄(820 폭에서 낱말 중간이 끊기지 않게), 넘치면 덩이 단위로만 접힘 */
+.dsq-lockline { flex-wrap: wrap; justify-content: flex-end; column-gap: calc(6 * var(--u)); row-gap: 0; }
+.dsq-lockline__what, .dsq-lockline__when { white-space: nowrap; }
+/* R7 학생점검(C3): 전자 식 칸 — 윗줄 잠금 줄(칸 전체 폭) · 아랫줄 '전압으로 정해지는 파장 λ = h/p' + 값(입력값이라 늘 보임) */
+.dsq-eq.dsq-eq--e { grid-template-columns: auto minmax(0, 1fr); row-gap: 0; padding-top: calc(2 * var(--u)); padding-bottom: calc(2 * var(--u)); }
+.dsq-eq.dsq-eq--e .dsq-eq__l2 { grid-column: 1 / -1; grid-row: 1; justify-content: flex-start; text-align: left; }
+.dsq-eq.dsq-eq--e .dsq-lockline { justify-content: flex-start; text-align: left; }
+.dsq-eq.dsq-eq--e .dsq-eq__f { grid-column: 1; grid-row: 2; }
+.dsq-eq.dsq-eq--e .dsq-eq__f > b { font-size: max(16px, calc(22 * var(--u))); }
+.dsq-eq.dsq-eq--e .dsq-eq__f .frac { font-size: 0.8em; }
+.dsq-eq.dsq-eq--e .dsq-eq__l2 { line-height: 1.15; }
+.dsq-eq.dsq-eq--e .dsq-eq__l1 { grid-column: 2; grid-row: 2; justify-content: flex-start; flex-wrap: nowrap; }
+.dsq-eq.dsq-eq--e .dsq-pmnote { display: none; }
+
+/* ── R8 (UI팀2) ── */
+/* C1: 키보드 측정 — 확대창 위 투명 칸(포커스 링만) · 캔버스 밖 측정 단추(− n + · 지우기 · 측정 방법 ?) */
+.dsq-zoomkey { z-index: 2; border-radius: calc(8 * var(--u)); pointer-events: none; outline: none; }
+.dsq-zoomkey:focus-visible { box-shadow: 0 0 0 3px var(--color-focus, var(--color-primary)), 0 0 0 6px var(--color-paper); }
+.dsq-zoomkey[hidden], .dsq-mbtn[hidden], .dsq-mnum[hidden] { display: none !important; }
+.dsq-mbtn {
+  z-index: 3; box-sizing: border-box; min-width: 44px; min-height: 44px; margin: 0; padding: 0 calc(10 * var(--u));
+  display: inline-flex; align-items: center; justify-content: center; gap: calc(6 * var(--u));
+  font-weight: var(--font-weight-medium); line-height: 1; white-space: nowrap; word-break: keep-all;
+}
+.dsq-mbtn--pm { padding: 0; font-size: 1.25em; }
+.dsq-mbtn--pm span { font-size: 1.3em; line-height: 1; }
+.dsq-mbtn--how { border-radius: 999px; background: var(--color-paper-raised); }
+.dsq-mbtn--how[aria-pressed="true"] { background: var(--color-sim-slit-tint, var(--sim-tint)); }
+.dsq-mbtn--how .ico { width: 1.1em; height: 1.1em; flex: none; }
+.dsq-mbtn--how.is-round { padding: 0; }
+.dsq-mbtn--how.is-round .dsq-mbtn__t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.dsq-mbtn:disabled { opacity: .45; }
+.dsq-mnum {
+  z-index: 3; box-sizing: border-box; min-height: 44px; margin: 0; padding: 0 2px; text-align: center;
+  border-radius: var(--radius-md); border: 2px solid var(--color-line-strong); background: var(--color-paper);
+  color: var(--color-ink); font-family: var(--font-num); font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield;
+}
+.dsq-mnum::-webkit-outer-spin-button, .dsq-mnum::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* C1·C5: 띠 단계 칸 = 단추 — 이름 2줄 허용(말줄임 없음) · 지금 단계는 색 면 · 글자 한 단계 키움 */
+button.dsq-step { font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.dsq-step:hover { border-color: var(--color-sim-slit); }
+.dsq-step { padding: calc(2 * var(--u)) var(--space-2); gap: calc(2 * var(--u)); }
+.dsq-step__name { white-space: normal; overflow: visible; text-overflow: clip; align-items: flex-start; font-size: max(17px, calc(23 * var(--u))); line-height: 1.12; word-break: keep-all; }
+.dsq-step__name .circ { flex: none; margin-top: calc(1 * var(--u)); }
+.dsq-step__val { font-size: max(17px, calc(22 * var(--u))); line-height: 1.1; overflow: visible; text-overflow: clip; }
+/* 칸 폭을 이름에: 화살표는 번호 원이 순서를 말해 줘서 뺌 · 좁은 화면은 머리 '무늬 간격 Δy 재기' 도 뺌(ƒ 식 단추·안내줄이 같은 말) */
+.dsq-steps .dsq-step__arrow { display: none; }
+@media (max-width: 1400px) { .dsq-steps__t { display: none; } }
+.dsq-step.is-now { background: var(--color-sim-slit); border-color: var(--color-sim-slit); }
+.dsq-step.is-now .dsq-step__name, .dsq-step.is-now .dsq-step__val { color: var(--color-ink-inverse, var(--color-paper)); }
+.dsq-step.is-now .dsq-step__name .circ { border-color: currentColor; color: inherit; }
+/* C4: 전자 — 윗줄 잠금 상자(이론 Δy · 기록 뒤 보여요) · 아랫줄 '입력: 전압 → λ' 는 점선 아래 별도 칸 */
+.dsq-eq.dsq-eq--e .dsq-eq__l2 { padding-bottom: calc(4 * var(--u)); border-bottom: 1px dashed var(--color-line-strong); }
+.dsq-eq.dsq-eq--e .dsq-eq__f, .dsq-eq.dsq-eq--e .dsq-eq__l1 { padding-top: calc(4 * var(--u)); }
+.dsq-eq.dsq-eq--e .dsq-eq__f > b { color: var(--color-ink); font-weight: var(--font-weight-medium); }
+/* C2: 이론 곡선 보조 문구 */
+.dsq-theorynote { grid-column: 1 / -1; margin: 0; font-size: var(--fs-caption); color: var(--color-ink-muted); }
+/* C7·A11: 심플 dy 잠금 */
+html.is-simple .simple-meter[data-key="dy"].is-locked .simple-meter__value { color: var(--color-ink-muted); }
+/* C5: ③ '사이 간격 수 n' 이 가장 길어 칸을 조금 넓게(세 줄로 넘치지 않게) */
+.dsq-steps > .dsq-step:last-child { flex-grow: 1.3; }
+
+/* 팀장 R8 결과(디자인A): 1024 설정·패널 파장 눈금 '보라 400 초록 550빨강 700' 이 붙어 읽힘 → 좁은 폭은 눈금 글자를 줄이고 끝 눈금을 안쪽으로 */
+@media (max-width: 1100px) {
+  .dsq-rainbow .var__ticks { font-size: max(11px, calc(18 * var(--u))); letter-spacing: -0.02em; }
+  .dsq-rainbow .var__ticks span.is-start { margin-left: calc(-20 * var(--u)); }
+  .dsq-rainbow .var__ticks span.is-end { margin-left: calc(20 * var(--u)); }
+}
+
+/* ===== R9(UI팀2, §4-2): 단계 보조 규칙 — 공통 클래스(.level-chip 등)는 디자인팀, 여기는 이 sim 것만 ===== */
+/* 초급: 변수 이름을 쉬운 말로(빛의 색 · 두 틈 사이), 기호·보조 글 숨김, nm·mm 는 작은 글씨 */
+.dsq-lab-basic { display: none; }
+html[data-level="basic"] .var .dsq-lab-mid { display: none; }
+html[data-level="basic"] .var .dsq-lab-basic { display: inline; }
+html[data-level="basic"] .simple-rail [data-key="lam"] .var__unit,
+html[data-level="basic"] .simple-rail [data-key="d"] .var__unit { font-size: max(14px, calc(22 * var(--u))); color: var(--color-ink-muted); }
+/* 초급 말 계기 '밝은 줄 사이' — 숫자 없이 말 한 줄(실행 전·예측 중은 흐린 '실행 뒤 보여요') */
+.dsq-band { display: block; font: var(--font-weight-medium) max(18px, calc(32 * var(--u)))/1.2 var(--font-sans); color: var(--color-sim-slit-text, var(--color-ink)); word-break: keep-all; }
+.dsq-band.is-wait { font-weight: var(--font-weight-regular); font-size: max(16px, calc(26 * var(--u))); color: var(--color-ink-muted); }
+/* 초급 실험 고르기 맨 아래 '다른 갈래 보기' 접힘 */
+.dsq-otherbranch { margin-top: var(--space-3); border-top: 1px solid var(--color-line); padding-top: var(--space-2); }
+.dsq-otherbranch[hidden] { display: none; }
+.dsq-otherbranch__sum { cursor: pointer; font-size: var(--fs-meta); color: var(--color-ink-muted); list-style: none; }
+.dsq-otherbranch__sum::-webkit-details-marker { display: none; }
+.dsq-otherbranch__sum::after { content: " ▸"; }
+.dsq-otherbranch[open] > .dsq-otherbranch__sum::after { content: " ▾"; }
+.dsq-otherbranch__note { margin: var(--space-2) 0; font-size: var(--fs-caption); color: var(--color-ink-muted); }
+/* 고급: 이론 · 측정 · 오차 한 줄 — 오차 % 강조 */
+.dsq-eq .dsq-err { color: var(--color-sim-slit-text, var(--color-ink)); }

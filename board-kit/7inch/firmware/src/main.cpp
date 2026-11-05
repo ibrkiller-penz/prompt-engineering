@@ -1256,12 +1256,16 @@ static const char *WX_URL =
     "https://api.open-meteo.com/v1/forecast?latitude=" WEATHER_LAT "&longitude=" WEATHER_LON
     "&current=temperature_2m,weather_code"
     "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+    "&hourly=precipitation_probability,precipitation"
     "&timezone=Asia%2FSeoul&forecast_days=2";
 struct WxDay { int code = -1; float tmax = NAN, tmin = NAN; int pop = -1; };
 static float s_wxNow = NAN;
 static int s_wxNowCode = -1;
 static WxDay s_wx[2];
 static bool s_wxOk = false;
+// 시간별 비(오늘 0~23시, 내일 24~47). 비 = 1mm 의 1/10 이상 오거나 확률 60% 이상(기상청 앱의 '15시쯤 그침'과 비슷하게, 사용자 지시 2026-11-05)
+static bool s_wxWet[48];
+static bool s_wxHourly = false;
 static char s_wxDate[12] = "";   // 받은 날씨의 '오늘' 날짜. 오늘이 아니면 보이지 않는다(다시 켤 때 다른 날 저장본이 '비 100%'로 보였다 2026-11-04)
 
 // WMO 날씨 코드 → 그림 종류(0 해 1 해+구름 2 구름 3 비 4 눈 5 천둥 6 안개)
@@ -1304,6 +1308,12 @@ static bool parseWeather(const String &body) {
     s_wx[i].tmin = d["daily"]["temperature_2m_min"][i] | NAN;
     s_wx[i].pop = d["daily"]["precipitation_probability_max"][i] | -1;
   }
+  s_wxHourly = d["hourly"]["precipitation"].size() >= 48;
+  for (int h = 0; h < 48; h++) {
+    const float mm = d["hourly"]["precipitation"][h] | 0.0f;
+    const int pr = d["hourly"]["precipitation_probability"][h] | 0;
+    s_wxWet[h] = mm >= 0.1f || pr >= 60;
+  }
   snprintf(s_wxDate, sizeof s_wxDate, "%s", (const char *)(d["daily"]["time"][0] | ""));
   s_wxOk = s_wx[0].code >= 0;
   return s_wxOk;
@@ -1336,6 +1346,30 @@ static void loadWeatherFromFile() {
   f.close();
   parseWeather(body);
 }
+// 비 안내 한 줄(비 % 대신): 오늘은 '15시쯤 그침'·'15시쯤 비 시작'·'밤까지 비'·'비 그침', 내일은 '9~15시 비'·'종일 비'.
+// 알 수 없으면(시간별 자료 없음·비 없음) 빈 글 → 예전처럼 '비 %'
+static void rainNote(int day, int code, char *b, size_t n) {
+  b[0] = 0;
+  if (!s_wxHourly) return;
+  const char *w = wxKind(code) == 4 ? "눈" : "비";
+  if (day == 0) {
+    time_t t = time(nullptr); struct tm tm; localtime_r(&t, &tm);
+    const int now = tm.tm_hour;
+    if (s_wxWet[now]) {
+      for (int h = now + 1; h < 24; h++) if (!s_wxWet[h]) { snprintf(b, n, "%d시쯤 그침", h); return; }
+      snprintf(b, n, "밤까지 %s", w);
+      return;
+    }
+    for (int h = now + 1; h <= 22; h++) if (s_wxWet[h]) { snprintf(b, n, "%d시쯤 %s 시작", h, w); return; }
+    for (int h = 6; h < now; h++) if (s_wxWet[h]) { snprintf(b, n, "%s 그침", w); return; }
+    return;
+  }
+  int f = -1, l = -1, c = 0;
+  for (int h = 6; h <= 21; h++) if (s_wxWet[24 + h]) { if (f < 0) f = h; l = h; c++; }
+  if (f < 0) return;
+  if (c >= 12) snprintf(b, n, "종일 %s", w);
+  else snprintf(b, n, "%d~%d시 %s", f, l + 1, w);
+}
 static void renderWeather() {
   for (int i = 0; i < 2; i++) {
     WxCard &k = s_card[i];
@@ -1358,7 +1392,10 @@ static void renderWeather() {
     else setTextFmtIf(k.desc, "%s  %d°/%d°", day, (int)lroundf(w.tmax), (int)lroundf(w.tmin));
     if (isnan(big)) setTextIf(k.temp, "--");
     else setTextFmtIf(k.temp, "%d°", (int)lroundf(big));
-    if (w.pop < 0) setTextIf(k.hilo, wxName(code));
+    char rn[32];
+    rainNote(i, code, rn, sizeof rn);
+    if (rn[0]) setTextFmtIf(k.hilo, "%s · #60a5fa %s#", wxName(code), rn);
+    else if (w.pop < 0) setTextIf(k.hilo, wxName(code));
     else setTextFmtIf(k.hilo, "%s · #%s 비 %d%%#", wxName(code), w.pop >= 40 ? "60a5fa" : D_MUTED_S, w.pop);
   }
 }
@@ -5082,6 +5119,8 @@ void loop() {
           showIf(s_bigAmPm, *ampm);                      // "오후"는 숫자 왼쪽 아래(자리는 placeClock)
           if ((bigChg && s_nixOn) || (*ampm && (bigChg || apChg || apNew))) placeClock();
           setTextFmtIf(s_bigDate, "%d월 %d일 %s요일", tm.tm_mon + 1, tm.tm_mday, W[tm.tm_wday]);
+          static int wxHour = -1;                        // 정시마다 비 안내('15시쯤 그침')를 지금 시각으로 다시
+          if (tm.tm_hour != wxHour) { wxHour = tm.tm_hour; renderWeather(); }
           if (s_renderPending) {                         // 화면 불이 꺼진 동안 받은 자료
             s_renderPending = false;
             renderWeather(); renderAir();

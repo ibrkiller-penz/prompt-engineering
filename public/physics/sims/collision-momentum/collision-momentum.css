@@ -138,3 +138,97 @@ html.is-simple .simple-meter[data-key="verdict"] .simple-meter__value { white-sp
 }
 html.is-simple .simple-meter[data-key="verdict"] .simple-meter__label { display: none; }   /* 두 줄 판정이 칸 안에 들어가게 '판정' 이름은 숨김 */
 html.is-simple .simple-meter[data-key="verdict"] { background: var(--sim-tint); border-color: var(--sim); }
+
+/* ── R7 1차 (UI팀2 B4) — 띠 = 핵심 3칸(운동량 합 · 운동 에너지 합 · 판정) + [수치 더 보기 ▸](두 수레 속도) ── */
+.cm-band .band-cell--meters .meters.has-core { grid-template-columns: 1.25fr 1.15fr 1fr auto; }
+.cm-band .meter[data-key="verdict"] .meter__value { white-space: pre-line; font-size: max(13px, calc(24 * var(--u))); line-height: 1.2; word-break: keep-all; }
+.cm-band .meter[data-key="verdict"] .meter__unit { display: none; }
+.cm-band .meter[data-key="verdict"] { background: var(--sim-tint); border-color: var(--sim); }
+/* 수치 더 보기 안: 두 수레 속도 2칸 */
+.pop--meters .meters--more { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+/* 패널 = 수치 3개 + 충돌 종류 1줄(1280×720 에서 '아래에 더 있어요' 없이) — v₁ 부호 풀이·범퍼 풀이는 칸 title·도움말·설명 2·3장에 같은 말이라
+   자세히 패널에서는 숨김(⚙·심플 레일은 그대로) */
+html:not(.is-simple) .sim-panel [data-key="v1"] .var__hint,
+html:not(.is-simple) .sim-panel [data-key="tau"] .var__hint { display: none; }
+/* 충돌 종류·범퍼(벽 장면): 패널에서는 이름을 단추 줄 왼쪽에 한 줄로(묶음 높이 = 단추 높이).
+   충돌 종류 부제(탄성·비탄성)는 단추 title·설명 5장·도움말 용어로 — 패널에서는 이름만 */
+html:not(.is-simple) .sim-panel .ctl[data-key="kind"],
+html:not(.is-simple) .sim-panel .ctl[data-key="tau"] { grid-template-columns: calc(160 * var(--u)) minmax(0, 1fr); align-items: center; column-gap: var(--space-3); }
+html:not(.is-simple) .sim-panel .ctl[data-key="kind"] .ctl__label,
+html:not(.is-simple) .sim-panel .ctl[data-key="tau"] .ctl__label { margin: 0; line-height: 1.25; word-break: keep-all; }
+html:not(.is-simple) .sim-panel [data-key="kind"] .btn__sub { display: none; }
+html:not(.is-simple) .sim-panel [data-key="kind"] .seg__opt { min-height: calc(52 * var(--u)); }
+html:not(.is-simple) .sim-panel [data-key="tau"] .seg__opt { padding-top: calc(2 * var(--u)); padding-bottom: calc(2 * var(--u)); min-height: calc(52 * var(--u)); }
+/* core 칸 값 글자: 공통 48u 는 '2.00 → 2.00 kg·m/s' 가 칸을 넘친다 → 30u(전 → 후 두 값), 판정은 두 줄 22u·이름 숨김(심플과 같음) */
+.sim-band.cm-band .meters.has-core .meter.is-core .meter__value { font-size: max(13px, calc(30 * var(--u))); white-space: nowrap; }
+.sim-band.cm-band .meters.has-core .meter.is-core .meter__value.cm-pair { font-size: max(13px, calc(28 * var(--u))); }
+.sim-band.cm-band .meters.has-core .meter[data-key="verdict"] .meter__value { font-size: max(12px, calc(22 * var(--u))); white-space: pre-line; line-height: 1.2; }
+.sim-band.cm-band .meters.has-core .meter[data-key="verdict"] .meter__label { display: none; }
+.sim-band.cm-band .meters.has-core .meter[data-key="verdict"] { align-content: center; }
+.sim-band.cm-band .meters__more { align-self: stretch; }
+
+/* R7-3(B4): 실행 전 그래프 판 = 56u 한 줄 — 탭·'그래프' 머리는 실행 뒤(판이 펼쳐진 뒤)에만 */
+.cm-lower.cm-lower--pre .cm-tabs, .cm-lower.cm-lower--pre .cm-tabs__label { display: none; }
+.cm-lower.cm-lower--pre > .empty { padding-block: 0; min-height: 0; }
+
+/* ── R7 학생점검(A8): 저시력 — 슬라이더 눈금('0.5 1 3' · '← −3 0 +3 →')·띠 값('2.00→2.00')·단위·판정 글자 하한 18px ── */
+.sim-panel .var__ticks, .sim-panel .var__ticks span, .cm-vel .var__ticks .cm-zero { font-size: max(18px, var(--fs-caption)); }
+.sim-band.cm-band .meters.has-core .meter.is-core .meter__value { font-size: max(18px, calc(30 * var(--u))); }
+.sim-band.cm-band .meters.has-core .meter.is-core .meter__value.cm-pair { font-size: max(18px, calc(28 * var(--u))); }
+.sim-band.cm-band .meter__unit { font-size: max(18px, var(--fs-caption)); }
+.cm-band .meter__value .arrow { font-size: max(18px, .7em); }
+.sim-band.cm-band .meters.has-core .meter[data-key="verdict"] .meter__value { font-size: max(18px, calc(22 * var(--u))); line-height: 1.15; }
+/* R8(D3): 카드 ② 부제는 한 줄('튕기기 → 달라붙기') — R7 의 두 줄 예외 규칙 삭제 */
+html.is-simple .simple-rail .var__ticks, html.is-simple .simple-rail .var__ticks span { font-size: max(18px, var(--fs-caption)); }   /* R7(A8): 심플 눈금도 18px */
+
+/* R7 학생점검(디자인A·B): 속도 눈금 '← −3'·'+3 →' 가 슬라이더 양끝 밖으로 나가 [−][+] 단추와 닿던 것 — 끝 눈금은 슬라이더 안쪽으로 맞춤 */
+.cm-vel .var__ticks span.is-start { margin-left: 0; }
+.cm-vel .var__ticks span.is-end { margin-left: 0; }
+/* '달라붙기' 가 1180 에서 '달라붙/기' 로 꺾이던 것 — 충돌 종류 칩은 낱말을 자르지 않고 여백을 줄인다 */
+html:not(.is-simple) .sim-panel [data-key="kind"] .seg__opt { padding-left: calc(4 * var(--u)); padding-right: calc(4 * var(--u)); white-space: nowrap; word-break: keep-all; font-size: max(16px, var(--fs-meta)); }
+
+/* ── R8 (UI팀2 D6) ── */
+/* 하단 계기 이름 '운동량 합 전→후' · '에너지 합 전→후' — 1024 에서도 한 줄(글자는 칸 폭에 맞춰 줄어듦) */
+.sim-band.cm-band .meter[data-key="p"] .meter__label,
+.sim-band.cm-band .meter[data-key="k"] .meter__label { white-space: nowrap; overflow: hidden; text-overflow: clip; font-size: clamp(14px, calc(22 * var(--u)), 22px); }
+@media (max-width: 1100px) {
+  .sim-band.cm-band .meters.has-core .meter.is-core .meter__value,
+  .sim-band.cm-band .meters.has-core .meter.is-core .meter__value.cm-pair { font-size: clamp(17px, calc(26 * var(--u)), 28px); }
+}
+/* 판정은 버튼처럼 보이지 않게 — 면·테두리 없이 ✓/× + 글자 */
+.cm-band .meter[data-key="verdict"],
+.sim-band.cm-band .meters.has-core .meter[data-key="verdict"] { background: transparent; border-color: transparent; box-shadow: none; }
+html.is-simple .simple-meter[data-key="verdict"] { background: transparent; border-color: transparent; box-shadow: none; }
+.cm-band .meter.cm-hitting .meter__unit { display: none; }
+
+/* 팀장 R8 결과(디자인B): 1024 충돌 종류 분절 단추 '달라붙기' 가 칸 테두리에 붙음 → 좁은 폭은 글자 15px·안쪽 여백 2u */
+@media (max-width: 1100px) {
+  html:not(.is-simple) .sim-panel [data-key="kind"] .seg__opt { padding-left: calc(2 * var(--u)); padding-right: calc(2 * var(--u)); font-size: max(15px, calc(20 * var(--u))); letter-spacing: -0.01em; }
+}
+
+/* ===== R9(UI팀2, §4-3): 단계 보조 규칙 — 공통 클래스(.level-chip·.simple-meter.is-plain 등)는 디자인팀, 여기는 이 sim 것만 ===== */
+/* 초급: 레일의 질량 이름 옆 기호(m₁·m₂)·충돌 종류 부제(탄성·비탄성)는 숨김 */
+html[data-level="basic"] .simple-rail .var__sym,
+html[data-level="basic"] .simple-rail [data-key="kind"] .btn__sub { display: none; }
+/* 초급 측정 칸 '움직임의 양(운동량)' — 두 수레 합 막대(가운데 0, 오른쪽 + · 왼쪽 −), 숫자 없음. '후' 는 부딪친 뒤에만 */
+.simple-meter[data-key="pbar"] { flex-direction: row; align-items: center; column-gap: var(--space-4); }
+.simple-meter[data-key="pbar"] .simple-meter__label { flex: none; max-width: 7.5em; white-space: normal; line-height: 1.15; }
+.simple-meter[data-key="pbar"] .simple-meter__bar { flex: 1 1 auto; min-width: 0; }
+/* 두 줄이 같은 열을 쓰게(display: contents) — '후' 의 말 칸 때문에 막대 길이가 달라 보이지 않게 */
+.cm-pbar { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(5.5em, auto); align-items: center; column-gap: var(--space-2); row-gap: calc(6 * var(--u)); width: 100%; }
+.cm-pbar__row { display: contents; }
+.cm-pbar__name { font-size: max(16px, calc(24 * var(--u))); color: var(--color-ink-chip); }
+.cm-pbar__track { position: relative; display: block; height: calc(22 * var(--u)); min-height: 12px; background: var(--color-paper-sunk); border-radius: 4px; overflow: hidden; }
+.cm-pbar__track[hidden] { display: none; }
+.cm-pbar__zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--color-line-strong); }
+.cm-pbar.is-pos .cm-pbar__zero { display: none; }
+.cm-pbar__fill { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; background: var(--color-ink);
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(255, 255, 255, .45) 6px 8px); transition: width .2s, left .2s; }
+.cm-pbar__note { font-size: max(16px, calc(24 * var(--u))); white-space: nowrap; color: var(--color-ink); }
+.cm-pbar__note.is-ok { color: var(--color-ok); font-weight: var(--font-weight-medium); }
+.cm-pbar__note.is-wait { grid-column: 2 / -1; color: var(--color-ink-muted); }
+@media (prefers-reduced-motion: reduce) { .cm-pbar__fill { transition: none; } }
+/* 고급: 띠 = 운동량 합 · 에너지 합 · 에너지 손실 · 판정 + [수치 더 보기] */
+.cm-band .band-cell--meters .meters.has-core.cm-meters--adv { grid-template-columns: 1.2fr 1.1fr .8fr .9fr auto; }
+.cm-band .meter[data-key="loss"][hidden], .pop--meters .meter[hidden] { display: none; }
+.sim-band.cm-band .meter[data-key="loss"] .meter__label { white-space: nowrap; overflow: hidden; text-overflow: clip; font-size: clamp(14px, calc(22 * var(--u)), 22px); }
