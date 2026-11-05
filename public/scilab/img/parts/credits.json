@@ -1,0 +1,128 @@
+{
+ "조도 센서": {
+  "file": "img/parts/ldr.webp",
+  "title": "25mm light-dependent resistor (LDR) (1).jpg",
+  "artist": "Suyash Dwivedi",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:25mm_light-dependent_resistor_(LDR)_(1).jpg"
+ },
+ "초음파 센서": {
+  "file": "img/parts/ultrasonic.webp",
+  "title": "SparkFun HC-SR04 Ultrasonic-Sensor 13959-01a.jpg",
+  "artist": "SparkFun",
+  "lic": "CC BY 2.0",
+  "page": "https://commons.wikimedia.org/wiki/File:SparkFun_HC-SR04_Ultrasonic-Sensor_13959-01a.jpg"
+ },
+ "온습도 센서": {
+  "file": "img/parts/dht11.webp",
+  "title": "Dht11.jpg",
+  "artist": "Edwiyanto",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Dht11.jpg"
+ },
+ "음향 감지 센서": {
+  "file": "img/parts/mic.webp",
+  "title": "Electret microphone MKE3.JPG",
+  "artist": "Kae",
+  "lic": "CC BY-SA 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Electret_microphone_MKE3.JPG"
+ },
+ "기울기 센서": {
+  "file": "img/parts/tilt.webp",
+  "title": "Датчик наклона (Troyka-модуль).jpg",
+  "artist": "Флорист",
+  "lic": "CC BY 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:%D0%94%D0%B0%D1%82%D1%87%D0%B8%D0%BA_%D0%BD%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%D0%B0_(Troyka-%D0%BC%D0%BE%D0%B4%D1%83%D0%BB%D1%8C).jpg"
+ },
+ "가스 감지 센서": {
+  "file": "img/parts/gas.webp",
+  "title": "Gassensor tgs822.jpg",
+  "artist": "Stefan Riepl (Quark48)",
+  "lic": "Public domain",
+  "page": "https://commons.wikimedia.org/wiki/File:Gassensor_tgs822.jpg"
+ },
+ "토양 습도 센서": {
+  "file": "img/parts/soil.webp",
+  "title": "Soil moisture sensor.JPG",
+  "artist": "Sealman",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Soil_moisture_sensor.JPG"
+ },
+ "버튼": {
+  "file": "img/parts/button.webp",
+  "title": "Tactile switches.jpg",
+  "artist": "Scwerllguy",
+  "lic": "CC BY-SA 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Tactile_switches.jpg"
+ },
+ "조이스틱": {
+  "file": "img/parts/joystick.webp",
+  "title": "Nintendo 64 analog stick.jpg",
+  "artist": "Evan-Amos",
+  "lic": "CC0",
+  "page": "https://commons.wikimedia.org/wiki/File:Nintendo_64_analog_stick.jpg"
+ },
+ "미세먼지 센서": {
+  "file": "img/parts/dust.webp",
+  "title": "Dust sensor GP2Y1010AU0F.JPG",
+  "artist": "Photograph:  wdwd",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Dust_sensor_GP2Y1010AU0F.JPG"
+ },
+ "발광 다이오드": {
+  "file": "img/parts/led.webp",
+  "title": "RGB LED 5mm.jpg",
+  "artist": "Mister rf",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:RGB_LED_5mm.jpg"
+ },
+ "버저": {
+  "file": "img/parts/buzzer.webp",
+  "title": "KS-3206 6VDC Electronic Buzzer.jpg",
+  "artist": "Nvtj",
+  "lic": "CC BY-SA 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:KS-3206_6VDC_Electronic_Buzzer.jpg"
+ },
+ "전동기": {
+  "file": "img/parts/motor.webp",
+  "title": "Dc motors.jpg",
+  "artist": "1sfoerster",
+  "lic": "CC BY-SA 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Dc_motors.jpg"
+ },
+ "액정 표시기": {
+  "file": "img/parts/lcd.webp",
+  "title": "2x8 amber HD44780 LCD CIMG0416.JPG",
+  "artist": "MikroLogika",
+  "lic": "CC BY-SA 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:2x8_amber_HD44780_LCD_CIMG0416.JPG"
+ },
+ "세그먼트": {
+  "file": "img/parts/segment.webp",
+  "title": "LED-7-Segment-Display.jpg",
+  "artist": "RetroEditor",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:LED-7-Segment-Display.jpg"
+ },
+ "서보 전동기": {
+  "file": "img/parts/servo.webp",
+  "title": "Tower Pro SG90 micro servo motor.jpg",
+  "artist": "Suyash Dwivedi",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Tower_Pro_SG90_micro_servo_motor.jpg"
+ },
+ "레이저": {
+  "file": "img/parts/laser.webp",
+  "title": "Laser module.jpg",
+  "artist": "彭家杰",
+  "lic": "CC BY-SA 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Laser_module.jpg"
+ },
+ "스피커": {
+  "file": "img/parts/speaker.webp",
+  "title": "SparkFun speaker---05w-8-ohm 16280234761 o.jpg",
+  "artist": "SparkFun Electronics",
+  "lic": "CC BY 2.0",
+  "page": "https://commons.wikimedia.org/wiki/File:SparkFun_speaker---05w-8-ohm_16280234761_o.jpg"
+ }
+}
