@@ -21,7 +21,7 @@
 .ui-tex .katex .katex-base, .ui-tex .katex .base { white-space: nowrap; }
 /* 한 덩어리가 줄보다 넓을 때(긴 분수 등)만 tex.tsx 가 is-wide 를 붙여 그 수식만 옆으로 밀어 보게 해요 */
 .ui-tex.is-short > .katex { white-space: nowrap; } /* 짧은 식($I \le 10$ 등)은 가운데서 끊지 않아요 */
-.ui-tex.is-wide { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+.ui-tex.is-wide { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; -webkit-overflow-scrolling: touch; padding: 4px 0 10px; }
 .ui-tex.is-wide > .katex { white-space: nowrap; }
 /* 휴대폰 글 속 분수: KaTeX 는 분자·분모를 0.7배로 그려 17px 본문에서 12px 남짓이 돼요.
  * 맨 바깥 글 속 분수(첨자 속 분수 · \dfrac 말고)만 상자째 키워 분자·분모가 13px 이상이 되게 해요(19px × 0.7 ≈ 13.3px).
